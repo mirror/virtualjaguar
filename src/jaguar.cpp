@@ -13,7 +13,7 @@
 
 #define CPU_DEBUG
 //Do this in makefile??? Yes! Could, but it's easier to define here...
-#define LOG_UNMAPPED_MEMORY_ACCESSES
+//#define LOG_UNMAPPED_MEMORY_ACCESSES
 
 // Private function prototypes
 
