@@ -730,13 +730,10 @@ void blitter_blit(uint32 cmd)
 	op = (cmd >> 21) & 0x0F;
 	ctrl = (cmd >> 25) & 0x3F;
 
-	a1_addr = REG(A1_BASE);
-//Just for testing Trevor McFur...
-//if (a1_addr == 0x130CB0) specialLog = true;
-//extern bool suppressOutput;
-//if (a1_addr == 0x130CB0) suppressOutput = false;
-//End testing
-	a2_addr = REG(A2_BASE);
+	// Addresses in A1/2_BASE are *phrase* aligned, i.e., bottom three bits are ignored!
+	// NOTE: This fixes Rayman's bad collision detection AND keeps T2K working!
+	a1_addr = REG(A1_BASE) & 0xFFFFFFF8;
+	a2_addr = REG(A2_BASE) & 0xFFFFFFF8;
 
 	a1_zoffs = (REG(A1_FLAGS) >> 6) & 7;
 	a2_zoffs = (REG(A2_FLAGS) >> 6) & 7;
@@ -755,9 +752,12 @@ void blitter_blit(uint32 cmd)
 	a1_y = (REG(A1_PIXEL) & 0xFFFF0000) | (REG(A1_FPIXEL) >> 16);
 //According to the JTRM, X is restricted to 15 bits and Y is restricted to 12.
 //But it seems to fuck up T2K! !!! FIX !!!
+//Could it be sign extended??? Doesn't seem to be so according to JTRM
 //	a1_x &= 0x7FFFFFFF, a1_y &= 0x0FFFFFFF;
 
 //	a1_width = blitter_scanline_width[((REG(A1_FLAGS) & 0x00007E00) >> 9)];
+// According to JTRM, this must give a *whole number* of phrases in the current
+// pixel size (this means the lookup above is WRONG)... !!! FIX !!!
 	UINT32 m = (REG(A1_FLAGS) >> 9) & 0x03, e = (REG(A1_FLAGS) >> 11) & 0x0F;
 	a1_width = ((0x04 | m) << e) >> 2;//*/
 
@@ -768,6 +768,8 @@ void blitter_blit(uint32 cmd)
 //	a2_x &= 0x7FFFFFFF, a2_y &= 0x0FFFFFFF;
 
 //	a2_width = blitter_scanline_width[((REG(A2_FLAGS) & 0x00007E00) >> 9)];
+// According to JTRM, this must give a *whole number* of phrases in the current
+// pixel size (this means the lookup above is WRONG)... !!! FIX !!!
 	m = (REG(A2_FLAGS) >> 9) & 0x03, e = (REG(A2_FLAGS) >> 11) & 0x0F;
 	a2_width = ((0x04 | m) << e) >> 2;//*/
 	a2_mask_x = ((REG(A2_MASK) & 0x0000FFFF) << 16) | 0xFFFF;
