@@ -258,7 +258,8 @@ void DumpScaledObject(uint64 p0, uint64 p1, uint64 p2)
 	WriteLog(" %08X --> phrase %08X %08X\n", op_pointer, (uint32)(p1>>32), (uint32)(p1&0xFFFFFFFF));
 	WriteLog("                 %08X --> phrase %08X %08X ", op_pointer+8, (uint32)(p2>>32), (uint32)(p2&0xFFFFFFFF));
 	uint8 bitdepth = (p1 >> 12) & 0x07;
-	int16 ypos = ((p0 >> 3) & 0x3FF);			// ??? What if not interlaced (/2)?
+//WAS:	int16 ypos = ((p0 >> 3) & 0x3FF);			// ??? What if not interlaced (/2)?
+	int16 ypos = ((p0 >> 3) & 0x7FF);			// ??? What if not interlaced (/2)?
 	int32 xpos = p1 & 0xFFF;
 	xpos = (xpos & 0x800 ? xpos | 0xFFFFF000 : xpos);
 	uint32 iwidth = ((p1 >> 28) & 0x3FF);
@@ -283,7 +284,8 @@ void DumpFixedObject(uint64 p0, uint64 p1)
 	WriteLog(" (BITMAP)");
 	WriteLog(" %08X --> phrase %08X %08X\n", op_pointer, (uint32)(p1>>32), (uint32)(p1&0xFFFFFFFF));
 	uint8 bitdepth = (p1 >> 12) & 0x07;
-	int16 ypos = ((p0 >> 3) & 0x3FF);			// ??? What if not interlaced (/2)?
+//WAS:	int16 ypos = ((p0 >> 3) & 0x3FF);			// ??? What if not interlaced (/2)?
+	int16 ypos = ((p0 >> 3) & 0x7FF);			// ??? What if not interlaced (/2)?
 	int32 xpos = p1 & 0xFFF;
 	xpos = (xpos & 0x800 ? xpos | 0xFFFFF000 : xpos);
 	uint32 iwidth = ((p1 >> 28) & 0x3FF);
@@ -346,7 +348,8 @@ WriteLog(" (BITMAP) ");
 uint64 p1 = op_load_phrase(op_pointer);
 WriteLog("\n%08X --> phrase %08X %08X ", op_pointer, (int)(p1>>32), (int)(p1&0xFFFFFFFF));
 	uint8 bitdepth = (p1 >> 12) & 0x07;
-	int16 ypos = ((p0 >> 3) & 0x3FF);			// ??? What if not interlaced (/2)?
+//WAS:	int16 ypos = ((p0 >> 3) & 0x3FF);			// ??? What if not interlaced (/2)?
+	int16 ypos = ((p0 >> 3) & 0x7FF);			// ??? What if not interlaced (/2)?
 int32 xpos = p1 & 0xFFF;
 xpos = (xpos & 0x800 ? xpos | 0xFFFFF000 : xpos);
 	uint32 iwidth = ((p1 >> 28) & 0x3FF);
@@ -368,7 +371,8 @@ uint64 p1 = op_load_phrase(op_pointer), p2 = op_load_phrase(op_pointer+8);
 WriteLog("\n%08X --> phrase %08X %08X ", op_pointer, (int)(p1>>32), (int)(p1&0xFFFFFFFF));
 WriteLog("\n%08X --> phrase %08X %08X ", op_pointer+8, (int)(p2>>32), (int)(p2&0xFFFFFFFF));
 	uint8 bitdepth = (p1 >> 12) & 0x07;
-	int16 ypos = ((p0 >> 3) & 0x3FF);			// ??? What if not interlaced (/2)?
+//WAS:	int16 ypos = ((p0 >> 3) & 0x3FF);			// ??? What if not interlaced (/2)?
+	int16 ypos = ((p0 >> 3) & 0x7FF);			// ??? What if not interlaced (/2)?
 int32 xpos = p1 & 0xFFF;
 xpos = (xpos & 0x800 ? xpos | 0xFFFFF000 : xpos);
 	uint32 iwidth = ((p1 >> 28) & 0x3FF);
@@ -407,7 +411,8 @@ WriteLog("    --> List end\n");
 		{
 		case OBJECT_TYPE_BITMAP:
 		{
-			uint16 ypos = (p0 >> 3) & 0x3FF;
+//WAS:			uint16 ypos = (p0 >> 3) & 0x3FF;
+			uint16 ypos = (p0 >> 3) & 0x7FF;
 // This is only theory implied by Rayman...!
 // It seems that if the YPOS is zero, then bump the YPOS value so that it coincides with
 // the VDB value. With interlacing, this would be slightly more tricky.
@@ -465,7 +470,8 @@ if (!inhibit)	// For OP testing only!
 		}
 		case OBJECT_TYPE_SCALE:
 		{
-			uint16 ypos = (p0 >> 3) & 0x3FF;
+//WAS:			uint16 ypos = (p0 >> 3) & 0x3FF;
+			uint16 ypos = (p0 >> 3) & 0x7FF;
 			uint32 height = (p0 & 0xFFC000) >> 14;
 			uint32 oldOPP = op_pointer - 8;
 // *** BEGIN OP PROCESSOR TESTING ONLY ***
