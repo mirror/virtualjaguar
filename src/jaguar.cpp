@@ -1,7 +1,7 @@
 //
 // JAGUAR.CPP
 //
-// by cal16
+// by cal2
 // GCC/SDL port by Niels Wagenaar (Linux/WIN32) and Caz (BeOS)
 // Cleanups and endian wrongness amelioration by James L. Hammons
 // Note: Endian wrongness probably stems from the MAME origins of this emu and
@@ -40,26 +40,15 @@ uint32 jaguar_use_bios = 0;
 #define JAGUAR_WIP_RELEASE
 #define JAGUAR_REAL_SPEED
 
-
-//////////////////////////////////////////////////////////////////////////////
+//
 // Bios path
-//////////////////////////////////////////////////////////////////////////////
 //
-//
-//
-//////////////////////////////////////////////////////////////////////////////
+
 //static char  *jaguar_bootRom_path="c:/jaguarEmu/newload.img";
 static char * jaguar_bootRom_path = "./bios/jagboot.rom";
 //static char  *jaguar_bootRom_path="./bios/JagOS.bin";
 char * jaguar_eeproms_path = "./eeproms/";
 
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
 uint32 jaguar_mainRom_crc32;
 
 static uint32 m68k_cycles_per_scanline;
@@ -70,7 +59,6 @@ static uint32 jaguar_screen_scanlines;
 static uint8 * jaguar_mainRam = NULL;
 static uint8 * jaguar_bootRom = NULL;
 static uint8 * jaguar_mainRom = NULL;
-//////////////////////////////////////////////////////////////////////////////
 
 
 //
@@ -90,7 +78,7 @@ int irq_ack_handler(int level)
 	return vector;
 }
 
-//Do this in makefile???
+//Do this in makefile??? Yes!
 //#define LOG_UNMAPPED_MEMORY_ACCESSES 1
 
 unsigned int m68k_read_memory_8(unsigned int address)
@@ -188,17 +176,6 @@ void m68k_write_memory_32(unsigned int address, unsigned int value)
 	m68k_write_memory_16(address + 2, value & 0xFFFF);
 }
 
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
-/*struct STARSCREAM_PROGRAMREGION *jaguar_programfetch;
-struct STARSCREAM_DATAREGION    *jaguar_readbyte;
-struct STARSCREAM_DATAREGION    *jaguar_readword;
-struct STARSCREAM_DATAREGION    *jaguar_writebyte;
-struct STARSCREAM_DATAREGION    *jaguar_writeword;
-UINT16 jaguar_regionsCount[6];*/
 
 //////////////////////////////////////////////////////////////////////////////
 //
@@ -210,7 +187,8 @@ UINT16 jaguar_regionsCount[6];*/
 uint32 jaguar_get_handler(uint32 i)
 {
 //	return (jaguar_word_read(i<<2) << 16) | jaguar_word_read((i<<2) + 2);
-	return (jaguar_word_read(i*4) << 16) | jaguar_word_read((i*4) + 2);
+//	return (jaguar_word_read(i*4) << 16) | jaguar_word_read((i*4) + 2);
+	return jaguar_long_read(i * 4);
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -226,14 +204,10 @@ static char romLoadDialog_filePath[1024];
 #ifndef __PORT__
 static char romLoadDialog_initialDirectory[1024];
 
-int jaguar_open_rom(HWND hWnd,char *title,char *filterString)
+int jaguar_open_rom(HWND hWnd, char * title, char * filterString)
 {
 	OPENFILENAME ofn;
-
-
 	romLoadDialog_initialDirectory[0] = 0;
-
-
 	romLoadDialog_filePath[0] = 0;
 
 	ZeroMemory(&ofn, sizeof(OPENFILENAME));
@@ -359,9 +333,6 @@ unsigned jaguar_unknown_readword(unsigned address)
 
 uint8 * jaguar_rom_load(char * path, uint32 * romSize)
 {
-	uint8 * rom = NULL;
-	fpos_t pos;
-	int	x;
 	__int64	filepos;
 
 	fprintf(log_get(), "jaguar: loading %s...", path);
@@ -377,15 +348,15 @@ uint8 * jaguar_rom_load(char * path, uint32 * romSize)
 
 	/* Added by SDLEMU (http://sdlemu.ngemu.com) */
 	/* Added for GCC UNIX compatibility          */
-	#ifdef __GCCUNIX__
+#ifdef __GCCUNIX__
 	fgetpos(fp, (fpos_t *)&filepos);
-	#else
+#else
 	fgetpos(fp, &filepos);
-	#endif
+#endif
 	
 	*romSize = (int)filepos;
 	fseek(fp, 0, SEEK_SET);
-	rom = (uint8 *)malloc(*romSize);
+	uint8 * rom = (uint8 *)malloc(*romSize);
 	fread(rom, 1, *romSize, fp);
 	fclose(fp);
 	fprintf(log_get(), "ok (%i bytes)\n", *romSize);
@@ -415,11 +386,11 @@ void jaguar_rom_load_to(uint8 * rom, char * path, uint32 * romSize)
 
 	/* Added by SDLEMU (http://sdlemu.ngemu.com) */
 	/* Added for GCC UNIX compatibility          */
-	#ifdef __GCCUNIX__
+#ifdef __GCCUNIX__
 	fgetpos(fp, (fpos_t *)&filepos);
-	#else
+#else
 	fgetpos(fp, &filepos);
-	#endif
+#endif
 
 	*romSize = (int)filepos;
 	fseek(fp, 0, SEEK_SET);
@@ -432,7 +403,7 @@ void jaguar_rom_load_to(uint8 * rom, char * path, uint32 * romSize)
 // Byte swap a region of memory
 //
 
-void jaguar_byte_swap(uint8 * rom, uint32 size)
+/*void jaguar_byte_swap(uint8 * rom, uint32 size)
 {
 	while (size > 0)
 	{
@@ -442,7 +413,7 @@ void jaguar_byte_swap(uint8 * rom, uint32 size)
 		rom += 2;
 		size -= 2;
 	}
-}
+}*/
 
 //
 // Disassemble instructions at the given offset
@@ -450,6 +421,7 @@ void jaguar_byte_swap(uint8 * rom, uint32 size)
 
 void jaguar_dasm(uint32 offset, uint32 qt)
 {
+#ifdef CPU_DEBUG
 	static char buffer[2048], mem[64];
 	int pc = offset, oldpc;
 
@@ -457,14 +429,12 @@ void jaguar_dasm(uint32 offset, uint32 qt)
 	{
 		oldpc = pc;
 		for(int j=0; j<64; j++)
-//			mem[j^0x01] = jaguar_byte_read(pc + j);
 			mem[j^0x01] = jaguar_byte_read(pc + j);
 
 		pc += Dasm68000((char *)mem, buffer, 0);
-#ifdef CPU_DEBUG
 		fprintf(log_get(), "%08X: %s\n", oldpc, buffer);
-#endif
 	}
+#endif
 }
 
 //
@@ -479,7 +449,7 @@ void jaguar_load_cart(char * path, uint8 * mem, uint32 offs, uint32 boot, uint32
 // Is there a need for this? The answer is !!! NO !!!
 //	jaguar_byte_swap(mem+offs, romsize);
 	jaguar_mainRom_crc32 = crc32_calcCheckSum(jaguar_mainRom, romsize);
-	fprintf(log_get(), "crc: %08X\n", jaguar_mainRom_crc32);
+	fprintf(log_get(), "CRC: %08X\n", jaguar_mainRom_crc32);
 
 // Brain dead endian dependent crap
 //	*((uint32 *)&jaguar_mainRam[4]) = boot;
@@ -507,9 +477,9 @@ void jaguar_init(void)
 	gpu_cycles_per_scanline = (26591000 / 4) / (jaguar_screen_scanlines * 60);
 	dsp_cycles_per_scanline = (26591000 / 4) / (jaguar_screen_scanlines * 60);
 
-	memory_malloc_secure((void**)&jaguar_mainRam, 0x400000, "Jaguar 68k cpu ram");
-	memory_malloc_secure((void**)&jaguar_bootRom, 0x040000, "Jaguar 68k cpu boot rom");
-	memory_malloc_secure((void**)&jaguar_mainRom, 0x600000, "Jaguar 68k cpu rom");
+	memory_malloc_secure((void **)&jaguar_mainRam, 0x400000, "Jaguar 68k cpu ram");
+	memory_malloc_secure((void **)&jaguar_bootRom, 0x040000, "Jaguar 68k cpu boot rom");
+	memory_malloc_secure((void **)&jaguar_mainRom, 0x600000, "Jaguar 68k cpu rom");
 	memset(jaguar_mainRam, 0x00, 0x400000);
 
 	jaguar_rom_load_to(jaguar_bootRom, jaguar_bootRom_path, &romsize);
@@ -528,6 +498,15 @@ void jaguar_init(void)
 #endif
 //WAS: 	jaguar_load_cart(romLoadDialog_filePath, jaguar_mainRom, 0x0000, 0x20000080, 0);
  	jaguar_load_cart(romLoadDialog_filePath, jaguar_mainRom, 0x0000, 0x00802000, 0);
+
+//JLH:
+/*	if (jaguar_mainRom_crc32 == 0xA9F8A00E)
+	{
+		dsp_enabled = 1;
+		fprintf(log_get(), "--> Rayman detected, DSP enabled...\n");
+	}//*/
+
+
 	if ((jaguar_mainRom_crc32 == 0x3966698f) || (jaguar_mainRom_crc32 == 0x5e705756)
 		|| (jaguar_mainRom_crc32 == 0x2630cbc4) || (jaguar_mainRom_crc32 == 0xd46437e8)
 		|| (jaguar_mainRom_crc32 == 0x2630cbc4))
@@ -776,7 +755,8 @@ void jaguar_init(void)
 	if (jaguar_use_bios)
 	{
 		memcpy(jaguar_mainRam, jaguar_bootRom, 8);
-		*((uint32 *)&jaguar_mainRam[0]) = 0x00000020;
+//		*((uint32 *)&jaguar_mainRam[0]) = 0x00000020;
+//		SET32(jaguar_mainRam, 0, 0x00200000);
 	}
 
 //	s68000init();
@@ -787,16 +767,7 @@ void jaguar_init(void)
 	jerry_init();
 	cdrom_init();
 }
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
+
 unsigned jaguar_byte_read(unsigned int offset)
 {
 	uint8 data = 0x00;
@@ -804,70 +775,55 @@ unsigned jaguar_byte_read(unsigned int offset)
 	offset &= 0xFFFFFF;
 	if (offset < 0x400000)
 //		data = (jaguar_mainRam[(offset^0x01) & 0x3FFFFF]);
-		data = (jaguar_mainRam[offset & 0x3FFFFF]);
+		data = jaguar_mainRam[offset & 0x3FFFFF];
 	else if ((offset >= 0x800000) && (offset < 0xC00000))
 //		data = (jaguar_mainRom[(offset^0x01)-0x800000]);
-		data = (jaguar_mainRom[offset - 0x800000]);
-	else if ((offset >= 0xDFFF00) && (offset < 0xDFFF00))
+		data = jaguar_mainRom[offset - 0x800000];
+//	else if ((offset >= 0xDFFF00) && (offset < 0xDFFF00))
+	else if ((offset >= 0xDFFF00) && (offset <= 0xDFFFFF))
 		data = cdrom_byte_read(offset);
 	else if ((offset >= 0xE00000) && (offset < 0xE40000))
 //		data = (jaguar_bootRom[(offset^0x01) & 0x3FFFF]);
-		data = (jaguar_bootRom[offset & 0x3FFFF]);
+		data = jaguar_bootRom[offset & 0x3FFFF];
 	else if ((offset >= 0xF00000) && (offset < 0xF10000))
-		data = (tom_byte_read(offset));
+		data = tom_byte_read(offset);
 	else if ((offset >= 0xF10000) && (offset < 0xF20000))
-		data = (jerry_byte_read(offset));
+		data = jerry_byte_read(offset);
 	else
 		data = jaguar_unknown_readbyte(offset);
 
 	return data;
 }
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
+
 unsigned jaguar_word_read(unsigned int offset)
 {
 	offset &= 0xFFFFFF;
-	if (offset < 0x400000)
+	if (offset <= 0x3FFFFE)
 	{
 //		return (jaguar_mainRam[(offset+1) & 0x3FFFFF] << 8) | jaguar_mainRam[(offset+0) & 0x3FFFFF];
 		return (jaguar_mainRam[(offset+0) & 0x3FFFFF] << 8) | jaguar_mainRam[(offset+1) & 0x3FFFFF];
 	}
-	else if ((offset >= 0x800000) && (offset < 0xC00000))
+	else if ((offset >= 0x800000) && (offset <= 0xBFFFFE))
 	{
 		offset -= 0x800000;
 //		return (jaguar_mainRom[offset+1] << 8) | jaguar_mainRom[offset+0];
 		return (jaguar_mainRom[offset+0] << 8) | jaguar_mainRom[offset+1];
 	}
-	else if ((offset >= 0xDFFF00) && (offset < 0xDFFF00))
+//	else if ((offset >= 0xDFFF00) && (offset < 0xDFFF00))
+	else if ((offset >= 0xDFFF00) && (offset <= 0xDFFFFE))
 		return cdrom_word_read(offset);
-	else if ((offset >= 0xE00000) && (offset < 0xE40000))
-		return *((uint16 *)&jaguar_bootRom[offset & 0x3FFFF]);
-	else if ((offset >= 0xF00000) && (offset < 0xF10000))
+	else if ((offset >= 0xE00000) && (offset <= 0xE3FFFE))
+//		return *((uint16 *)&jaguar_bootRom[offset & 0x3FFFF]);
+		return (jaguar_bootRom[(offset+0) & 0x3FFFF] << 8) | jaguar_bootRom[(offset+1) & 0x3FFFF];
+	else if ((offset >= 0xF00000) && (offset <= 0xF0FFFE))
 		return tom_word_read(offset);
-	else if ((offset >= 0xF10000) && (offset < 0xF20000))
+	else if ((offset >= 0xF10000) && (offset <= 0xF1FFFE))
 		return jerry_word_read(offset);
 
 	return jaguar_unknown_readword(offset);
 }
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
-void jaguar_byte_write(unsigned  offset, unsigned  data)
+
+void jaguar_byte_write(unsigned offset, unsigned data)
 {
 	offset &= 0xFFFFFF;
 	if (offset < 0x400000)
@@ -876,17 +832,18 @@ void jaguar_byte_write(unsigned  offset, unsigned  data)
 		jaguar_mainRam[offset & 0x3FFFFF] = data;
 		return;
 	}
-	else if ((offset >= 0xDFFF00) && (offset < 0xDFFF00))
+//	else if ((offset >= 0xDFFF00) && (offset < 0xDFFF00))
+	else if ((offset >= 0xDFFF00) && (offset <= 0xDFFFFF))
 	{
 		cdrom_byte_write(offset, data);
 		return;
 	}
-	else if ((offset >= 0xF00000) && (offset < 0xF10000))
+	else if ((offset >= 0xF00000) && (offset <= 0xF0FFFF))
 	{
 		tom_byte_write(offset, data);
 		return;
 	}
-	else if ((offset >= 0xF10000) && (offset < 0xF20000))
+	else if ((offset >= 0xF10000) && (offset <= 0xF1FFFF))
 	{
 		jerry_byte_write(offset, data);
 		return;
@@ -894,21 +851,12 @@ void jaguar_byte_write(unsigned  offset, unsigned  data)
     
 	jaguar_unknown_writebyte(offset, data);
 }
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
+
 void jaguar_word_write(unsigned offset, unsigned data)
 {
 	offset &= 0xFFFFFF;
 	
-	if (offset < 0x400000)
+	if (offset <= 0x3FFFFE)
 	{
 //		jaguar_mainRam[(offset+0) & 0x3FFFFF] = data & 0xFF;
 //		jaguar_mainRam[(offset+1) & 0x3FFFFF] = (data>>8) & 0xFF;
@@ -916,17 +864,17 @@ void jaguar_word_write(unsigned offset, unsigned data)
 		jaguar_mainRam[(offset+1) & 0x3FFFFF] = data & 0xFF;
 		return;
 	}
-	else if ((offset >= 0xDFFF00) && (offset < 0xDFFFFF))
+	else if ((offset >= 0xDFFF00) && (offset <= 0xDFFFFE))
 	{
 		cdrom_word_write(offset, data);
 		return;
 	}
-	else if ((offset >= 0xF00000) && (offset < 0xF10000))
+	else if ((offset >= 0xF00000) && (offset <= 0xF0FFFE))
 	{
 		tom_word_write(offset, data);
 		return;
 	}
-	else if ((offset >= 0xF10000) && (offset < 0xF20000))
+	else if ((offset >= 0xF10000) && (offset <= 0xF1FFFE))
 	{
 		jerry_word_write(offset, data);
 		return;
@@ -934,16 +882,7 @@ void jaguar_word_write(unsigned offset, unsigned data)
     
 	jaguar_unknown_writeword(offset, data);
 }
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
+
 unsigned jaguar_long_read(unsigned int offset)
 {
 /*	uint32 data = jaguar_word_read(offset);
@@ -951,37 +890,22 @@ unsigned jaguar_long_read(unsigned int offset)
 	return data;*/
 	return (jaguar_word_read(offset) << 16) | jaguar_word_read(offset+2);
 }
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
+
 void jaguar_long_write(unsigned offset, unsigned data)
 {
 	jaguar_word_write(offset, data >> 16);
 	jaguar_word_write(offset+2, data & 0xFFFF);
 }
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
+
 void jaguar_done(void)
 {
+	fprintf(log_get(), "jaguar_done() ...START\n");
+#ifdef CPU_DEBUG
 	fprintf(log_get(), "jaguar: top of stack: %08X\n", jaguar_long_read(0x001FFFF8));
 //	fprintf(log_get(),"jaguar: cd bios version 0x%.4x\n",jaguar_word_read(0x3004));
 //	fprintf(log_get(),"jaguar: vbl interrupt is %s\n",((tom_irq_enabled(IRQ_VBLANK))&&(jaguar_interrupt_handler_is_valid(64)))?"enabled":"disabled");
 	s68000show_context();
+#endif
 #ifdef SOUND_OUTPUT
 	ws_audio_done();
 #endif
@@ -993,18 +917,9 @@ void jaguar_done(void)
 	memory_free(jaguar_mainRom);
 	memory_free(jaguar_bootRom);
 	memory_free(jaguar_mainRam);
-//	fprintf(log_get(),"jaguar_done()\n");
+	fprintf(log_get(), "jaguar_done() ...END\n");
 }
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
+
 void jaguar_reset(void)
 {
 //	fprintf(log_get(),"jaguar_reset():\n");
@@ -1021,27 +936,14 @@ void jaguar_reset(void)
     m68k_pulse_reset();                         // Reset the 68000
 	fprintf(log_get(), "\t68K PC=%06X SP=%08X\n", m68k_get_reg(NULL, M68K_REG_PC), m68k_get_reg(NULL, M68K_REG_A7));
 }
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
+
 void jaguar_reset_handler(void)
 {
 }
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
+
 void jaguar_exec(int16 * backbuffer, uint8 render)
 { 
-	int i;
-	uint32 vblank_duration = tom_get_vdb();
+	uint32 i, vblank_duration = tom_get_vdb();
 
 	// vblank
 	if ((tom_irq_enabled(IRQ_VBLANK)) && (jaguar_interrupt_handler_is_valid(64)))
@@ -1056,6 +958,7 @@ void jaguar_exec(int16 * backbuffer, uint8 render)
 // Then again, since IRQ_VBLANK is set to zero, this would not be necessary in this case.
 		}
 	}
+
 	for(i=0; i<vblank_duration; i++)
 	{
 /*		uint32 invalid_instruction_address = s68000exec(m68k_cycles_per_scanline);
@@ -1094,4 +997,26 @@ void jaguar_exec(int16 * backbuffer, uint8 render)
 #ifdef SOUND_OUTPUT
 	system_sound_update();
 #endif
+}
+
+// Temp debugging stuff
+
+void DumpMainMemory(void)
+{
+	FILE * fp = fopen("./memdump.bin", "wb");
+
+	if (fp == NULL)
+		return;
+
+	fwrite(jaguar_mainRam, 1, 0x400000, fp);
+//	for(int i=0; i<0x400000; i++)
+//		fprintf(fp, "%c", jaguar_mainRam[i]);
+//		fputc(jaguar_mainRam[i], fp);
+
+	fclose(fp);
+}
+
+uint8 * GetRamPtr(void)
+{
+	return jaguar_mainRam;
 }

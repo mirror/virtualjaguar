@@ -1,13 +1,19 @@
-////////////////////////////////////////////////////////////////////////////////
-// Audio
-////////////////////////////////////////////////////////////////////////////////
+//
+// Audio handler
+//
+// by cal2
+// GCC/SDL port by Niels Wagenaar (Linux/WIN32) and Caz (BeOS)
+// Cleanups by James L. Hammons
+//
+// We really need to convert this to SDL... DirectSound won't cut it here!
+//
 
-#include "include/jaguar.h"
-#include "include/dsnd.h"
+#include "jaguar.h"
+#include "dsnd.h"
 
 int ym2413_enable;
 
-int FREQUENCE=44100;
+int FREQUENCE = 44100;
 
 void dsound_reset(void);
 
@@ -18,30 +24,20 @@ void dsound_reset(void);
 
 int chipBufferLength;	//Number of bytes to hold SOUND_BUFFER seconds.
 
-int lastChipWrite  =0;
-int chipWrite =UNDEFINED;	//Write Cursor
+int lastChipWrite = 0;
+int chipWrite = UNDEFINED;	//Write Cursor
 
-INT16* buf1;
+INT16 * buf1;
 
-////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////
 
 void ws_write_state(int fp)
 {
 }
 
-
 void ws_read_state(int fp)
 {
 }
 
-
-
-
-////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////
 void ws_audio_init(void)
 {
 #ifdef _EMULATE_SOUND
@@ -49,9 +45,7 @@ void ws_audio_init(void)
 //	ws_audio_reset();
 #endif
 }
-////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////
+
 void ws_audio_reset(void)
 {
 #ifdef _EMULATE_SOUND
@@ -72,10 +66,6 @@ void ws_audio_reset(void)
 #endif
 }
 
-
-////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////
 void ws_audio_done(void)
 {
 #ifdef _EMULATE_SOUND
@@ -83,10 +73,6 @@ void ws_audio_done(void)
 #endif
 }
 
-
-////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////
 void ws_audio_clear_channel(int Channel)
 {
 #ifdef _EMULATE_SOUND
@@ -107,11 +93,10 @@ void ws_audio_clear_channel(int Channel)
 #endif
 }
 
-
-
-////////////////////////////////////////////////////////////////////////////////
+//
 // start playing a channel
-////////////////////////////////////////////////////////////////////////////////
+//
+
 int ws_audio_play_channel(int Channel)
 {
 #ifdef _EMULATE_SOUND
@@ -130,10 +115,10 @@ int ws_audio_play_channel(int Channel)
 	return 0;
 }
 
-
-////////////////////////////////////////////////////////////////////////////////
+//
 // stop playing a channel
-////////////////////////////////////////////////////////////////////////////////
+//
+
 int ws_audio_stop_channel(int Channel)
 {
 #ifdef _EMULATE_SOUND
@@ -152,8 +137,6 @@ int ws_audio_stop_channel(int Channel)
 #endif
 	return(0);
 }
-
-
 
 void dsound_reset(void)
 {
@@ -188,8 +171,6 @@ IDirectSoundBuffer_Play(chipBuffer, 0,0, DSBPLAY_LOOPING );
 #endif
 }
 
-
-
 void system_sound_shutdown(void)
 {
 #ifdef _EMULATE_SOUND
@@ -202,7 +183,6 @@ void system_sound_shutdown(void)
 	if (buf1) free(buf1);
 #endif
 }
-
 
 void system_sound_update(void)
 {

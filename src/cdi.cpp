@@ -1,77 +1,57 @@
+//
+// CD Interface handler
+//
+// by cal2
+// GCC/SDL port by Niels Wagenaar (Linux/WIN32) and Caz (BeOS)
+// Cleanups by James L. Hammons
+//
+
 #include "cdi.h"
 
 /* Added by SDLEMU (http://sdlemu.ngemu.com) */
 /* Added for GCC UNIX compatibility          */
 #ifdef __GCCUNIX__
-	#include <unistd.h>
-	#include <sys/types.h>
-	#include <fcntl.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <fcntl.h>
 
-	#define O_BINARY (0)
+#define O_BINARY (0)
 #endif
 
 #define CDI_V2  0x80000004
 #define CDI_V3  0x80000005
 #define CDI_V35 0x80000006
 
-static uint8 cdi_track_start_mark[10] = { 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF };
-
-
+static uint8 cdi_track_start_mark[10] =
+	{ 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF };
 
 int cdi_fp;
 uint32 cdi_load_address;
 uint32 cdi_code_length;
-s_cdi_descriptor	*cdi_descriptor;
-s_cdi_track			**cdi_tracks;
-uint32 				cdi_tracks_count;
+s_cdi_descriptor * cdi_descriptor;
+s_cdi_track ** cdi_tracks;
+uint32 cdi_tracks_count;
 
 
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
-int cdi_open(char *path)
+int cdi_open(char * path)
 {
-	fprintf(log_get(),"cdi: opening %s\n",path);
-	return(open(path,O_BINARY|O_RDONLY));
+	fprintf(log_get(), "CDI: Opening %s\n", path);
+	return open(path, O_BINARY | O_RDONLY);
 }
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
+
 void cdi_close(int fp)
 {
-	fprintf(log_get(),"cdi: closing\n");
+	fprintf(log_get(), "CDI: Closing\n");
 	close(fp);
 }
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
+
 #ifdef __PORT__
 long tell(int fd)
 {
 	return lseek(fd, 0LL, SEEK_CUR);
 }
 #endif
+
 s_cdi_descriptor *cdi_get_descriptor(int fp, FILE *stdfp)
 {
 	s_cdi_descriptor *descriptor;
@@ -211,16 +191,7 @@ s_cdi_descriptor *cdi_get_descriptor(int fp, FILE *stdfp)
 
 	return(descriptor);
 }
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
+
 void cdi_dump_descriptor(FILE *fp,s_cdi_descriptor *cdi_descriptor)
 {
 	fprintf(fp,"cdi: %i Mb\n",cdi_descriptor->length>>20);
@@ -234,83 +205,72 @@ void cdi_dump_descriptor(FILE *fp,s_cdi_descriptor *cdi_descriptor)
 	}
 	fprintf(fp,"cdi: %i sessions\n",cdi_descriptor->nb_of_sessions);
 }
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
-uint8 *cdi_extract_boot_code(int fp, s_cdi_descriptor *cdi_descriptor)
-{
-	s_cdi_track *boot_track=&cdi_descriptor->sessions[1].tracks[0];
-	uint32 boot_track_size=boot_track->length*boot_track->sector_size;
 
-	uint8 *boot_track_data=(uint8*)malloc(boot_track_size);
-	lseek(fp,2+(boot_track->position), SEEK_SET);
-	read(fp,boot_track_data,boot_track_size);
+uint8 * cdi_extract_boot_code(int fp, s_cdi_descriptor * cdi_descriptor)
+{
+	s_cdi_track * boot_track = &cdi_descriptor->sessions[1].tracks[0];
+	uint32 boot_track_size = boot_track->length * boot_track->sector_size;
+
+	uint8 * boot_track_data = (uint8 *)malloc(boot_track_size);
+	lseek(fp, 2 + (boot_track->position), SEEK_SET);
+	read(fp, boot_track_data, boot_track_size);
 	
-	uint32 *boot_track_data_32=(uint32*)boot_track_data;
-	uint32 offset=0;
-	while (offset<(boot_track_size>>2))
+	uint32 * boot_track_data_32 = (uint32 *)boot_track_data;
+	uint32 offset = 0;
+	while (offset < (boot_track_size >> 2))
 	{
-		if (boot_track_data_32[offset]==0x49205452)
+		if (boot_track_data_32[offset] == 0x49205452)
 			break;
 		offset++;
 	}
-	if (offset==(boot_track_size>>2))
+	if (offset == (boot_track_size >> 2))
 	{
-		fprintf(log_get(),"cdi: cannot find the boot code\n");
-		return(NULL);
+		fprintf(log_get(), "CDI: Cannot find the boot code\n");
+		return NULL;
 	}
-	offset=(offset<<2)+4;
-	uint16 *data16=(uint16*)&boot_track_data[offset];
-	cdi_load_address=*data16++; cdi_load_address<<=16; cdi_load_address|=*data16++;
-	cdi_code_length=*data16++; cdi_code_length<<=16; cdi_code_length|=*data16++;
-	fprintf(log_get(),"cdi: load address: 0x%.8x\n",cdi_load_address);
-	fprintf(log_get(),"cdi: length: 0x%.8x\n",cdi_code_length);
-	fprintf(log_get(),"cdi: byte swapping boot code\n");
 
-	for (uint32 i=0;i<(cdi_code_length>>1);i++)
+	offset = (offset << 2) + 4;
+	uint16 * data16 = (uint16 *)&boot_track_data[offset];
+	cdi_load_address = *data16++;
+	cdi_load_address <<= 16;
+	cdi_load_address |= *data16++;
+	cdi_code_length = *data16++;
+	cdi_code_length <<= 16;
+	cdi_code_length |= *data16++;
+	fprintf(log_get(), "CDI: Load address: %08X\n", cdi_load_address);
+	fprintf(log_get(), "CDI: Length: %08X\n", cdi_code_length);
+//No need for byte swapping any more...
+/*	fprintf(log_get(), "cdi: byte swapping boot code\n");
+
+	for(uint32 i=0; i<(cdi_code_length >> 1); i++)
 	{
-		uint16 sdata=data16[i];
-		sdata=(sdata>>8)|(sdata<<8);
-		data16[i]=sdata;
-	}
-	return((uint8*)data16);
+		uint16 sdata = data16[i];
+		sdata = (sdata >> 8) | (sdata << 8);
+		data16[i] = sdata;
+	}*/
+
+	return (uint8 *)data16;
 }
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
-void cdi_load_sector(uint32 sector, uint8 *buffer)
+
+void cdi_load_sector(uint32 sector, uint8 * buffer)
 {
-	if (sector==0xffffffff)
+	if (sector == 0xFFFFFFFF)
 	{
-		memset(buffer,0x00,2352);
+		memset(buffer, 0x00, 2352);
 		return;
 	}
 
-	sector*=2352;
+	sector *= 2352;
 
-	lseek(cdi_fp,2+sector,SEEK_SET);
-	read(cdi_fp,buffer,2352);
+	lseek(cdi_fp, 2+sector, SEEK_SET);
+	read(cdi_fp, buffer, 2352);
 
-	// byte swap
+//This is probably not needed any more...
+/*	// byte swap
 	for (uint32 i=0;i<2352;i+=2)
 	{
 		uint8 sdata=buffer[i+0];
 		buffer[i+0]=buffer[i+1];
 		buffer[i+1]=sdata;
-	}
-
+	}*/
 }

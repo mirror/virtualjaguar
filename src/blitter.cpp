@@ -1,3 +1,11 @@
+//
+// Blitter core
+//
+// by cal2
+// GCC/SDL port by Niels Wagenaar (Linux/WIN32) and Caz (BeOS)
+// Cleanups by James L. Hammons
+//
+
 #define GEN_CODE
 //#define LOG_BLITS
 //#define USE_GENERIC_BLITTER
@@ -1064,48 +1072,48 @@ void blitter_generic(uint32 cmd)
 void blitter_blit(uint32 cmd)
 {
 	colour_index = 0;
-	src=(cmd&0x07);
-	dst=(cmd>>3)&0x07;
-	misc=(cmd>>6)&0x03;
-	a1ctl=(cmd>>8)&0x7;
-	mode=(cmd>>11)&0x07;
-	ity=(cmd>>14)&0x0f;
-	zop=(cmd>>18)&0x07;
-	op=(cmd>>21)&0x0f;
-	ctrl=(cmd>>25)&0x3f;
+	src = cmd & 0x07;
+	dst = (cmd >> 3) & 0x07;
+	misc = (cmd >> 6) & 0x03;
+	a1ctl = (cmd >> 8) & 0x7;
+	mode = (cmd >> 11) & 0x07;
+	ity = (cmd >> 14) & 0x0F;
+	zop = (cmd >> 18) & 0x07;
+	op = (cmd >> 21) & 0x0F;
+	ctrl = (cmd >> 25) & 0x3F;
 
-	a1_addr=REG(A1_BASE);
-	a2_addr=REG(A2_BASE);
+	a1_addr = REG(A1_BASE);
+	a2_addr = REG(A2_BASE);
 
 	a1_zoffs = (REG(A1_FLAGS) >> 6) & 7;
 	a2_zoffs = (REG(A2_FLAGS) >> 6) & 7;
 	
-	xadd_a1_control=(REG(A1_FLAGS)>>16)&0x03;
-	xadd_a2_control=(REG(A2_FLAGS)>>16)&0x03;
+	xadd_a1_control = (REG(A1_FLAGS) >> 16) & 0x03;
+	xadd_a2_control = (REG(A2_FLAGS) >> 16) & 0x03;
 	a1_pitch = (REG(A1_FLAGS) & 3) ^ ((REG(A1_FLAGS) & 2) >> 1);
 	a2_pitch = (REG(A2_FLAGS) & 3) ^ ((REG(A2_FLAGS) & 2) >> 1);
 
-	n_pixels=(REG(PIXLINECOUNTER)&0xffff);
-	n_lines=((REG(PIXLINECOUNTER)>>16)&0xffff);
+	n_pixels = REG(PIXLINECOUNTER) & 0xFFFF;
+	n_lines = (REG(PIXLINECOUNTER) >> 16) & 0xFFFF;
 
-	a1_x=(REG(A1_PIXEL)<<16)|(REG(A1_FPIXEL)&0xffff);
-	a1_y=(REG(A1_PIXEL)&0xffff0000)|(REG(A1_FPIXEL)>>16);
-	a1_width=blitter_scanline_width[((REG(A1_FLAGS)&0x00007E00)>>9)];
+	a1_x = (REG(A1_PIXEL) << 16) | (REG(A1_FPIXEL) & 0xFFFF);
+	a1_y = (REG(A1_PIXEL) & 0xFFFF0000) | (REG(A1_FPIXEL) >> 16);
+	a1_width = blitter_scanline_width[((REG(A1_FLAGS) & 0x00007E00) >> 9)];
 
-	a2_x=(REG(A2_PIXEL)&0x0000ffff)<<16;
-	a2_y=(REG(A2_PIXEL)&0xffff0000);
-	a2_width=blitter_scanline_width[((REG(A2_FLAGS)&0x00007E00)>>9)];
-	a2_mask_x=0xffff|((REG(A2_MASK)&0x0000ffff)<<16);
-	a2_mask_y=((REG(A2_MASK)&0xffff0000)|0xffff);
+	a2_x = (REG(A2_PIXEL) & 0x0000FFFF) << 16;
+	a2_y = (REG(A2_PIXEL) & 0xFFFF0000);
+	a2_width = blitter_scanline_width[((REG(A2_FLAGS) & 0x00007E00) >> 9)];
+	a2_mask_x = 0xFFFF | ((REG(A2_MASK) & 0x0000FFFF) << 16);
+	a2_mask_y = ((REG(A2_MASK) & 0xFFFF0000) | 0xFFFF);
 	
 	// 
-	if (!((REG(A2_FLAGS))&0x8000))
+	if (!(REG(A2_FLAGS) & 0x8000))
 	{
-		a2_mask_x=0xffffffff; // must be 16.16
-		a2_mask_y=0xffffffff; // must be 16.16
+		a2_mask_x = 0xFFFFFFFF; // must be 16.16
+		a2_mask_y = 0xFFFFFFFF; // must be 16.16
 	}
 	
-	a1_phrase_mode=0;
+	a1_phrase_mode = 0;
 
 	// determine a1_yadd
 	if (YADD1_A1)
@@ -1114,76 +1122,74 @@ void blitter_blit(uint32 cmd)
 		a1_yadd = 0;
 
 	if (YSIGNSUB_A1)
-		a1_yadd=-a1_yadd;
+		a1_yadd = -a1_yadd;
 
 	// determine a1_xadd
 	switch (xadd_a1_control)
 	{
 	case XADDPHR:
-				// add phrase offset to X and truncate
-				a1_xadd = 1 << 16;
-
-				a1_phrase_mode=1;
-				break;
+		// add phrase offset to X and truncate
+		a1_xadd = 1 << 16;
+		a1_phrase_mode = 1;
+		break;
 	case XADDPIX:
-				// add pixelsize (1) to X
-				a1_xadd = 1 << 16;
-				break;
+		// add pixelsize (1) to X
+		a1_xadd = 1 << 16;
+		break;
 	case XADD0:	
-				// add zero (for those nice vertical lines)
-				a1_xadd = 0;
-				break;
+		// add zero (for those nice vertical lines)
+		a1_xadd = 0;
+		break;
 	case XADDINC:
-				// add the contents of the increment register
-				a1_xadd = (REG(A1_INC) << 16)		 | (REG(A1_FINC) & 0xffff);
-				a1_yadd = (REG(A1_INC) & 0xffff0000) | (REG(A1_FINC) >> 16);
-				break;
+		// add the contents of the increment register
+		a1_xadd = (REG(A1_INC) << 16)		 | (REG(A1_FINC) & 0xFFFF);
+		a1_yadd = (REG(A1_INC) & 0xFFFF0000) | (REG(A1_FINC) >> 16);
+		break;
 	}
 	if (XSIGNSUB_A1)
-		a1_xadd=-a1_xadd;
+		a1_xadd = -a1_xadd;
 
 	// determine a2_yadd
-	if ((YADD1_A2)||(YADD1_A1))
+	if (YADD1_A2 || YADD1_A1)
 		a2_yadd = 1 << 16;
 	else
 		a2_yadd = 0;
 
 	if (YSIGNSUB_A2)
-		a2_yadd=-a2_yadd;
+		a2_yadd = -a2_yadd;
 
-	a2_phrase_mode=0;
+	a2_phrase_mode = 0;
 
 	// determine a2_xadd
 	switch (xadd_a2_control)
 	{
 	case XADDPHR:
-				// add phrase offset to X and truncate
-				a2_xadd = 1 << 16;
-
-				a2_phrase_mode=1;
-				break;
+		// add phrase offset to X and truncate
+		a2_xadd = 1 << 16;
+		a2_phrase_mode = 1;
+		break;
 	case XADDPIX:
-				// add pixelsize (1) to X
-				a2_xadd = 1 << 16;
-				break;
+		// add pixelsize (1) to X
+		a2_xadd = 1 << 16;
+		break;
 	case XADD0:	
-				// add zero (for those nice vertical lines)
-				a2_xadd = 0;
-				break;
+		// add zero (for those nice vertical lines)
+		a2_xadd = 0;
+		break;
 	case XADDINC:
-				// add the contents of the increment register
-				// since there is no register for a2 we just add 1
-				a2_xadd = 1 << 16;
-				break;
+		// add the contents of the increment register
+		// since there is no register for a2 we just add 1
+		a2_xadd = 1 << 16;
+		break;
 	}
 	if (XSIGNSUB_A2)
-		a2_xadd=-a2_xadd;
+		a2_xadd = -a2_xadd;
 
 	// modify outer loop steps based on command 
-	a1_step_x=0;
-	a1_step_y=0;
-	a2_step_x=0;
-	a2_step_y=0;
+	a1_step_x = 0;
+	a1_step_y = 0;
+	a2_step_x = 0;
+	a2_step_y = 0;
 
 	if (cmd & 0x00000100)
 	{
@@ -1201,53 +1207,50 @@ void blitter_blit(uint32 cmd)
 		a2_step_y = (REG(A2_STEP)&0xffff0000);
 	}
 
+	outer_loop = n_lines;
 
-	outer_loop=n_lines;
-
-
-	a2_psize=1 << ((REG(A2_FLAGS) >> 3) & 7);
-	a1_psize=1 << ((REG(A1_FLAGS) >> 3) & 7);
+	a2_psize = 1 << ((REG(A2_FLAGS) >> 3) & 7);
+	a1_psize = 1 << ((REG(A1_FLAGS) >> 3) & 7);
 
 	// zbuffering
 	if (GOURZ)
 	{
-		zadd=jaguar_long_read(0xF02274);
+		zadd = jaguar_long_read(0xF02274);
 
-		for(int v=0;v<4;v++) 
-			z_i[v]=(int32)jaguar_long_read(0xF0228C+(v<<2));
+		for(int v=0; v<4; v++) 
+			z_i[v] = (int32)jaguar_long_read(0xF0228C + (v << 2));
 	}
-	if ((GOURD)||(GOURZ)||(SRCSHADE))
+	if (GOURD || GOURZ || SRCSHADE)
 	{
 		// gouraud shading
 		gouraud_add = jaguar_long_read(0xF02270);
-
 		
 		gd_c[0]	= jaguar_byte_read(0xF02268);
 		gd_i[0]	= jaguar_byte_read(0xF02269);
-		gd_i[0]<<=16;
-		gd_i[0]|=jaguar_word_read(0xF02240);
+		gd_i[0] <<= 16;
+		gd_i[0] |= jaguar_word_read(0xF02240);
 
 		gd_c[1]	= jaguar_byte_read(0xF0226A);
-		gd_i[1]	= jaguar_byte_read(0xF0226b);
-		gd_i[1]<<=16;
-		gd_i[1]|=jaguar_word_read(0xF02242);
+		gd_i[1]	= jaguar_byte_read(0xF0226B);
+		gd_i[1] <<= 16;
+		gd_i[1] |= jaguar_word_read(0xF02242);
 
 		gd_c[2]	= jaguar_byte_read(0xF0226C);
-		gd_i[2]	= jaguar_byte_read(0xF0226d);
-		gd_i[2]<<=16;
-		gd_i[2]|=jaguar_word_read(0xF02244);
+		gd_i[2]	= jaguar_byte_read(0xF0226D);
+		gd_i[2] <<= 16;
+		gd_i[2] |= jaguar_word_read(0xF02244);
 
 		gd_c[3]	= jaguar_byte_read(0xF0226E);
-		gd_i[3]	= jaguar_byte_read(0xF0226f);
-		gd_i[3]<<=16; 
-		gd_i[3]|=jaguar_word_read(0xF02246);
+		gd_i[3]	= jaguar_byte_read(0xF0226F);
+		gd_i[3] <<= 16; 
+		gd_i[3] |= jaguar_word_read(0xF02246);
 
 		gd_ia = gouraud_add & 0xFFFFFF;
-		if(gd_ia & 0x800000)
+		if (gd_ia & 0x800000)
 			gd_ia = 0xFF000000 | gd_ia;
 
 		gd_ca = (gouraud_add>>24) & 0xFF;
-		if(gd_ca & 0x80)
+		if (gd_ca & 0x80)
 			gd_ca = 0xFFFFFF00 | gd_ca;
 	}
 
@@ -1376,13 +1379,12 @@ void blitter_blit(uint32 cmd)
 	}	
 #endif
 
-
-	blitter_working=1;
+	blitter_working = 1;
 #ifndef USE_GENERIC_BLITTER
 	if (!blitter_execute_cached_code(blitter_in_cache(cmd)))
 #endif
 		blitter_generic(cmd);
-	blitter_working=0;
+	blitter_working = 0;
 }
 
 uint32 blitter_reg_read(uint32 offset)
@@ -1422,11 +1424,11 @@ void blitter_init(void)
 	{
 		for (int i=0;i<256;i++)
 		{
-			blitter_cache[i]=(struct s_blitter_cache *)malloc(sizeof(struct s_blitter_cache));
+			blitter_cache[i] = (struct s_blitter_cache *)malloc(sizeof(struct s_blitter_cache));
 			blitter_cache[i]->next=null;
 			blitter_cache[i]->prev=null;
 		}
-		blitter_cache_init=1;
+		blitter_cache_init = 1;
 	}
 #ifndef USE_GENERIC_BLITTER
 	#include "include/blit_i.h"
@@ -1434,8 +1436,8 @@ void blitter_init(void)
 
 	blitter_reset();
 #ifdef GEN_CODE
-	blitters_code_fp=fopen("include/blit_c.h","awrt");
-	blitters_code_init_fp=fopen("include/blit_i.h","awrt");
+	blitters_code_fp = fopen("include/blit_c.h","awrt");
+	blitters_code_init_fp = fopen("include/blit_i.h","awrt");
 #endif
 }
 
@@ -1446,11 +1448,12 @@ void blitter_reset(void)
 
 void blitter_done(void)
 {
-	blitter_list();
+//	blitter_list();
 #ifdef GEN_CODE
 	fclose(blitters_code_fp);
 	fclose(blitters_code_init_fp);
 #endif
+	fprintf(log_get(), "BLIT: Done.\n");
 }
 
 void blitter_byte_write(uint32 offset, uint8 data)
@@ -1480,7 +1483,6 @@ void blitter_byte_write(uint32 offset, uint8 data)
 		case 0x89: blitter_ram[0x6F] = data; break;
 		case 0x9A: blitter_ram[0x46] = data; break;
 		case 0x9B: blitter_ram[0x47] = data; break;
-
 		}
 	}
 

@@ -1,7 +1,7 @@
 //
 // TOM Processing
 //
-// by cal16
+// by cal2
 // GCC/SDL port by Niels Wagenaar (Linux/WIN32) and Caz (BeOS)
 // Cleanups and endian wrongness amelioration by James L. Hammons
 // Note: Endian wrongness probably stems from the MAME origins of this emu and
@@ -931,31 +931,6 @@ void tom_reset(void)
 	tom_timer_counter = 0;
 	memcpy(scanline_render, scanline_render_normal, sizeof(scanline_render));
 } 
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
-void tom_done(void)
-{
-//	fprintf(log_get(),"tom: done()\n");
-	op_done();
-	pcm_done();
-	blitter_done();
-	fprintf(log_get(), "tom: resolution %ix%i %s\n", tom_getVideoModeWidth(), tom_getVideoModeHeight(),
-		videoMode_to_str[tom_getVideoMode()]);
-//	fprintf(log_get(),"\ntom: object processor:\n");
-//	fprintf(log_get(),"tom: pointer to object list: 0x%.8x\n",op_get_list_pointer());
-//	fprintf(log_get(),"tom: INT1=0x%.2x%.2x\n",tom_byte_read(0xf000e0),tom_byte_read(0xf000e1));
-	gpu_done();
-	dsp_done();
-	memory_free(tom_ram_8);
-}
 
 //
 // TOM byte access (read)
@@ -1199,58 +1174,22 @@ void tom_word_write(unsigned offset, unsigned data)
 		}
 	}
 }
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
+
 int tom_irq_enabled(int irq)
 {
 	return jaguar_byte_read(0xF000E1) & (1 << irq);
 }
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
+
 void tom_set_irq_latch(int irq, int enabled)
 {
 	tom_ram_8[0xE0] = (tom_ram_8[0xE0] & (~(1<<irq))) | (enabled ? (1<<irq) : 0);
 }
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
+
 uint16 tom_irq_control_reg(void)
 {
 	return (tom_ram_8[0xE0] << 8) | tom_ram_8[0xE1];
 }
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
+
 void tom_reset_timer(void)
 {
 	if ((!tom_timer_prescaler) || (!tom_timer_divider))
@@ -1259,16 +1198,7 @@ void tom_reset_timer(void)
 		tom_timer_counter = (1 + tom_timer_prescaler) * (1 + tom_timer_divider);
 //	fprintf(log_get(),"tom: reseting timer to 0x%.8x (%i)\n",tom_timer_counter,tom_timer_counter);
 }
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
+
 void tom_pit_exec(uint32 cycles)
 {
 	if (tom_timer_counter > 0)
@@ -1288,4 +1218,22 @@ void tom_pit_exec(uint32 cycles)
 			tom_reset_timer();
 		}
 	}
+}
+
+void tom_done(void)
+{
+	fprintf(log_get(),"TOM: done() ...START\n");
+	op_done();
+	pcm_done();
+//This is killing the log for some reason, even though it doesn't do much of anything...
+//	blitter_done();
+	fprintf(log_get(), "TOM: resolution %i x %i %s\n", tom_getVideoModeWidth(), tom_getVideoModeHeight(),
+		videoMode_to_str[tom_getVideoMode()]);
+//	fprintf(log_get(),"\ntom: object processor:\n");
+//	fprintf(log_get(),"tom: pointer to object list: 0x%.8x\n",op_get_list_pointer());
+//	fprintf(log_get(),"tom: INT1=0x%.2x%.2x\n",tom_byte_read(0xf000e0),tom_byte_read(0xf000e1));
+	gpu_done();
+	dsp_done();
+	memory_free(tom_ram_8);
+	fprintf(log_get(),"TOM: done() ...END\n");
 }

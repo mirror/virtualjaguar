@@ -3,8 +3,8 @@ LD = gcc
 NASM = nasm
 
 CFLAGS  = -Wall -O3 -D__PORT__ -D__GCCWIN32__ -Dstricmp="strcasecmp" \
-			-fomit-frame-pointer `sdl-config --cflags`
-#			-fomit-frame-pointer `sdl-config --cflags` -DCPU_DEBUG
+			-fomit-frame-pointer `sdl-config --cflags` -DLOG_UNMAPPED_MEMORY_ACCESSES
+#			-fomit-frame-pointer `sdl-config --cflags`
 #			-fomit-frame-pointer `sdl-config --cflags` -DTOM_DEBUG
 
 LDFLAGS = $(CFLAGS)

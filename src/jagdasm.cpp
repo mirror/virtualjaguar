@@ -64,22 +64,22 @@ unsigned dasmjag(int dsp_type, char *buffer, unsigned pc)
 	pc += 2;
 	switch (op >> 10)
 	{
-		case 0:		sprintf(buffer, "add     r%d,r%d", reg1, reg2);					break;
-		case 1:		sprintf(buffer, "addc    r%d,r%d", reg1, reg2);					break;
-		case 2:		sprintf(buffer, "addq    $%x,r%d", convert_zero[reg1], reg2);	break;
+		case 0:		sprintf(buffer, "+add     r%d,r%d", reg1, reg2);					break;
+		case 1:		sprintf(buffer, "+addc    r%d,r%d", reg1, reg2);					break;
+		case 2:		sprintf(buffer, "+addq    $%x,r%d", convert_zero[reg1], reg2);	break;
 		case 3:		sprintf(buffer, "addqt   $%x,r%d", convert_zero[reg1], reg2);	break;
-		case 4:		sprintf(buffer, "sub     r%d,r%d", reg1, reg2);					break;
-		case 5:		sprintf(buffer, "subc    r%d,r%d", reg1, reg2);					break;
-		case 6:		sprintf(buffer, "subq    $%x,r%d", convert_zero[reg1], reg2);	break;
+		case 4:		sprintf(buffer, "+sub     r%d,r%d", reg1, reg2);					break;
+		case 5:		sprintf(buffer, "+subc    r%d,r%d", reg1, reg2);					break;
+		case 6:		sprintf(buffer, "+subq    $%x,r%d", convert_zero[reg1], reg2);	break;
 		case 7:		sprintf(buffer, "subqt   $%x,r%d", convert_zero[reg1], reg2);	break;
-		case 8:		sprintf(buffer, "neg     r%d", reg2);							break;
-		case 9:		sprintf(buffer, "and     r%d,r%d", reg1, reg2);					break;
-		case 10:	sprintf(buffer, "or      r%d,r%d", reg1, reg2);					break;
-		case 11:	sprintf(buffer, "xor     r%d,r%d", reg1, reg2);					break;
-		case 12:	sprintf(buffer, "not     r%d", reg2);							break;
-		case 13:	sprintf(buffer, "btst    $%x,r%d", reg1, reg2);					break;
-		case 14:	sprintf(buffer, "bset    $%x,r%d", reg1, reg2);					break;
-		case 15:	sprintf(buffer, "bclr    $%x,r%d", reg1, reg2);					break;
+		case 8:		sprintf(buffer, "+neg     r%d", reg2);							break;
+		case 9:		sprintf(buffer, "+and     r%d,r%d", reg1, reg2);					break;
+		case 10:	sprintf(buffer, "+or      r%d,r%d", reg1, reg2);					break;
+		case 11:	sprintf(buffer, "+xor     r%d,r%d", reg1, reg2);					break;
+		case 12:	sprintf(buffer, "+not     r%d", reg2);							break;
+		case 13:	sprintf(buffer, "+btst    $%x,r%d", reg1, reg2);					break;
+		case 14:	sprintf(buffer, "+bset    $%x,r%d", reg1, reg2);					break;
+		case 15:	sprintf(buffer, "+bclr    $%x,r%d", reg1, reg2);					break;
 		case 16:	sprintf(buffer, "mult    r%d,r%d", reg1, reg2);					break;
 		case 17:	sprintf(buffer, "imult   r%d,r%d", reg1, reg2);					break;
 		case 18:	sprintf(buffer, "imultn  r%d,r%d", reg1, reg2);					break;
@@ -88,14 +88,14 @@ unsigned dasmjag(int dsp_type, char *buffer, unsigned pc)
 		case 21:	sprintf(buffer, "div     r%d,r%d", reg1, reg2);					break;
 		case 22:	sprintf(buffer, "abs     r%d", reg2);							break;
 		case 23:	sprintf(buffer, "sh      r%d,r%d", reg1, reg2);					break;
-		case 24:	sprintf(buffer, "shlq    $%x,r%d", 32 - convert_zero[reg1], reg2);	break;
-		case 25:	sprintf(buffer, "shrq    $%x,r%d", convert_zero[reg1], reg2);	break;
+		case 24:	sprintf(buffer, "+shlq    $%x,r%d", 32 - convert_zero[reg1], reg2);	break;
+		case 25:	sprintf(buffer, "+shrq    $%x,r%d", convert_zero[reg1], reg2);	break;
 		case 26:	sprintf(buffer, "sha     r%d,r%d", reg1, reg2);					break;
 		case 27:	sprintf(buffer, "sharq   $%x,r%d", convert_zero[reg1], reg2);	break;
-		case 28:	sprintf(buffer, "ror     r%d,r%d", reg1, reg2);					break;
+		case 28:	sprintf(buffer, "+ror     r%d,r%d", reg1, reg2);					break;
 		case 29:	sprintf(buffer, "rorq    $%x,r%d", convert_zero[reg1], reg2);	break;
-		case 30:	sprintf(buffer, "cmp     r%d,r%d", reg1, reg2);					break;
-		case 31:	sprintf(buffer, "cmpq    %s,r%d", signed_16bit((INT16)(reg1 << 11) >> 11), reg2);break;
+		case 30:	sprintf(buffer, "+cmp     r%d,r%d", reg1, reg2);					break;
+		case 31:	sprintf(buffer, "+cmpq    %s,r%d", signed_16bit((INT16)(reg1 << 11) >> 11), reg2);break;
 		case 32:	if (dsp_type == JAGUAR_GPU)
 					sprintf(buffer, "sat8    r%d", reg2);
 					else

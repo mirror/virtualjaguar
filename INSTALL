@@ -1,4 +1,4 @@
-Virtual Jaguar v1.0.0 GCC/SDL release INSTALL
+Virtual Jaguar v1.0.3 GCC/SDL release INSTALL
 ---------------------------------------------
 
 - Requirements :
@@ -26,20 +26,15 @@ The .o's can be quite big and the binary is likely to be about a
 If you sure you have the minimum software requirements, you can safely
 compile Virtual Jaguar v1.0.0 GCC/SDL release by doing the following :
 
-1) On UN*X systems first do the command : sh ./fix-unix.sh
-2) Go to the src/star026c directory and start on of the scripts :
-
-   ./build_s68000.win32 (for WIN32 systems with mingw)
-   ./build_s68000.unix  (for UN*X  systems with gcc)
-
-3) After the generation of the 68000.o file, you can now compile the
-   program with the following commands :
+1) Compile:
 
    make -f Makefile.win32 (for WIN32 systems with mingw)
    make -f Makefile.unix  (for UN*X  systems with gcc)
 
-4) Optionally you can manually strip jag_em[.exe] to downsize the binary.
+2) Optionally you can manually strip jag_em[.exe] to downsize the binary.
 
+If you don't have upx in your path somewhere, you can ignore the error
+message that make throws at you about not being able to find upx.
  
 That's it! You're done! You can now start the emulator with ./jag_em[.exe].
 See the output for more details or consult the docs/README for more info.
@@ -48,5 +43,3 @@ For more info, go to http://sdlemu.ngemu.com or send use an e-mail to the
 following e-mail address : sdlemu AT ngemu DOT com.
 
 SDLEMU
-
-

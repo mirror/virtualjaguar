@@ -1,15 +1,14 @@
-//////////////////////////////////////////////////////////////////////////////
 //
-//////////////////////////////////////////////////////////////////////////////
+// GPU Core
 //
+// by cal2
+// GCC/SDL port by Niels Wagenaar (Linux/WIN32) and Caz (BeOS)
+// Cleanups, endian wrongness, and bad ASM amelioration by James L. Hammons
+// Note: Endian wrongness probably stems from the MAME origins of this emu and
+//       the braindead way in which MAME handles memory. :-)
 //
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
 
-#include "include/gpu.h"
+#include "gpu.h"
 
 #define CINT0FLAG			0x00200
 #define CINT1FLAG			0x00400
@@ -19,7 +18,6 @@
 #define CINT04FLAGS			(CINT0FLAG | CINT1FLAG | CINT2FLAG | CINT3FLAG | CINT4FLAG)
 
 extern int start_logging;
-
 
 static void gpu_opcode_add(void);
 static void gpu_opcode_addc(void);
@@ -155,7 +153,7 @@ static uint32 * gpu_reg_bank_1;
 static uint32 gpu_opcode_first_parameter;
 static uint32 gpu_opcode_second_parameter;
 
-#define gpu_running (gpu_control&0x01)
+#define GPU_RUNNING		(gpu_control & 0x01)
 
 #define Rm gpu_reg[gpu_opcode_first_parameter]
 #define Rn gpu_reg[gpu_opcode_second_parameter]
@@ -164,12 +162,23 @@ static uint32 gpu_opcode_second_parameter;
 #define imm_1 gpu_opcode_first_parameter
 #define imm_2 gpu_opcode_second_parameter
 
-#define set_flag_z(r) gpu_flag_z=(r==0); 
-#define set_flag_n(r) gpu_flag_n=((r&0x80000000)>>31);
+#define set_flag_z(r) gpu_flag_z = (r==0); 
+#define set_flag_n(r) gpu_flag_n = ((r&0x80000000)>>31);
 
-#define reset_flag_z()	gpu_flag_z=0;
-#define reset_flag_n()	gpu_flag_n=0;
-#define reset_flag_c()	gpu_flag_c=0;    
+#define reset_flag_z()	gpu_flag_z = 0;
+#define reset_flag_n()	gpu_flag_n = 0;
+#define reset_flag_c()	gpu_flag_c = 0;    
+
+#define CLR_Z				(gpu_flag_z = 0)
+#define CLR_ZN				(gpu_flag_z = gpu_flag_n = 0)
+#define CLR_ZNC				(gpu_flag_z = gpu_flag_n = gpu_flag_c = 0)
+#define SET_Z(r)			(gpu_flag_z = ((r) == 0))
+#define SET_N(r)			(gpu_flag_n = (((UINT32)(r) >> 31) & 0x01))
+#define SET_C_ADD(a,b)		(gpu_flag_c = ((UINT32)(b) > (UINT32)(~(a))))
+#define SET_C_SUB(a,b)		(gpu_flag_c = ((UINT32)(b) > (UINT32)(a)))
+#define SET_ZN(r)			SET_N(r); SET_Z(r)
+#define SET_ZNC_ADD(a,b,r)	SET_N(r); SET_Z(r); SET_C_ADD(a,b)
+#define SET_ZNC_SUB(a,b,r)	SET_N(r); SET_Z(r); SET_C_SUB(a,b)
 
 uint32 gpu_convert_zero[32] = { 32,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31 };
 
@@ -203,44 +212,17 @@ char *gpu_opcode_str[64]=
 static uint32 gpu_in_exec = 0;
 static uint32 gpu_releaseTimeSlice_flag = 0;
 
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
+
 void gpu_releaseTimeslice(void)
 {
 	gpu_releaseTimeSlice_flag = 1;
 }
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
+
 uint32 gpu_get_pc(void)
 {
 	return gpu_pc;
 }
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
+
 void build_branch_condition_table(void)
 {
 #define ZFLAG	0x00001
@@ -311,7 +293,7 @@ unsigned gpu_word_read(unsigned int offset)
 	if ((offset >= gpu_work_ram_base) && (offset < gpu_work_ram_base+0x1000))
 	{
 		offset &= 0xFFF;
-		uint16 data = (((uint16)gpu_ram_8[offset]) << 8) | (uint16)gpu_ram_8[offset+1];
+		uint16 data = ((uint16)gpu_ram_8[offset] << 8) | (uint16)gpu_ram_8[offset+1];
 		return data;
 	}
 	else if ((offset >= gpu_control_ram_base) && (offset < gpu_control_ram_base+0x20))
@@ -518,10 +500,10 @@ void gpu_long_write(unsigned offset, unsigned data)
 			break;
 		case 0x14:
 		{	
-			uint32 gpu_was_running = gpu_running;
+			uint32 gpu_was_running = GPU_RUNNING;
 						
 			data &= (~0x7C0); // disable writes to irq pending
-			/*if (gpu_running)
+			/*if (GPU_RUNNING)
 			{
 				fprintf(log_get(),"gpu pc is 0x%.8x\n",gpu_pc);
 				fclose(log_get());
@@ -573,12 +555,18 @@ void gpu_long_write(unsigned offset, unsigned data)
 
 			// if gpu wasn't running but is now running, execute a few cycles
 #ifndef GPU_SINGLE_STEPPING
-			if ((!gpu_was_running) && (gpu_running))
+			if ((!gpu_was_running) && (GPU_RUNNING))
 				gpu_exec(200);
 #else
 			if (gpu_control & 0x18)
 				gpu_exec(1);
-#endif
+#endif	// #ifndef GPU_SINGLE_STEPPING
+#ifdef GPU_DEBUG
+fprintf(log_get(), "Write to GPU CTRL: %08X ", data);
+if (GPU_RUNNING)
+	fprintf(log_get(), "-- Starting to run at %08X...", gpu_pc);
+fprintf(log_get(), "\n");
+#endif	// #ifdef GPU_DEBUG
 			break;
 		}
 		case 0x18:
@@ -597,16 +585,7 @@ void gpu_long_write(unsigned offset, unsigned data)
 	jaguar_word_write(offset, (data >> 16) & 0xFFFF);
 	jaguar_word_write(offset+2, data & 0xFFFF);
 }
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
+
 void gpu_update_register_banks(void)
 {
 	uint32 temp;
@@ -656,16 +635,7 @@ void gpu_update_register_banks(void)
 //		fprintf(log_get(),"\tnot switching banks\n");
 //	}
 }
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
+
 void gpu_check_irqs(void)
 {
 	int bits, mask, which = 0;
@@ -715,16 +685,7 @@ void gpu_check_irqs(void)
 	gpu_pc += which * 0x10;
 	gpu_reg[30] = gpu_pc;
 }
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
+
 void gpu_set_irq_line(int irqline, int state)
 {
 	if (start_logging)
@@ -738,16 +699,7 @@ void gpu_set_irq_line(int irqline, int state)
 		gpu_check_irqs();
 	}
 }
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
+
 void gpu_init(void)
 {
 	memory_malloc_secure((void **)&gpu_ram_8, 0x1000, "GPU work ram");
@@ -761,16 +713,7 @@ void gpu_init(void)
 
 	gpu_reset();
 }
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
+
 void gpu_reset(void)
 {
 	gpu_pc				  = 0x00F03000;
@@ -808,61 +751,32 @@ void gpu_reset(void)
 
 	gpu_reset_stats();
 }
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
+
 uint32 gpu_read_pc(void)
 {
 	return gpu_pc;
 }
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
+
 void gpu_reset_stats(void)
 {
 	for(uint32 i=0; i<64; i++)
 		gpu_opcode_use[i] = 0;
 }
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
+
 void gpu_done(void)
 { 
-	int i, j;
-	fprintf(log_get(),"gpu: stopped at pc=0x%.8x (gpu %s running)\n",gpu_pc,gpu_running?"was":"wasn't");
-	int bits, mask;
+	fprintf(log_get(), "GPU: stopped at PC=%08X (GPU %s running)\n", gpu_pc, GPU_RUNNING ? "was" : "wasn't");
 
 	// get the active interrupt bits 
-	bits = (gpu_control >> 6) & 0x1F;
+	int bits = (gpu_control >> 6) & 0x1F;
 	bits |= (gpu_control >> 10) & 0x20;
 
 	// get the interrupt mask 
-	mask = (gpu_flags >> 4) & 0x1F;
+	int mask = (gpu_flags >> 4) & 0x1F;
 	mask |= (gpu_flags >> 11) & 0x20;
 	
 
-	fprintf(log_get(),"gpu: bits=0x%.8x mask=0x%.8x\n",bits,mask);
+	fprintf(log_get(), "GPU: ibits=0x%.8x imask=0x%.8x\n", bits, mask);
 //	fprintf(log_get(),"\nregisters bank 0\n");
 //	for (int j=0;j<8;j++)
 //	{
@@ -883,9 +797,9 @@ void gpu_done(void)
 //						  (j<<2)+3,gpu_alternate_reg[(j<<2)+3]);
 //
 //	}
-//	fprintf(log_get(),"---[GPU code at 0x00f03000]---------------------------\n");
+	fprintf(log_get(),"---[GPU code at 00F03000]---------------------------\n");
 	static char buffer[512];
-	j = 0xF03000;
+	int j = 0xF03000;
 	for(int i=0; i<4096; i++)
 	{
 		uint32 oldj = j;
@@ -895,7 +809,7 @@ void gpu_done(void)
 
 	fprintf(log_get(), "---[GPU code at %08X]---------------------------\n", gpu_pc);
 	j = gpu_pc - 64;
-	for(i=0; i<4096; i++)
+	for(int i=0; i<4096; i++)
 	{
 		uint32 oldj = j;
 		j += dasmjag(JAGUAR_GPU, buffer, j);
@@ -903,26 +817,21 @@ void gpu_done(void)
 	}
 
 	fprintf(log_get(), "gpu opcodes use:\n");
-	for(i=0; i<64; i++)
+	for(int i=0; i<64; i++)
 	{
 		if (gpu_opcode_use[i])
 			fprintf(log_get(), "\t%s %lu\n", gpu_opcode_str[i], gpu_opcode_use[i]);
 	}
 	memory_free(gpu_ram_8);
 }
-//////////////////////////////////////////////////////////////////////////////
+
 //
-//////////////////////////////////////////////////////////////////////////////
+// Main GPU execution core
 //
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
+
 void gpu_exec(int32 cycles)
 {
-	if (!gpu_running)
+	if (!GPU_RUNNING)
 		return;
 
 #ifdef GPU_SINGLE_STEPPING
@@ -936,17 +845,20 @@ void gpu_exec(int32 cycles)
 	gpu_releaseTimeSlice_flag = 0;
 	gpu_in_exec++;
 
-	while ((cycles > 0) && gpu_running)
+	while ((cycles > 0) && GPU_RUNNING)
 	{
 		gpu_flag_c = (gpu_flag_c ? 1 : 0);
 		gpu_flag_z = (gpu_flag_z ? 1 : 0);
 		gpu_flag_n = (gpu_flag_n ? 1 : 0);
 	
 		uint16 opcode = gpu_word_read(gpu_pc);
+/*static char buffer[512];
+dasmjag(JAGUAR_GPU, buffer, gpu_pc);
+fprintf(log_get(), "GPU: [%08X] %s\n", gpu_pc, buffer);*/
 
 		uint32 index = opcode >> 10;		
-		gpu_opcode_first_parameter = (opcode & 0x3E0) >> 5;
-		gpu_opcode_second_parameter = (opcode & 0x1F);
+		gpu_opcode_first_parameter = (opcode >> 5) & 0x1F;
+		gpu_opcode_second_parameter = opcode & 0x1F;
 		gpu_pc += 2;
 		gpu_opcode[index]();
 		cycles -= gpu_opcode_cycles[index];
@@ -955,16 +867,11 @@ void gpu_exec(int32 cycles)
 
 	gpu_in_exec--;
 }
-//////////////////////////////////////////////////////////////////////////////
+
 //
-//////////////////////////////////////////////////////////////////////////////
+// GPU opcodes
 //
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
+
 static void gpu_opcode_jump(void)
 {
 	uint32 delayed_pc = Rm;
@@ -983,16 +890,7 @@ static void gpu_opcode_jump(void)
 		gpu_pc = delayed_pc;
 	}
 }
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
+
 static void gpu_opcode_jr(void)
 {
 	int32 offset=(imm_1&0x10) ? (0xFFFFFFF0|imm_1) : imm_1;
@@ -1013,31 +911,43 @@ static void gpu_opcode_jr(void)
 		gpu_pc=delayed_pc;
 	}
 }
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
+
 static void gpu_opcode_add(void)
 {
 	uint32 _Rm=Rm;
 	uint32 _Rn=Rn;
 	uint32 res;
 #ifdef __PORT__
+#ifndef USE_ASSEMBLY
+{
+/*		uint32 index = opcode >> 10;		
+		gpu_opcode_first_parameter = (opcode & 0x3E0) >> 5;
+		gpu_opcode_second_parameter = (opcode & 0x1F);
+		gpu_pc += 2;
+		gpu_opcode[index]();
+		cycles -= gpu_opcode_cycles[index];
+		gpu_opcode_use[index]++;*/
+/*	int dreg = jaguar.op & 31;
+	UINT32 r1 = jaguar.r[(jaguar.op >> 5) & 31];
+	UINT32 r2 = jaguar.r[dreg];
+	UINT32 res = r2 + r1;
+	jaguar.r[dreg] = res;
+	CLR_ZNC; SET_ZNC_ADD(r2,r1,res);*/
 
+	UINT32 res = Rn + Rm;
+	CLR_ZNC; SET_ZNC_ADD(Rn, Rm, res);
+	Rn = res;
+	return;
+}
+#else
     /*
        GCC on WIN32 (more importantly mingw) doesn't know the declared
        variables in asm until we put a _ before it.
        
        So the declaration dsp_flag_c needs to be _dsp_flag_c on mingw.
     */
-
-    #ifdef __GCCWIN32__
+ 
+#ifdef __GCCWIN32__
 
 	asm(
 	"addl %1, %2					\n\
@@ -1049,7 +959,7 @@ static void gpu_opcode_add(void)
 	: "=m"(res)
 	: "d"(_Rm), "a"(_Rn));
 	
-	#else
+#else
 
 	asm(
 	"addl %1, %2					\n\
@@ -1061,7 +971,8 @@ static void gpu_opcode_add(void)
 	: "=m"(res)
 	: "d"(_Rm), "a"(_Rn));
 	
-	#endif
+#endif	// #ifdef __GCCWIN32__
+#endif	// #ifndef USE_ASSEMBLY
 	
 #else
 	__asm 
@@ -1074,26 +985,31 @@ static void gpu_opcode_add(void)
 		sets  [gpu_flag_n]
 		mov	  res,eax
 	};
-#endif
+#endif	// #ifdef __PORT__
 	Rn=res;
 }
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
+
 static void gpu_opcode_addc(void)
 {
 	uint32 _Rm=Rm;
 	uint32 _Rn=Rn;
 	uint32 res;
 #ifdef __PORT__
+#ifndef USE_ASSEMBLY
+{
+/*	int dreg = jaguar.op & 31;
+	UINT32 r1 = jaguar.r[(jaguar.op >> 5) & 31];
+	UINT32 r2 = jaguar.r[dreg];
+	UINT32 res = r2 + r1 + ((jaguar.FLAGS >> 1) & 1);
+	jaguar.r[dreg] = res;
+	CLR_ZNC; SET_ZNC_ADD(r2,r1,res);*/
 
+	UINT32 res = Rn + Rm + gpu_flag_c;
+	CLR_ZNC; SET_ZNC_ADD(Rn, Rm, res);
+	Rn = res;
+	return;
+}
+#else
     /*
        GCC on WIN32 (more importantly mingw) doesn't know the declared
        variables in asm until we put a _ before it.
@@ -1101,7 +1017,7 @@ static void gpu_opcode_addc(void)
        So the declaration dsp_flag_c needs to be _dsp_flag_c on mingw.
     */
 
-    #ifdef __GCCWIN32__
+#ifdef __GCCWIN32__
 
 	asm(
 	"addl %1, %2					\n\
@@ -1119,7 +1035,7 @@ static void gpu_opcode_addc(void)
 	: "=m"(res)
 	: "d"(_Rm), "a"(_Rn));
 
-	#else
+#else
 	
 	asm(
 	"addl %1, %2					\n\
@@ -1137,7 +1053,8 @@ static void gpu_opcode_addc(void)
 	: "=m"(res)
 	: "d"(_Rm), "a"(_Rn));
 
-	#endif
+#endif	// #ifdef __GCCWIN32__
+#endif	// #ifndef USE_ASSEMBLY
 	
 #else
 	__asm 
@@ -1158,23 +1075,28 @@ gpu_opcode_addc_no_carry:
 #endif
 	Rn=res;
 }
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
+
 static void gpu_opcode_addq(void)
 {
 	uint32 _Rn=Rn;
 	uint32 _Rm=gpu_convert_zero[imm_1];
 	uint32 res;
 #ifdef __PORT__
-
+#ifndef USE_ASSEMBLY
+{
+/*	int dreg = jaguar.op & 31;
+	UINT32 r1 = convert_zero[(jaguar.op >> 5) & 31];
+	UINT32 r2 = jaguar.r[dreg];
+	UINT32 res = r2 + r1;
+	jaguar.r[dreg] = res;
+	CLR_ZNC; SET_ZNC_ADD(r2,r1,res);*/
+	UINT32 r1 = gpu_convert_zero[imm_1];
+	UINT32 res = Rn + r1;
+	CLR_ZNC; SET_ZNC_ADD(Rn, r1, res);
+	Rn = res;
+	return;
+}
+#else
     /*
        GCC on WIN32 (more importantly mingw) doesn't know the declared
        variables in asm until we put a _ before it.
@@ -1182,7 +1104,7 @@ static void gpu_opcode_addq(void)
        So the declaration dsp_flag_c needs to be _dsp_flag_c on mingw.
     */
 
-    #ifdef __GCCWIN32__
+#ifdef __GCCWIN32__
 
 	asm(
 	"addl %1, %2					\n\
@@ -1194,7 +1116,7 @@ static void gpu_opcode_addq(void)
 	: "=m"(res)
 	: "d"(_Rm), "a"(_Rn));
 	
-	#else
+#else
 
 	asm(
 	"addl %1, %2					\n\
@@ -1206,7 +1128,8 @@ static void gpu_opcode_addq(void)
 	: "=m"(res)
 	: "d"(_Rm), "a"(_Rn));
 
-	#endif
+#endif	// #ifdef __GCCWIN32__
+#endif	// #ifndef USE_ASSEMBLY
 	
 #else
 	__asm 
@@ -1222,37 +1145,32 @@ static void gpu_opcode_addq(void)
 #endif
 	Rn=res;
 }
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
+
 static void gpu_opcode_addqt(void)
 {
 	Rn += gpu_convert_zero[imm_1];
 }
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
+
 static void gpu_opcode_sub(void)
 {
 	uint32 _Rm=Rm;
 	uint32 _Rn=Rn;
 	uint32 res;
 #ifdef __PORT__
-
+#ifndef USE_ASSEMBLY
+{
+/*	int dreg = jaguar.op & 31;
+	UINT32 r1 = jaguar.r[(jaguar.op >> 5) & 31];
+	UINT32 r2 = jaguar.r[dreg];
+	UINT32 res = r2 - r1;
+	jaguar.r[dreg] = res;
+	CLR_ZNC; SET_ZNC_SUB(r2,r1,res);*/
+	UINT32 res = Rn - Rm;
+	CLR_ZNC; SET_ZNC_SUB(Rn, Rm, res);
+	Rn = res;
+	return;
+}
+#else
     /*
        GCC on WIN32 (more importantly mingw) doesn't know the declared
        variables in asm until we put a _ before it.
@@ -1260,7 +1178,7 @@ static void gpu_opcode_sub(void)
        So the declaration dsp_flag_c needs to be _dsp_flag_c on mingw.
     */
 
-    #ifdef __GCCWIN32__
+#ifdef __GCCWIN32__
 
 	asm(
 	"subl %1, %2					\n\
@@ -1272,7 +1190,7 @@ static void gpu_opcode_sub(void)
 	: "=m"(res)
 	: "d"(_Rm), "a"(_Rn));
 	
-	#else
+#else
 	
 	asm(
 	"subl %1, %2					\n\
@@ -1284,7 +1202,8 @@ static void gpu_opcode_sub(void)
 	: "=m"(res)
 	: "d"(_Rm), "a"(_Rn));
 
-	#endif
+#endif	// #ifdef __GCCWIN32__
+#endif	// #ifndef USE_ASSEMBLY
 	
 #else
 	__asm 
@@ -1300,23 +1219,27 @@ static void gpu_opcode_sub(void)
 #endif
 	Rn=res;
 }
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
+
 static void gpu_opcode_subc(void)
 {
 	uint32 _Rm=Rm;
 	uint32 _Rn=Rn;
 	uint32 res;
 #ifdef __PORT__
-
+#ifndef USE_ASSEMBLY
+{
+/*	int dreg = jaguar.op & 31;
+	UINT32 r1 = jaguar.r[(jaguar.op >> 5) & 31];
+	UINT32 r2 = jaguar.r[dreg];
+	UINT32 res = r2 - r1 - ((jaguar.FLAGS >> 1) & 1);
+	jaguar.r[dreg] = res;
+	CLR_ZNC; SET_ZNC_SUB(r2,r1,res);*/
+	UINT32 res = Rn - Rm - gpu_flag_c;
+	CLR_ZNC; SET_ZNC_SUB(Rn, Rm, res);
+	Rn = res;
+	return;
+}
+#else
     /*
        GCC on WIN32 (more importantly mingw) doesn't know the declared
        variables in asm until we put a _ before it.
@@ -1324,7 +1247,7 @@ static void gpu_opcode_subc(void)
        So the declaration dsp_flag_c needs to be _dsp_flag_c on mingw.
     */
 
-    #ifdef __GCCWIN32__
+#ifdef __GCCWIN32__
 
 	asm(
 	"addl %1, %2					\n\
@@ -1342,7 +1265,7 @@ static void gpu_opcode_subc(void)
 	: "=m"(res)
 	: "d"(_Rm), "a"(_Rn));
 	
-	#else
+#else
 	
 	asm(
 	"addl %1, %2					\n\
@@ -1360,7 +1283,8 @@ static void gpu_opcode_subc(void)
 	: "=m"(res)
 	: "d"(_Rm), "a"(_Rn));
 
-	#endif
+#endif	// #ifdef __GCCWIN32__
+#endif	// #ifndef USE_ASSEMBLY
 	
 #else
 	__asm 
@@ -1381,23 +1305,28 @@ gpu_opcode_subc_no_carry:
 #endif
 	Rn=res;
 }
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
+
 static void gpu_opcode_subq(void)
 {
 	uint32 _Rm=gpu_convert_zero[imm_1];
 	uint32 _Rn=Rn;
 	uint32 res;
 #ifdef __PORT__
-
+#ifndef USE_ASSEMBLY
+{
+/*	int dreg = jaguar.op & 31;
+	UINT32 r1 = convert_zero[(jaguar.op >> 5) & 31];
+	UINT32 r2 = jaguar.r[dreg];
+	UINT32 res = r2 - r1;
+	jaguar.r[dreg] = res;
+	CLR_ZNC; SET_ZNC_SUB(r2,r1,res);*/
+	UINT32 r1 = gpu_convert_zero[imm_1];
+	UINT32 res = Rn - r1;
+	CLR_ZNC; SET_ZNC_SUB(Rn, r1, res);
+	Rn = res;
+	return;
+}
+#else
     /*
        GCC on WIN32 (more importantly mingw) doesn't know the declared
        variables in asm until we put a _ before it.
@@ -1405,7 +1334,7 @@ static void gpu_opcode_subq(void)
        So the declaration dsp_flag_c needs to be _dsp_flag_c on mingw.
     */
 
-    #ifdef __GCCWIN32__
+#ifdef __GCCWIN32__
 
 	asm(
 	"subl %1, %2					\n\
@@ -1417,7 +1346,7 @@ static void gpu_opcode_subq(void)
 	: "=m"(res)
 	: "d"(_Rm), "a"(_Rn));
 	
-	#else
+#else
 	
 	asm(
 	"subl %1, %2					\n\
@@ -1429,7 +1358,8 @@ static void gpu_opcode_subq(void)
 	: "=m"(res)
 	: "d"(_Rm), "a"(_Rn));
 
-	#endif	
+#endif	// #ifdef __GCCWIN32__
+#endif	// #ifndef USE_ASSEMBLY
 	
 #else
 	__asm 
@@ -1445,35 +1375,28 @@ static void gpu_opcode_subq(void)
 #endif
 	Rn=res;
 }
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
+
 static void gpu_opcode_subqt(void)
 {
 	Rn -= gpu_convert_zero[imm_1];
 }
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
+
 static void gpu_opcode_cmp(void)
 {
 	uint32 _Rm=Rm;
 	uint32 _Rn=Rn;
 #ifdef __PORT__
+#ifndef USE_ASSEMBLY
+{
+/*	UINT32 r1 = jaguar.r[(jaguar.op >> 5) & 31];
+	UINT32 r2 = jaguar.r[jaguar.op & 31];
+	UINT32 res = r2 - r1;
+	CLR_ZNC; SET_ZNC_SUB(r2,r1,res);*/
+	UINT32 res = Rn - Rm;
+	CLR_ZNC; SET_ZNC_SUB(Rn, Rm, res);
+	return;
+}
+#else
 
     /*
        GCC on WIN32 (more importantly mingw) doesn't know the declared
@@ -1482,7 +1405,7 @@ static void gpu_opcode_cmp(void)
        So the declaration dsp_flag_c needs to be _dsp_flag_c on mingw.
     */
 
-    #ifdef __GCCWIN32__
+#ifdef __GCCWIN32__
 
 	asm(
 	"cmpl %0, %1					\n\
@@ -1493,7 +1416,7 @@ static void gpu_opcode_cmp(void)
 	:
 	: "d"(_Rm), "a"(_Rn));
 	
-	#else
+#else
 	
 	asm(
 	"cmpl %0, %1					\n\
@@ -1504,7 +1427,8 @@ static void gpu_opcode_cmp(void)
 	:
 	: "d"(_Rm), "a"(_Rn));
 
-	#endif
+#endif	// #ifdef __GCCWIN32__
+#endif	// #ifndef USE_ASSEMBLY
  	
 #else
 	__asm 
@@ -1518,23 +1442,26 @@ static void gpu_opcode_cmp(void)
 	};
 #endif
 }
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
+
 static void gpu_opcode_cmpq(void)
 {
-	static int32 sqtable[32] = { 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,-16,-15,-14,-13,-12,-11,-10,-9,-8,-7,-6,-5,-4,-3,-2,-1};
+	static int32 sqtable[32] =
+		{ 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,-16,-15,-14,-13,-12,-11,-10,-9,-8,-7,-6,-5,-4,-3,-2,-1 };
 	int32 _Rm=sqtable[imm_1&0x1f];
 	uint32 _Rn=Rn;
 #ifdef __PORT__
-
+#ifndef USE_ASSEMBLY
+{
+/*	UINT32 r1 = (INT8)(jaguar.op >> 2) >> 3;
+	UINT32 r2 = jaguar.r[jaguar.op & 31];
+	UINT32 res = r2 - r1;
+	CLR_ZNC; SET_ZNC_SUB(r2,r1,res);*/
+	UINT32 r1 = sqtable[imm_1 & 0x1F]; // I like this better -> (INT8)(jaguar.op >> 2) >> 3;
+	UINT32 res = Rn - r1;
+	CLR_ZNC; SET_ZNC_SUB(Rn, r1, res);
+	return;
+}
+#else
     /*
        GCC on WIN32 (more importantly mingw) doesn't know the declared
        variables in asm until we put a _ before it.
@@ -1542,7 +1469,7 @@ static void gpu_opcode_cmpq(void)
        So the declaration dsp_flag_c needs to be _dsp_flag_c on mingw.
     */
 
-    #ifdef __GCCWIN32__
+#ifdef __GCCWIN32__
 
 	asm(
 	"cmpl %0, %1					\n\
@@ -1553,7 +1480,7 @@ static void gpu_opcode_cmpq(void)
 	:
 	: "d"(_Rm), "a"(_Rn));
 	
-	#else
+#else
 
 	asm(
 	"cmpl %0, %1					\n\
@@ -1564,7 +1491,9 @@ static void gpu_opcode_cmpq(void)
 	:
 	: "d"(_Rm), "a"(_Rn));
 	
-	#endif
+#endif	// #ifdef __GCCWIN32__
+#endif	// #ifndef USE_ASSEMBLY
+
 #else
 	__asm 
 	{
@@ -1577,22 +1506,27 @@ static void gpu_opcode_cmpq(void)
 	};
 #endif
 }
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
+
 static void gpu_opcode_and(void)
 {
 	uint32 _Rm=Rm;
 	uint32 _Rn=Rn;
 	uint32 res;
 #ifdef __PORT__
+#ifndef USE_ASSEMBLY
+{
+/*	int dreg = jaguar.op & 31;
+	UINT32 r1 = jaguar.r[(jaguar.op >> 5) & 31];
+	UINT32 r2 = jaguar.r[dreg];
+	UINT32 res = r2 & r1;
+	jaguar.r[dreg] = res;
+	CLR_ZN; SET_ZN(res);*/
+	UINT32 res = Rn & Rm;
+	Rn = res;
+	CLR_ZN; SET_ZN(res);
+	return;
+}
+#else
 
     /*
        GCC on WIN32 (more importantly mingw) doesn't know the declared
@@ -1601,7 +1535,7 @@ static void gpu_opcode_and(void)
        So the declaration dsp_flag_c needs to be _dsp_flag_c on mingw.
     */
 
-    #ifdef __GCCWIN32__
+#ifdef __GCCWIN32__
 
 	asm(
 	"andl %1, %2					\n\
@@ -1612,7 +1546,7 @@ static void gpu_opcode_and(void)
 	: "=m"(res)
 	: "d"(_Rm), "a"(_Rn));
 	
-	#else
+#else
 
 	asm(
 	"andl %1, %2					\n\
@@ -1623,7 +1557,9 @@ static void gpu_opcode_and(void)
 	: "=m"(res)
 	: "d"(_Rm), "a"(_Rn));
 	
-	#endif
+#endif	// #ifdef __GCCWIN32__
+#endif	// #ifndef USE_ASSEMBLY
+
 #else
 	__asm 
 	{
@@ -1637,23 +1573,27 @@ static void gpu_opcode_and(void)
 #endif
 	Rn=res;
 }
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
+
 static void gpu_opcode_or(void)
 {
 	uint32 _Rm=Rm;
 	uint32 _Rn=Rn;
 	uint32 res;
 #ifdef __PORT__
-
+#ifndef USE_ASSEMBLY
+{
+/*	int dreg = jaguar.op & 31;
+	UINT32 r1 = jaguar.r[(jaguar.op >> 5) & 31];
+	UINT32 r2 = jaguar.r[dreg];
+	UINT32 res = r1 | r2;
+	jaguar.r[dreg] = res;
+	CLR_ZN; SET_ZN(res);*/
+	UINT32 res = Rn | Rm;
+	Rn = res;
+	CLR_ZN; SET_ZN(res);
+	return;
+}
+#else
     /*
        GCC on WIN32 (more importantly mingw) doesn't know the declared
        variables in asm until we put a _ before it.
@@ -1661,7 +1601,7 @@ static void gpu_opcode_or(void)
        So the declaration dsp_flag_c needs to be _dsp_flag_c on mingw.
     */
 
-    #ifdef __GCCWIN32__
+#ifdef __GCCWIN32__
 
 	asm(
 	"orl %1, %2						\n\
@@ -1672,7 +1612,7 @@ static void gpu_opcode_or(void)
 	: "=m"(res)
 	: "d"(_Rm), "a"(_Rn));
 	
-	#else
+#else
 
 	asm(
 	"orl %1, %2						\n\
@@ -1683,7 +1623,9 @@ static void gpu_opcode_or(void)
 	: "=m"(res)
 	: "d"(_Rm), "a"(_Rn));
 	
-	#endif
+#endif	// #ifdef __GCCWIN32__
+#endif	// #ifndef USE_ASSEMBLY
+
 #else
 	__asm 
 	{
@@ -1697,23 +1639,27 @@ static void gpu_opcode_or(void)
 #endif
 	Rn=res;
 }
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
+
 static void gpu_opcode_xor(void)
 {
 	uint32 _Rm=Rm;
 	uint32 _Rn=Rn;
 	uint32 res;
 #ifdef __PORT__
-
+#ifndef USE_ASSEMBLY
+{
+/*	int dreg = jaguar.op & 31;
+	UINT32 r1 = jaguar.r[(jaguar.op >> 5) & 31];
+	UINT32 r2 = jaguar.r[dreg];
+	UINT32 res = r1 ^ r2;
+	jaguar.r[dreg] = res;
+	CLR_ZN; SET_ZN(res);*/
+	UINT32 res = Rn ^ Rm;
+	Rn = res;
+	CLR_ZN; SET_ZN(res);
+	return;
+}
+#else
     /*
        GCC on WIN32 (more importantly mingw) doesn't know the declared
        variables in asm until we put a _ before it.
@@ -1721,7 +1667,7 @@ static void gpu_opcode_xor(void)
        So the declaration dsp_flag_c needs to be _dsp_flag_c on mingw.
     */
 
-    #ifdef __GCCWIN32__
+#ifdef __GCCWIN32__
 
 	asm(
 	"xorl %1, %2					\n\
@@ -1732,7 +1678,7 @@ static void gpu_opcode_xor(void)
 	: "=m"(res)
 	: "d"(_Rm), "a"(_Rn));
 	
-	#else
+#else
 
 	asm(
 	"xorl %1, %2					\n\
@@ -1743,7 +1689,9 @@ static void gpu_opcode_xor(void)
 	: "=m"(res)
 	: "d"(_Rm), "a"(_Rn));
 
-	#endif
+#endif	// #ifdef __GCCWIN32__
+#endif	// #ifndef USE_ASSEMBLY
+
 #else
 	__asm 
 	{
@@ -1757,22 +1705,24 @@ static void gpu_opcode_xor(void)
 #endif
 	Rn=res;
 }
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
+
 static void gpu_opcode_not(void)
 {
 	uint32 _Rn=Rn;
 	uint32 res;
 #ifdef __PORT__
-
+#ifndef USE_ASSEMBLY
+{
+/*	int dreg = jaguar.op & 31;
+	UINT32 res = ~jaguar.r[dreg];
+	jaguar.r[dreg] = res;
+	CLR_ZN; SET_ZN(res);*/
+	UINT32 res = ~Rn;
+	Rn = res;
+	CLR_ZN; SET_ZN(res);
+	return;
+}
+#else
     /*
        GCC on WIN32 (more importantly mingw) doesn't know the declared
        variables in asm until we put a _ before it.
@@ -1780,7 +1730,7 @@ static void gpu_opcode_not(void)
        So the declaration dsp_flag_c needs to be _dsp_flag_c on mingw.
     */
 
-    #ifdef __GCCWIN32__
+#ifdef __GCCWIN32__
 
 	asm(
 	"notl %1						\n\
@@ -1791,7 +1741,7 @@ static void gpu_opcode_not(void)
 	: "=m"(res)
 	: "a"(_Rn));
 	
-	#else
+#else
 
 	asm(
 	"notl %1						\n\
@@ -1802,7 +1752,9 @@ static void gpu_opcode_not(void)
 	: "=m"(res)
 	: "a"(_Rn));
 	
-	#endif
+#endif	// #ifdef __GCCWIN32__
+#endif	// #ifndef USE_ASSEMBLY
+
 #else
 	__asm 
 	{
@@ -1815,30 +1767,12 @@ static void gpu_opcode_not(void)
 #endif
 	Rn=res;
 }
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
+
 static void gpu_opcode_move_pc(void)
 {
 	Rn = gpu_pc-2; 
 }
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
+
 static void gpu_opcode_sat8(void)
 {
 	int32 _Rn=(int32)Rn;
@@ -1847,16 +1781,7 @@ static void gpu_opcode_sat8(void)
 	set_flag_z(res);
 	reset_flag_n();
 }
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
+
 static void gpu_opcode_sat16(void)
 {
 	int32 _Rn=(int32)Rn;
@@ -1864,16 +1789,7 @@ static void gpu_opcode_sat16(void)
 	set_flag_z(res);
 	reset_flag_n();
 }
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
+
 static void gpu_opcode_sat24(void)
 {
 	int32 _Rn=(int32)Rn;
@@ -1882,113 +1798,41 @@ static void gpu_opcode_sat24(void)
 	set_flag_z(res);
 	reset_flag_n();
 }
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
+
 static void gpu_opcode_store_r14_indexed(void)
 {
 	gpu_long_write( gpu_reg[14] + (gpu_convert_zero[imm_1] << 2),Rn);
 }
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
+
 static void gpu_opcode_store_r15_indexed(void)
 {
 	gpu_long_write( gpu_reg[15] + (gpu_convert_zero[imm_1] << 2),Rn);
 }
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
+
 static void gpu_opcode_load_r14_ri(void)
 {
 	Rn=gpu_long_read(gpu_reg[14] + Rm);
 }
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
+
 static void gpu_opcode_load_r15_ri(void)
 {
 	Rn=gpu_long_read(gpu_reg[15] + Rm);
 }
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
+
 static void gpu_opcode_store_r14_ri(void)
 {
 	gpu_long_write(gpu_reg[14] + Rm,Rn);
 }
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
+
 static void gpu_opcode_store_r15_ri(void)
 {
 	gpu_long_write(gpu_reg[15] + Rm,Rn);
 }
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
+
 static void gpu_opcode_nop(void)
 {
 }
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
+
 static void gpu_opcode_pack(void)
 {
 	uint32 _Rn=Rn;
@@ -2010,16 +1854,7 @@ static void gpu_opcode_pack(void)
 	set_flag_z(Rn);
 	set_flag_n(Rn);
 }
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
+
 static void gpu_opcode_storeb(void)
 {
 	if ((Rm >= 0xF03000) && (Rm < 0xF04000))
@@ -2027,16 +1862,7 @@ static void gpu_opcode_storeb(void)
 	else
 		jaguar_byte_write(Rm,Rn);
 }
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
+
 static void gpu_opcode_storew(void)
 {
 	if ((Rm >= 0xF03000) && (Rm < 0xF04000))
@@ -2044,46 +1870,19 @@ static void gpu_opcode_storew(void)
 	else
 		jaguar_word_write(Rm,Rn);
 }
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
+
 static void gpu_opcode_store(void)
 {
 	gpu_long_write(Rm,Rn);
 }
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
+
 static void gpu_opcode_storep(void)
 {
 	uint32 _Rm=Rm;
 	gpu_long_write(_Rm,	 gpu_hidata);
 	gpu_long_write(_Rm+4, Rn);
 }
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
+
 static void gpu_opcode_loadb(void)
 {
 	if ((Rm >= 0xF03000) && (Rm < 0xF04000))
@@ -2091,16 +1890,7 @@ static void gpu_opcode_loadb(void)
 	else
 		Rn=jaguar_byte_read(Rm);
 }
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
+
 static void gpu_opcode_loadw(void)
 {
 	if ((Rm >= 0xF03000) && (Rm < 0xF04000))
@@ -2108,30 +1898,12 @@ static void gpu_opcode_loadw(void)
 	else
 		Rn=jaguar_word_read(Rm);
 }
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
+
 static void gpu_opcode_load(void)
 {
 	Rn = gpu_long_read(Rm);
 }
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
+
 static void gpu_opcode_loadp(void)
 {
 	uint32 _Rm=Rm;
@@ -2139,168 +1911,82 @@ static void gpu_opcode_loadp(void)
 	gpu_hidata = gpu_long_read(_Rm);
 	Rn		   = gpu_long_read(_Rm+4);
 }
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
+
 static void gpu_opcode_load_r14_indexed(void)
 {
 	Rn = gpu_long_read( gpu_reg[14] + (gpu_convert_zero[imm_1] << 2));
 }
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
+
 static void gpu_opcode_load_r15_indexed(void)
 {
 	Rn = gpu_long_read( gpu_reg[15] + (gpu_convert_zero[imm_1] << 2));
 }
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
+
 static void gpu_opcode_movei(void)
 {
-	Rn = ((uint32)gpu_word_read(gpu_pc)) + (((uint32)gpu_word_read(gpu_pc+2))<<16);
-	gpu_pc+=4;
+	Rn = (uint32)gpu_word_read(gpu_pc) | ((uint32)gpu_word_read(gpu_pc + 2) << 16);
+	gpu_pc += 4;
 }
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
+
 static void gpu_opcode_moveta(void)
 {
 	alternate_Rn = Rm;
 }
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
+
 static void gpu_opcode_movefa(void)
 {
 	Rn = alternate_Rm;
 }
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
+
 static void gpu_opcode_move(void)
 {
 	Rn = Rm;
 }
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
+
 static void gpu_opcode_moveq(void)
 {
 	Rn = imm_1;    
 }
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
+
 static void gpu_opcode_resmac(void)
 {
 	Rn = gpu_acc;
 }
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
+
 static void gpu_opcode_imult(void)
 {
 	uint32 res=Rn=((int16)Rn)*((int16)Rm);
 	set_flag_z(res);
 	set_flag_n(res);
 }
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
+
 static void gpu_opcode_mult(void)
 {
 	uint32 res=Rn =  ((uint16)Rm) * ((uint16)Rn);
 	set_flag_z(res);
 	set_flag_n(res);
 }
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
+
 static void gpu_opcode_bclr(void)
 {
 	uint32 _Rm=imm_1;
 	uint32 _Rn=Rn;
 	uint32 res;
 #ifdef __PORT__
-
+#ifndef USE_ASSEMBLY
+{
+/*	int dreg = jaguar.op & 31;
+	UINT32 r1 = (jaguar.op >> 5) & 31;
+	UINT32 r2 = jaguar.r[dreg];
+	UINT32 res = r2 & ~(1 << r1);
+	jaguar.r[dreg] = res;
+	CLR_ZN; SET_ZN(res);*/
+	UINT32 res = Rn & ~(1 << imm_1);
+	Rn = res;
+	CLR_ZN; SET_ZN(res);
+	return;
+}
+#else
     /*
        GCC on WIN32 (more importantly mingw) doesn't know the declared
        variables in asm until we put a _ before it.
@@ -2308,7 +1994,7 @@ static void gpu_opcode_bclr(void)
        So the declaration dsp_flag_c needs to be _dsp_flag_c on mingw.
     */
 
-    #ifdef __GCCWIN32__
+#ifdef __GCCWIN32__
 
 	asm(
 	"btrl %1, %2					\n\
@@ -2320,7 +2006,7 @@ static void gpu_opcode_bclr(void)
 	: "=m"(res)
 	: "c"(_Rm), "a"(_Rn));
 	
-	#else
+#else
 	
 	asm(
 	"btrl %1, %2					\n\
@@ -2332,7 +2018,8 @@ static void gpu_opcode_bclr(void)
 	: "=m"(res)
 	: "c"(_Rm), "a"(_Rn));
 
-	#endif
+#endif	// #ifdef __GCCWIN32__
+#endif	// #ifndef USE_ASSEMBLY
 	
 #else
 	__asm 
@@ -2348,22 +2035,21 @@ static void gpu_opcode_bclr(void)
 #endif
 	Rn=res;
 }
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
+
 static void gpu_opcode_btst(void)
 {
 	uint32 _Rm=imm_1;
 	uint32 _Rn=Rn;
 #ifdef __PORT__
-
+#ifndef USE_ASSEMBLY
+{
+/*	UINT32 r1 = (jaguar.op >> 5) & 31;
+	UINT32 r2 = jaguar.r[jaguar.op & 31];
+	CLR_Z; jaguar.FLAGS |= (~r2 >> r1) & 1;*/
+	CLR_Z; gpu_flag_z = (~Rn >> imm_1) & 1;
+	return;
+}
+#else
     /*
        GCC on WIN32 (more importantly mingw) doesn't know the declared
        variables in asm until we put a _ before it.
@@ -2371,7 +2057,7 @@ static void gpu_opcode_btst(void)
        So the declaration dsp_flag_c needs to be _dsp_flag_c on mingw.
     */
 
-    #ifdef __GCCWIN32__
+#ifdef __GCCWIN32__
 
 	asm(
 	"bt %0, %1						\n\
@@ -2380,7 +2066,7 @@ static void gpu_opcode_btst(void)
 	:
 	: "c"(_Rm), "a"(_Rn));
 	
-	#else
+#else
 
 	asm(
 	"bt %0, %1						\n\
@@ -2389,7 +2075,9 @@ static void gpu_opcode_btst(void)
 	:
 	: "c"(_Rm), "a"(_Rn));
 	
-	#endif
+#endif	// #ifdef __GCCWIN32__
+#endif	// #ifndef USE_ASSEMBLY
+
 #else
 	__asm 
 	{
@@ -2400,23 +2088,27 @@ static void gpu_opcode_btst(void)
 	};
 #endif
 }
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
+
 static void gpu_opcode_bset(void)
 {
 	uint32 _Rm=imm_1;
 	uint32 _Rn=Rn;
 	uint32 res;
 #ifdef __PORT__
-
+#ifndef USE_ASSEMBLY
+{
+/*	int dreg = jaguar.op & 31;
+	UINT32 r1 = (jaguar.op >> 5) & 31;
+	UINT32 r2 = jaguar.r[dreg];
+	UINT32 res = r2 | (1 << r1);
+	jaguar.r[dreg] = res;
+	CLR_ZN; SET_ZN(res);*/
+	UINT32 res = Rn | (1 << imm_1);
+	Rn = res;
+	CLR_ZN; SET_ZN(res);
+	return;
+}
+#else
     /*
        GCC on WIN32 (more importantly mingw) doesn't know the declared
        variables in asm until we put a _ before it.
@@ -2424,7 +2116,7 @@ static void gpu_opcode_bset(void)
        So the declaration dsp_flag_c needs to be _dsp_flag_c on mingw.
     */
 
-    #ifdef __GCCWIN32__
+#ifdef __GCCWIN32__
 
 	asm(
 	"btsl %1, %2					\n\
@@ -2436,7 +2128,7 @@ static void gpu_opcode_bset(void)
 	: "=m"(res)
 	: "c"(_Rm), "a"(_Rn));
 	
-	#else
+#else
 	
 	asm(
 	"btsl %1, %2					\n\
@@ -2448,7 +2140,8 @@ static void gpu_opcode_bset(void)
 	: "=m"(res)
 	: "c"(_Rm), "a"(_Rn));
 
-	#endif
+#endif	// #ifdef __GCCWIN32__
+#endif	// #ifndef USE_ASSEMBLY
  	
 #else
 	__asm 
@@ -2464,31 +2157,13 @@ static void gpu_opcode_bset(void)
 #endif
 	Rn=res;
 }
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
+
 static void gpu_opcode_imacn(void)
 {
 	uint32 res = ((int16)Rm) * ((int16)(Rn));
 	gpu_acc += res;
 }
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
+
 static void gpu_opcode_mtoi(void)
 {
 	uint32 _Rm=Rm;
@@ -2496,16 +2171,7 @@ static void gpu_opcode_mtoi(void)
 	set_flag_z(res);
 	set_flag_n(res);
 }
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
+
 static void gpu_opcode_normi(void)
 {
 	uint32 _Rm = Rm;
@@ -2513,12 +2179,12 @@ static void gpu_opcode_normi(void)
 
 	if (_Rm)
 	{
-		while ((_Rm & 0xffc00000) == 0)
+		while ((_Rm & 0xFFC00000) == 0)
 		{
 			_Rm <<= 1;
 			res--;
 		}
-		while ((_Rm & 0xff800000) != 0)
+		while ((_Rm & 0xFF800000) != 0)
 		{
 			_Rm >>= 1;
 			res++;
@@ -2528,19 +2194,10 @@ static void gpu_opcode_normi(void)
 	set_flag_z(res);
 	set_flag_n(res);
 }
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
+
 static void gpu_opcode_mmult(void)
 {
-	int count	= gpu_matrix_control&0x0f;
+	int count	= gpu_matrix_control & 0x0F;
 	uint32 addr = gpu_pointer_to_matrix; // in the gpu ram
 	int64 accum = 0;
 	uint32 res;
@@ -2580,16 +2237,7 @@ static void gpu_opcode_mmult(void)
 	set_flag_z(res);
 	set_flag_n(res);
 }
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
+
 static void gpu_opcode_abs(void)
 {
 	uint32 _Rn=Rn;
@@ -2607,16 +2255,7 @@ static void gpu_opcode_abs(void)
 		set_flag_z(res);
 	}
 }
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
+
 static void gpu_opcode_div(void)
 {
 	uint32 _Rm=Rm;
@@ -2642,16 +2281,7 @@ static void gpu_opcode_div(void)
 	else
 		Rn=0xffffffff;
 }
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
+
 static void gpu_opcode_imultn(void)
 {
 	uint32 res = (int32)((int16)Rn * (int16)Rm);
@@ -2659,22 +2289,25 @@ static void gpu_opcode_imultn(void)
 	set_flag_z(res);
 	set_flag_n(res);
 }
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
+
 static void gpu_opcode_neg(void)
 {
 	uint32 _Rn=Rn;
 	uint32 res;
 #ifdef __PORT__
-
+#ifndef USE_ASSEMBLY
+{
+/*	int dreg = jaguar.op & 31;
+	UINT32 r2 = jaguar.r[dreg];
+	UINT32 res = -r2;
+	jaguar.r[dreg] = res;
+	CLR_ZNC; SET_ZNC_SUB(0,r2,res);*/
+	UINT32 res = -Rn;
+	CLR_ZNC; SET_ZNC_SUB(0, Rn, res);
+	Rn = res;
+	return;
+}
+#else
     /*
        GCC on WIN32 (more importantly mingw) doesn't know the declared
        variables in asm until we put a _ before it.
@@ -2682,7 +2315,7 @@ static void gpu_opcode_neg(void)
        So the declaration dsp_flag_c needs to be _dsp_flag_c on mingw.
     */
 
-    #ifdef __GCCWIN32__
+#ifdef __GCCWIN32__
 
 	asm(
 	"subl %1, %2					\n\
@@ -2694,7 +2327,7 @@ static void gpu_opcode_neg(void)
 	: "=m"(res)
 	: "d"(_Rn), "a"(0));
 	
-	#else
+#else
 
 	asm(
 	"subl %1, %2					\n\
@@ -2706,7 +2339,9 @@ static void gpu_opcode_neg(void)
 	: "=m"(res)
 	: "d"(_Rn), "a"(0));
 	
-	#endif
+#endif	// #ifdef __GCCWIN32__
+#endif	// #ifndef USE_ASSEMBLY
+
 #else
 	__asm 
 	{
@@ -2721,23 +2356,28 @@ static void gpu_opcode_neg(void)
 #endif
 	Rn=res;
 }
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
+
 static void gpu_opcode_shlq(void)
 {
 	uint32 shift=(32-gpu_convert_zero[imm_1]);
 	uint32 _Rn=Rn;
 	uint32 res;
 #ifdef __PORT__
-
+#ifndef USE_ASSEMBLY
+/*	int dreg = jaguar.op & 31;
+	INT32 r1 = convert_zero[(jaguar.op >> 5) & 31];
+	UINT32 r2 = jaguar.r[dreg];
+	UINT32 res = r2 << (32 - r1);
+	jaguar.r[dreg] = res;
+	CLR_ZNC; SET_ZN(res); jaguar.FLAGS |= (r2 >> 30) & 2;*/
+{
+	INT32 r1 = gpu_convert_zero[imm_1];
+	UINT32 res = Rn << (32 - r1);
+	CLR_ZNC; SET_ZN(res); gpu_flag_c = (Rn >> 31) & 1;
+	Rn = res;
+	return;
+}
+#else
     /*
        GCC on WIN32 (more importantly mingw) doesn't know the declared
        variables in asm until we put a _ before it.
@@ -2745,7 +2385,7 @@ static void gpu_opcode_shlq(void)
        So the declaration dsp_flag_c needs to be _dsp_flag_c on mingw.
     */
 
-    #ifdef __GCCWIN32__
+#ifdef __GCCWIN32__
 
 	asm(
 	"testl $0x80000000, %2			\n\
@@ -2759,7 +2399,7 @@ static void gpu_opcode_shlq(void)
 	: "=m"(res)
 	: "c"(shift), "a"(_Rn));
 	
-	#else
+#else
 	
 	asm(
 	"testl $0x80000000, %2			\n\
@@ -2773,7 +2413,8 @@ static void gpu_opcode_shlq(void)
 	: "=m"(res)
 	: "c"(shift), "a"(_Rn));
 
-	#endif
+#endif	// #ifdef __GCCWIN32__
+#endif	// #ifndef USE_ASSEMBLY
 	
 #else
 	__asm 
@@ -2791,16 +2432,7 @@ static void gpu_opcode_shlq(void)
 #endif
 	Rn=res;
 }
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
+
 static void gpu_opcode_shrq(void)
 {
 	uint32 shift=gpu_convert_zero[imm_1];
@@ -2808,7 +2440,21 @@ static void gpu_opcode_shrq(void)
 	
 	uint32 res;
 #ifdef __PORT__
-
+#ifndef USE_ASSEMBLY
+/*	int dreg = jaguar.op & 31;
+	INT32 r1 = convert_zero[(jaguar.op >> 5) & 31];
+	UINT32 r2 = jaguar.r[dreg];
+	UINT32 res = r2 >> r1;
+	jaguar.r[dreg] = res;
+	CLR_ZNC; SET_ZN(res); jaguar.FLAGS |= (r2 << 1) & 2;*/
+{
+	INT32 r1 = gpu_convert_zero[imm_1];
+	UINT32 res = Rn >> r1;
+	CLR_ZNC; SET_ZN(res); gpu_flag_c = Rn & 1;
+	Rn = res;
+	return;
+}
+#else
     /*
        GCC on WIN32 (more importantly mingw) doesn't know the declared
        variables in asm until we put a _ before it.
@@ -2816,7 +2462,7 @@ static void gpu_opcode_shrq(void)
        So the declaration dsp_flag_c needs to be _dsp_flag_c on mingw.
     */
 
-    #ifdef __GCCWIN32__
+#ifdef __GCCWIN32__
 
 	asm(
 	"testl $0x00000001, %2			\n\
@@ -2830,7 +2476,7 @@ static void gpu_opcode_shrq(void)
 	: "=m"(res)
 	: "c"(shift), "a"(_Rn));
 	
-	#else
+#else
 
 	asm(
 	"testl $0x00000001, %2			\n\
@@ -2844,7 +2490,9 @@ static void gpu_opcode_shrq(void)
 	: "=m"(res)
 	: "c"(shift), "a"(_Rn));
 	
-	#endif
+#endif	// #ifdef __GCCWIN32__
+#endif	// #ifndef USE_ASSEMBLY
+
 #else
 	__asm 
 	{
@@ -2861,23 +2509,29 @@ static void gpu_opcode_shrq(void)
 #endif
 	Rn=res;
 }
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
+
 static void gpu_opcode_ror(void)
 {
 	uint32 shift=Rm;
 	uint32 _Rn=Rn;
 	uint32 res;
 #ifdef __PORT__
-
+#ifndef USE_ASSEMBLY
+//#ifndef __PORT__	// For testing...
+/*	int dreg = jaguar.op & 31;
+	UINT32 r1 = jaguar.r[(jaguar.op >> 5) & 31] & 31;
+	UINT32 r2 = jaguar.r[dreg];
+	UINT32 res = (r2 >> r1) | (r2 << (32 - r1));
+	jaguar.r[dreg] = res;
+	CLR_ZNC; SET_ZN(res); jaguar.FLAGS |= (r2 >> 30) & 2;*/
+{
+	UINT32 r1 = Rm & 0x1F;
+	UINT32 res = (Rn >> r1) | (Rn << (32 - r1));
+	CLR_ZNC; SET_ZN(res); gpu_flag_c = (Rn >> 31) & 1;
+	Rn = res;
+	return;
+}
+#else
     /*
        GCC on WIN32 (more importantly mingw) doesn't know the declared
        variables in asm until we put a _ before it.
@@ -2885,7 +2539,7 @@ static void gpu_opcode_ror(void)
        So the declaration dsp_flag_c needs to be _dsp_flag_c on mingw.
     */
 
-    #ifdef __GCCWIN32__
+#ifdef __GCCWIN32__
 
 	asm(
 	"testl $0x80000000, %2			\n\
@@ -2899,7 +2553,7 @@ static void gpu_opcode_ror(void)
 	: "=m"(res)
 	: "c"(shift), "a"(_Rn));
 	
-	#else
+#else
 
 	asm(
 	"testl $0x80000000, %2			\n\
@@ -2913,7 +2567,8 @@ static void gpu_opcode_ror(void)
 	: "=m"(res)
 	: "c"(shift), "a"(_Rn));
 
-	#endif
+#endif	// #ifdef __GCCWIN32__
+#endif	// #ifndef USE_ASSEMBLY
 	
 #else
 	__asm 
@@ -2931,22 +2586,37 @@ static void gpu_opcode_ror(void)
 #endif
 	Rn=res;
 }
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
+
 static void gpu_opcode_rorq(void)
 {
 	uint32 shift = gpu_convert_zero[imm_1 & 0x1F];
 	uint32 _Rn = Rn;
 	uint32 res;
 #ifdef __PORT__
+#ifndef USE_ASSEMBLY
+/*		uint32 index = opcode >> 10;		
+		gpu_opcode_first_parameter = (opcode & 0x3E0) >> 5;
+		gpu_opcode_second_parameter = (opcode & 0x1F);
+		gpu_pc += 2;
+		gpu_opcode[index]();
+		cycles -= gpu_opcode_cycles[index];
+		gpu_opcode_use[index]++;*/
+
+/*	int dreg = jaguar.op & 31;
+	UINT32 r1 = convert_zero[(jaguar.op >> 5) & 31];
+	UINT32 r2 = jaguar.r[dreg];
+	UINT32 res = (r2 >> r1) | (r2 << (32 - r1));
+	jaguar.r[dreg] = res;
+	CLR_ZNC; SET_ZN(res); jaguar.FLAGS |= (r2 >> 30) & 2;*/
+{
+	UINT32 r1 = gpu_convert_zero[imm_1 & 0x1F];
+	UINT32 r2 = Rn;
+	UINT32 res = (r2 >> r1) | (r2 << (32 - r1));
+	Rn = res;
+	CLR_ZNC; SET_ZN(res); gpu_flag_c = (r2 >> 31) & 0x01;
+	return;
+}
+#else
 
     /*
        GCC on WIN32 (more importantly mingw) doesn't know the declared
@@ -2984,7 +2654,8 @@ static void gpu_opcode_rorq(void)
 	: "c"(shift), "a"(_Rn));
 
 #endif	// #ifdef __GCCWIN32__
-	
+#endif	// #ifndef USE_ASSEMBLY
+
 #else
 	__asm 
 	{
@@ -3001,16 +2672,7 @@ static void gpu_opcode_rorq(void)
 #endif	// #ifdef __PORT__
 	Rn = res;
 }
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
+
 static void gpu_opcode_sha(void)
 {
 	int32 sRm=(int32)Rm;
@@ -3042,16 +2704,7 @@ static void gpu_opcode_sha(void)
 	set_flag_z(_Rn);
 	set_flag_n(_Rn);
 }
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
+
 static void gpu_opcode_sharq(void)
 {
 	uint32 shift=gpu_convert_zero[imm_1];
@@ -3067,16 +2720,7 @@ static void gpu_opcode_sharq(void)
 	set_flag_z(_Rn);
 	set_flag_n(_Rn);
 }
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
+
 static void gpu_opcode_sh(void)
 {
 	int32 sRm=(int32)Rm;

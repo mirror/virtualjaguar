@@ -1,7 +1,3 @@
-//
-// Useful types (platform specific)
-//
-// by cal16
 // GCC/SDL port by Niels Wagenaar (Linux/WIN32) and Caz (BeOS)
 // Removal of unsafe macros and addition of typdefs by James L. Hammons
 //
