@@ -31,15 +31,16 @@ uint16 lrxd, rrxd;									// I2S ports (into Jaguar)
 
 // Local variables
 
-uint32 LeftFIFOHeadPtr, LeftFIFOTailPtr, RightFIFOHeadPtr, RightFIFOTailPtr;
-SDL_AudioSpec desired;
+static uint32 LeftFIFOHeadPtr, LeftFIFOTailPtr, RightFIFOHeadPtr, RightFIFOTailPtr;
+static SDL_AudioSpec desired;
+static bool SDLSoundInitialized = false;
 
 // We can get away with using native endian here because we can tell SDL to use the native
 // endian when looking at the sample buffer, i.e., no need to worry about it.
 
-uint16 * DACBuffer;
-uint8 SCLKFrequencyDivider = 19;						// Default is roughly 22 KHz (20774 Hz in NTSC mode)
-uint16 serialMode = 0;
+static uint16 * DACBuffer;
+static uint8 SCLKFrequencyDivider = 19;				// Default is roughly 22 KHz (20774 Hz in NTSC mode)
+/*static*/ uint16 serialMode = 0;
 
 // Private function prototypes
 
@@ -62,14 +63,18 @@ void DACInit(void)
 
 	if (SDL_OpenAudio(&desired, NULL) < 0)			// NULL means SDL guarantees what we want
 	{
-		WriteLog("DAC: Failed to initialize SDL sound. Shutting down!\n");
-		log_done();
-		exit(1);
+//		WriteLog("DAC: Failed to initialize SDL sound. Shutting down!\n");
+//		log_done();
+//		exit(1);
+		WriteLog("DAC: Failed to initialize SDL sound...\n");
 	}
-
-	DACReset();
-	SDL_PauseAudio(false);							// Start playback!
-	WriteLog("DAC: Successfully initialized.\n");
+	else
+	{
+		SDLSoundInitialized = true;
+		DACReset();
+		SDL_PauseAudio(false);							// Start playback!
+		WriteLog("DAC: Successfully initialized.\n");
+	}
 }
 
 //
@@ -85,8 +90,12 @@ void DACReset(void)
 //
 void DACDone(void)
 {
-	SDL_PauseAudio(true);
-	SDL_CloseAudio();
+	if (SDLSoundInitialized)
+	{
+		SDL_PauseAudio(true);
+		SDL_CloseAudio();
+	}
+
 	memory_free(DACBuffer);
 	WriteLog("DAC: Done.\n");
 }
@@ -222,19 +231,26 @@ if (spin == 0x10000000)
 //Of course a better way would be to query the hardware to find the upper limit...
 			if (data > 7)	// Anything less than 8 is too high!
 			{
-				SDL_CloseAudio();
+				if (SDLSoundInitialized)
+					SDL_CloseAudio();
+
 				desired.freq = GetCalculatedFrequency();// SDL will do conversion on the fly, if it can't get the exact rate. Nice!
 				WriteLog("DAC: Changing sample rate to %u Hz!\n", desired.freq);
 
-				if (SDL_OpenAudio(&desired, NULL) < 0)	// NULL means SDL guarantees what we want
+				if (SDLSoundInitialized)
 				{
-					WriteLog("DAC: Failed to initialize SDL sound: %s.\nDesired freq: %u\nShutting down!\n", SDL_GetError(), desired.freq);
-					log_done();
-					exit(1);
+					if (SDL_OpenAudio(&desired, NULL) < 0)	// NULL means SDL guarantees what we want
+					{
+						WriteLog("DAC: Failed to initialize SDL sound: %s.\nDesired freq: %u\nShutting down!\n", SDL_GetError(), desired.freq);
+						log_done();
+						exit(1);
+					}
 				}
 
 				DACReset();
-				SDL_PauseAudio(false);				// Start playback!
+
+				if (SDLSoundInitialized)
+					SDL_PauseAudio(false);			// Start playback!
 			}
 		}
 	}
