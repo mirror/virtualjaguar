@@ -4,13 +4,10 @@
 // by James L. Hammons & ?
 //
 
+#include "log.h"
+
 //
 // OS X support functions
-//
-
-
-
-//
 // OS specific implementation of OS agnostic functions
 //
 
@@ -51,4 +48,16 @@ uint8 * CDIntfGetDriveName(uint32)
 {
 	WriteLog("CDINTF: GetDriveName unimplemented!\n");
 	return NULL;
+}
+
+uint8 CDIntfGetSessionInfo(uint32 session, uint32 offset)
+{
+	WriteLog("CDINTF: GetSessionInfo unimplemented!\n");
+	return 0xFF;
+}
+
+uint8 CDIntfGetTrackInfo(uint32 track, uint32 offset)
+{
+	WriteLog("CDINTF: GetTrackInfo unimplemented!\n");
+	return 0xFF;
 }
