@@ -54,6 +54,7 @@ bool iLeft, iRight, iToggle = false;
 bool keyHeld1 = false, keyHeld2 = false, keyHeld3 = false;
 int objectPtr = 0;
 bool startMemLog = false;
+extern bool doDSPDis;
 
 
 void joystick_init(void)
@@ -195,6 +196,9 @@ void joystick_exec(void)
 		startMemLog = true;
 	if (keystate[SDLK_r])
 		WriteLog("\n--------> MARK!\n\n");
+	if (keystate[SDLK_t])
+		doDSPDis = true;
+
 
 	// Joystick support [nwagenaar]
 
