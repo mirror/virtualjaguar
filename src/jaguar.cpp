@@ -17,6 +17,8 @@
 //Do this in makefile??? Yes! Could, but it's easier to define here...
 //#define LOG_UNMAPPED_MEMORY_ACCESSES
 //#define ABORT_ON_UNMAPPED_MEMORY_ACCESS
+#define ABORT_ON_ILLEGAL_INSTRUCTIONS
+//#define ABORT_ON_OFFICIAL_ILLEGAL_INSTRUCTION
 #define CPU_DEBUG_MEMORY
 
 // Private function prototypes
@@ -151,8 +153,24 @@ void M68KInstructionHook(void)
 			WriteLog("\tA%i = %08X\n", i-M68K_REG_A0, m68k_get_reg(NULL, (m68k_register_t)i));
 	}*/
 
+#ifdef ABORT_ON_ILLEGAL_INSTRUCTIONS
 	if (!m68k_is_valid_instruction(m68k_read_memory_16(m68kPC), M68K_CPU_TYPE_68000))
 	{
+#ifndef ABORT_ON_OFFICIAL_ILLEGAL_INSTRUCTION
+		if (m68k_read_memory_16(m68kPC) == 0x4AFC)
+		{
+			// This is a kludge to let homebrew programs work properly (i.e., let the other processors
+			// keep going even when the 68K dumped back to the debugger or what have you).
+//dis no wok right!
+//			m68k_set_reg(M68K_REG_PC, m68kPC - 2);
+// Try setting the vector to the illegal instruction...
+//This doesn't work right either! Do something else! Quick!
+//			SET32(jaguar_mainRam, 0x10, m68kPC);
+
+			return;
+		}
+#endif
+
 		WriteLog("\nM68K encountered an illegal instruction at %08X!!!\n\nAborting!\n", m68kPC);
 		uint32 topOfStack = m68k_get_reg(NULL, M68K_REG_A7);
 		WriteLog("M68K: Top of stack: %08X. Stack trace:\n", JaguarReadLong(topOfStack));
@@ -160,9 +178,17 @@ void M68KInstructionHook(void)
 			WriteLog("%06X: %08X\n", topOfStack - (i * 4), JaguarReadLong(topOfStack - (i * 4)));
 		WriteLog("Jaguar: VBL interrupt is %s\n", ((tom_irq_enabled(IRQ_VBLANK)) && (jaguar_interrupt_handler_is_valid(64))) ? "enabled" : "disabled");
 		M68K_show_context();
+
+//temp
+//	WriteLog("\n\n68K disasm\n\n");
+//	jaguar_dasm(0x802000, 0x50C);
+//	WriteLog("\n\n");
+//endoftemp
+
 		log_done();
 		exit(0);
 	}//*/
+#endif
 }
 
 //
@@ -901,7 +927,11 @@ if (effect_start)
 
 		TOMWriteWord(0xF00006, i);					// Write the VC
 
-		if (i == vi)								// Time for Vertical Interrupt?
+//		if (i == vi)								// Time for Vertical Interrupt?
+//Not sure if this is correct...
+//Seems to be, kinda. According to the JTRM, this should only fire on odd lines in non-interlace mode...
+//Which means that it normally wouldn't go when it's zero.
+		if (i == vi && i > 0)						// Time for Vertical Interrupt?
 		{
 			if (tom_irq_enabled(IRQ_VBLANK))// && jaguar_interrupt_handler_is_valid(64))
 			{
