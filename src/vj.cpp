@@ -7,16 +7,12 @@
 //
 
 #ifdef __GCCUNIX__
-#include <unistd.h>
+#include <unistd.h>									// Is this necessary anymore?
 #endif
 
-//#include <dirent.h>									// POSIX, but should compile with linux & mingw...
 #include <time.h>
 #include <SDL.h>
 #include "jaguar.h"
-//#include "crc32.h"
-//#include "zlib.h"
-//#include "unzip.h"
 #include "video.h"
 #include "gui.h"
 #include "sdlemu_opengl.h"
@@ -27,36 +23,23 @@
 
 // Private function prototypes
 
-//uint32 JaguarLoadROM(uint8 *, char *);
-//void JaguarLoadCart(uint8 *, char *);
-//int gzfilelength(gzFile gd);
-
 // External variables
 
 extern uint8 * jaguar_mainRam;
-extern uint8 * jaguar_bootRom;
 extern uint8 * jaguar_mainRom;
+extern uint8 * jaguar_bootRom;
+extern uint8 * jaguar_CDBootROM;
 
-// Various paths
-
-//static char * jaguar_bootRom_path = "./bios/jagboot.rom";
-//static char  *jaguar_bootRom_path="c:/jaguarEmu/newload.img";
-//static char  *jaguar_bootRom_path="./bios/JagOS.bin";
-//char * jaguar_eeproms_path = "./eeproms/";
-//char jaguar_boot_dir[MAX_PATH];
-
-//These should go into video.cpp...
-//And they will!
-//SDL_Surface * surface, * mainSurface;
-//int16 * backbuffer = NULL;
-//SDL_Joystick * joystick;
-//Uint32 mainSurfaceFlags = SDL_SWSURFACE;
+// Global variables (export capable)
+//should these even be here anymore?
 
 bool finished = false;
 bool showGUI = false;
 bool showMessage = false;
 uint32 showMessageTimeout;
 char messageBuffer[200];
+bool BIOSLoaded = false;
+bool CDBIOSLoaded = false;
 
 //
 // The main emulator loop (what else?)
@@ -66,11 +49,11 @@ char messageBuffer[200];
 uint32 totalFrames;//temp, so we can grab this from elsewhere...
 int main(int argc, char * argv[])
 {
-	uint32 startTime;//, totalFrames;//, endTime;//, w, h;
-	uint32 nNormalLast = 0;
-	int32 nNormalFrac = 0; 
-    int32 nFrameskip = 0;							// Default: Show every frame
-    int32 nFrame = 0;								// No. of Frame
+//	uint32 startTime;//, totalFrames;//, endTime;//, w, h;
+//	uint32 nNormalLast = 0;
+//	int32 nNormalFrac = 0; 
+	int32 nFrameskip = 0;							// Default: Show every frame
+//	int32 nFrame = 0;								// No. of Frame
 
 	printf("Virtual Jaguar GCC/SDL Portable Jaguar Emulator v1.0.7\n");
 	printf("Based upon Virtual Jaguar core v1.0.0 by David Raingeard.\n");
@@ -175,26 +158,45 @@ int main(int argc, char * argv[])
 		}
     }
 
-	memory_init();
-	version_init();
+	// Set up SDL library
+	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_JOYSTICK | SDL_INIT_AUDIO | SDL_INIT_TIMER
+		| SDL_INIT_CDROM | SDL_INIT_NOPARACHUTE) < 0)
+	{
+		WriteLog("VJ: Could not initialize the SDL library: %s\n", SDL_GetError());
+		return -1;
+	}
+	WriteLog("VJ: SDL successfully initialized.\n");
+
+WriteLog("Initializing memory subsystem...\n");
+	InitMemory();
+WriteLog("Initializing version...\n");
+	InitVersion();
 	version_display(log_get());
+WriteLog("Initializing jaguar subsystem...\n");
 	jaguar_init();
 
 	// Get the BIOS ROM
 //	if (vjs.useJaguarBIOS)
 // What would be nice here would be a way to check if the BIOS was loaded so that we
-// could disable the pushbutton on the Misc Options menu... !!! FIX !!!
-		JaguarLoadROM(jaguar_bootRom, vjs.jagBootPath);
+// could disable the pushbutton on the Misc Options menu... !!! FIX !!! [DONE here, but needs to be fixed in GUI as well!]
+WriteLog("About to attempt to load BIOSes...\n");
+	BIOSLoaded = (JaguarLoadROM(jaguar_bootRom, vjs.jagBootPath) == 0x20000 ? true : false);
+	WriteLog("VJ: BIOS is %savailable...\n", (BIOSLoaded ? "" : "not "));
+	CDBIOSLoaded = (JaguarLoadROM(jaguar_CDBootROM, vjs.CDBootPath) == 0x40000 ? true : false);
+	WriteLog("VJ: CD BIOS is %savailable...\n", (CDBIOSLoaded ? "" : "not "));
 
 	SET32(jaguar_mainRam, 0, 0x00200000);			// Set top of stack...
 
+WriteLog("Initializing video subsystem...\n");
 	InitVideo();
+WriteLog("Initializing GUI subsystem...\n");
 	InitGUI();
 
 	// Get the cartridge ROM (if passed in)
 	// Now with crunchy GUI goodness!
 //	JaguarLoadCart(jaguar_mainRom, (haveCart ? argv[1] : vjs.ROMPath));
 //Need to find a better way to handle this crap...
+WriteLog("About to start GUI...\n");
 	GUIMain();
 
 /*	jaguar_reset();
@@ -264,15 +266,20 @@ int main(int argc, char * argv[])
 #endif
 	}*/
 
-	int elapsedTime = clock() - startTime;
-	int fps = (1000 * totalFrames) / elapsedTime;
-	WriteLog("VJ: Ran at an average of %i FPS.\n", fps);
+//This is no longer accurate...!
+//	int elapsedTime = clock() - startTime;
+//	int fps = (1000 * totalFrames) / elapsedTime;
+//	WriteLog("VJ: Ran at an average of %i FPS.\n", fps);
 
 	jaguar_done();
-	version_done();
-	memory_done();
-	VideoDone();									// Free SDL components last...!
+	VersionDone();
+	MemoryDone();
+	VideoDone();
 	log_done();	
+
+	// Free SDL components last...!
+	SDL_QuitSubSystem(SDL_INIT_VIDEO | SDL_INIT_JOYSTICK | SDL_INIT_AUDIO | SDL_INIT_TIMER | SDL_INIT_CDROM);
+	SDL_Quit();
 
     return 0;
 }
