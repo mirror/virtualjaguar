@@ -312,6 +312,11 @@ void sdlemu_create_texture(SDL_Surface * src, SDL_Surface * dst, int filter, int
 	   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     }
+    
+    // Setting texture mode.
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+
 
     // Genereate the texture using the above information.
     switch ( texturebpp )
