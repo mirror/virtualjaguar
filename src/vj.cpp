@@ -12,6 +12,7 @@
 #include <unistd.h>
 #endif	// __GCCUNIX__
 
+#include <dirent.h>					// POSIX, but should compile with linux & mingw...
 #include <time.h>
 #include <SDL.h>
 #include "jaguar.h"
@@ -56,12 +57,30 @@ bool hardwareTypeNTSC = true;			// Set to false for PAL
 bool useJoystick = false;
 bool showGUI = false;
 
+int16 * backbuffer = NULL;
 
 // Added/changed by SDLEMU http://sdlemu.ngemu.com
 
 uint32 totalFrames;//so we can grab this from elsewhere...
 int main(int argc, char * argv[])
 {
+
+/*DIR * dp = opendir("../../ROMs/");
+if (dp == NULL)
+	printf("Could not open directory!\n");
+else
+{
+	dirent * de;
+	while ((de = readdir(dp)) != NULL)
+	{
+		char * ext = strrchr(de->d_name, '.');
+		if (strcmpi(ext, ".zip") == 0 || strcmpi(ext, ".jag") == 0)
+			printf("--> %s\n", de->d_name);
+	}
+
+	closedir(dp);
+}*/
+
 	uint32 startTime;//, totalFrames;//, endTime;//, w, h;
 	uint32 nNormalLast = 0;
 	int32 nNormalFrac = 0; 
@@ -155,15 +174,12 @@ int main(int argc, char * argv[])
 
 	SET32(jaguar_mainRam, 0, 0x00200000);			// Set top of stack...
 
-	// Get the cartridge ROM (if passed in)
-	if (haveCart)
-		JaguarLoadCart(jaguar_mainRom, argv[1]);
-
 	jaguar_reset();
-	
+
 	// Set up the backbuffer
-	int16 * backbuffer = (int16 *)malloc(845 * 525 * sizeof(int16));
-	memset(backbuffer, 0xAA, tom_getVideoModeWidth() * tom_getVideoModeHeight() * sizeof(int16));
+//	int16 * backbuffer = (int16 *)malloc(845 * 525 * sizeof(int16));
+	backbuffer = (int16 *)malloc(845 * 525 * sizeof(int16));
+	memset(backbuffer, 0x22, tom_getVideoModeWidth() * tom_getVideoModeHeight() * sizeof(int16));
 
 	// Set up SDL library
 	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_JOYSTICK | SDL_INIT_AUDIO | SDL_INIT_TIMER | SDL_INIT_NOPARACHUTE) < 0)
@@ -232,6 +248,16 @@ int main(int argc, char * argv[])
 		}
 	}
 
+	// Get the cartridge ROM (if passed in)
+//	if (haveCart)
+//		JaguarLoadCart(jaguar_mainRom, argv[1]);
+	// Now with crunchy GUI goodness!
+	JaguarLoadCart(jaguar_mainRom, (haveCart ? argv[1] : (char *)"."));
+
+//Do this again??? Hmm... This is not very nice.
+//Maybe it's not necessary??? Seems to be, at least for PD ROMs... !!! FIX !!!
+	jaguar_reset();
+	
 	totalFrames = 0;
 	startTime = clock();
 	nNormalLast = 0;									// Last value of timeGetTime()
@@ -274,9 +300,9 @@ int main(int argc, char * argv[])
 			{
 				extern uint32 gpu_pc;
 				extern uint32 dsp_pc;
-				DrawText(backbuffer, 8, 0, "Friendly GUI brought to you by JLH ;-)");
-				DrawText(backbuffer, 8, 8, "GPU PC: %08X", gpu_pc);
-				DrawText(backbuffer, 8, 16, "DSP PC: %08X", dsp_pc);
+				DrawText(backbuffer, 8, 0, true, "Friendly GUI brought to you by JLH ;-)");
+				DrawText(backbuffer, 8, 8, false, "GPU PC: %08X", gpu_pc);
+				DrawText(backbuffer, 8, 16, false, "DSP PC: %08X", dsp_pc);
 			}
 
 			// Simple frameskip
@@ -326,46 +352,186 @@ int main(int argc, char * argv[])
 }
 
 //
+// Very very crude GUI file selector
+//
+uint32 DoROMFind(uint8 * mem, char * path)
+{
+	char cartName[2048];	// Really, should be MAX_PATH or something like it
+	uint32 numFiles = 0;
+	DIR * dp = opendir(path);
+
+	if (dp == NULL)
+	{
+		WriteLog("VJ: Could not open directory \"%s\"!\nAborting!\n", path);
+		log_done();
+		exit(0);
+	}
+	else
+	{
+		dirent * de;
+		while ((de = readdir(dp)) != NULL)
+		{
+			char * ext = strrchr(de->d_name, '.');
+			if (ext != NULL)
+				if (strcmpi(ext, ".zip") == 0 || strcmpi(ext, ".jag") == 0)
+					numFiles++;
+		}
+		closedir(dp);
+	}
+
+	if (numFiles == 0)
+	{
+		WriteLog("Found no ROM files!\nAborting!\n");
+		log_done();
+		exit(0);
+	}
+
+	char * names = (char *)malloc(numFiles * 2048);
+	if (names == NULL)
+	{
+		WriteLog("Could not allocate memory for %u files!\nAborting!\n", numFiles);
+		log_done();
+		exit(0);
+	}
+
+	int i = 0;
+	dp = opendir(path);
+	dirent * de;
+	while ((de = readdir(dp)) != NULL)
+	{
+		char * ext = strrchr(de->d_name, '.');
+		if (ext != NULL)
+			if (strcmpi(ext, ".zip") == 0 || strcmpi(ext, ".jag") == 0)
+				strcpy(&names[i++ * 2048], de->d_name);
+	}
+	closedir(dp);
+
+	// Main GUI selection loop
+
+	uint32 cursor = 0;
+
+	if (numFiles > 1)	// Only go GUI if more than one possibility!
+	{
+	bool done = false;
+	uint32 limit = (numFiles > 24 ? 24 : numFiles);
+	SDL_Event event;
+	while (!done)
+	
+	while (SDL_PollEvent(&event))
+	{
+		// Draw the GUI...
+		memset(backbuffer, 0x11, tom_getVideoModeWidth() * tom_getVideoModeHeight() * 2);
+		uint32 startFile = (cursor >= limit ? cursor - limit + 1 : 0);
+		for(uint32 i=0; i<limit; i++)
+		{
+			bool invert = (cursor == startFile + i ? true : false);
+			char buf[41];
+			// Guarantee that we clip our strings to fit in the screen...
+			memcpy(buf, &names[(startFile + i) * 2048], 38);
+			buf[38] = 0;
+			DrawText(backbuffer, 0, i*8, invert, " %s ", buf);
+		}
+
+
+				if (SDL_MUSTLOCK(surface))
+					while (SDL_LockSurface(surface) < 0)
+						SDL_Delay(10);
+
+//				memcpy(surface->pixels, backbuffer, tom_width * tom_height * 2);
+				memcpy(surface->pixels, backbuffer, tom_getVideoModeWidth() * tom_getVideoModeHeight() * 2);
+
+				if (SDL_MUSTLOCK(surface))
+					SDL_UnlockSurface(surface);
+
+				SDL_Rect srcrect, dstrect;
+				srcrect.x = srcrect.y = 0, srcrect.w = surface->w, srcrect.h = surface->h;
+				dstrect.x = dstrect.y = 0, dstrect.w = surface->w, dstrect.h = surface->h;
+				SDL_BlitSurface(surface, &srcrect, mainSurface, &dstrect);
+			    SDL_Flip(mainSurface);      
+
+
+		if (event.type == SDL_KEYDOWN)
+		{
+			switch (event.key.keysym.sym)
+			{
+			case SDLK_UP:
+				if (cursor != 0)
+					cursor--;
+				break;
+			case SDLK_DOWN:
+				if (cursor != numFiles - 1)
+					cursor++;
+				break;
+			case SDLK_RETURN:
+				done = true;
+				break;
+			}
+		}
+	}
+	}
+
+	strcpy(cartName, path);
+	if (path[strlen(path) - 1] != '/')
+		strcat(cartName, "/");
+	strcat(cartName, &names[cursor * 2048]);
+	free(names);
+
+	uint32 romSize = JaguarLoadROM(mem, cartName);
+	if (romSize == 0)
+	{
+		log_done();
+		exit(0);
+	}
+	return romSize;
+}
+
+//
 // Generic ROM loading
 //
 uint32 JaguarLoadROM(uint8 * rom, char * path)
 {
-	uint32 romSize;
-
-	WriteLog("JagEm: Loading %s...", path);
+	uint32 romSize = 0;
 
 	char * ext = strrchr(path, '.');
-	if (strcmpi(ext, ".zip") == 0)
+	if (ext != NULL)
 	{
-		// Handle ZIP file loading here...
-		WriteLog("(ZIPped)...");
+		WriteLog("VJ: Loading %s...", path);
 
-		if (load_zipped_file(0, 0, path, NULL, &rom, &romSize) == -1)
+		if (strcmpi(ext, ".zip") == 0)
 		{
-			WriteLog("Failed!\n");
-			log_done();
-			exit(0);
-		}
-	}
-	else
-	{
-		FILE * fp = fopen(path, "rb");
+			// Handle ZIP file loading here...
+			WriteLog("(ZIPped)...");
 
-		if (fp == NULL)
+			if (load_zipped_file(0, 0, path, NULL, &rom, &romSize) == -1)
+			{
+				WriteLog("Failed!\n");
+//				log_done();
+//				exit(0);
+				return 0;
+			}
+		}
+		else
 		{
-			WriteLog("Failed!\n");
-			log_done();
-			exit(0);
+			FILE * fp = fopen(path, "rb");
+
+			if (fp == NULL)
+			{
+				WriteLog("Failed!\n");
+//				log_done();
+//				exit(0);
+				return 0;
+			}
+
+			fseek(fp, 0, SEEK_END);
+			romSize = ftell(fp);
+			fseek(fp, 0, SEEK_SET);
+			fread(rom, 1, romSize, fp);
+			fclose(fp);
 		}
 
-		fseek(fp, 0, SEEK_END);
-		romSize = ftell(fp);
-		fseek(fp, 0, SEEK_SET);
-		fread(rom, 1, romSize, fp);
-		fclose(fp);
+		WriteLog("OK (%i bytes)\n", romSize);
 	}
 
-	WriteLog("OK (%i bytes)\n", romSize);
 	return romSize;
 }
 
@@ -374,8 +540,15 @@ uint32 JaguarLoadROM(uint8 * rom, char * path)
 //
 void JaguarLoadCart(uint8 * mem, char * path)
 {
-	uint32 romsize = JaguarLoadROM(mem, path);
-	jaguar_mainRom_crc32 = crc32_calcCheckSum(jaguar_mainRom, romsize);
+	uint32 romSize = JaguarLoadROM(mem, path);
+
+	if (romSize == 0)
+	{
+		WriteLog("VJ: Trying GUI...\n");
+		romSize = DoROMFind(mem, path);
+	}
+
+	jaguar_mainRom_crc32 = crc32_calcCheckSum(jaguar_mainRom, romSize);
 	WriteLog( "CRC: %08X\n", (unsigned int)jaguar_mainRom_crc32);
 	eeprom_init();
 }
