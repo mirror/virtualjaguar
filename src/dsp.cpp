@@ -633,28 +633,29 @@ void dsp_update_register_banks(void)
 	}
 }
 
+
 void dsp_check_if_i2s_interrupt_needed(void)
 {
-	static uint32 count=8;
+// Commenting this shit out helped a little bit... This is probably the reason
+// why the sound isn't working right!
+/*	static uint32 count=8;
 
-	int mask;
+//	int mask;
 	count--;
 	if (count>0)
 		return;
 
-	count=4;
+	count=4;*/
 	// already in an interrupt handler ?
 	if (dsp_flags & 0x8) 
 		return;
 
 	// get the interrupt mask 
-	mask = (dsp_flags >> 4) & 0x1f;
+	int mask = (dsp_flags >> 4) & 0x1f;
 	mask |= (dsp_flags >> 11) & 0x20;
 
 	if (mask & 0x02)
-	{
-		dsp_set_irq_line(1,1);
-	}
+		dsp_set_irq_line(1, 1);
 }
 
 void dsp_check_irqs(void)
