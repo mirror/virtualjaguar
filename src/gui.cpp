@@ -5,13 +5,14 @@
 // by James L. Hammons
 //
 
+#include <stdarg.h>
+#include <sys/types.h>								// For MacOS <dirent.h> dependency
 #include <dirent.h>
 #include <SDL.h>
 #include <string>
 #include <vector>
 #include <algorithm>
-#include <ctype.h>								// For toupper()
-#include "types.h"
+#include <ctype.h>									// For toupper()
 #include "settings.h"
 #include "tom.h"
 #include "video.h"
@@ -32,6 +33,7 @@ void DrawStringTrans(int16 * screen, uint32 x, uint32 y, uint16 color, uint8 opa
 void DrawStringOpaque(int16 * screen, uint32 x, uint32 y, uint16 color1, uint16 color2, const char * text, ...);
 Window * LoadROM(void);
 Window * ResetJaguar(void);
+Window * ResetJaguarCD(void);
 Window * RunEmu(void);
 Window * Quit(void);
 Window * About(void);
@@ -42,12 +44,17 @@ int gzfilelength(gzFile gd);
 // External variables
 
 extern uint8 * jaguar_mainRam;
-extern uint8 * jaguar_bootRom;
 extern uint8 * jaguar_mainRom;
+extern uint8 * jaguar_bootRom;
+extern uint8 * jaguar_CDBootROM;
+extern bool BIOSLoaded;
+extern bool CDBIOSLoaded;
 
 // Local global variables
 
+bool exitGUI = false;								// GUI (emulator) done variable
 int mouseX, mouseY;
+uint16 background[1280 * 240];						// GUI background buffer
 
 uint16 mousePic[] = {
 	6, 8,
@@ -220,8 +227,6 @@ uint16 slideSwitchDown[] = {
 
 char separator[] = "--------------------------------------------------------";
 
-uint16 background[1280 * 240];
-
 //
 // Case insensitive string compare function
 // Taken straight out of Thinking In C++ by Bruce Eckel. Thanks Bruce!
@@ -232,9 +237,9 @@ int stringCmpi(const string &s1, const string &s2)
 	// Select the first element of each string:
 	string::const_iterator p1 = s1.begin(), p2 = s2.begin();
 
-	while (p1 != s1.end() && p2 != s2.end())			// Don’t run past the end
+	while (p1 != s1.end() && p2 != s2.end())		// Don’t run past the end
 	{
-		if (toupper(*p1) != toupper(*p2))				// Compare upper-cased chars
+		if (toupper(*p1) != toupper(*p2))			// Compare upper-cased chars
 			return (toupper(*p1) < toupper(*p2) ? -1 : 1);// Report which was lexically greater
 
 		p1++;
@@ -256,7 +261,7 @@ class Element
 	public:
 		Element(uint32 x = 0, uint32 y = 0, uint32 w = 0, uint32 h = 0)
 			{ extents.x = x, extents.y = y, extents.w = w, extents.h = h; }
-		virtual void HandleKey(SDLKey key) = 0;
+		virtual void HandleKey(SDLKey key) = 0;		// These are "pure" virtual functions...
 		virtual void HandleMouseMove(uint32 x, uint32 y) = 0;
 		virtual void HandleMouseButton(uint32 x, uint32 y, bool mouseDown) = 0;
 		virtual void Draw(uint32, uint32) = 0;
@@ -275,6 +280,7 @@ class Element
 		static uint32 pitch;
 };
 
+// Initialize class variables (Element)
 int16 * Element::screenBuffer = NULL;
 uint32 Element::pitch = 0;
 
@@ -373,6 +379,9 @@ class PushButton: public Element
 {
 // How to handle?
 // Save state externally?
+//We pass in a state variable if we want to track it externally, otherwise we use our own
+//internal state var. Still need to do some kind of callback for pushbuttons that do things
+//like change from fullscreen to windowed... !!! FIX !!!
 
 	public:
 //		PushButton(uint32 x = 0, uint32 y = 0, uint32 w = 0, uint32 h = 0): Element(x, y, w, h),
@@ -465,6 +474,7 @@ class SlideSwitch: public Element
 {
 // How to handle?
 // Save state externally?
+//Seems to be handled the same as PushButton, but without sanity checks. !!! FIX !!!
 
 	public:
 		SlideSwitch(uint32 x, uint32 y, bool * st, string s1, string s2): Element(x, y, 8, 16), state(st),
@@ -789,7 +799,7 @@ void ListBox::HandleMouseButton(uint32 x, uint32 y, bool mouseDown)
 	if (Inside(x, y) && mouseDown)
 	{
 		// Why do we have to do this??? (- extents.y?)
-		// I guess it's because only the Window class has offsetting implemented...
+		// I guess it's because only the Window class has offsetting implemented... !!! FIX !!!
 		cursor = (y - extents.y) / 8;
 	}
 
@@ -808,9 +818,14 @@ void ListBox::HandleMouseButton(uint32 x, uint32 y, bool mouseDown)
 			if (y >= (extents.y + 8 + thumbStart) && y < (extents.y + 8 + thumbStart + thumb))
 				thumbClicked = true, yRelativePoint = y - thumbStart;
 		}
-		else
-			thumbClicked = false;
+//Seems that this is useless--never reached except in rare cases and that the code outside is
+//more effective...
+//		else
+//			thumbClicked = false;
 	}
+
+	if (!mouseDown)
+		thumbClicked = false;
 
 	upArrow.HandleMouseButton(x - extents.x, y - extents.y, mouseDown);
 	downArrow.HandleMouseButton(x - extents.x, y - extents.y, mouseDown);
@@ -925,6 +940,7 @@ FileList::FileList(uint32 x, uint32 y, uint32 w, uint32 h): Window(x, y, w, h)
 	AddElement(load);
 	load->SetNotificationElement(this);
 
+//!!! FIX !!! Directory might not exist--this shouldn't cause VJ to crash!
 	DIR * dp = opendir(vjs.ROMPath);
 	dirent * de;
 
@@ -933,9 +949,9 @@ FileList::FileList(uint32 x, uint32 y, uint32 w, uint32 h): Window(x, y, w, h)
 		char * ext = strrchr(de->d_name, '.');
 
 		if (ext != NULL)
-			if (stricmp(ext, ".zip") == 0 || stricmp(ext, ".j64") == 0
-				|| stricmp(ext, ".abs") == 0 || stricmp(ext, ".jag") == 0
-				|| stricmp(ext, ".rom") == 0)
+			if (strcasecmp(ext, ".zip") == 0 || strcasecmp(ext, ".j64") == 0
+				|| strcasecmp(ext, ".abs") == 0 || strcasecmp(ext, ".jag") == 0
+				|| strcasecmp(ext, ".rom") == 0)
 				files->AddItem(string(de->d_name));
 	}
 
@@ -983,6 +999,7 @@ void FileList::Notify(Element * e)
 
 			// Handle the error, but don't run...
 			// Tell the user that we couldn't run their file for some reason... !!! FIX !!!
+//how to kludge: Make a function like ResetJaguar which creates the dialog window
 		}
 	}
 	else
@@ -1196,6 +1213,7 @@ void Menu::Add(MenuItems mi)
 
 
 //Do we even *need* this?
+//Doesn't seem like it...
 class RootWindow: public Window
 {
 	public:
@@ -1358,7 +1376,7 @@ bool GUIMain(void)
 {
 // Need to set things up so that it loads and runs a file if given on the command line. !!! FIX !!!
 	extern int16 * backbuffer;
-	bool done = false;
+//	bool done = false;
 	SDL_Event event;
 	Window * mainWindow = NULL;
 
@@ -1367,9 +1385,11 @@ bool GUIMain(void)
 
 	Menu mainMenu;
 	MenuItems mi;
-	mi.title = "File";
+	mi.title = "Jaguar";
 	mi.item.push_back(NameAction("Load...", LoadROM, SDLK_l));
-	mi.item.push_back(NameAction("Reset", ResetJaguar));
+	mi.item.push_back(NameAction("Reset", ResetJaguar, SDLK_r));
+	if (CDBIOSLoaded)
+		mi.item.push_back(NameAction("Reset CD", ResetJaguarCD, SDLK_c));
 	mi.item.push_back(NameAction("Run", RunEmu, SDLK_ESCAPE));
 	mi.item.push_back(NameAction(""));
 	mi.item.push_back(NameAction("Quit", Quit, SDLK_q));
@@ -1388,12 +1408,14 @@ bool GUIMain(void)
 	bool showMouse = true;
 
 //This is crappy!!! !!! FIX !!!
+//Is this even needed any more? Hmm. Maybe. Dunno.
 	jaguar_reset();
 
 	// Set up our background save...
 	memset(background, 0x11, tom_getVideoModeWidth() * 240 * 2);
 
-	while (!done)
+//	while (!done)
+	while (!exitGUI)
 	{
 		while (SDL_PollEvent(&event))
 		{
@@ -1443,7 +1465,12 @@ bool GUIMain(void)
 				mouseX = event.motion.x, mouseY = event.motion.y;
 
 				if (vjs.useOpenGL)
+// This is evil, Evil, EVIL! But we'll keep it until we can figure out WTF is going on here.
+#ifdef _OSX_
+					mouseX /= 2, mouseY = (480 - mouseY) / 2;
+#else
 					mouseX /= 2, mouseY /= 2;
+#endif
 
 				if (mainWindow)
 					mainWindow->HandleMouseMove(mouseX, mouseY);
@@ -1483,6 +1510,8 @@ bool GUIMain(void)
 			memcpy(backbuffer, background, tom_getVideoModeWidth() * 240 * 2);
 
 			mainMenu.Draw();
+//Could do multiple windows here by using a vector + priority info...
+//Though the way ZSNES does it seems to be by a bool (i.e., they're always active, just not shown)
 			if (mainWindow)
 				mainWindow->Draw();
 
@@ -1509,6 +1538,16 @@ Window * LoadROM(void)
 Window * ResetJaguar(void)
 {
 	jaguar_reset();
+	return RunEmu();
+}
+
+Window * ResetJaguarCD(void)
+{
+	memcpy(jaguar_mainRom, jaguar_CDBootROM, 0x40000);
+	jaguarRunAddress = 0x802000;
+	jaguar_mainRom_crc32 = crc32_calcCheckSum(jaguar_mainRom, 0x40000);
+	jaguar_reset();
+
 	return RunEmu();
 }
 
@@ -1548,6 +1587,7 @@ Window * RunEmu(void)
 
 //This sucks... !!! FIX !!!
 		joystick_exec();
+//This is done here so that the crud below doesn't get on our GUI background...
 		if (finished)
 			break;
 
@@ -1611,26 +1651,26 @@ doGPUDis = true;//*/
 
 Window * Quit(void)
 {
-//This is crap. We need some REAL exit code, instead of this psuedo crap... !!! FIX !!!
+//This is crap. We need some REAL exit code, instead of this psuedo crap... !!! FIX !!! [DONE]
 	WriteLog("GUI: Quitting due to user request.\n");
 
-//	log_done();
-	jaguar_done();
+	exitGUI = true;
+/*	jaguar_done();
 	version_done();
 	memory_done();
 	VideoDone();									// Free SDL components last...!
-	log_done();	
+	log_done();
 
-	exit(0);
+	exit(0);//*/
 
-	return NULL;									// We never get here...
+	return NULL;
 }
 
 Window * About(void)
 {
 	Window * window = new Window(8, 16, 304, 160);
 	window->AddElement(new Text(8, 8, "Virtual Jaguar 1.0.7"));
-//	window->AddElement(new Text(8, 8, "Virtual Jaguar CVS 20040107"));
+//	window->AddElement(new Text(8, 8, "Virtual Jaguar CVS 20040317"));
 	window->AddElement(new Text(8, 24, "Coders:"));
 	window->AddElement(new Text(16, 32, "Niels Wagenaar (nwagenaar)"));
 	window->AddElement(new Text(16, 40, "Carwin Jones (Caz)"));
@@ -1739,7 +1779,7 @@ GUIMain();
 		char * ext = strrchr(de->d_name, '.');
 
 		if (ext != NULL)
-			if (stricmp(ext, ".zip") == 0 || stricmp(ext, ".jag") == 0)
+			if (strcasecmp(ext, ".zip") == 0 || strcasecmp(ext, ".jag") == 0)
 				fileList.push_back(string(de->d_name));
 	}
 
@@ -1903,7 +1943,7 @@ uint32 JaguarLoadROM(uint8 * rom, char * path)
 	{
 		WriteLog("VJ: Loading \"%s\"...", path);
 
-		if (stricmp(ext, ".zip") == 0)
+		if (strcasecmp(ext, ".zip") == 0)
 		{
 			// Handle ZIP file loading here...
 			WriteLog("(ZIPped)...");
@@ -1930,6 +1970,8 @@ uint32 JaguarLoadROM(uint8 * rom, char * path)
 			fread(rom, 1, romSize, fp);
 			fclose(fp);*/
 
+			// Handle gzipped files transparently [Adam Green]...
+
 			gzFile fp = gzopen(path, "rb");
 
 			if (fp == NULL)
@@ -1953,7 +1995,6 @@ uint32 JaguarLoadROM(uint8 * rom, char * path)
 //
 // Jaguar file loading
 //
-//void JaguarLoadCart(uint8 * mem, char * path)
 bool JaguarLoadFile(char * path)
 {
 //	jaguarRomSize = JaguarLoadROM(mem, path);
@@ -1987,7 +2028,7 @@ bool JaguarLoadFile(char * path)
 	char * ext = strrchr(path, '.');				// Get the file's extension for non-cartridge checking
 
 //NOTE: Should fix JaguarLoadROM() to replace .zip with what's *in* the zip (.abs, .j64, etc.)
-	if (stricmp(ext, ".rom") == 0)
+	if (strcasecmp(ext, ".rom") == 0)
 	{
 		// File extension ".ROM": Alpine image that loads/runs at $802000
 		WriteLog("GUI: Setting up homebrew (ROM)... Run address: 00802000, length: %08X\n", jaguarRomSize);
@@ -2002,6 +2043,7 @@ bool JaguarLoadFile(char * path)
 		memset(jaguar_mainRam, 0x00, 0x400000);*/
 
 /*
+Stubulator ROM vectors...
 handler 001 at $00E00008
 handler 002 at $00E008DE
 handler 003 at $00E008E2
@@ -2047,7 +2089,7 @@ Let's try setting up the illegal instruction vector for a stubulated jaguar...
 		SET32(jaguar_mainRam, 0x10, 0x00001000);
 		SET16(jaguar_mainRam, 0x1000, 0x60FE);		// Here: bra Here
 	}
-	else if (stricmp(ext, ".abs") == 0)
+	else if (strcasecmp(ext, ".abs") == 0)
 	{
 		// File extension ".ABS": Atari linker output file with header (w/o is useless to us here)
 
@@ -2143,7 +2185,7 @@ Start of Data Segment = 0x00803dd0
 			return false;
 		}
 	}
-	else if (stricmp(ext, ".jag") == 0)
+	else if (strcasecmp(ext, ".jag") == 0)
 	{
 		// File extension ".JAG": Atari server file with header
 //NOTE: The bytes 'JAGR' should also be at position $1C...
