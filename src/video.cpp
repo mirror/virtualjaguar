@@ -18,6 +18,11 @@ Uint32 mainSurfaceFlags;
 int16 * backbuffer;
 SDL_Joystick * joystick;
 
+// One of the reasons why OpenGL is slower then normal SDL rendering, is because
+// the data is being pumped into the buffer every frame with a overflow as result.
+// So, we going tot render every 1 frame instead of every 0 frame.
+int frame_ticker  = 0;
+
 //
 // Create SDL/OpenGL surfaces
 //
@@ -34,10 +39,9 @@ bool InitVideo(void)
 
 	if (vjs.useOpenGL)
 	{
+	    // Initializing SDL attributes with OpenGL
 	    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 0);
         SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
-
-//		mainSurfaceFlags = SDL_HWSURFACE | SDL_HWPALETTE | SDL_DOUBLEBUF | SDL_OPENGL;
 		mainSurfaceFlags = SDL_OPENGL;
 		
 	}
@@ -59,10 +63,11 @@ bool InitVideo(void)
 			(vjs.hardwareTypeNTSC ? VIRTUAL_SCREEN_HEIGHT_NTSC : VIRTUAL_SCREEN_HEIGHT_PAL),
 			16, mainSurfaceFlags);
 	else
-//		mainSurface = SDL_SetVideoMode(VIRTUAL_SCREEN_WIDTH * 2, VIRTUAL_SCREEN_HEIGHT_NTSC * 2, 16, mainSurfaceFlags);
-		mainSurface = SDL_SetVideoMode(VIRTUAL_SCREEN_WIDTH * 2,
-			(vjs.hardwareTypeNTSC ? VIRTUAL_SCREEN_HEIGHT_NTSC : VIRTUAL_SCREEN_HEIGHT_PAL) * 2,
-			16, mainSurfaceFlags);
+	    // When OpenGL is used, we're going to use a standard resolution of 640x480.
+	    // This way we have good scaling functionality and when the screen is resized
+	    // because of the NTSC <-> PAL resize, we only have to re-create the texture
+	    // instead of initializing the entire OpenGL texture en screens.
+		mainSurface = SDL_SetVideoMode(640, 480, 16, mainSurfaceFlags);
 
 	if (mainSurface == NULL)
 	{
@@ -75,7 +80,6 @@ bool InitVideo(void)
 	// Create the primary SDL display (16 BPP, 5/5/5 RGB format)
 	surface = SDL_CreateRGBSurface(SDL_SWSURFACE, VIRTUAL_SCREEN_WIDTH,
 		(vjs.hardwareTypeNTSC ? VIRTUAL_SCREEN_HEIGHT_NTSC : VIRTUAL_SCREEN_HEIGHT_PAL),
-//		16, 63488, 2016, 31, 0);
 		16, 0x7C00, 0x03E0, 0x001F, 0);
 
 	if (surface == NULL)
@@ -85,9 +89,13 @@ bool InitVideo(void)
 	}
 
 	if (vjs.useOpenGL)
-//Should make another setting here, for either linear or nearest (instead of just picking one)
-//And we have! ;-)
-		sdlemu_init_opengl(surface, 1/*method*/, 2/*size*/, vjs.glFilter/*texture type (linear, nearest)*/, NULL);
+	    // Let us setup OpenGL and our rendering texture. We give the src (surface) and the
+	    // dst (mainSurface) display as well as the automatic bpp selection as options so that
+	    // our texture is automaticly created :)
+		sdlemu_init_opengl(surface, mainSurface, 1 /*method*/, 
+                           vjs.glFilter /*texture type (linear, nearest)*/, 
+                           NULL /* Automatic bpp selection based upon src */);
+		
 
 	// Initialize Joystick support under SDL
 	if (vjs.useJoystick)
@@ -148,8 +156,17 @@ void RenderBackbuffer(void)
 	if (SDL_MUSTLOCK(surface))
 		SDL_UnlockSurface(surface);
 
-	if (vjs.useOpenGL)
-		sdlemu_draw_texture(mainSurface, surface, 1/*1=GL_QUADS*/);
+	if (vjs.useOpenGL) {
+	    // One of the reasons why OpenGL is slower then normal SDL rendering, is because
+	    // the data is being pumped into the buffer every frame with a overflow as result.
+	    // So, we going tot render every 1 fps instead of every 0 fps.
+	    if ( frame_ticker != 0 ) {
+			    sdlemu_draw_texture(mainSurface, surface, 1/*1=GL_QUADS*/);
+			    frame_ticker = 0;  // Reset frame_ticker to 0 otherwise we won't get
+                                   // backrendering "frameskip".
+		} else
+                frame_ticker = frame_ticker + 1;    
+    }  
 	else
 	{
 		SDL_Rect rect = { 0, 0, surface->w, surface->h };
@@ -166,9 +183,7 @@ void ResizeScreen(uint32 width, uint32 height)
 	char window_title[256];
 
 	SDL_FreeSurface(surface);
-	surface = SDL_CreateRGBSurface(SDL_SWSURFACE, width, height, 
-//		16, 63488, 2016, 31, 0);
-        16, 0x7C00, 0x03E0, 0x001F, 0);
+	surface = SDL_CreateRGBSurface(SDL_SWSURFACE, width, height, 16, 0x7C00, 0x03E0, 0x001F, 0);
 
 	if (surface == NULL)
 	{
@@ -180,11 +195,8 @@ void ResizeScreen(uint32 width, uint32 height)
 
 	if (vjs.useOpenGL)
 	{
-//Need to really resize the window height--no pixel height shenanigans!
-//Err, we should only do this *if* we changed from PAL to NTSC or vice versa... !!! FIX !!!
-		mainSurface = SDL_SetVideoMode(VIRTUAL_SCREEN_WIDTH * 2, height * 2, 16, mainSurfaceFlags);
-		// This seems to work well for resizing (i.e., changes in the pixel width)...
-		sdlemu_resize_texture(surface, mainSurface, vjs.glFilter, NULL);
+	    // Recreate the texture because of the NTSC <-> PAL screen resize.
+		sdlemu_create_texture( surface, mainSurface, vjs.glFilter , NULL);
 	}
 	else
 	{
@@ -215,8 +227,8 @@ uint32 GetSDLScreenPitch(void)
 void ToggleFullscreen(void)
 {
 //NOTE: This does *NOT* work with OpenGL rendering! !!! FIX !!!
-//	if (vjs.useOpenGL)
-//		return;										// Until we can fix it...
+	if (vjs.useOpenGL)
+		return;										// Until we can fix it...
 
 	vjs.fullscreen = !vjs.fullscreen;
 	mainSurfaceFlags &= ~SDL_FULLSCREEN;
