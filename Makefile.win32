@@ -14,7 +14,6 @@ TARGET = vj
 OBJS = \
 	obj/anajoy.o \
 	obj/blitter.o \
-	obj/blitter2.o \
 	obj/cdbios.o \
 	obj/cdi.o \
 	obj/cdrom.o \
@@ -41,6 +40,7 @@ OBJS = \
 #	obj/m68kdasmAG.o \
 #	obj/gpu2.o \
 #	obj/dsound_dummy.o \
+#	obj/blitter2.o \
 
 LIBS = `sdl-config --libs` -lstdc++ -lz
 
@@ -69,6 +69,11 @@ obj/%.o: src/%.cpp
 vj: $(OBJS) 
 	$(LD) $(LDFLAGS) -o $@ $(OBJS) $(LIBS)
 #	upx -9 vj.exe
+
+# Other stuff that has unusual dependencies
+
+obj/gui.o: src/gui.cpp src/include/gui.h src/include/font1.h
+	$(THECC) -c src/gui.cpp -o obj/gui.o
 
 #
 # Musashi specific stuffola
