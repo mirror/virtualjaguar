@@ -6,6 +6,8 @@
 // Cleanups/fixes by James L. Hammons
 //
 bool specialLog = false;
+extern int effect_start;
+extern int blit_start_log;
 
 #include "jaguar.h"
 
@@ -80,7 +82,7 @@ bool specialLog = false;
 #define DCOMPEN			(cmd & 0x08000000)
 
 #define PATDSEL			(cmd & 0x00010000)
-#define INTADD			(cmd & 0x00020000)
+#define ADDDSEL			(cmd & 0x00020000)
 #define TOPBEN			(cmd & 0x00004000)
 #define TOPNEN			(cmd & 0x00008000)
 #define BKGWREN			(cmd & 0x10000000)
@@ -162,22 +164,22 @@ bool specialLog = false;
 #define WRITE_ZDATA(a,f,d) WRITE_ZDATA_16(a,d); 
 
 // 1 bpp r data read
-#define READ_RDATA_1(r,a,p)  ((p) ?  ((REG(r+(((UINT32)a##_x>>19)&4)))>>(((UINT32)a##_x>>16)&0x1f))&   0x1 : (REG(r) &    0x1))
+#define READ_RDATA_1(r,a,p)  ((p) ?  ((REG(r+(((UINT32)a##_x >> 19) & 0x04))) >> (((UINT32)a##_x >> 16) & 0x1F)) & 0x0001 : (REG(r) & 0x0001))
 
 // 2 bpp r data read
-#define READ_RDATA_2(r,a,p)  ((p) ?  ((REG(r+(((UINT32)a##_x>>18)&4)))>>(((UINT32)a##_x>>15)&0x3e))&   0x3 : (REG(r) &    0x3))
+#define READ_RDATA_2(r,a,p)  ((p) ?  ((REG(r+(((UINT32)a##_x >> 18) & 0x04))) >> (((UINT32)a##_x >> 15) & 0x3E)) & 0x0003 : (REG(r) & 0x0003))
 
 // 4 bpp r data read
-#define READ_RDATA_4(r,a,p)  ((p) ?  ((REG(r+(((UINT32)a##_x>>17)&4)))>>(((UINT32)a##_x>>14)&0x28))&   0xf : (REG(r) &    0xf))
+#define READ_RDATA_4(r,a,p)  ((p) ?  ((REG(r+(((UINT32)a##_x >> 17) & 0x04))) >> (((UINT32)a##_x >> 14) & 0x28)) & 0x000F : (REG(r) & 0x000F))
 
 // 8 bpp r data read
-#define READ_RDATA_8(r,a,p)  ((p) ?  ((REG(r+(((UINT32)a##_x>>16)&4)))>>(((UINT32)a##_x>>13)&0x18))&  0xff : (REG(r) &   0xff))
+#define READ_RDATA_8(r,a,p)  ((p) ?  ((REG(r+(((UINT32)a##_x >> 16) & 0x04))) >> (((UINT32)a##_x >> 13) & 0x18)) & 0x00FF : (REG(r) & 0x00FF))
 
 // 16 bpp r data read
-#define READ_RDATA_16(r,a,p)  ((p) ? ((REG(r+(((UINT32)a##_x>>15)&4)))>>(((UINT32)a##_x>>12)&0x10))&0xffff : (REG(r) & 0xffff))
+#define READ_RDATA_16(r,a,p)  ((p) ? ((REG(r+(((UINT32)a##_x >> 15) & 0x04))) >> (((UINT32)a##_x >> 12) & 0x10)) & 0xFFFF : (REG(r) & 0xFFFF))
 
 // 32 bpp r data read
-#define READ_RDATA_32(r,a,p)  ((p) ? REG(r+(((UINT32)a##_x>>14)&4)) : REG(r))
+#define READ_RDATA_32(r,a,p)  ((p) ? REG(r+(((UINT32)a##_x >> 14) & 0x04)) : REG(r))
 
 // register data read
 #define READ_RDATA(r,a,f,p) (\
@@ -326,13 +328,27 @@ static int32 a1_clip_x, a1_clip_y;
 //
 void blitter_generic(uint32 cmd)
 {
+/*
+Blit! (0018FA70 <- 008DDC40) count: 2 x 13, A1/2_FLAGS: 00014218/00013C18 [cmd: 1401060C]
+ CMD -> src: SRCENX dst: DSTEN  misc:  a1ctl: UPDA1 UPDA2 mode:  ity: PATDSEL z-op:  op: LFU_CLEAR ctrl: BCOMPEN BKGWREN 
+  A1 step values: -2 (X), 1 (Y)
+  A2 step values: -1 (X), 1 (Y) [mask (unused): 00000000 - FFFFFFFF/FFFFFFFF]
+  A1 -> pitch: 1 phrases, depth: 8bpp, z-off: 0, width: 320 (21), addctl: XADDPIX YADD0 XSIGNADD YSIGNADD
+  A2 -> pitch: 1 phrases, depth: 8bpp, z-off: 0, width: 192 (1E), addctl: XADDPIX YADD0 XSIGNADD YSIGNADD
+        A1 x/y: 100/12, A2 x/y: 106/0 Pattern: 000000F300000000
+*/
+//if (effect_start)
+//	specialLog = true;
+/*if (cmd == 0x1401060C && blit_start_log)
+	specialLog = true;//*/
 //Testing only!
 //uint32 logGo = ((cmd == 0x01800E01 && REG(A1_BASE) == 0x898000) ? 1 : 0);
 	uint32 srcdata, srczdata, dstdata, dstzdata, writedata, inhibit;
 
 if (specialLog)
 {
-	WriteLog("About to do 8x8 blit (BM width is 448 pixels)...\n");
+	WriteLog("About to do n x m blit (BM width is ? pixels)...\n");
+	WriteLog("A1_STEP_X/Y = %08X/%08X, A2_STEP_X/Y = %08X/%08X\n", a1_step_x, a1_step_y, a2_step_x, a2_step_y);
 }
 	while (outer_loop--)
 	{
@@ -340,7 +356,14 @@ if (specialLog)
 {
 	WriteLog("  A1_X/Y = %08X/%08X, A2_X/Y = %08X/%08X\n", a1_x, a1_y, a2_x, a2_y);
 }
-		uint32 a1_start = a1_x, a2_start = a2_x;
+		uint32 a1_start = a1_x, a2_start = a2_x, bitPos = 0;
+//Kludge for Hover Strike...
+//I wonder if this kludge is in conjunction with the SRCENX down below...
+if (BCOMPEN && SRCENX)
+{
+	if (n_pixels < 8)
+		bitPos = 8 - n_pixels;
+}
 
 		inner_loop = n_pixels;
 		while (inner_loop--)
@@ -350,22 +373,26 @@ if (specialLog)
 	WriteLog("    A1_X/Y = %08X/%08X, A2_X/Y = %08X/%08X\n", a1_x, a1_y, a2_x, a2_y);
 }
 			srcdata = srczdata = dstdata = dstzdata = writedata = inhibit = 0;
+//Kludge...
+//Doesn't work...
+srcdata = 0xFFFFFFFF;
 
-			if (!DSTA2)
+			if (!DSTA2)							// Data movement: A1 <- A2
 			{
 				// load src data and Z
-				if (SRCEN)
+//				if (SRCEN)
+				if (SRCEN || SRCENX)	// Not sure if this is correct...
 				{
 					srcdata = READ_PIXEL(a2, REG(A2_FLAGS));
 					if (SRCENZ)
 						srczdata = READ_ZDATA(a2, REG(A2_FLAGS));
-					else if (cmd & 0x0001C020)
+					else if (cmd & 0x0001C020)	// PATDSEL | TOPBEN | TOPNEN | DSTWRZ
 						srczdata = READ_RDATA(SRCZINT, a2, REG(A2_FLAGS), a2_phrase_mode);
 				}
-				else
+				else	// Use SRCDATA register...
 				{
 					srcdata = READ_RDATA(SRCDATA, a2, REG(A2_FLAGS), a2_phrase_mode);
-					if (cmd & 0x0001C020)
+					if (cmd & 0x0001C020)	// PATDSEL | TOPBEN | TOPNEN | DSTWRZ
 						srczdata = READ_RDATA(SRCZINT, a2, REG(A2_FLAGS), a2_phrase_mode);
 				}
 
@@ -404,8 +431,99 @@ if (specialLog)
 				// apply data comparator
 // Note: DCOMPEN only works in 8/16 bpp modes! !!! FIX !!!
 // Does BCOMPEN only work in 1 bpp mode???
+//   No, but it always does a 1 bit expansion no matter what the BPP of the channel is set to. !!! FIX !!!
+//   This is bit tricky... We need to fix the XADD value so that it acts like a 1BPP value while inside
+//   an 8BPP space.
 				if (DCOMPEN | BCOMPEN)
 				{
+//Temp, for testing Hover Strike
+//Doesn't seem to do it... Why?
+//What needs to happen here is twofold. First, the address generator in the outer loop has
+//to honor the BPP when calculating the start address (which it kinda does already). Second,
+//it has to step bit by bit when using BCOMPEN. How to do this???
+	if (BCOMPEN)
+//		srcdata = READ_RDATA_1(SRCDATA, a2, a2_phrase_mode);
+//		srcdata = READ_PIXEL_1(a2);
+//		srcdata = READ_PIXEL(a2, REG(A2_FLAGS));
+/*
+#define PIXEL_SHIFT_1(a)      (((~a##_x) >> 16) & 0x07)
+#define PIXEL_OFFSET_1(a)     (((((UINT32)a##_y >> 16) * a##_width / 8) + (((UINT32)a##_x >> 19) & ~7)) * (1 + a##_pitch) + (((UINT32)a##_x >> 19) & 7))
+#define READ_PIXEL_1(a)       ((JaguarReadByte(a##_addr+PIXEL_OFFSET_1(a), BLITTER) >> PIXEL_SHIFT_1(a)) & 0x01)
+
+#define PIXEL_SHIFT_1(a)
+	(((~a2_x) >> 16) & 0x07)
+#define PIXEL_OFFSET_1(a)
+	(((((UINT32)a2_y >> 16) * a2_width / 8) + (((UINT32)a2_x >> 19) & ~7)) * (1 + a2_pitch) + (((UINT32)a2_x >> 19) & 7))
+#define READ_PIXEL_1(a)
+	((JaguarReadByte(a2_addr+PIXEL_OFFSET_1(a2), BLITTER) >> PIXEL_SHIFT_1(a2)) & 0x01)
+*/
+//small problem with this approach: it's not accurate... We need a proper address to begin with
+//and *then* we can do the bit stepping from there the way it's *supposed* to be done... !!! FIX !!!
+	{
+//		uint32 pixShift = ((~(a2_x * 8)) >> 16) & 0x07;
+//		uint32 pixShift = (~(a2_x >> 13)) & 0x07;
+		uint32 pixShift = (~bitPos) & 0x07;		// 8BPP only...!
+//		uint32 pixOffset = (((((UINT32)a2_y >> 16) * a2_width / 8) + (((UINT32)(a2_x * 8) >> 19) & ~0x07)) * (1 + a2_pitch) + (((UINT32)(a2_x * 8) >> 19) & 0x07));
+//		uint32 pixOffset = (((((UINT32)a2_y >> 16) * a2_width) + (((UINT32)(a2_x * 8) >> 19) & ~0x07)) * (1 + a2_pitch) + (((UINT32)(a2_x * 8) >> 19) & 0x07));
+//		uint32 pixOffset = (((((UINT32)a2_y >> 16) * a2_width) + (((UINT32)a2_x >> 16) & ~0x07)) * (1 + a2_pitch)) + (((UINT32)a2_x >> 16) & 0x07);
+//		srcdata = (JaguarReadByte(a2_addr+pixOffset, BLITTER) >> pixShift) & 0x01;
+		srcdata = (srcdata >> pixShift) & 0x01;
+
+		bitPos++;
+	}
+/*
+Interesting (Hover Strike--large letter):
+
+Blit! (0018FA70 <- 008DDC40) count: 2 x 13, A1/2_FLAGS: 00014218/00013C18 [cmd: 1401060C]
+ CMD -> src: SRCENX dst: DSTEN  misc:  a1ctl: UPDA1 UPDA2 mode:  ity: PATDSEL z-op:  op: LFU_CLEAR ctrl: BCOMPEN BKGWREN 
+  A1 step values: -2 (X), 1 (Y)
+  A2 step values: -1 (X), 1 (Y) [mask (unused): 00000000 - FFFFFFFF/FFFFFFFF]
+  A1 -> pitch: 1 phrases, depth: 8bpp, z-off: 0, width: 320 (21), addctl: XADDPIX YADD0 XSIGNADD YSIGNADD
+  A2 -> pitch: 1 phrases, depth: 8bpp, z-off: 0, width: 192 (1E), addctl: XADDPIX YADD0 XSIGNADD YSIGNADD
+        A1 x/y: 100/12, A2 x/y: 106/0 Pattern: 000000F300000000
+
+Blit! (0018FA70 <- 008DDC40) count: 8 x 13, A1/2_FLAGS: 00014218/00013C18 [cmd: 1401060C]
+ CMD -> src: SRCENX dst: DSTEN  misc:  a1ctl: UPDA1 UPDA2 mode:  ity: PATDSEL z-op:  op: LFU_CLEAR ctrl: BCOMPEN BKGWREN 
+  A1 step values: -8 (X), 1 (Y)
+  A2 step values: -1 (X), 1 (Y) [mask (unused): 00000000 - FFFFFFFF/FFFFFFFF]
+  A1 -> pitch: 1 phrases, depth: 8bpp, z-off: 0, width: 320 (21), addctl: XADDPIX YADD0 XSIGNADD YSIGNADD
+  A2 -> pitch: 1 phrases, depth: 8bpp, z-off: 0, width: 192 (1E), addctl: XADDPIX YADD0 XSIGNADD YSIGNADD
+        A1 x/y: 102/12, A2 x/y: 107/0 Pattern: 000000F300000000
+
+Blit! (0018FA70 <- 008DDC40) count: 1 x 13, A1/2_FLAGS: 00014218/00013C18 [cmd: 1401060C]
+ CMD -> src: SRCENX dst: DSTEN  misc:  a1ctl: UPDA1 UPDA2 mode:  ity: PATDSEL z-op:  op: LFU_CLEAR ctrl: BCOMPEN BKGWREN 
+  A1 step values: -1 (X), 1 (Y)
+  A2 step values: -1 (X), 1 (Y) [mask (unused): 00000000 - FFFFFFFF/FFFFFFFF]
+  A1 -> pitch: 1 phrases, depth: 8bpp, z-off: 0, width: 320 (21), addctl: XADDPIX YADD0 XSIGNADD YSIGNADD
+  A2 -> pitch: 1 phrases, depth: 8bpp, z-off: 0, width: 192 (1E), addctl: XADDPIX YADD0 XSIGNADD YSIGNADD
+        A1 x/y: 118/12, A2 x/y: 70/0 Pattern: 000000F300000000
+
+Blit! (0018FA70 <- 008DDC40) count: 8 x 13, A1/2_FLAGS: 00014218/00013C18 [cmd: 1401060C]
+ CMD -> src: SRCENX dst: DSTEN  misc:  a1ctl: UPDA1 UPDA2 mode:  ity: PATDSEL z-op:  op: LFU_CLEAR ctrl: BCOMPEN BKGWREN 
+  A1 step values: -8 (X), 1 (Y)
+  A2 step values: -1 (X), 1 (Y) [mask (unused): 00000000 - FFFFFFFF/FFFFFFFF]
+  A1 -> pitch: 1 phrases, depth: 8bpp, z-off: 0, width: 320 (21), addctl: XADDPIX YADD0 XSIGNADD YSIGNADD
+  A2 -> pitch: 1 phrases, depth: 8bpp, z-off: 0, width: 192 (1E), addctl: XADDPIX YADD0 XSIGNADD YSIGNADD
+        A1 x/y: 119/12, A2 x/y: 71/0 Pattern: 000000F300000000
+
+Blit! (0018FA70 <- 008DDC40) count: 1 x 13, A1/2_FLAGS: 00014218/00013C18 [cmd: 1401060C]
+ CMD -> src: SRCENX dst: DSTEN  misc:  a1ctl: UPDA1 UPDA2 mode:  ity: PATDSEL z-op:  op: LFU_CLEAR ctrl: BCOMPEN BKGWREN 
+  A1 step values: -1 (X), 1 (Y)
+  A2 step values: -1 (X), 1 (Y) [mask (unused): 00000000 - FFFFFFFF/FFFFFFFF]
+  A1 -> pitch: 1 phrases, depth: 8bpp, z-off: 0, width: 320 (21), addctl: XADDPIX YADD0 XSIGNADD YSIGNADD
+  A2 -> pitch: 1 phrases, depth: 8bpp, z-off: 0, width: 192 (1E), addctl: XADDPIX YADD0 XSIGNADD YSIGNADD
+        A1 x/y: 127/12, A2 x/y: 66/0 Pattern: 000000F300000000
+
+Blit! (0018FA70 <- 008DDC40) count: 8 x 13, A1/2_FLAGS: 00014218/00013C18 [cmd: 1401060C]
+ CMD -> src: SRCENX dst: DSTEN  misc:  a1ctl: UPDA1 UPDA2 mode:  ity: PATDSEL z-op:  op: LFU_CLEAR ctrl: BCOMPEN BKGWREN 
+  A1 step values: -8 (X), 1 (Y)
+  A2 step values: -1 (X), 1 (Y) [mask (unused): 00000000 - FFFFFFFF/FFFFFFFF]
+  A1 -> pitch: 1 phrases, depth: 8bpp, z-off: 0, width: 320 (21), addctl: XADDPIX YADD0 XSIGNADD YSIGNADD
+  A2 -> pitch: 1 phrases, depth: 8bpp, z-off: 0, width: 192 (1E), addctl: XADDPIX YADD0 XSIGNADD YSIGNADD
+        A1 x/y: 128/12, A2 x/y: 67/0 Pattern: 000000F300000000
+*/
+
+
 					if (!CMPDST)
 					{
 //WriteLog("Blitter: BCOMPEN set on command %08X inhibit prev:%u, now:", cmd, inhibit);
@@ -434,6 +552,7 @@ Blit! (000B8250 <- 0012C3A0) count: 16 x 1, A1/2_FLAGS: 00014420/00012000 [cmd: 
 						else
 							WriteLog("Blitter: Bad BPP (%u) selected for BCOMPEN mode!\n", A2bpp);//*/
 // What it boils down to is this:
+
 						if (srcdata == 0)
 							inhibit = 1;//*/
 					}
@@ -473,15 +592,60 @@ Blit! (000B8250 <- 0012C3A0) count: 16 x 1, A1/2_FLAGS: 00014420/00012000 [cmd: 
 						// use pattern data for write data
 						writedata = READ_RDATA(PATTERNDATA, a1, REG(A1_FLAGS), a1_phrase_mode);
 					}
-					else if (INTADD)
+					else if (ADDDSEL)
 					{
+/*if (blit_start_log)
+	WriteLog("BLIT: ADDDSEL srcdata: %08X\, dstdata: %08X, ", srcdata, dstdata);//*/
+
 						// intensity addition
-						writedata = (srcdata & 0xFF) + (dstdata & 0xFF);
+//Ok, this is wrong... Or is it? Yes, it's wrong! !!! FIX !!!
+/*						writedata = (srcdata & 0xFF) + (dstdata & 0xFF);
 						if (!(TOPBEN) && writedata > 0xFF)
-							writedata = 0xFF;
+//							writedata = 0xFF;
+							writedata &= 0xFF;
 						writedata |= (srcdata & 0xF00) + (dstdata & 0xF00);
 						if (!(TOPNEN) && writedata > 0xFFF)
-							writedata = 0xFFF;
+//							writedata = 0xFFF;
+							writedata &= 0xFFF;
+						writedata |= (srcdata & 0xF000) + (dstdata & 0xF000);//*/
+//notneeded--writedata &= 0xFFFF;
+/*if (blit_start_log)
+	WriteLog("writedata: %08X\n", writedata);//*/
+/*
+Hover Strike ADDDSEL blit:
+
+Blit! (00098D90 <- 0081DDC0) count: 320 x 287, A1/2_FLAGS: 00004220/00004020 [cmd: 00020208]
+ CMD -> src:  dst: DSTEN  misc:  a1ctl: UPDA1  mode:  ity: ADDDSEL z-op:  op: LFU_CLEAR ctrl: 
+  A1 step values: -320 (X), 1 (Y)
+  A1 -> pitch: 1 phrases, depth: 16bpp, z-off: 0, width: 320 (21), addctl: XADDPHR YADD0 XSIGNADD YSIGNADD
+  A2 -> pitch: 1 phrases, depth: 16bpp, z-off: 0, width: 256 (20), addctl: XADDPHR YADD0 XSIGNADD YSIGNADD
+        A1 x/y: 0/0, A2 x/y: 3288/0 Pattern: 0000000000000000 SRCDATA: 00FD00FD00FD00FD
+*/
+						writedata = (srcdata & 0xFF) + (dstdata & 0xFF);
+
+						if (!TOPBEN)
+						{
+//This is correct now, but slow...
+							int16 s = (srcdata & 0xFF) | (srcdata & 0x80 ? 0xFF00 : 0x0000),
+								d = dstdata & 0xFF;
+							int16 sum = s + d;
+
+							if (sum < 0)
+								writedata = 0x00;
+							else if (sum > 0xFF)
+								writedata = 0xFF;
+							else
+								writedata = (uint32)sum;
+						}
+
+//This doesn't seem right... Looks like it would muck up the low byte... !!! FIX !!!
+						writedata |= (srcdata & 0xF00) + (dstdata & 0xF00);
+
+						if (!TOPNEN && writedata > 0xFFF)
+						{
+							writedata &= 0xFFF;
+						}
+
 						writedata |= (srcdata & 0xF000) + (dstdata & 0xF000);
 					}
 					else
@@ -493,6 +657,9 @@ Blit! (000B8250 <- 0012C3A0) count: 16 x 1, A1/2_FLAGS: 00014420/00012000 [cmd: 
 					}
 
 //Although, this looks like it's OK... (even if it is shitty!)
+//According to JTRM, this is part of the four things the blitter does with the write data (the other
+//three being PATDSEL, ADDDSEL, and LFU (default). I'm not sure which gets precedence, this or PATDSEL
+//(see above blit example)...
 					if (GOURD) 
 						writedata = ((gd_c[colour_index]) << 8) | (gd_i[colour_index] >> 16);
 
@@ -516,7 +683,9 @@ Blit! (000B8250 <- 0012C3A0) count: 16 x 1, A1/2_FLAGS: 00014420/00012000 [cmd: 
 					srczdata = dstzdata;
 				}
 
+//Tried 2nd below for Hover Strike: No dice.
 				if (/*a1_phrase_mode || */BKGWREN || !inhibit)
+//				if (/*a1_phrase_mode || BKGWREN ||*/ !inhibit)
 				{
 /*if (((REG(A1_FLAGS) >> 3) & 0x07) == 5)
 {
@@ -539,13 +708,13 @@ Blit! (000B8250 <- 0012C3A0) count: 16 x 1, A1/2_FLAGS: 00014420/00012000 [cmd: 
 					srcdata = READ_PIXEL(a1, REG(A1_FLAGS));
 					if (SRCENZ)
 						srczdata = READ_ZDATA(a1, REG(A1_FLAGS));
-					else if (cmd & 0x0001C020)
+					else if (cmd & 0x0001C020)	// PATDSEL | TOPBEN | TOPNEN | DSTWRZ
 						srczdata = READ_RDATA(SRCZINT, a1, REG(A1_FLAGS), a1_phrase_mode);
 				}
 				else
 				{
 					srcdata = READ_RDATA(SRCDATA, a1, REG(A1_FLAGS), a1_phrase_mode);
-					if (cmd & 0x001C020)
+					if (cmd & 0x001C020)	// PATDSEL | TOPBEN | TOPNEN | DSTWRZ
 						srczdata = READ_RDATA(SRCZINT, a1, REG(A1_FLAGS), a1_phrase_mode);
 				}
 
@@ -626,7 +795,7 @@ Blit! (000B8250 <- 0012C3A0) count: 16 x 1, A1/2_FLAGS: 00014420/00012000 [cmd: 
 						// use pattern data for write data
 						writedata= READ_RDATA(PATTERNDATA, a2, REG(A2_FLAGS), a2_phrase_mode);
 					}
-					else if (INTADD)
+					else if (ADDDSEL)
 					{
 						// intensity addition
 						writedata = (srcdata & 0xFF) + (dstdata & 0xFF);
@@ -688,11 +857,20 @@ Blit! (000B8250 <- 0012C3A0) count: 16 x 1, A1/2_FLAGS: 00014420/00012000 [cmd: 
 				}
 			}
 
-			// update x and y
-			a1_x += a1_xadd;
-			a1_y += a1_yadd;
-			a2_x = (a2_x + a2_xadd) & a2_mask_x;
-			a2_y = (a2_y + a2_yadd) & a2_mask_y;
+			// update x and y (inner loop)
+//kludge to test shiatsu...
+//nope, no wok.
+//Now it does! But crappy, crappy, crappy! !!! FIX !!!
+if (!BCOMPEN)
+{
+			a1_x += a1_xadd, a1_y += a1_yadd;
+			a2_x = (a2_x + a2_xadd) & a2_mask_x, a2_y = (a2_y + a2_yadd) & a2_mask_y;
+}
+else
+{
+	a1_x += a1_xadd, a1_y += a1_yadd;
+	a2_x = (a2_x + (a2_xadd / 8)) & a2_mask_x, a2_y = (a2_y + a2_yadd) & a2_mask_y;
+}//*/
 
 			if (GOURZ)
 				z_i[colour_index] += zadd;
@@ -723,6 +901,21 @@ if (gd_c[colour_index] > 0x000000FF)
 			}
 		}
 
+//more kludge to test shiatsu...
+//nope, no wok.
+//Now it does! But crappy, crappy, crappy! !!! FIX !!!
+if (BCOMPEN)
+{
+	if (a2_x & 0xFFFF)
+		a2_x = (a2_x & 0xFFFF0000) + 0x00010000;
+}//*/
+/*if (BCOMPEN && !DSTA2)//kludge for Hover Strike... !!! FIX !!!
+{
+	a2_x -= n_pixels << 16;
+	a2_x += ((n_pixels << 16) / 8) & 0XFFFF0000;
+	a2_x += (n_pixels % 8 == 0 ? 0 : 1 << 16);
+}//*/
+
 		//New: Phrase mode taken into account! :-p
 		if (a1_phrase_mode)
 		{
@@ -750,7 +943,7 @@ if (gd_c[colour_index] > 0x000000FF)
 			uint32 size = 64 / a2_psize;
 
 			// Crappy kludge... ('aligning' source to destination)
-			// Prolly should do this for A1 channel as well...
+			// Prolly should do this for A1 channel as well... [DONE]
 			if (a1_phrase_mode && !DSTA2)
 			{
 				uint32 extra = (a1_start >> 16) % size;
@@ -764,21 +957,12 @@ if (gd_c[colour_index] > 0x000000FF)
 		}
 
 		//Not entirely: This still mucks things up... !!! FIX !!!
+		//Should this go before or after the phrase mode mucking around?
 		a1_x += a1_step_x;
 		a1_y += a1_step_y;
 		a2_x += a2_step_x;
 		a2_y += a2_step_y;//*/
-
-/*		if (a2_phrase_mode)
-		{
-			a1_x+=(64/a1_psize)*a1_xadd;
-		}	
-		if (a2_phrase_mode)
-		{
-			for (int nb=0;nb<(64/a2_psize)+1;nb++)
-				a2_x = (a2_x + a2_xadd) & a2_mask_x;
-		}
-*/	}
+	}
 	
 	// write values back to registers 
 	WREG(A1_PIXEL,  (a1_y & 0xFFFF0000) | ((a1_x >> 16) & 0xFFFF));
@@ -825,6 +1009,8 @@ void blitter_blit(uint32 cmd)
 //But it seems to fuck up T2K! !!! FIX !!!
 //Could it be sign extended??? Doesn't seem to be so according to JTRM
 //	a1_x &= 0x7FFFFFFF, a1_y &= 0x0FFFFFFF;
+//Actually, it says that the X is 16 bits. But it still seems to mess with the Y when restricted to 12...
+//	a1_y &= 0x0FFFFFFF;
 
 //	a1_width = blitter_scanline_width[((REG(A1_FLAGS) & 0x00007E00) >> 9)];
 // According to JTRM, this must give a *whole number* of phrases in the current
@@ -837,6 +1023,8 @@ void blitter_blit(uint32 cmd)
 //According to the JTRM, X is restricted to 15 bits and Y is restricted to 12.
 //But it seems to fuck up T2K! !!! FIX !!!
 //	a2_x &= 0x7FFFFFFF, a2_y &= 0x0FFFFFFF;
+//Actually, it says that the X is 16 bits. But it still seems to mess with the Y when restricted to 12...
+//	a2_y &= 0x0FFFFFFF;
 
 //	a2_width = blitter_scanline_width[((REG(A2_FLAGS) & 0x00007E00) >> 9)];
 // According to JTRM, this must give a *whole number* of phrases in the current
@@ -880,7 +1068,7 @@ void blitter_blit(uint32 cmd)
 		break;
 	case XADDINC:
 		// add the contents of the increment register
-		a1_xadd = (REG(A1_INC) << 16)		 | (REG(A1_FINC) & 0xFFFF);
+		a1_xadd = (REG(A1_INC) << 16)		 | (REG(A1_FINC) & 0x0000FFFF);
 		a1_yadd = (REG(A1_INC) & 0xFFFF0000) | (REG(A1_FINC) >> 16);
 		break;
 	}
@@ -962,7 +1150,7 @@ WriteLog("BLIT: Asked to use invalid bit combo (XADDINC) for A2...\n");
 		a1_clip_x = REG(A1_CLIP) & 0x7FFF,
 		a1_clip_y = (REG(A1_CLIP) >> 16) & 0x7FFF;
 
-// This phrase sizing is incorrect as well... !!! FIX !!!
+// This phrase sizing is incorrect as well... !!! FIX !!! [NOTHING TO FIX]
 // Err, this is pixel size... (and it's OK)
 	a2_psize = 1 << ((REG(A2_FLAGS) >> 3) & 0x07);
 	a1_psize = 1 << ((REG(A1_FLAGS) >> 3) & 0x07);
@@ -970,50 +1158,31 @@ WriteLog("BLIT: Asked to use invalid bit combo (XADDINC) for A2...\n");
 	// Z-buffering
 	if (GOURZ)
 	{
-//		zadd = JaguarReadLong(0xF02274, BLITTER);
 		zadd = REG(ZINC);
 
 		for(int v=0; v<4; v++)
-//			z_i[v] = (int32)JaguarReadLong(0xF0228C + (v << 2), BLITTER);
 			z_i[v] = REG(PHRASEZ0 + v*4);
 	}
 
 	// Gouraud shading
 	if (GOURD || GOURZ || SRCSHADE)
 	{
-/*		gd_c[0]	= JaguarReadByte(0xF02268, BLITTER);
-		gd_i[0]	= JaguarReadByte(0xF02269, BLITTER);
-		gd_i[0] <<= 16;
-		gd_i[0] |= JaguarReadWord(0xF02240, BLITTER);//*/
 		gd_c[0] = blitter_ram[PATTERNDATA + 0];
 		gd_i[0]	= ((uint32)blitter_ram[PATTERNDATA + 1] << 16)
 			| ((uint32)blitter_ram[SRCDATA + 0] << 8) | blitter_ram[SRCDATA + 1];
 
-/*		gd_c[1]	= JaguarReadByte(0xF0226A, BLITTER);
-		gd_i[1]	= JaguarReadByte(0xF0226B, BLITTER);
-		gd_i[1] <<= 16;
-		gd_i[1] |= JaguarReadWord(0xF02242, BLITTER);//*/
 		gd_c[1] = blitter_ram[PATTERNDATA + 2];
 		gd_i[1]	= ((uint32)blitter_ram[PATTERNDATA + 3] << 16)
 			| ((uint32)blitter_ram[SRCDATA + 2] << 8) | blitter_ram[SRCDATA + 3];
 
-/*		gd_c[2]	= JaguarReadByte(0xF0226C, BLITTER);
-		gd_i[2]	= JaguarReadByte(0xF0226D, BLITTER);
-		gd_i[2] <<= 16;
-		gd_i[2] |= JaguarReadWord(0xF02244, BLITTER);//*/
 		gd_c[2] = blitter_ram[PATTERNDATA + 4];
 		gd_i[2]	= ((uint32)blitter_ram[PATTERNDATA + 5] << 16)
 			| ((uint32)blitter_ram[SRCDATA + 4] << 8) | blitter_ram[SRCDATA + 5];
 
-/*		gd_c[3]	= JaguarReadByte(0xF0226E, BLITTER);
-		gd_i[3]	= JaguarReadByte(0xF0226F, BLITTER);
-		gd_i[3] <<= 16; 
-		gd_i[3] |= JaguarReadWord(0xF02246, BLITTER);//*/
 		gd_c[3] = blitter_ram[PATTERNDATA + 6];
 		gd_i[3]	= ((uint32)blitter_ram[PATTERNDATA + 7] << 16)
 			| ((uint32)blitter_ram[SRCDATA + 6] << 8) | blitter_ram[SRCDATA + 7];
 
-//		gouraud_add = JaguarReadLong(0xF02270, BLITTER);
 		gouraud_add = REG(INTENSITYINC);
 		
 		gd_ia = gouraud_add & 0x00FFFFFF;
@@ -1025,18 +1194,20 @@ WriteLog("BLIT: Asked to use invalid bit combo (XADDINC) for A2...\n");
 			gd_ca = 0xFFFFFF00 | gd_ca;
 	}
 
-	// fix for zoop! and syndicate
-/*	if ((jaguar_mainRom_crc32==0x501be17c)||
-		(jaguar_mainRom_crc32==0x70895c51)||
-		(jaguar_mainRom_crc32==0x0f1f1497)||
-		(jaguar_mainRom_crc32==0xfc8f0dcd)
-	   )
+	// Bit comparitor fixing...
+/*	if (BCOMPEN)
 	{
-		if (a1_step_x < 0)
-			a1_step_x = (-n_pixels) * 65536;
-
-		if (a2_step_x < 0)
-			a2_step_x = (-n_pixels) * 65536;;
+		// Determine the data flow direction...
+		if (!DSTA2)
+			a2_step_x /= (1 << ((REG(A2_FLAGS) >> 3) & 0x07));
+		else
+			;//add this later
+	}//*/
+/*	if (BCOMPEN)//Kludge for Hover Strike... !!! FIX !!!
+	{
+		// Determine the data flow direction...
+		if (!DSTA2)
+			a2_x <<= 3;
 	}//*/
 
 #ifdef LOG_BLITS
@@ -1185,7 +1356,6 @@ Blit! (00110000 <- 0010B2A8) count: 12 x 12, A1/2_FLAGS: 000042E2/00000020 [cmd:
         A1 x/y: 173/144, A2 x/y: 4052/0
 
 */
-extern int blit_start_log;
 //extern int op_start_log;
 if (blit_start_log)
 {
@@ -1212,7 +1382,7 @@ if (blit_start_log)
 	WriteLog("misc: %s%s ", (cmd & 0x0040 ? "CLIP_A1 " : ""), (cmd & 0x0080 ? "???" : ""));
 	WriteLog("a1ctl: %s%s%s ", (cmd & 0x0100 ? "UPDA1F " : ""), (cmd & 0x0200 ? "UPDA1 " : ""), (cmd & 0x0400 ? "UPDA2" : ""));
 	WriteLog("mode: %s%s%s ", (cmd & 0x0800 ? "DSTA2 " : ""), (cmd & 0x1000 ? "GOURD " : ""), (cmd & 0x2000 ? "ZBUFF" : ""));
-	WriteLog("ity: %s%s%s ", (cmd & 0x4000 ? "TOPBEN " : ""), (cmd & 0x8000 ? "TOPNEN " : ""), (cmd & 0x00010000 ? "PATDSEL" : ""));
+	WriteLog("ity: %s%s%s%s ", (cmd & 0x4000 ? "TOPBEN " : ""), (cmd & 0x8000 ? "TOPNEN " : ""), (cmd & 0x00010000 ? "PATDSEL" : ""), (cmd & 0x00020000 ? "ADDDSEL" : ""));
 	WriteLog("z-op: %s%s%s ", (cmd & 0x00040000 ? "ZMODELT " : ""), (cmd & 0x00080000 ? "ZMODEEQ " : ""), (cmd & 0x00100000 ? "ZMODEGT" : ""));
 	WriteLog("op: %s ", opStr[(cmd >> 21) & 0x0F]);
 	WriteLog("ctrl: %s%s%s%s%s%s\n", (cmd & 0x02000000 ? "CMPDST " : ""), (cmd & 0x04000000 ? "BCOMPEN " : ""), (cmd & 0x08000000 ? "DCOMPEN " : ""), (cmd & 0x10000000 ? "BKGWREN " : ""), (cmd & 0x20000000 ? "BUSHI " : ""), (cmd & 0x40000000 ? "SRCSHADE" : ""));
@@ -1225,7 +1395,7 @@ if (blit_start_log)
 
 	WriteLog("  A1 -> pitch: %d phrases, depth: %s, z-off: %d, width: %d (%02X), addctl: %s %s %s %s\n", 1 << p1, bppStr[d1], zo1, iw1, w1, ctrlStr[ac1&0x03], (ac1&0x04 ? "YADD1" : "YADD0"), (ac1&0x08 ? "XSIGNSUB" : "XSIGNADD"), (ac1&0x10 ? "YSIGNSUB" : "YSIGNADD"));
 	WriteLog("  A2 -> pitch: %d phrases, depth: %s, z-off: %d, width: %d (%02X), addctl: %s %s %s %s\n", 1 << p2, bppStr[d2], zo2, iw2, w2, ctrlStr[ac2&0x03], (ac2&0x04 ? "YADD1" : "YADD0"), (ac2&0x08 ? "XSIGNSUB" : "XSIGNADD"), (ac2&0x10 ? "YSIGNSUB" : "YSIGNADD"));
-	WriteLog("        A1 x/y: %d/%d, A2 x/y: %d/%d Pattern: %08X%08X\n", a1_x >> 16, a1_y >> 16, a2_x >> 16, a2_y >> 16, REG(PATTERNDATA), REG(PATTERNDATA + 4));
+	WriteLog("        A1 x/y: %d/%d, A2 x/y: %d/%d Pattern: %08X%08X SRCDATA: %08X%08X\n", a1_x >> 16, a1_y >> 16, a2_x >> 16, a2_y >> 16, REG(PATTERNDATA), REG(PATTERNDATA + 4), REG(SRCDATA), REG(SRCDATA + 4));
 //	blit_start_log = 0;
 //	op_start_log = 1;
 }
@@ -1273,6 +1443,7 @@ uint8 BlitterReadByte(uint32 offset, uint32 who/*=UNKNOWN*/)
 	offset &= 0xFF;
 
 	// status register
+//This isn't cycle accurate--how to fix? !!! FIX !!!
 	if (offset == (0x38 + 3))
 		return 0x01;	// always idle
 
