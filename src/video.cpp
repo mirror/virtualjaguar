@@ -21,7 +21,14 @@ SDL_Joystick * joystick;
 // One of the reasons why OpenGL is slower then normal SDL rendering, is because
 // the data is being pumped into the buffer every frame with a overflow as result.
 // So, we going tot render every 1 frame instead of every 0 frame.
-int frame_ticker  = 0;
+
+// [Shamus] This isn't the case. OpenGL is slower because 60 frames a second is a
+//          lot of data to pump through the system. In any case, frameskip is probably
+//          a good idea for now, since most systems are probably too slow to run at
+//           60 FPS. But doing so will have some nasty side effects in some games.
+//          You have been warned!
+
+int frame_ticker = vjs.frameSkip;
 
 //
 // Create SDL/OpenGL surfaces
@@ -63,10 +70,10 @@ bool InitVideo(void)
 			(vjs.hardwareTypeNTSC ? VIRTUAL_SCREEN_HEIGHT_NTSC : VIRTUAL_SCREEN_HEIGHT_PAL),
 			16, mainSurfaceFlags);
 	else
-	    // When OpenGL is used, we're going to use a standard resolution of 640x480.
-	    // This way we have good scaling functionality and when the screen is resized
-	    // because of the NTSC <-> PAL resize, we only have to re-create the texture
-	    // instead of initializing the entire OpenGL texture en screens.
+		// When OpenGL is used, we're going to use a standard resolution of 640x480.
+		// This way we have good scaling functionality and when the screen is resized
+		// because of the NTSC <-> PAL resize, we only have to re-create the texture
+		// instead of initializing the entire OpenGL texture en screens.
 		mainSurface = SDL_SetVideoMode(640, 480, 16, mainSurfaceFlags);
 
 	if (mainSurface == NULL)
@@ -89,15 +96,15 @@ bool InitVideo(void)
 	}
 
 	if (vjs.useOpenGL)
-	    // Let us setup OpenGL and our rendering texture. We give the src (surface) and the
-	    // dst (mainSurface) display as well as the automatic bpp selection as options so that
-	    // our texture is automaticly created :)
-		sdlemu_init_opengl(surface, mainSurface, 1 /*method*/, 
-                           vjs.glFilter /*texture type (linear, nearest)*/, 
-                           NULL /* Automatic bpp selection based upon src */);
-		
+		// Let us setup OpenGL and our rendering texture. We give the src (surface) and the
+		// dst (mainSurface) display as well as the automatic bpp selection as options so that
+		// our texture is automaticly created :)
+		sdlemu_init_opengl(surface, mainSurface, 1 /*method*/,
+			vjs.glFilter /*texture type (linear, nearest)*/,
+			0 /* Automatic bpp selection based upon src */);
 
 	// Initialize Joystick support under SDL
+
 	if (vjs.useJoystick)
 	{
 		if (SDL_NumJoysticks() <= 0)
@@ -156,16 +163,19 @@ void RenderBackbuffer(void)
 	if (SDL_MUSTLOCK(surface))
 		SDL_UnlockSurface(surface);
 
-	if (vjs.useOpenGL) {
-	    // One of the reasons why OpenGL is slower then normal SDL rendering, is because
-	    // the data is being pumped into the buffer every frame with a overflow as result.
-	    // So, we going tot render every 1 fps instead of every 0 fps.
-	    if ( frame_ticker != 0 ) {
-			    sdlemu_draw_texture(mainSurface, surface, 1/*1=GL_QUADS*/);
-			    frame_ticker = 0;  // Reset frame_ticker to 0 otherwise we won't get
-                                   // backrendering "frameskip".
-		} else
-                frame_ticker = frame_ticker + 1;    
+	if (vjs.useOpenGL)
+	{
+		// One of the reasons why OpenGL is slower then normal SDL rendering, is because
+		// the data is being pumped into the buffer every frame with a overflow as result.
+		// So, we going to render every 1 fps instead of every 0 fps.
+		// [Shamus] This is isn't why it's slower--see top of file for explanation... ;-)
+		if (frame_ticker == 0)
+		{
+			sdlemu_draw_texture(mainSurface, surface, 1/*1=GL_QUADS*/);
+			frame_ticker = vjs.frameSkip;		// Reset frame_ticker
+		}
+		else
+			frame_ticker--;
     }  
 	else
 	{
@@ -195,8 +205,8 @@ void ResizeScreen(uint32 width, uint32 height)
 
 	if (vjs.useOpenGL)
 	{
-	    // Recreate the texture because of the NTSC <-> PAL screen resize.
-		sdlemu_create_texture( surface, mainSurface, vjs.glFilter , NULL);
+		// Recreate the texture because of the NTSC <-> PAL screen resize.
+		sdlemu_create_texture(surface, mainSurface, vjs.glFilter, 0);
 	}
 	else
 	{
