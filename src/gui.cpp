@@ -19,7 +19,7 @@ void GUIDone(void)
 {
 }
 
-void DrawText(int16 * screen, uint32 x, uint32 y, const char * text, ...)
+void DrawText(int16 * screen, uint32 x, uint32 y, bool invert, const char * text, ...)
 {
 	char string[4096];
 	va_list arg;
@@ -39,8 +39,9 @@ void DrawText(int16 * screen, uint32 x, uint32 y, const char * text, ...)
 		{
 			for(uint32 xx=0; xx<8; xx++)
 			{
-				if (font1[fontAddr++])
+				if ((font1[fontAddr] && !invert) || (!font1[fontAddr] && invert))
 					*(screen + address + xx + (yy * pitch)) = 0xFE00;
+				fontAddr++;
 			}
 		}
 
