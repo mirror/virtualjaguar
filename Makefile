@@ -30,6 +30,7 @@ OBJS = \
 	obj/cdbios.o \
 	obj/cdi.o \
 	obj/cdrom.o \
+	obj/cdintf.o \
 	obj/clock.o \
 	obj/crc32.o \
 	obj/dac.o \
@@ -85,7 +86,7 @@ $(TARGET): $(OBJS)
 # Other stuff that has unusual dependencies
 
 obj/gui.o: src/gui.cpp src/include/gui.h src/include/font1.h
-	$(THECC) -c src/gui.cpp -o obj/gui.o
+obj/cdintf.o: src/cdintf.cpp src/cdintf_win32.cpp src/cdintf_osx.cpp src/cdintf_linux.cpp src/include/cdintf.h
 
 #
 # Musashi specific stuffola
