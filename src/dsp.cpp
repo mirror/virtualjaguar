@@ -1,7 +1,7 @@
 //
 // DSP core
 //
-// Original source by Cal2
+// Original source by David Raingeard
 // GCC/SDL port by Niels Wagenaar (Linux/WIN32) and Caz (BeOS)
 // Extensive cleanups/rewrites by James L. Hammons
 //
@@ -284,23 +284,30 @@ static void dsp_opcode_subqt(void);
 
 uint8 dsp_opcode_cycles[64] =
 {
-	3,  3,  3,  3,  
-	3,  3,  3,  3,  
-	3,  3,  3,  3,  
-	3,  3,  3,  3,
-	3,  3,  1,  3,  
-	1, 18,  3,  3,  
-	3,  3,  3,  3,  
-	3,  3,  3,  3,
-	3,  3,  2,  2,  
-	2,  2,  3,  4,  
-	5,  4,  5,  6,  
-	6,  1,  1,  1,
-	1,  2,  2,  2,  
-	1,  1,  9,  3,  
-	3,  1,  6,  6,  
-	2,  2,  3,  3
-};
+	3,  3,  3,  3,  3,  3,  3,  3,  
+	3,  3,  3,  3,  3,  3,  3,  3,
+	3,  3,  1,  3,  1, 18,  3,  3,  
+	3,  3,  3,  3,  3,  3,  3,  3,
+	3,  3,  2,  2,  2,  2,  3,  4,  
+	5,  4,  5,  6,  6,  1,  1,  1,
+	1,  2,  2,  2,  1,  1,  9,  3,  
+	3,  1,  6,  6,  2,  2,  3,  3
+};//*/
+//Here's a QnD kludge...
+//This is wrong, wrong, WRONG, but it seems to work for the time being...
+//(That is, it fixes Flip Out which relies on GPU timing rather than semaphores. Bad developers! Bad!)
+//What's needed here is a way to take pipeline effects into account (including pipeline stalls!)...
+/*uint8 dsp_opcode_cycles[64] = 
+{
+	1,  1,  1,  1,  1,  1,  1,  1,
+	1,  1,  1,  1,  1,  1,  1,  1,
+	1,  1,  1,  1,  1,  9,  1,  1,
+	1,  1,  1,  1,  1,  1,  1,  1,
+	1,  1,  1,  1,  1,  1,  1,  2,
+	2,  2,  2,  3,  3,  1,  1,  1,
+	1,  1,  1,  1,  1,  1,  4,  1,
+	1,  1,  3,  3,  1,  1,  1,  1
+};//*/
 
 void (* dsp_opcode[64])() =
 {	
@@ -1312,6 +1319,8 @@ void DSPDone(void)
 	}//*/
 
 	memory_free(dsp_ram_8);
+	memory_free(dsp_reg_bank_0);
+	memory_free(dsp_reg_bank_1);
 }
 
 
