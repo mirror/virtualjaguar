@@ -245,7 +245,7 @@ void ResizeScreen(uint32 width, uint32 height)
 	}
 	else
 	{
-		mainSurface = SDL_SetVideoMode(width, height, 16, mainSurfaceFlags);
+		mainSurface = SDL_SetVideoMode(width, height, 32, mainSurfaceFlags);
 
 		if (mainSurface == NULL)
 		{
@@ -261,10 +261,10 @@ void ResizeScreen(uint32 width, uint32 height)
 //
 // Return the screen's pitch
 //
-uint32 GetSDLScreenPitch(void)
+/*uint32 GetSDLScreenPitch(void)
 {
 	return surface->pitch;
-}
+}*/
 
 //
 // Return the screen's width in pixels
@@ -289,7 +289,7 @@ void ToggleFullscreen(void)
 	if (vjs.fullscreen)
 		mainSurfaceFlags |= SDL_FULLSCREEN;
 
-	mainSurface = SDL_SetVideoMode(tom_width, tom_height, 16, mainSurfaceFlags);
+	mainSurface = SDL_SetVideoMode(tom_width, tom_height, 32, mainSurfaceFlags);
 
 	if (mainSurface == NULL)
 	{
