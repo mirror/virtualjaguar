@@ -74,7 +74,7 @@ int main(int argc, char * argv[])
 
 	printf("Virtual Jaguar GCC/SDL Portable Jaguar Emulator v1.0.7\n");
 	printf("Based upon Virtual Jaguar core v1.0.0 by Cal2 of Potato emulation.\n");
-	printf("Written by Niels Wagenaar (Linux/WIN32), Caz (BeOS),\n");
+	printf("Written by Niels Wagenaar (Linux/WIN32), Carwin Jones (BeOS),\n");
 	printf("James L. Hammons (WIN32) and Adam Green (MacOS)\n");
 	printf("Contact: http://sdlemu.ngemu.com/ | sdlemu@ngemu.com\n");
 
@@ -170,7 +170,7 @@ int main(int argc, char * argv[])
 			printf("  -pal            : Force VJ to PAL mode (default: NTSC)      \n");
 			printf("  -ntsc           : Force VJ to NTSC mode                     \n");
 			printf("\nInvoking Virtual Jagaur with no ROM file will cause it to boot up\n");
-			printf("with the Jaguar BIOS.\n");
+			printf("with the VJ GUI.\n");
  			return 1;
 		}
     }
