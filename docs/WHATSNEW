@@ -1,8 +1,9 @@
 Virtual Jaguar v1.0.7 GCC/SDL
 -----------------------------
 
-* Fixed a horizontal scaling problem in the OP. This fixes the road in Atari
-  Karts and probably a few others. [Shamus]
+* Fixed a horizontal scaling problem in the OP and the off-by-one bug that it
+  reintroduced. This fixes the road in Atari Karts and probably a few others.
+  [Shamus]
 * Fixed a long standing blitter bug that kept certain doors in AvP from
   rendering correctly. [Shamus]
 * Fixed some vertical positioning bugs in the OP. Now Checkered Flag, Alien
@@ -21,7 +22,6 @@ Virtual Jaguar v1.0.7 GCC/SDL
 
 Virtual Jaguar v1.0.6 GCC/SDL
 -----------------------------
-
 
 * Added support for gzipped ROM files. [Adam Green]
 * Added OpenGL support. Because of this, aspect ratios in the various
@@ -56,7 +56,7 @@ Virtual Jaguar v1.0.5 GCC/SDL
   detection. [Shamus]
 * Added a simple file selector so that typing in long filenames in order to
   run the emulator is no longer necessary. :-) To use it, instead of
-  supplying a ROM name, simple put in the name of the directory where your
+  supplying a ROM name, simply put in the name of the directory where your
   ROMs live. [Shamus]
 * Removed all the assembly language code from the DSP, so it should be a
   little less buggy now. Also, removed some brain-dead timeslice releasing

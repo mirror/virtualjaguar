@@ -1,6 +1,8 @@
 Stuff to add/fix for the next release of Virtual Jaguar
 -------------------------------------------------------
 
+- It would be nice to have "save states" for instant save/load capability.
+  [Shamus]
 - Need to fix PAL mode to work with the virtual screen code. [Shamus]
 - There are a few ROMs that use some "quasi-illegal" 68K instructions. Need
   to patch the 68K core to deal with these in a better way than they are
