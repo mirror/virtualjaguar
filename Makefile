@@ -8,20 +8,16 @@
 
 CC         = gcc
 LD         = gcc
-TARGET     = vj
+TARGET     = vj$(EXESUFFIX)
 
-#Why substitute strcasecmp for stricmp? Isn't stricmp standard?
-#CFLAGS = -Wall -Wno-switch -Wno-non-virtual-dtor -O2 -D$(SYSTYPE) -Dstricmp="strcasecmp" 
+# Note that we use optimization level 2 instead of 3--3 doesn't seem to gain much over 2
 CFLAGS = -Wall -Wno-switch -Wno-non-virtual-dtor -O2 -D$(SYSTYPE) \
 		-fomit-frame-pointer `sdl-config --cflags`
 #		-fomit-frame-pointer `sdl-config --cflags` -g
 #		-fomit-frame-pointer `sdl-config --cflags` -DLOG_UNMAPPED_MEMORY_ACCESSES
 
-#Why? Seems like it's wrong...
-#LDFLAGS = $(CFLAGS)
 LDFLAGS =
 
-#LIBS = -L/usr/local/lib -L/usr/lib `sdl-config --libs` -lstdc++ -lz $(GLLIB)
 LIBS = -L/usr/local/lib -L/usr/lib `sdl-config $(SDLLIBTYPE)` -lstdc++ -lz $(GLLIB)
 
 INCS = -I. -Isrc -Isrc/include -I/usr/local/include -I/usr/include
@@ -69,13 +65,19 @@ clean:
 obj:
 	mkdir obj
 
+obj/%.o: src/%.c src/include/%.h
+	$(THECC) -c $< -o $@
+
+obj/%.o: src/%.cpp src/include/%.h
+	$(THECC) -c $< -o $@
+
 obj/%.o: src/%.c
 	$(THECC) -c $< -o $@
 
 obj/%.o: src/%.cpp
 	$(THECC) -c $< -o $@
 
-vj: $(OBJS)
+$(TARGET): $(OBJS)
 	$(LD) $(LDFLAGS) -o $@ $(OBJS) $(LIBS)
 #	strip --strip-all vj$(EXESUFFIX)
 #	upx -9 vj$(EXESUFFIX)
