@@ -6,10 +6,11 @@
 // Rewritten by James L. Hammons
 //
 
-#include <SDL.h>
+//#include <SDL.h>
+#include "SDL.h"
 #include "jaguar.h"
-#include "dac.h"
 #include "settings.h"
+#include "dac.h"
 
 //#define DEBUG_DAC
 
@@ -80,6 +81,7 @@ void DACDone(void)
 {
 	SDL_PauseAudio(true);
 	SDL_CloseAudio();
+	memory_free(DACBuffer);
 	WriteLog("DAC: Done.\n");
 }
 
