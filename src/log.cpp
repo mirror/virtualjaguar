@@ -50,7 +50,7 @@ void WriteLog(const char * text, ...)
 		fflush(log_stream);
 		fclose(log_stream);
 		exit(1);
-	}
+	}//*/
 
 	va_end(arg);
 	fflush(log_stream);					// Make sure that text is written!

@@ -435,9 +435,9 @@ uint16 GPUReadWord(uint32 offset, uint32 who/*=UNKNOWN*/)
 			return data >> 16;
 	}
 
-//TEMP--Mirror of F03000?
-if (offset >= 0xF0B000 && offset <= 0xF0BFFF)
-WriteLog("[GPUR16] --> Possible GPU RAM mirror access by %s!", whoName[who]);
+//TEMP--Mirror of F03000? No. Writes only...
+//if (offset >= 0xF0B000 && offset <= 0xF0BFFF)
+//WriteLog("[GPUR16] --> Possible GPU RAM mirror access by %s!", whoName[who]);
 
 	return JaguarReadWord(offset, who);
 }
@@ -493,9 +493,9 @@ uint32 GPUReadLong(uint32 offset, uint32 who/*=UNKNOWN*/)
 			return 0;
 		}
 	}
-//TEMP--Mirror of F03000?
-if (offset >= 0xF0B000 && offset <= 0xF0BFFF)
-	WriteLog("[GPUR32] --> Possible GPU RAM mirror access by %s!\n", whoName[who]);
+//TEMP--Mirror of F03000? No. Writes only...
+//if (offset >= 0xF0B000 && offset <= 0xF0BFFF)
+//	WriteLog("[GPUR32] --> Possible GPU RAM mirror access by %s!\n", whoName[who]);
 /*if (offset >= 0xF1D000 && offset <= 0xF1DFFF)
 	WriteLog("[GPUR32] --> Reading from Wavetable ROM!\n");//*/
 

@@ -290,7 +290,7 @@ uint32 JaguarLoadROM(uint8 * rom, char * path)
 	char * ext = strrchr(path, '.');
 	if (ext != NULL)
 	{
-		WriteLog("VJ: Loading %s...", path);
+		WriteLog("VJ: Loading \"%s\"...", path);
 
 		if (stricmp(ext, ".zip") == 0)
 		{

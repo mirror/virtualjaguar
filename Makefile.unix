@@ -7,20 +7,22 @@
 #SYSTYPE   = __GCCWIN32__
 #EXESUFFIX = .exe
 #GLLIB     = opengl32
+#ICON      = vj-ico.o
 
 # Uncomment the following lines to compile for *nix
 
 SYSTYPE   = __GCCUNIX__
 EXESUFFIX =
 GLLIB     = GL
+ICON      =
 
 CC        = gcc
 LD        = gcc
 TARGET    = vj
 
-CFLAGS  = -Wall -Wno-switch -O3 -D$(SYSTYPE) -Dstricmp="strcasecmp" \
-			-fomit-frame-pointer `sdl-config --cflags`
-#			-fomit-frame-pointer `sdl-config --cflags` -DLOG_UNMAPPED_MEMORY_ACCESSES
+CFLAGS = -Wall -Wno-switch -Wno-non-virtual-dtor -O3 -D$(SYSTYPE) -Dstricmp="strcasecmp" \
+		-fomit-frame-pointer `sdl-config --cflags`
+#		-fomit-frame-pointer `sdl-config --cflags` -DLOG_UNMAPPED_MEMORY_ACCESSES
 
 LDFLAGS = $(CFLAGS)
 
@@ -59,7 +61,8 @@ OBJS = \
 	obj/unzip.o \
 	obj/version.o \
 	obj/video.o \
-	obj/vj.o
+	obj/vj.o \
+	$(ICON)
 
 all: obj $(TARGET)
 
