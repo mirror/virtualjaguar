@@ -20,9 +20,15 @@ using namespace std;								// For STL stuff
 
 // Private function prototypes
 
+// Local global variables
+
+int mouseX, mouseY;
+
 
 void InitGUI(void)
 {
+	SDL_ShowCursor(SDL_DISABLE);
+	SDL_GetMouseState(&mouseX, &mouseY);
 }
 
 void GUIDone(void)
@@ -95,7 +101,7 @@ bool UserSelectFile(char * path, char * filename)
 		sort(fileList.begin(), fileList.end());
 
 		bool done = false;
-		uint32 limit = (fileList.size() > 24 ? 24 : fileList.size());
+		uint32 limit = (fileList.size() > 30 ? 30 : fileList.size());
 		SDL_Event event;
 
 		while (!done)
@@ -103,7 +109,8 @@ bool UserSelectFile(char * path, char * filename)
 			while (SDL_PollEvent(&event))
 			{
 				// Draw the GUI...
-				memset(backbuffer, 0x11, tom_getVideoModeWidth() * tom_getVideoModeHeight() * 2);
+//				memset(backbuffer, 0x11, tom_getVideoModeWidth() * tom_getVideoModeHeight() * 2);
+				memset(backbuffer, 0x11, tom_getVideoModeWidth() * 240 * 2);
 
 				for(uint32 i=0; i<limit; i++)
 				{
@@ -114,6 +121,11 @@ bool UserSelectFile(char * path, char * filename)
 						s[38] = 0;
 					DrawString(backbuffer, 0, i*8, invert, " %s ", s.c_str());
 				}
+
+					uint32 pitch = GetSDLScreenPitch() / 2;	// Returns pitch in bytes but we need words...
+//					uint32 address = x + (y * pitch);
+					backbuffer[mouseX + (mouseY * pitch)] = 0xFFFF;
+
 
 				RenderBackbuffer();
 
@@ -174,6 +186,12 @@ bool UserSelectFile(char * path, char * filename)
 							}
 						}
 					}
+				}
+				else if (event.type == SDL_MOUSEMOTION)
+				{
+					//Kludge: divide by two in order to display properly on our blown up
+					//        screen...
+					mouseX = event.motion.x / 2, mouseY = event.motion.y / 2;
 				}
 			}
 		}
