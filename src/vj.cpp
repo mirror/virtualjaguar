@@ -124,6 +124,12 @@ int main(int argc, char * argv[])
 		if (!strcmp(argv[i], "-nodsp"))
 			vjs.DSPEnabled = false;
 
+		if (!strcmp(argv[i], "-pipeline"))
+			vjs.usePipelinedDSP = true;
+
+		if (!strcmp(argv[i], "-nopipeline"))
+			vjs.usePipelinedDSP = false;
+
 		if (!strcmp(argv[i], "-gl"))
 			vjs.useOpenGL = true;
 
@@ -154,6 +160,8 @@ int main(int argc, char * argv[])
 			printf("  -nobios         : Boot cart without using Jaguar BIOS ROM   \n");
 			printf("  -dsp            : Force VJ to use the DSP                   \n");
 			printf("  -nodsp          : Force VJ to run without the DSP           \n");
+			printf("  -pipeline       : Use the DSP pipelined core                \n");
+			printf("  -nopipeline     : Use the DSP non-pipelined core            \n");
 			printf("  -gl             : Use OpenGL rendering                      \n");
 			printf("  -nogl           : Use old non-OpenGL rendering              \n");
 			printf("  -fullscreen     : Enable fullscreen mode (default: windowed)\n");
@@ -230,6 +238,10 @@ int main(int argc, char * argv[])
             // Set up new backbuffer with new pixels and data
 			JaguarExecute(backbuffer, true);
 			totalFrames++;
+//WriteLog("Frame #%u...\n", totalFrames);
+//extern bool doDSPDis;
+//if (totalFrames == 373)
+//	doDSPDis = true;
 
 			// Some QnD GUI stuff here...
 			if (showGUI)
