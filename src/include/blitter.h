@@ -14,6 +14,7 @@ uint32 blitter_long_read(uint32 offset);
 void blitter_long_write(uint32 offset, uint32 data);
 uint32 blitter_reg_read(uint32 offset);
 void blitter_reg_write(uint32 offset, uint32 data);
+
 extern uint8 blitter_working;
 
 #endif

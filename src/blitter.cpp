@@ -5,28 +5,15 @@
 // GCC/SDL port by Niels Wagenaar (Linux/WIN32) and Caz (BeOS)
 // Cleanups/fixes by James L. Hammons
 //
+bool specialLog = false;
 
-//#define GEN_CODE
-//#define LOG_BLITS
-// Generic blitter it is, until all blitter bugs are squashed!
-#define USE_GENERIC_BLITTER
- 
 #include "jaguar.h"
 #include "blitter2.h"			// Testing purposes only!
-
-#define null 0
-extern int jaguar_active_memory_dumps;
 
 #define REG(A)	(((uint32)blitter_ram[(A)] << 24) | ((uint32)blitter_ram[(A)+1] << 16) \
 				| ((uint32)blitter_ram[(A)+2] << 8) | (uint32)blitter_ram[(A)+3])
 #define WREG(A,D)	(blitter_ram[(A)] = ((D)>>24)&0xFF, blitter_ram[(A)+1] = ((D)>>16)&0xFF, \
 					blitter_ram[(A)+2] = ((D)>>8)&0xFF, blitter_ram[(A)+3] = (D)&0xFF)
-
-int start_logging = 0;
-
-// Blitter register RAM (most of it is hidden from the user)
-
-static uint8 blitter_ram[0x100];
 
 // Blitter registers (offsets from F02200)
 
@@ -108,14 +95,14 @@ static uint8 blitter_ram[0x100];
 #define XADD0	 2
 #define XADDINC	 3
 
-#define XSIGNSUB_A1		(REG(A1_FLAGS)&0x80000)
-#define XSIGNSUB_A2		(REG(A2_FLAGS)&0x80000)
+#define XSIGNSUB_A1		(REG(A1_FLAGS)&0x080000)
+#define XSIGNSUB_A2		(REG(A2_FLAGS)&0x080000)
 
 #define YSIGNSUB_A1		(REG(A1_FLAGS)&0x100000)
 #define YSIGNSUB_A2		(REG(A2_FLAGS)&0x100000)
 
-#define YADD1_A1		(REG(A1_FLAGS)&0x40000)
-#define YADD1_A2		(REG(A2_FLAGS)&0x40000)
+#define YADD1_A1		(REG(A1_FLAGS)&0x040000)
+#define YADD1_A2		(REG(A2_FLAGS)&0x040000)
 
 // 1 bpp pixel read
 #define PIXEL_SHIFT_1(a)      (((~a##_x) >> 16) & 7)
@@ -162,8 +149,7 @@ static uint8 blitter_ram[0x100];
 
 // 16 bpp z data write
 #define WRITE_ZDATA_16(a,d)     {  jaguar_word_write(a##_addr+(ZDATA_OFFSET_16(a)<<1),d); }
-//#define WRITE_ZDATA_16(a,d)     {  jaguar_word_write(a##_addr+(ZDATA_OFFSET_16(a)<<1),d); \
-	WriteLog("16bpp z write --> ");  }
+//#define WRITE_ZDATA_16(a,d)     {  jaguar_word_write(a##_addr+(ZDATA_OFFSET_16(a)<<1),d); WriteLog("16bpp z write --> "); }
 
 // z data write
 #define WRITE_ZDATA(a,f,d) WRITE_ZDATA_16(a,d); 
@@ -208,15 +194,12 @@ static uint8 blitter_ram[0x100];
 #define WRITE_PIXEL_8(a,d)       { jaguar_byte_write(a##_addr+PIXEL_OFFSET_8(a),d); }
 
 // 16 bpp pixel write
-#define WRITE_PIXEL_16(a,d)     {  jaguar_word_write(a##_addr+(PIXEL_OFFSET_16(a)<<1),d); }
-//#define WRITE_PIXEL_16(a,d)     {  jaguar_word_write(a##_addr+(PIXEL_OFFSET_16(a)<<1),d); \
-	WriteLog("16bpp pixel write --> ");  }
+//#define WRITE_PIXEL_16(a,d)     {  jaguar_word_write(a##_addr+(PIXEL_OFFSET_16(a)<<1),d); }
+#define WRITE_PIXEL_16(a,d)     {  jaguar_word_write(a##_addr+(PIXEL_OFFSET_16(a)<<1),d); if (specialLog) WriteLog("Pixel write address: %08X\n", a##_addr+(PIXEL_OFFSET_16(a)<<1)); }
 
-//This is where the bad YPOS values are being written... How to fix???
 // 32 bpp pixel write
 #define WRITE_PIXEL_32(a,d)		{ jaguar_long_write(a##_addr+(PIXEL_OFFSET_32(a)<<2),d); } 
-//#define WRITE_PIXEL_32(a,d)		{ jaguar_long_write(a##_addr+(PIXEL_OFFSET_32(a)<<2),d); \
-	WriteLog("32bpp pixel write --> ");  }
+//#define WRITE_PIXEL_32(a,d)		{ jaguar_long_write(a##_addr+(PIXEL_OFFSET_32(a)<<2),d); WriteLog("32bpp pixel write --> "); }
 
 // pixel write
 #define WRITE_PIXEL(a,f,d) {\
@@ -228,6 +211,19 @@ static uint8 blitter_ram[0x100];
 	case 4: WRITE_PIXEL_16(a,d); break;  \
 	case 5: WRITE_PIXEL_32(a,d); break;  \
 	}}
+
+// External global variables
+
+extern int jaguar_active_memory_dumps;
+
+// Local global variables
+
+int start_logging = 0;
+uint8 blitter_working = 0;
+
+// Blitter register RAM (most of it is hidden from the user)
+
+static uint8 blitter_ram[0x100];
 
 // Width in Pixels of a Scanline
 // This is a pretranslation of the value found in the A1 & A2 flags: It's really a floating point value
@@ -300,456 +296,45 @@ static uint32 gouraud_add;
 //static uint16 gint[4];
 //static uint16 gfrac[4];
 //static uint8  gcolour[4];
-static int	  gd_i[4];
-static int    gd_c[4];
-static int    gd_ia, gd_ca;
-static int    colour_index = 0;
-static int32  zadd;
-static uint32  z_i[4];
+static int gd_i[4];
+static int gd_c[4];
+static int gd_ia, gd_ca;
+static int colour_index = 0;
+static int32 zadd;
+static uint32 z_i[4];
 
-static uint32 a1_clip_x, a1_clip_y;
+static int32 a1_clip_x, a1_clip_y;
 
-static uint8 blitter_code_cache[4096];
-static uint8 * blitter_ptr;
-uint8 blitter_working = 0;
-
-typedef void (blitter_fn)(void);
-
-typedef struct s_blitter_cache
-{
-	uint32 hashcode;
-	uint8  * code;
-	uint32 ready;
-	uint8	used;
-	struct s_blitter_cache * next;
-	struct s_blitter_cache * prev;
-} s_blitter_code_cache;
-
-s_blitter_cache * blitter_cache[256];
-
-uint8 blitter_cache_init = 0;
-static uint8 BPP_LUT[8] = { 1, 2, 4, 8, 16, 32, 0, 0 };
-
-FILE * blitters_code_fp;
-FILE * blitters_code_init_fp;
-
-//////////////////////////////////////////////////////////////////////////////
-// build C code for the specified blitter
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
-void blitter_gen_c_code(FILE *fp, uint32 cmd,uint32 hashcode)
-{
-	static uint8 inhibit_modified=0;
-
-	fprintf(fp,"#ifndef blitter_code_0x%.8x\n",hashcode);
-	fprintf(fp,"#define blitter_code_0x%.8x\n",hashcode);
-
-	fprintf(fp,"void blitter_0x%.8x(void)\n",hashcode);
-	fprintf(fp,"{\n");
-	fprintf(fp,"\twhile (outer_loop--)\n");
-	fprintf(fp,"\t{\n");
-	fprintf(fp,"\t\tinner_loop=n_pixels;\n");
-	fprintf(fp,"\t\twhile (inner_loop--)\n");
-	fprintf(fp,"\t\t{\n");
-	fprintf(fp,"\t\t\tuint32 srcdata   = 0;\n");
-	fprintf(fp,"\t\t\tuint32 srczdata  = 0;\n");
-	fprintf(fp,"\t\t\tuint32 dstdata   = 0;\n");
-	fprintf(fp,"\t\t\tuint32 dstzdata  = 0;\n");
-	fprintf(fp,"\t\t\tuint32 writedata = 0;\n");
-	fprintf(fp,"\t\t\tuint32 inhibit   = 0;\n");
-	
-	char *src;
-	char *dst;
-	uint32 src_flags;
-	uint32 dst_flags;
-
-	if (!DSTA2)
-	{
-		src="a2";
-		dst="a1";
-		src_flags=A2_FLAGS;
-		dst_flags=A1_FLAGS;
-	}
-	else
-	{
-		src="a1";
-		dst="a2";
-		src_flags=A1_FLAGS;
-		dst_flags=A2_FLAGS;
-	}
-
-	// load src data and Z
-	if (SRCEN)
-	{
-		fprintf(fp, "\t\t\tsrcdata = READ_PIXEL_%i(%s);\n", BPP_LUT[(((REG(dst_flags)) >> 3) & 0x07)], src);
-		if (SRCENZ)
-			fprintf(fp,"\t\t\tsrczdata = READ_ZDATA_%i(%s);\n",BPP_LUT[(((REG(dst_flags))>>3)&0x07)],src);
-		else 
-		if (cmd & 0x001c020)
-			fprintf(fp,"\t\t\tsrczdata = READ_RDATA_%i(SRCZINT, %s, %s_phrase_mode);\n",BPP_LUT[(((REG(src_flags))>>3)&0x07)],src,src);
-	}
-	else
-	{
-		fprintf(fp,"\t\t\tsrcdata = READ_RDATA_%i(SRCDATA, %s, %s_phrase_mode);\n",BPP_LUT[(((REG(dst_flags))>>3)&0x07)],src,src);
-		if (cmd & 0x001c020)
-			fprintf(fp,"\t\t\tsrczdata = READ_RDATA_%i(SRCZINT, %s, %s_phrase_mode);\n",BPP_LUT[(((REG(dst_flags))>>3)&0x07)],src,src);
-	}
-
-	// load dst data and Z 
-	if (DSTEN)
-	{
-		fprintf(fp,"\t\t\tdstdata = READ_PIXEL_%i(%s);\n",BPP_LUT[(((REG(dst_flags))>>3)&0x07)],dst);
-		if (DSTENZ)
-			fprintf(fp,"\t\t\tdstzdata = READ_ZDATA_%i(%s);\n",BPP_LUT[(((REG(dst_flags))>>3)&0x07)],dst);
-		else
-			fprintf(fp,"\t\t\tdstzdata = READ_RDATA_%i(DSTZ, %s, %s_phrase_mode);\n",BPP_LUT[(((REG(dst_flags))>>3)&0x07)],dst,dst);
-	}
-	else
-	{
-		fprintf(fp,"\t\t\tdstdata = READ_RDATA_%i(DSTDATA, %s, %s_phrase_mode);\n",BPP_LUT[(((REG(dst_flags))>>3)&0x07)],dst,dst);
-
-		if (DSTENZ)
-			fprintf(fp,"\t\t\tdstzdata = READ_RDATA_%i(DSTZ, %s, %s_phrase_mode);\n",BPP_LUT[(((REG(dst_flags))>>3)&0x07)],dst,dst);
-	}
-
-	// a1 clipping
-	if ((cmd & 0x00000040)&&(!DSTA2))
-
-	{
-		fprintf(fp,"\t\t\tif (a1_x < 0 || a1_y < 0 || (a1_x >> 16) >= (REG(A1_CLIP) & 0x7fff) || (a1_y >> 16) >= ((REG(A1_CLIP) >> 16) & 0x7fff))	inhibit = 1;\n");
-		 inhibit_modified=1;
-	}
-	if(GOURZ) 
-	{
-		fprintf(fp,"\t\t\tsrczdata=z_i[colour_index]>>16;\n");
-	}
-	// apply z comparator
-	if (Z_OP_INF) { fprintf(fp,"\t\t\tif (srczdata <  dstzdata)	inhibit = 1;\n"); inhibit_modified=1;}
-	if (Z_OP_EQU) { fprintf(fp,"\t\t\tif (srczdata == dstzdata)	inhibit = 1;\n"); inhibit_modified=1;}
-	if (Z_OP_SUP) { fprintf(fp,"\t\t\tif (srczdata >  dstzdata)	inhibit = 1;\n"); inhibit_modified=1;}
-
-	// apply data comparator
-	if (DCOMPEN)
-	{
-		if (!CMPDST)
-		{
-			// compare source pixel with pattern pixel
-			fprintf(fp,"\t\t\tif (srcdata == READ_RDATA_%i(PATTERNDATA, %s,%s_phrase_mode)) inhibit=1;\n",BPP_LUT[(((REG(dst_flags))>>3)&0x07)],src,src);
-			inhibit_modified=1;
-		}
-		else
-		{
-			// compare destination pixel with pattern pixel
-			fprintf(fp,"\t\t\tif (dstdata == READ_RDATA_%i(PATTERNDATA, %s,%s_phrase_mode)) inhibit=1;\n",BPP_LUT[(((REG(dst_flags))>>3)&0x07)],dst,dst);
-			inhibit_modified=1;
-		}
-	}
-	
-	// compute the write data and store
-		if (inhibit_modified) fprintf(fp,"\t\t\tif (!inhibit)\n\t\t\t{\n");
-		if (PATDSEL)
-		{
-			// use pattern data for write data
-			fprintf(fp,"\t\t\t\twritedata= READ_RDATA_%i(PATTERNDATA, %s, %s_phrase_mode);\n",BPP_LUT[(((REG(dst_flags))>>3)&0x07)],dst,dst);
-		}
-		else 
-		if (INTADD)
-		{
-			// intensity addition
-			fprintf(fp,"\t\t\t\twritedata = (srcdata & 0xff) + (dstdata & 0xff);\n");
-			if (!(TOPBEN))
-				fprintf(fp,"\t\t\t\tif (writedata > 0xff) writedata = 0xff;\n");
-
-			fprintf(fp,"\t\t\t\twritedata |= (srcdata & 0xf00) + (dstdata & 0xf00);\n");
-			if (!(TOPNEN)) fprintf(fp,"\t\t\t\tif (writedata > 0xfff) writedata = 0xfff;\n");
-			fprintf(fp,"\t\t\t\twritedata |= (srcdata & 0xf000) + (dstdata & 0xf000);\n");
-		}
-		else
-		{
-			if (LFU_NAN) fprintf(fp,"\t\t\t\twritedata |= ~srcdata & ~dstdata;\n");
-			if (LFU_NA)  fprintf(fp,"\t\t\t\twritedata |= ~srcdata & dstdata;\n");
-			if (LFU_AN)  fprintf(fp,"\t\t\t\twritedata |= srcdata  & ~dstdata;\n");
-			if (LFU_A) 	 fprintf(fp,"\t\t\t\twritedata |= srcdata  & dstdata;\n");
-		}
-		if(GOURD) 
-		{
-			fprintf(fp,"\t\t\t\twritedata = ((gd_c[colour_index])<<8)|(gd_i[colour_index]>>16);\n");
-		}
-		if(SRCSHADE) 
-		{
-			fprintf(fp,"\t\t\t\t{\n");
-			fprintf(fp,"\t\t\t\tint intensity = srcdata & 0xFF;\n");
-			fprintf(fp,"\t\t\t\tint ia = gd_ia >> 16;\n");
-			fprintf(fp,"\t\t\t\tif(ia & 0x80)\n");
-			fprintf(fp,"\t\t\t\t	ia = 0xFFFFFF00 | ia;\n");
-			fprintf(fp,"\t\t\t\tintensity += ia;\n");
-			fprintf(fp,"\t\t\t\tif(intensity < 0)\n");
-			fprintf(fp,"\t\t\t\t	intensity = 0;\n");
-			fprintf(fp,"\t\t\t\tif(intensity > 0xFF)\n");
-			fprintf(fp,"\t\t\t\t	intensity = 0xFF;\n");
-			fprintf(fp,"\t\t\t\twritedata = (srcdata & 0xFF00) | intensity;\n");
-			fprintf(fp,"\t\t\t\t}\n");
-		}
-	if (inhibit_modified)  
-	{
-		fprintf(fp,"\t\t\t} else { srczdata=dstzdata; writedata=dstdata; }\n");
-	}
-
-	if ((DSTA2?a2_phrase_mode:a1_phrase_mode) || BKGWREN)
-	{
-		// write to the destination
-		fprintf(fp,"\t\t\tWRITE_PIXEL_%i(%s, writedata);\n",BPP_LUT[(((REG(dst_flags))>>3)&0x07)],dst);
-		if (DSTWRZ) fprintf(fp,"\t\t\tWRITE_ZDATA_%i(%s, srczdata);\n",BPP_LUT[(((REG(dst_flags))>>3)&0x07)],dst);
-	}
-	else
-	{
-		if (inhibit_modified) fprintf(fp,"\t\t\tif (!inhibit)\n\t\t\t{\n");
-		// write to the destination
-		fprintf(fp,"\t\t\t\tWRITE_PIXEL_%i(%s, writedata);\n",BPP_LUT[(((REG(dst_flags))>>3)&0x07)],dst);
-		if (DSTWRZ) fprintf(fp,"\t\t\t\tWRITE_ZDATA_%i(%s, srczdata);\n",BPP_LUT[(((REG(dst_flags))>>3)&0x07)],dst);
-		if (inhibit_modified) fprintf(fp,"\t\t\t}\n");
-	}
-	// update x and y
-	fprintf(fp,"\t\t\ta1_x += a1_xadd;\n");
-	fprintf(fp,"\t\t\ta1_y += a1_yadd;\n");
-	fprintf(fp,"\t\t\ta2_x = (a2_x + a2_xadd) & a2_mask_x;\n");
-	fprintf(fp,"\t\t\ta2_y = (a2_y + a2_yadd) & a2_mask_y;\n");
-	if (GOURZ)
-	{
-		fprintf(fp,"\t\t\tz_i[colour_index]+=zadd;\n");
-	}
-	if ((GOURD)||(SRCSHADE))
-	{
-		fprintf(fp,"\t\t\tgd_i[colour_index] += gd_ia;\n");
-		fprintf(fp,"\t\t\tgd_c[colour_index] += gd_ca;\n");
-	}
-	if ((GOURD)||(SRCSHADE)||(GOURZ))
-	{
-		if (a1_phrase_mode)
-		fprintf(fp,"\t\t\t colour_index=(colour_index+1)&0x3;\n");
-	}
-	fprintf(fp,"\t\t}\n");
-
-	fprintf(fp,"\t\ta1_x+=a1_step_x;\n");
-	fprintf(fp,"\t\ta1_y+=a1_step_y;\n");
-	fprintf(fp,"\t\ta2_x+=a2_step_x;\n");
-	fprintf(fp,"\t\ta2_y+=a2_step_y;\n");
-	fprintf(fp,"\t}\n");
-	
-	// write values back to registers 
-	fprintf(fp,"\tWREG(A1_PIXEL,  (a1_y & 0xffff0000) | ((a1_x >> 16) & 0xffff));\n");
-	fprintf(fp,"\tWREG(A1_FPIXEL, (a1_y << 16) | (a1_x & 0xffff));\n");
-	fprintf(fp,"\tWREG(A2_PIXEL,  (a2_y & 0xffff0000) | ((a2_x >> 16) & 0xffff));\n");
-	fprintf(fp,"}\n");
-	fprintf(fp,"#endif\n");
-}
-
-//////////////////////////////////////////////////////////////////////////////
-// Generate a start of function in x86 assembly
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
-void blitter_gen_start_of_function(void)
-{
-	*blitter_ptr++ = 0x55;	// push ebp
-	*blitter_ptr++ = 0x8B;	// mov  ebp,esp
-	*blitter_ptr++ = 0xEC;
-}
-//////////////////////////////////////////////////////////////////////////////
-// Generate a end of function in x86 assembly
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
-void blitter_gen_end_of_function(void)
-{
-	*blitter_ptr++ = 0x8B;	// mov         esp,ebp
-	*blitter_ptr++ = 0xE5;
-	*blitter_ptr++ = 0x5D;	// pop         ebp
-	*blitter_ptr++ = 0xC3;	// ret
-}
-
-#define HASHCODE_BIT(C,B) if (C) hashcode|=(1<<B);
-#define HASHCODE_BIT_TEST(B) (hashcode&(1<<B))
-
-uint32 blitter_calc_hashcode(uint32 cmd)
-{
-	uint32 hashcode=0x00000000;
-
-	// source and destination bit depth
-	hashcode|=((REG(A1_FLAGS)>>3)&0x07)<<0;
-	hashcode|=((REG(A2_FLAGS)>>3)&0x07)<<3;
-
-	HASHCODE_BIT(DSTA2,					6);
-	HASHCODE_BIT(SRCEN,					7);
-	HASHCODE_BIT(SRCENZ,				8);
-	HASHCODE_BIT(DSTEN,					9);
-	HASHCODE_BIT(DSTENZ,				10);
-	HASHCODE_BIT(Z_OP_INF,				11);
-	HASHCODE_BIT(Z_OP_EQU,				12);
-	HASHCODE_BIT(Z_OP_SUP,				13);
-	HASHCODE_BIT(DCOMPEN,				14);
-	HASHCODE_BIT(CMPDST,				15);
-	HASHCODE_BIT(PATDSEL,				16);
-	HASHCODE_BIT(INTADD,				17);
-	HASHCODE_BIT(TOPBEN,				18);
-	HASHCODE_BIT(TOPNEN,				19);
-	HASHCODE_BIT(LFU_NAN,				20);
-	HASHCODE_BIT(LFU_NA,				21);
-	HASHCODE_BIT(LFU_AN,				22);
-	HASHCODE_BIT(LFU_A,					23);
-	HASHCODE_BIT(BKGWREN,				24);
-	HASHCODE_BIT(DSTWRZ,				25);
-	HASHCODE_BIT((cmd & 0x001c020),		26); // extra data read/write
-	HASHCODE_BIT((cmd & 0x00000040),	27); // source clipping
-	HASHCODE_BIT(a1_phrase_mode,		28); 
-	HASHCODE_BIT(a2_phrase_mode,		29); 
-
-	return(hashcode);
-}
-//////////////////////////////////////////////////////////////////////////////
-// Build the blitter code for the current blitter operation in the cache
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
-void blitter_build_cached_code(uint32 cmd, uint32 cache_index)
-{
-}
-//////////////////////////////////////////////////////////////////////////////
-// Check if the blitter code for the current blitter operation is cached
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
-struct s_blitter_cache * blitter_in_cache(uint32 cmd)
-{
-	uint32 i;
-	uint32 hashcode=blitter_calc_hashcode(cmd);
-#ifdef LOG_BLITS
-	WriteLog("blitter: hashcode= 0x%.8x\n",hashcode);
-#endif
-	struct s_blitter_cache *blitter_list=blitter_cache[hashcode>>24];
-	
-	i=0;
-	while (blitter_list->next)
-	{
-		blitter_list=blitter_list->next;
-
-		if (blitter_list->hashcode==hashcode)
-			return(blitter_list);
-	}
-#ifdef GEN_CODE
-	blitter_list->next=(struct s_blitter_cache *)malloc(sizeof(struct s_blitter_cache));
-	blitter_list->next->prev=blitter_list;
-	blitter_list->next->next=null;
-	blitter_list=blitter_list->next;
-
-	blitter_list->code=(uint8*)malloc(4096);
-	blitter_list->hashcode=hashcode;
-	blitter_list->ready=0;
-	blitter_gen_c_code(blitters_code_fp,cmd,hashcode);
-	fprintf(blitters_code_init_fp,"\tblitter_add(0x%.8x,(uint8*)&blitter_0x%.8x);\n",hashcode,hashcode);
-#else
-	//WriteLog("warning: using generic blitter for blitter 0x%.8x\n",hashcode);
-#endif
-	return(null);
-}
-#ifndef USE_GENERIC_BLITTER
-#include "include/blit_c.h"
-#endif
-//////////////////////////////////////////////////////////////////////////////
-// Execute the cached blitter code for the current blitter operation
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
-uint32 blitter_execute_cached_code(struct s_blitter_cache * blitter)
-{
-	if ((blitter == null) || (blitter->ready == 0))
-		return 0;
-
-	blitter_fn * fn = (blitter_fn *)blitter->code;
-	blitter->used = 1;
-	(*fn)();
-
-	return 1;
-}
-
-void blitter_add(uint32 hashcode, uint8 *code)
-{
-	struct s_blitter_cache *blitter_list=blitter_cache[(hashcode>>24)];
-
-//	WriteLog("adding blitter for hashcode 0x%.8x\n",hashcode);
-
-	while (blitter_list->next)
-	{
-		blitter_list=blitter_list->next;
-
-		if (blitter_list->hashcode==hashcode)
-			return;
-	}
-	blitter_list->next=(struct s_blitter_cache *)malloc(sizeof(struct s_blitter_cache));
-	blitter_list->next->prev=blitter_list;
-	blitter_list->next->next=null;
-	blitter_list=blitter_list->next;
-
-	blitter_list->code=code;
-	blitter_list->hashcode=hashcode;
-	blitter_list->ready=1;
-	blitter_list->used=0;
-}
-
-void blitter_list(void)
-{
-/*
-	WriteLog("Used blitters list:\n");
-
-	for (int i=0;i<256;i++)
-	{
-		struct s_blitter_cache *blitter_list=blitter_cache[i];
-
-		while (blitter_list->next)
-		{
-			blitter_list=blitter_list->next;
-			if (blitter_list->used)
-				WriteLog("\t0%.8x\n",blitter_list->hashcode);
-		}
-	}
-*/
-}
+// In the spirit of "get it right first, *then* optimize" I've taken the liberty
+// of removing all the unnecessary code caching. If it turns out to be a good way
+// to optimize the blitter, then we may revisit it in the future...
 
 //
 // Generic blit handler
 //
-
 void blitter_generic(uint32 cmd)
 {
 //Testing only!
 //uint32 logGo = ((cmd == 0x01800E01 && REG(A1_BASE) == 0x898000) ? 1 : 0);
-
-/*	uint32 srcdata = 0;
-	uint32 srczdata = 0;
-	uint32 dstdata = 0;
-	uint32 dstzdata = 0;
-	uint32 writedata = 0;
-	uint32 inhibit = 0;*/
 	uint32 srcdata, srczdata, dstdata, dstzdata, writedata, inhibit;
 
+if (specialLog)
+{
+	WriteLog("About to do 8x8 blit (BM width is 448 pixels)...\n");
+}
 	while (outer_loop--)
 	{
+if (specialLog)
+{
+	WriteLog("  A1_X/Y = %08X/%08X, A2_X/Y = %08X/%08X\n", a1_x, a1_y, a2_x, a2_y);
+}
 		inner_loop = n_pixels;
 		while (inner_loop--)
 		{
+if (specialLog)
+{
+	WriteLog("    A1_X/Y = %08X/%08X, A2_X/Y = %08X/%08X\n", a1_x, a1_y, a2_x, a2_y);
+}
 			srcdata = srczdata = dstdata = dstzdata = writedata = inhibit = 0;
 
 			if (!DSTA2)
@@ -835,9 +420,6 @@ Blit! (000B8250 <- 0012C3A0) count: 16 x 1, A1/2_FLAGS: 00014420/00012000 [cmd: 
 						else
 							WriteLog("Blitter: Bad BPP (%u) selected for BCOMPEN mode!\n", A2bpp);//*/
 // What it boils down to is this:
-// ***CHECK*** Hmm. Seems to cause Rayman to freeze. Investigate.
-// This doesn't seem to be it. Hmm.
-// It was a bug in the TOM read word code (reading VC)
 						if (srcdata == 0)
 							inhibit = 1;//*/
 					}
@@ -911,7 +493,6 @@ Blit! (000B8250 <- 0012C3A0) count: 16 x 1, A1/2_FLAGS: 00014420/00012000 [cmd: 
 
 				if (/*a1_phrase_mode || */BKGWREN || !inhibit)
 				{
-// This is the sole source of the bogus YPOS values being written to the object list... !!! FIX !!!
 /*if (((REG(A1_FLAGS) >> 3) & 0x07) == 5)
 {
 	uint32 offset = a1_addr+(PIXEL_OFFSET_32(a1)<<2);
@@ -990,9 +571,6 @@ Blit! (000B8250 <- 0012C3A0) count: 16 x 1, A1/2_FLAGS: 00014420/00012000 [cmd: 
 						else
 							WriteLog("Blitter: Bad BPP (%u) selected for BCOMPEN mode!\n", A1bpp);//*/
 // What it boils down to is this:
-// ***CHECK*** Hmm. Seems to cause Rayman to freeze. Investigate.
-// This doesn't seem to be it. Hmm.
-// It was a bug in the TOM read word code (reading VC)
 						if (srcdata == 0)
 							inhibit = 1;//*/
 					}
@@ -1123,10 +701,12 @@ Blit! (000B8250 <- 0012C3A0) count: 16 x 1, A1/2_FLAGS: 00014420/00012000 [cmd: 
 	WREG(A1_PIXEL,  (a1_y & 0xFFFF0000) | ((a1_x >> 16) & 0xFFFF));
 	WREG(A1_FPIXEL, (a1_y << 16) | (a1_x & 0xFFFF));
 	WREG(A2_PIXEL,  (a2_y & 0xFFFF0000) | ((a2_x >> 16) & 0xFFFF));
+specialLog = false;
 }
 
 void blitter_blit(uint32 cmd)
 {
+	uint32 pitchValue[4] = { 0, 1, 3, 2 };
 	colour_index = 0;
 	src = cmd & 0x07;
 	dst = (cmd >> 3) & 0x07;
@@ -1139,6 +719,11 @@ void blitter_blit(uint32 cmd)
 	ctrl = (cmd >> 25) & 0x3F;
 
 	a1_addr = REG(A1_BASE);
+//Just for testing Trevor McFur...
+//if (a1_addr == 0x130CB0) specialLog = true;
+//extern bool suppressOutput;
+//if (a1_addr == 0x130CB0) suppressOutput = false;
+//End testing
 	a2_addr = REG(A2_BASE);
 
 	a1_zoffs = (REG(A1_FLAGS) >> 6) & 7;
@@ -1146,20 +731,30 @@ void blitter_blit(uint32 cmd)
 	
 	xadd_a1_control = (REG(A1_FLAGS) >> 16) & 0x03;
 	xadd_a2_control = (REG(A2_FLAGS) >> 16) & 0x03;
-	a1_pitch = (REG(A1_FLAGS) & 3) ^ ((REG(A1_FLAGS) & 2) >> 1);
-	a2_pitch = (REG(A2_FLAGS) & 3) ^ ((REG(A2_FLAGS) & 2) >> 1);
+//	a1_pitch = (REG(A1_FLAGS) & 3) ^ ((REG(A1_FLAGS) & 2) >> 1);
+//	a2_pitch = (REG(A2_FLAGS) & 3) ^ ((REG(A2_FLAGS) & 2) >> 1);
+	a1_pitch = pitchValue[(REG(A1_FLAGS) & 0x03)];
+	a2_pitch = pitchValue[(REG(A2_FLAGS) & 0x03)];
 
 	n_pixels = REG(PIXLINECOUNTER) & 0xFFFF;
 	n_lines = (REG(PIXLINECOUNTER) >> 16) & 0xFFFF;
 
 	a1_x = (REG(A1_PIXEL) << 16) | (REG(A1_FPIXEL) & 0xFFFF);
 	a1_y = (REG(A1_PIXEL) & 0xFFFF0000) | (REG(A1_FPIXEL) >> 16);
+//According to the JTRM, X is restricted to 15 bits and Y is restricted to 12.
+//But it seems to fuck up T2K! !!! FIX !!!
+//	a1_x &= 0x7FFFFFFF, a1_y &= 0x0FFFFFFF;
+
 //	a1_width = blitter_scanline_width[((REG(A1_FLAGS) & 0x00007E00) >> 9)];
 	UINT32 m = (REG(A1_FLAGS) >> 9) & 0x03, e = (REG(A1_FLAGS) >> 11) & 0x0F;
 	a1_width = ((0x04 | m) << e) >> 2;//*/
 
 	a2_x = (REG(A2_PIXEL) & 0x0000FFFF) << 16;
 	a2_y = (REG(A2_PIXEL) & 0xFFFF0000);
+//According to the JTRM, X is restricted to 15 bits and Y is restricted to 12.
+//But it seems to fuck up T2K! !!! FIX !!!
+//	a2_x &= 0x7FFFFFFF, a2_y &= 0x0FFFFFFF;
+
 //	a2_width = blitter_scanline_width[((REG(A2_FLAGS) & 0x00007E00) >> 9)];
 	m = (REG(A2_FLAGS) >> 9) & 0x03, e = (REG(A2_FLAGS) >> 11) & 0x0F;
 	a2_width = ((0x04 | m) << e) >> 2;//*/
@@ -1230,9 +825,11 @@ void blitter_blit(uint32 cmd)
 		break;
 //This really isn't a valid bit combo for A2... Shouldn't this cause the blitter to just say no?
 	case XADDINC:
+WriteLog("BLIT: Asked to used invalid bit combo for A2...\n");
 		// add the contents of the increment register
 		// since there is no register for a2 we just add 1
-		a2_xadd = 1 << 16;
+//Let's do nothing, since it's not listed as a valid bit combo...
+//		a2_xadd = 1 << 16;
 		break;
 	}
 	if (XSIGNSUB_A2)
@@ -1476,16 +1073,16 @@ if (blit_start_log)
 
 	WriteLog("  A1 -> pitch: %d phrases, depth: %s, z-off: %d, width: %d (%02X), addctl: %s %s %s %s\n", 1 << p1, bppStr[d1], zo1, iw1, w1, ctrlStr[ac1&0x03], (ac1&0x04 ? "YADD1" : "YADD0"), (ac1&0x08 ? "XSIGNSUB" : "XSIGNADD"), (ac1&0x10 ? "YSIGNSUB" : "YSIGNADD"));
 	WriteLog("  A2 -> pitch: %d phrases, depth: %s, z-off: %d, width: %d (%02X), addctl: %s %s %s %s\n", 1 << p2, bppStr[d2], zo2, iw2, w2, ctrlStr[ac2&0x03], (ac2&0x04 ? "YADD1" : "YADD0"), (ac2&0x08 ? "XSIGNSUB" : "XSIGNADD"), (ac2&0x10 ? "YSIGNSUB" : "YSIGNADD"));
-	WriteLog("        x/y: %d/%d\n", a2_x >> 16, a2_y >> 16);
+	WriteLog("        A1 x/y: %d/%d, A2 x/y: %d/%d\n", a1_x >> 16, a1_y >> 16, a2_x >> 16, a2_y >> 16);
 //	blit_start_log = 0;
 //	op_start_log = 1;
 }
 
 	blitter_working = 1;
-#ifndef USE_GENERIC_BLITTER
-	if (!blitter_execute_cached_code(blitter_in_cache(cmd)))
-#endif
-		blitter_generic(cmd);
+//#ifndef USE_GENERIC_BLITTER
+//	if (!blitter_execute_cached_code(blitter_in_cache(cmd)))
+//#endif
+	blitter_generic(cmd);
 
 /*if (blit_start_log)
 {
@@ -1517,25 +1114,7 @@ void blitter_long_write(uint32 offset, uint32 data)
 
 void blitter_init(void)
 {
-	if (!blitter_cache_init)
-	{
-		for (int i=0;i<256;i++)
-		{
-			blitter_cache[i] = (struct s_blitter_cache *)malloc(sizeof(struct s_blitter_cache));
-			blitter_cache[i]->next=null;
-			blitter_cache[i]->prev=null;
-		}
-		blitter_cache_init = 1;
-	}
-#ifndef USE_GENERIC_BLITTER
-	#include "include/blit_i.h"
-#endif
-
 	blitter_reset();
-#ifdef GEN_CODE
-	blitters_code_fp = fopen("include/blit_c.h", "awrt");
-	blitters_code_init_fp = fopen("include/blit_i.h", "awrt");
-#endif
 }
 
 void blitter_reset(void)
@@ -1545,20 +1124,13 @@ void blitter_reset(void)
 
 void blitter_done(void)
 {
-//	blitter_list();
-#ifdef GEN_CODE
-	fclose(blitters_code_fp);
-	fclose(blitters_code_init_fp);
-#endif
 	WriteLog("BLIT: Done.\n");
 }
 
 void blitter_byte_write(uint32 offset, uint8 data)
 {
 /*if (offset & 0xFF == 0x7B)
-{
-	WriteLog("--> Wrote to B_STOP: value -> %02X\n", data);
-}*/
+	WriteLog("--> Wrote to B_STOP: value -> %02X\n", data);*/
 	offset &= 0xFF;
 
 //	if ((offset >= 0x7C) && (offset <= 0x9B))

@@ -256,6 +256,7 @@
 #define MEMCON1		0x00
 #define MEMCON2		0x02
 #define HC			0x04
+#define VC			0x06
 #define VMODE		0x28
 #define   MODE		0x0006		// Line buffer to video generator mode
 #define   BGEN		0x0080		// Background enable (CRY & RGB16 only)
@@ -273,6 +274,7 @@
 #define VS			0x44
 #define VDB			0x46
 #define VDE			0x48
+#define VI			0x4E
 #define BG			0x58
 
 //This can be defined in the makefile as well...
@@ -420,7 +422,9 @@ uint16 tom_get_scanline(void)
 
 uint16 tom_get_vdb(void)
 {
-	return GET16(tom_ram_8, VBE);
+	// This in NOT VDB!!!
+//	return GET16(tom_ram_8, VBE);
+	return GET16(tom_ram_8, VDB);
 }
 
 //
@@ -653,8 +657,8 @@ void tom_exec_scanline(int16 * backbuffer, int32 scanline, bool render)
 {
 	tom_scanline = scanline;
 
-	// Increment the horizontal count (why?)
-	SET16(tom_ram_8, HC, GET16(tom_ram_8, HC) + 1);
+	// Increment the horizontal count (why? RNG?)
+//	tom_word_write(0xF00004, tom_word_read(0xF00004) + 1);
 
 	if (render)
 	{
@@ -663,7 +667,7 @@ void tom_exec_scanline(int16 * backbuffer, int32 scanline, bool render)
 
 		// Clear line buffer with BG
 		if (GET16(tom_ram_8, VMODE) & BGEN) // && (CRY or RGB16)...
-			for(uint32 i=0; i<tom_real_internal_width; i++)
+			for(uint32 i=0; i<720; i++)
 				*current_line_buffer++ = bgHI, *current_line_buffer++ = bgLO;
 
 //		op_process_list(backbuffer, scanline, render);
@@ -671,6 +675,11 @@ void tom_exec_scanline(int16 * backbuffer, int32 scanline, bool render)
 		
 		scanline_render[tom_getVideoMode()](backbuffer);
 	}
+}
+
+uint32 TOMGetSDLScreenPitch(void)
+{
+	return surface->pitch();
 }
 
 //
@@ -710,44 +719,47 @@ uint32 tom_getHBlankWidthInPixels(void)
 
 uint32 tom_getVideoModeWidth(void)
 {
-//	static uint16 onetime = 1;
-
 	uint16 vmode = GET16(tom_ram_8, VMODE);
 	uint16 hdb1 = GET16(tom_ram_8, HDB1);
 //	uint16 hde = GET16(tom_ram_8, HDE);
 //	uint16 hbb = GET16(tom_ram_8, HBB);
 //	uint16 hbe = GET16(tom_ram_8, HBE);
 
-	int clock_cycles_per_pixel = (vmode & PWIDTH) >> 9;
+	// NOTE: PWIDTH is value + 1...!
+	int pwidth = ((vmode & PWIDTH) >> 9) + 1;
+	// Also note that the JTRM says that PWIDTH of 4 gives pixels that are "about" square--
+	// this implies that the other modes have pixels that are *not* square!
 
 	uint32 width = 640;
-	switch (clock_cycles_per_pixel)
+	switch (pwidth)
 	{
-	case 0: width = 640; break;
-	case 1: width = 640; break;
-	case 2: width = 448; break;
-	case 3: width = 320; break;
-	case 4: width = 256; break;
+/*	case 1: width = 640; break;
+	case 2: width = 640; break;
+	case 3: width = 448; break;
+	case 4: width = 320; break;
 	case 5: width = 256; break;
 	case 6: width = 256; break;
-	case 7: width = 320; break;
-//	default: WriteLog("%i \n",clock_cycles_per_pixel);
+	case 7: width = 256; break;
+	case 8: width = 320; break;//*/
+	case 1: width = 1330; break;		// 0.25:1 pixels (X:Y ratio)
+	case 2: width = 665; break;			// 0.50:1 pixels
+	case 3: width = 443; break;			// 0.75:1 pixels
+	case 4: width = 332; break;			// 1.00:1 pixels
+	case 5: width = 266; break;			// 1.25:1 pixels
+	case 6: width = 222; break;			// 1.50:1 pixels
+	case 7: width = 190; break;			// 1.75:1 pixels
+	case 8: width = 166; break;			// 2.00:1 pixels
+//Temporary, for testing Doom...
+//	case 8: width = 332; break;			// 2.00:1 pixels
+//*/
 	}
 	
-/*	if (jaguar_mainRom_crc32 == 0x3c7bfda8)	// Kludge for what???
-	{
-		if (width == 320)
-			width += 80;
-		if (width == 448)
-			width -= 16;
-	}//*/
-
 	if (hdb1 == 123)
 		hblankWidthInPixels = 16;
 	else
 		hblankWidthInPixels = 0;
 
-//	WriteLog("hdb1=%i hbe=%i\n",hdb1,hbe);
+//	WriteLog("TOM: HDB1=%i HBE=%i\n", hdb1, hbe);
 	return width;
 }
 
@@ -759,11 +771,11 @@ uint32 tom_getVideoModeWidth(void)
 uint32 tom_getVideoModeHeight(void)
 {
 //	uint16 vmode = GET16(tom_ram_8, VMODE);
-//	uint16 vbe = GET16(tom_ram_8, VBE);
-//	uint16 vbb = GET16(tom_ram_8, VBB);
-	uint16 vdb = GET16(tom_ram_8, VDB);
-	uint16 vde = GET16(tom_ram_8, VDE);
-	uint16 vp = GET16(tom_ram_8, VP);
+	uint16 vbe = GET16(tom_ram_8, VBE);
+	uint16 vbb = GET16(tom_ram_8, VBB);
+//	uint16 vdb = GET16(tom_ram_8, VDB);
+//	uint16 vde = GET16(tom_ram_8, VDE);
+//	uint16 vp = GET16(tom_ram_8, VP);
 	
 /*	if (vde == 0xFFFF)
 		vde = vbb;//*/
@@ -773,36 +785,61 @@ uint32 tom_getVideoModeHeight(void)
 	// VC counts from 0 to VP. VDB starts the OP. Either when
 	// VDE is reached or VP, the OP is stopped. Let's try it...
 	// Also note that we're conveniently ignoring interlaced display modes...!
-	return ((vde > vp ? vp : vde) - vdb) >> 1;
+//	return ((vde > vp ? vp : vde) - vdb) >> 1;
+//	return ((vde > vbb ? vbb : vde) - vdb) >> 1;
+//Let's try from the Vertical Blank interval...
+	return (vbb - vbe) >> 1;
 }
 
 //
 // TOM reset code
 // NOTE: Should set up PAL values here when in PAL mode (use BIOS to find default values)
-//       for when user starts with -nobios -pal flags...
+//       for when user starts with -nobios -pal flags... [DONE]
 //
 void tom_reset(void)
 {
+	extern bool hardwareTypeNTSC;
+
 	op_reset();
 	blitter_reset();
 	pcm_reset();
 
 	memset(tom_ram_8, 0x00, 0x4000);
-	SET16(tom_ram_8, MEMCON1, 0x1861);
-	SET16(tom_ram_8, MEMCON2, 0x0000);
-	SET16(tom_ram_8, VMODE, 0x06C1);
-	SET16(tom_ram_8, VP, 523);
-	SET16(tom_ram_8, HP, 844);
-	SET16(tom_ram_8, VS, 523 - 6);
-	SET16(tom_ram_8, VBB, 434);
-	SET16(tom_ram_8, VBE, 24);
-	SET16(tom_ram_8, HBB, 689 + 0x400);
-	SET16(tom_ram_8, HBE, 125);
 
-	SET16(tom_ram_8, VDE, 2047);//65535);
-	SET16(tom_ram_8, VDB, 28);
-	SET16(tom_ram_8, HDB1, 166);
-	SET16(tom_ram_8, HDE, 2047);//65535);
+	if (hardwareTypeNTSC)
+	{
+		SET16(tom_ram_8, MEMCON1, 0x1861);
+		SET16(tom_ram_8, MEMCON2, 0x35CC);
+		SET16(tom_ram_8, HP, 844);					// Horizontal Period
+		SET16(tom_ram_8, HBB, 1713);				// Horizontal Blank Begin
+		SET16(tom_ram_8, HBE, 125);					// Horizontal Blank End
+		SET16(tom_ram_8, HDE, 1665);				// Horizontal Display End
+		SET16(tom_ram_8, HDB1, 203);				// Horizontal Display Begin 1
+		SET16(tom_ram_8, VP, 523);					// Vertical Period (1-based; in this case VP = 524)
+		SET16(tom_ram_8, VBE, 24);					// Vertical Blank End
+		SET16(tom_ram_8, VDB, 38);					// Vertical Display Begin
+		SET16(tom_ram_8, VDE, 518);					// Vertical Display End
+		SET16(tom_ram_8, VBB, 500);					// Vertical Blank Begin
+		SET16(tom_ram_8, VS, 517);					// Vertical Sync
+		SET16(tom_ram_8, VMODE, 0x06C1);
+	}
+	else	// PAL Jaguar
+	{
+		SET16(tom_ram_8, MEMCON1, 0x1861);
+		SET16(tom_ram_8, MEMCON2, 0x35CC);
+		SET16(tom_ram_8, HP, 850);					// Horizontal Period
+		SET16(tom_ram_8, HBB, 1711);				// Horizontal Blank Begin
+		SET16(tom_ram_8, HBE, 158);					// Horizontal Blank End
+		SET16(tom_ram_8, HDE, 1665);				// Horizontal Display End
+		SET16(tom_ram_8, HDB1, 203);				// Horizontal Display Begin 1
+		SET16(tom_ram_8, VP, 623);					// Vertical Period (1-based; in this case VP = 624)
+		SET16(tom_ram_8, VBE, 34);					// Vertical Blank End
+		SET16(tom_ram_8, VDB, 38);					// Vertical Display Begin
+		SET16(tom_ram_8, VDE, 518);					// Vertical Display End
+		SET16(tom_ram_8, VBB, 600);					// Vertical Blank Begin
+		SET16(tom_ram_8, VS, 618);					// Vertical Sync
+		SET16(tom_ram_8, VMODE, 0x06C1);
+	}
 
 	tom_width = tom_real_internal_width = 0;
 	tom_height = 0;
@@ -832,7 +869,7 @@ unsigned tom_byte_read(unsigned int offset)
 // It seems so. Perhaps it's the +$8000 offset being written to (32-bit interface)?
 // However, the 32-bit interface is WRITE ONLY, so that can't be it...
 // Also, the 68K CANNOT make use of the 32-bit interface, since its bus width is only 16-bits...
-	offset &= 0xFF3FFF;
+//	offset &= 0xFF3FFF;
 
 #ifdef TOM_DEBUG
 	WriteLog("TOM: Reading byte at %06X\n", offset);
@@ -865,10 +902,13 @@ unsigned tom_byte_read(unsigned int offset)
 unsigned tom_word_read(unsigned int offset)
 {
 //???Is this needed???
-	offset &= 0xFF3FFF;
+//	offset &= 0xFF3FFF;
 #ifdef TOM_DEBUG
 	WriteLog("TOM: Reading word at %06X\n", offset);
 #endif
+if (offset >= 0xF02000 && offset <= 0xF020FF)
+	WriteLog("TOM: Read attempted from GPU register file (unimplemented)!\n");
+
 	if (offset == 0xF000E0)
 	{
 		uint16 data = (tom_puck_int_pending << 4) | (tom_timer_int_pending << 3)
@@ -877,12 +917,14 @@ unsigned tom_word_read(unsigned int offset)
 		//WriteLog("tom: interrupt status is 0x%.4x \n",data);
 		return data;
 	}
-	else if (offset == 0xF00006)	// VC
+//Shoud be handled by the jaguar main loop now...
+/*	else if (offset == 0xF00006)	// VC
 	// What if we're in interlaced mode?
 	// According to docs, in non-interlace mode VC is ALWAYS even...
 //		return (tom_scanline << 1);// + 1;
 //But it's causing Rayman to be fucked up... Why???
-		return (tom_scanline << 1) + 1;
+//Because VC is even in NI mode when calling the OP! That's why!
+		return (tom_scanline << 1) + 1;//*/
 	else if ((offset >= GPU_CONTROL_RAM_BASE) && (offset < GPU_CONTROL_RAM_BASE+0x20))
 		return gpu_word_read(offset);
 	else if ((offset >= GPU_WORK_RAM_BASE) && (offset < GPU_WORK_RAM_BASE+0x1000))
@@ -980,6 +1022,12 @@ void tom_word_write(unsigned offset, unsigned data)
 #ifdef TOM_DEBUG
 	WriteLog("TOM: Writing word %04X at %06X\n", data, offset);
 #endif
+if (offset == 0xF00000 + MEMCON1)
+	WriteLog("TOM: Memory Configuration 1 written: %04X\n", data);
+if (offset == 0xF00000 + MEMCON2)
+	WriteLog("TOM: Memory Configuration 2 written: %04X\n", data);
+if (offset >= 0xF02000 && offset <= 0xF020FF)
+	WriteLog("TOM: Write attempted to GPU register file (unimplemented)!\n");
 
 	if ((offset >= GPU_CONTROL_RAM_BASE) && (offset < GPU_CONTROL_RAM_BASE+0x20))
 	{
@@ -991,11 +1039,12 @@ void tom_word_write(unsigned offset, unsigned data)
 		gpu_word_write(offset, data);
 		return;
 	}
-	else if ((offset >= 0xF00000) && (offset < 0xF00002))
+//What's so special about this?
+/*	else if ((offset >= 0xF00000) && (offset < 0xF00002))
 	{
 		tom_byte_write(offset, data >> 8);
 		tom_byte_write(offset+1, data & 0xFF);
-	}
+	}*/
 	else if ((offset >= 0xF00010) && (offset < 0xF00028))
 	{
 		op_word_write(offset, data);
@@ -1015,6 +1064,7 @@ void tom_word_write(unsigned offset, unsigned data)
 	}
 	else if (offset == 0xF000E0)
 	{
+//Check this out...
 		if (data & 0x0100)
 			tom_video_int_pending = 0;
 		if (data & 0x0200)
@@ -1051,34 +1101,48 @@ void tom_word_write(unsigned offset, unsigned data)
 	tom_byte_write(offset, data >> 8);
 	tom_byte_write(offset+1, data & 0xFF);
 
+if (offset == VDB)
+	WriteLog("TOM: Vertical Display Begin written: %u\n", data);
+if (offset == VDE)
+	WriteLog("TOM: Vertical Display End written: %u\n", data);
+if (offset == VP)
+	WriteLog("TOM: Vertical Period written: %u (%sinterlaced)\n", data, (data & 0x01 ? "non-" : ""));
+if (offset == HDB1)
+	WriteLog("TOM: Horizontal Display Begin 1 written: %u\n", data);
+if (offset == HDE)
+	WriteLog("TOM: Horizontal Display End written: %u\n", data);
+if (offset == HP)
+	WriteLog("TOM: Horizontal Period written: %u\n", data);
+if (offset == VBB)
+	WriteLog("TOM: Vertical Blank Begin written: %u\n", data);
+if (offset == VBE)
+	WriteLog("TOM: Vertical Blank End written: %u\n", data);
+if (offset == VS)
+	WriteLog("TOM: Vertical Sync written: %u\n", data);
+if (offset == VI)
+	WriteLog("TOM: Vertical Interrupt written: %u\n", data);
+if (offset == HBB)
+	WriteLog("TOM: Horizontal Blank Begin written: %u\n", data);
+if (offset == HBE)
+	WriteLog("TOM: Horizontal Blank End written: %u\n", data);
+if (offset == VMODE)
+	WriteLog("TOM: Video Mode written: %04X (PWIDTH = %u, VC = %u)\n", data, ((data >> 9) & 0x07) + 1, GET16(tom_ram_8, VC));
+
 	// detect screen resolution changes
+//This may go away in the future, if we do the virtualized screen thing...
 	if ((offset >= 0x28) && (offset <= 0x4F))
 	{
-if (offset == VDB)
-	WriteLog("TOM: Vertical Display Begin written: %04X\n", data);
-if (offset == VDE)
-	WriteLog("TOM: Vertical Display End written: %04X\n", data);
-if (offset == VP)
-	WriteLog("TOM: Vertical Period written: %04X (%sinterlaced)\n", data, (data & 0x01 ? "non-" : ""));
-if (offset == HDB1)
-	WriteLog("TOM: Horizontal Display Begin 1 written: %04X\n", data);
-if (offset == HDE)
-	WriteLog("TOM: Horizontal Display End written: %04X\n", data);
-if (offset == HP)
-	WriteLog("TOM: Horizontal Period written: %04X\n", data);
-if (offset == VMODE)
-	WriteLog("TOM: Video Mode written: %04X\n", data);
-
 		uint32 width = tom_getVideoModeWidth(), height = tom_getVideoModeHeight();
 		tom_real_internal_width = width;
 
-		if (width == 640)
+//This looks like an attempt to render non-square pixels (though wrong...)
+/*		if (width == 640)
 		{
 			memcpy(scanline_render, scanline_render_stretch, sizeof(scanline_render));
 			width = 320;
 		}
 		else
-			memcpy(scanline_render, scanline_render_normal, sizeof(scanline_render));
+			memcpy(scanline_render, scanline_render_normal, sizeof(scanline_render));//*/
 		
 		if ((width != tom_width) || (height != tom_height))
 		{
@@ -1102,22 +1166,26 @@ if (offset == VMODE)
 
 int tom_irq_enabled(int irq)
 {
-	return jaguar_byte_read(0xF000E1) & (1 << irq);
+	// This is the correct byte in big endian... D'oh!
+//	return jaguar_byte_read(0xF000E1) & (1 << irq);
+	return tom_ram_8[0xE1] & (1 << irq);
 }
 
-void tom_set_irq_latch(int irq, int enabled)
+//unused
+/*void tom_set_irq_latch(int irq, int enabled)
 {
 	tom_ram_8[0xE0] = (tom_ram_8[0xE0] & (~(1<<irq))) | (enabled ? (1<<irq) : 0);
-}
+}*/
 
-uint16 tom_irq_control_reg(void)
+//unused
+/*uint16 tom_irq_control_reg(void)
 {
 	return (tom_ram_8[0xE0] << 8) | tom_ram_8[0xE1];
-}
+}*/
 
 void tom_reset_timer(void)
 {
-	if ((!tom_timer_prescaler) || (!tom_timer_divider))
+	if (!tom_timer_prescaler || !tom_timer_divider)
 		tom_timer_counter = 0;
 	else
 		tom_timer_counter = (1 + tom_timer_prescaler) * (1 + tom_timer_divider);
@@ -1133,7 +1201,7 @@ void tom_pit_exec(uint32 cycles)
 		if (tom_timer_counter <= 0)
 		{
 			tom_set_pending_timer_int();
-			gpu_set_irq_line(2, 1);
+			GPUSetIRQLine(2, ASSERT_LINE);
 			if ((tom_irq_enabled(IRQ_TIMER)) && (jaguar_interrupt_handler_is_valid(64)))
 				m68k_set_irq(7);				// Cause a 68000 NMI...
 

@@ -40,13 +40,13 @@ void gpu3_init(void)
 			{
 				int result = 1;
 				if (j & 1)
-					if (i & ZFLAG) result = 0;
+					if (i & ZERO_FLAG) result = 0;
 				if (j & 2)
-					if (!(i & ZFLAG)) result = 0;
+					if (!(i & ZERO_FLAG)) result = 0;
 				if (j & 4)
-					if (i & (CFLAG << (j >> 4))) result = 0;
+					if (i & (CARRY_FLAG << (j >> 4))) result = 0;
 				if (j & 8)
-					if (!(i & (CFLAG << (j >> 4)))) result = 0;
+					if (!(i & (CARRY_FLAG << (j >> 4)))) result = 0;
 				condition_table[i * 32 + j] = result;
 			}
 }

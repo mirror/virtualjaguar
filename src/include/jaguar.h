@@ -45,18 +45,21 @@ void jaguar_long_write(unsigned offset, unsigned data);
 uint32 jaguar_interrupt_handler_is_valid(uint32 i);
 void jaguar_dasm(uint32 offset, uint32 qt);
 
+//New stuff...
+void JaguarExecute(int16 * backbuffer, bool render);
+
 // Some handy macros to help converting native endian to big endian (jaguar native)
 // & vice versa
 
-#define SET32(r, a, v)	r[a] = ((v) & 0xFF000000) >> 24, r[a+1] = ((v) & 0x00FF0000) >> 16, \
-						r[a+2] = ((v) & 0x0000FF00) >> 8, r[a+3] = (v) & 0x000000FF
-#define GET32(r, a)		((r[a] << 24) | (r[a+1] << 16) | (r[a+2] << 8) | r[a+3])
-#define SET16(r, a, v)	r[a] = ((v) & 0xFF00) >> 8, r[a+1] = (v) & 0xFF
-#define GET16(r, a)		((r[a] << 8) | r[a+1])
+#define SET32(r, a, v)	r[(a)] = ((v) & 0xFF000000) >> 24, r[(a)+1] = ((v) & 0x00FF0000) >> 16, \
+						r[(a)+2] = ((v) & 0x0000FF00) >> 8, r[(a)+3] = (v) & 0x000000FF
+#define GET32(r, a)		((r[(a)] << 24) | (r[(a)+1] << 16) | (r[(a)+2] << 8) | r[(a)+3])
+#define SET16(r, a, v)	r[(a)] = ((v) & 0xFF00) >> 8, r[(a)+1] = (v) & 0xFF
+#define GET16(r, a)		((r[(a)] << 8) | r[(a)+1])
 
 //Temp debug stuff
 
 void DumpMainMemory(void);
 uint8 * GetRamPtr(void);
 
-#endif	// #ifndef __JAGUAR_H__
+#endif	// __JAGUAR_H__

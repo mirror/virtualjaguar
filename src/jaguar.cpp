@@ -10,25 +10,25 @@
 
 #include "jaguar.h"
 //#include "m68kdasmAG.h"
-//#include "crc32.h"
 
 //#define LOG_UNMAPPED_MEMORY_ACCESSES
 //#define SOUND_OUTPUT
 #define CPU_DEBUG
 #define JAGUAR_WIP_RELEASE
-#define JAGUAR_REAL_SPEED
 //Do this in makefile??? Yes! Could, but it's easier to define here...
 //#define LOG_UNMAPPED_MEMORY_ACCESSES
 
-//
 // Private function prototypes
-//
 
 unsigned jaguar_unknown_readbyte(unsigned address);
 unsigned jaguar_unknown_readword(unsigned address);
 void jaguar_unknown_writebyte(unsigned address, unsigned data);
 void jaguar_unknown_writeword(unsigned address, unsigned data);
 void M68K_show_context(void);
+
+// External variables
+
+extern bool hardwareTypeNTSC;				// Set to false for PAL
 
 // These values are overridden by command line switches...
 
@@ -51,11 +51,25 @@ static uint32 jaguar_screen_scanlines;
 //
 // Callback function to detect illegal instructions
 //
-
 void M68KInstructionHook(void)
 {
 	uint32 m68kPC = m68k_get_reg(NULL, M68K_REG_PC);
-	
+
+/*	static char buffer[2048];
+	m68k_disassemble(buffer, m68kPC, M68K_CPU_TYPE_68000);
+	WriteLog("%08X: %s \t\tD0=%08X, A0=%08X\n", m68kPC, buffer, m68k_get_reg(NULL, M68K_REG_D0), m68k_get_reg(NULL, M68K_REG_A0));//*/
+
+/*	if (m68kPC == 0x803F16)
+	{
+		WriteLog("M68K: Registers found at $803F16:\n");
+		WriteLog( "\t68K PC=%06X\n", m68k_get_reg(NULL, M68K_REG_PC));
+		for(int i=M68K_REG_D0; i<=M68K_REG_D7; i++)
+			WriteLog( "\tD%i = %08X\n", i-M68K_REG_D0, m68k_get_reg(NULL, (m68k_register_t)i));
+		WriteLog( "\n");
+		for(int i=M68K_REG_A0; i<=M68K_REG_A7; i++)
+			WriteLog( "\tA%i = %08X\n", i-M68K_REG_A0, m68k_get_reg(NULL, (m68k_register_t)i));
+	}*/
+
 	if (!m68k_is_valid_instruction(jaguar_word_read(m68kPC), M68K_CPU_TYPE_68000))
 	{
 		WriteLog("\nEncountered illegal instruction at %08X!!!\n\nAborting!\n", m68kPC);
@@ -213,6 +227,19 @@ if (address == 0xF1A116 && (value & 0x01))
 //WriteLog( "[WM16 PC=%08X] Addr: %08X, val: %04X\n", m68k_get_reg(NULL, M68K_REG_PC), address, value);
 //if (address >= 0xF02200 && address <= 0xF0229F)
 //	WriteLog("M68K: Writing to blitter --> %04X at %08X\n", value, address);
+//if (address >= 0x0E75D0 && address <= 0x0E75E7)
+//	WriteLog("M68K: Writing %04X at %08X, M68K PC=%08X\n", value, address, m68k_get_reg(NULL, M68K_REG_PC));
+/*extern uint32 totalFrames;
+extern bool suppressOutput;
+if (totalFrames >= 59)
+	suppressOutput = false;//*/
+/*if (address == 0xF02114)
+	WriteLog("M68K: Writing to GPU_CTRL (frame:%u)... [M68K PC:%08X]\n", totalFrames, m68k_get_reg(NULL, M68K_REG_PC));
+if (address == 0xF02110)
+	WriteLog("M68K: Writing to GPU_PC (frame:%u)... [M68K PC:%08X]\n", totalFrames, m68k_get_reg(NULL, M68K_REG_PC));//*/
+//if (address >= 0xF03B00 && address <= 0xF03DFF)
+//	WriteLog("M68K: Writing %04X to %08X...\n", value, address);
+
 	if ((address >= 0x000000) && (address <= 0x3FFFFE))
 	{
 		jaguar_mainRam[address] = value >> 8;
@@ -272,8 +299,8 @@ void M68K_show_context(void)
 //	jaguar_dasm(s68000readPC()-0x1000,0x20000);
 	jaguar_dasm(m68k_get_reg(NULL, M68K_REG_PC) - 0x80, 0x200);
 //	jaguar_dasm(0x5000, 0x14414);
-	WriteLog( "..................\n");
 
+	WriteLog( "..................\n");
 
 	if (tom_irq_enabled(IRQ_VBLANK))
 	{
@@ -282,6 +309,7 @@ void M68K_show_context(void)
 	}
 	else
 		WriteLog( "vblank int: disabled\n");
+
 	WriteLog( "..................\n");
 
 	for(int i=0; i<256; i++)
@@ -349,13 +377,15 @@ void jaguar_dasm(uint32 offset, uint32 qt)
 
 	for(uint32 i=0; i<qt; i++)
 	{
-		oldpc = pc;
-//		for(int j=0; j<64; j++)
-//			mem[j^0x01] = jaguar_byte_read(pc + j);
+/*		oldpc = pc;
+		for(int j=0; j<64; j++)
+			mem[j^0x01] = jaguar_byte_read(pc + j);
 
-//		pc += Dasm68000((char *)mem, buffer, 0);
+		pc += Dasm68000((char *)mem, buffer, 0);
+		WriteLog("%08X: %s\n", oldpc, buffer);//*/
+		oldpc = pc;
 		pc += m68k_disassemble(buffer, pc, M68K_CPU_TYPE_68000);
-		WriteLog("%08X: %s\n", oldpc, buffer);
+		WriteLog("%08X: %s\n", oldpc, buffer);//*/
 	}
 #endif
 }
@@ -501,9 +531,6 @@ if (offset == 0xF1A116 && (data & 0x01))
 
 unsigned jaguar_long_read(unsigned int offset)
 {
-/*	uint32 data = jaguar_word_read(offset);
-	data = (data<<16) | jaguar_word_read(offset+2);
-	return data;*/
 	return (jaguar_word_read(offset) << 16) | jaguar_word_read(offset+2);
 }
 
@@ -515,34 +542,15 @@ if (offset == 0xF1A114 && (data & 0x01))
 //else
 //	WriteLog("JagLW: DSP halted... (Old value: %08X)\n", dsp_control);
 
-//extern int effect_start;
-// $10, $0C, $0A, $09 too much, $08 too little...
-//if (effect_start && offset == 0xF03000) data = (data & 0xFFFF0000) | (((data & 0xFFFF) + 0x0008) & 0xFFFF);
-//Doesn't work--offsets horizontally if (effect_start && offset == 0xF03004) data -= (0x300 * 8); // one line is $300
-//if (effect_start && offset == 0xF03000) data = 0x00000000;	// Let's try making the top/bottom *always* 0!
-//Interesting: it seems to pin half of the screen down (but too low)...
-//Definitely the fine scroll offsets (for left side of screen)...
-
-//if ((offset >= 0x1FF020 && offset <= 0x1FF03F) || (offset >= 0x1FF820 && offset <= 0x1FF83F))
-//	WriteLog("JagLW: Writing %08X at %08X\n", data, offset);
 	jaguar_word_write(offset, data >> 16);
 	jaguar_word_write(offset+2, data & 0xFFFF);
 }
 
 //
-// Jaguar initialization
+// Jaguar console initialization
 //
-
-//void jaguar_init(const char * filename)
 void jaguar_init(void)
 {
-//	uint32 romsize;
-
-	jaguar_screen_scanlines = 525;			// PAL screen size
-	m68k_cycles_per_scanline = 13300000 / (jaguar_screen_scanlines * 60);
-	gpu_cycles_per_scanline = (26591000 / 4) / (jaguar_screen_scanlines * 60);
-	dsp_cycles_per_scanline = (26591000 / 4) / (jaguar_screen_scanlines * 60);
-
 	memory_malloc_secure((void **)&jaguar_mainRam, 0x400000, "Jaguar 68K CPU RAM");
 	memory_malloc_secure((void **)&jaguar_bootRom, 0x040000, "Jaguar 68K CPU BIOS ROM");
 	memory_malloc_secure((void **)&jaguar_mainRom, 0x600000, "Jaguar 68K CPU ROM");
@@ -550,242 +558,6 @@ void jaguar_init(void)
 //	memset(jaguar_mainRom, 0xFF, 0x200000);	// & set it to all Fs...
 	memset(jaguar_mainRom, 0x00, 0x200000);	// & set it to all 0s...
 
-//	jaguar_rom_load_to(jaguar_bootRom, jaguar_bootRom_path, &romsize);
-//	memcpy(jaguar_mainRam, jaguar_bootRom, 8);
-//	SET32(jaguar_mainRam, 0, 0x00200000);
-
-#ifdef JAGUAR_WIP_RELEASE
-//	strcpy(romLoadDialog_filePath, filename);
-// 	jaguar_load_cart(romLoadDialog_filePath, jaguar_mainRom, 0x0000, 0x00802000, 0);
-
-	if ((jaguar_mainRom_crc32 == 0x3966698f) || (jaguar_mainRom_crc32 == 0x5e705756)
-		|| (jaguar_mainRom_crc32 == 0x2630cbc4) || (jaguar_mainRom_crc32 == 0xd46437e8)
-		|| (jaguar_mainRom_crc32 == 0x2630cbc4))
-		dsp_enabled = true;
-
-	if ((jaguar_mainRom_crc32 == 0x6e90989f) || (jaguar_mainRom_crc32 == 0xfc8f0dcd)
-		|| (jaguar_mainRom_crc32 == 0x2a512a83) || (jaguar_mainRom_crc32 == 0x41307601)
-		|| (jaguar_mainRom_crc32 == 0x3c7bfda8) || (jaguar_mainRom_crc32 == 0x5e705756))
-		gpu_cycles_per_scanline = (26591000 / 1) / (jaguar_screen_scanlines * 60);
-
-	if (jaguar_mainRom_crc32 == 0x7ae20823)
-	{
-		dsp_enabled = true;
-		gpu_cycles_per_scanline = (26591000 / 1) / (jaguar_screen_scanlines * 60);
-		dsp_cycles_per_scanline = (26591000 / 1) / (jaguar_screen_scanlines * 60);
-	}
-	if (jaguar_mainRom_crc32 == 0xe21d0e2f)
-	{
-		dsp_enabled = true;
-		gpu_cycles_per_scanline = (26591000 / 1) / (jaguar_screen_scanlines * 60);
-		dsp_cycles_per_scanline = (26591000 / 1) / (jaguar_screen_scanlines * 60);
-	}
-	if (jaguar_mainRom_crc32 == 0x66f8914c)
-	{
-		gpu_cycles_per_scanline = (26591000 / 1) /(jaguar_screen_scanlines * 60);
-	}
-	if (jaguar_mainRom_crc32 == 0x5a5b9c68)
-	{
-		gpu_cycles_per_scanline = (26591000 / 1) / (jaguar_screen_scanlines * 60);
-	}
-	if (jaguar_mainRom_crc32 == 0xdcb0197a)
-	{
-		dsp_enabled = false; // dsp not needed
-		gpu_cycles_per_scanline = (26591000 / 1) / (jaguar_screen_scanlines * 60);
-		//dsp_cycles_per_scanline=(26591000/1) /((jaguar_screen_scanlines)*60);
-	}
-	if ((jaguar_mainRom_crc32 == 0x3966698f) || (jaguar_mainRom_crc32 == 0xe21d0e2f))
-		dsp_enabled = true;
-	if (jaguar_mainRom_crc32 == 0x5e705756)
-	{
-		gpu_cycles_per_scanline = (26591000 / 1) / (jaguar_screen_scanlines * 60);
-		dsp_enabled = true;
-	}
-	if (jaguar_mainRom_crc32 == 0x2630cbc4)
-	{
-		// ultra vortek
-		gpu_cycles_per_scanline = (26591000 / 1) / (jaguar_screen_scanlines * 60);
-		dsp_cycles_per_scanline = (26591000 / 1) / (jaguar_screen_scanlines * 60);
-		dsp_enabled = true;
-	}
-	if ((jaguar_mainRom_crc32 == 0xd46437e8) || (jaguar_mainRom_crc32 == 0xba74c3ed))
-	{
-		gpu_cycles_per_scanline = (26591000 / 1) / (jaguar_screen_scanlines * 60);
-		dsp_enabled = true;
-	}
-	if (jaguar_mainRom_crc32 == 0x6e90989f)
-		gpu_cycles_per_scanline = (26591000 / 1) / (jaguar_screen_scanlines * 60);
-
-	if (jaguar_mainRom_crc32 == 0x41307601)
-	{
-		gpu_cycles_per_scanline = (26591000 / 1) / (jaguar_screen_scanlines * 60);
-	}
-
-	if (jaguar_mainRom_crc32 == 0x8483392b)
-	{
-		dsp_enabled = true;
-	}
-
-#else	// #ifdef JAGUAR_WIP_RELEASE
-//	jaguar_load_cart("C:/ftp/jaguar/roms/roms/flashback.jag",jaguar_mainRom,0x0000, 0x20000080,0);
-//	jaguar_load_cart("C:/ftp/jaguar/roms/roms/Pinball Fantasies.JAG",jaguar_mainRom,0x0000, 0x20000080,0);
-//	jaguar_load_cart("C:/ftp/jaguar/roms/roms/alien vs predator (1994).jag",jaguar_mainRom,0x0000, 0x20000080,0);
-//	jaguar_load_cart("C:/ftp/jaguar/roms/roms/cannon fodder (1995) (computer west).jag",jaguar_mainRom,0x0000, 0x20000080,0);
-//	jaguar_load_cart("C:/ftp/jaguar/roms/roms/double dragon v (1995) (williams).jag",jaguar_mainRom,0x0000, 0x20000080,0);
-//	jaguar_load_cart("C:/ftp/jaguar/roms/roms/Dragon - The Bruce Lee Story.JAG",jaguar_mainRom,0x0000, 0x20000080,0);
-//	jaguar_load_cart("C:/ftp/jaguar/roms/roms/Syndicate.JAG",jaguar_mainRom,0x0000, 0x20000080,0);
-//	jaguar_load_cart("C:/ftp/jaguar/roms/roms/Theme Park.JAG",jaguar_mainRom,0x0000, 0x20000080,0);
-//	jaguar_load_cart("C:/ftp/jaguar/roms/roms/Brutal Sports Football.JAG",jaguar_mainRom,0x0000, 0x20000080,0);
-//	jaguar_load_cart("C:/ftp/jaguar/roms/roms/International Sensible Soccer.JAG",jaguar_mainRom,0x0000, 0x20000080,0);
-//  jaguar_load_cart("C:/ftp/jaguar/roms/roms/Defender 2000.JAG",jaguar_mainRom,0x0000, 0x20000080,0);
-//	jaguar_load_cart("C:/ftp/jaguar/roms/roms/Fever Pitch Soccer.JAG",jaguar_mainRom,0x0000, 0x20000080,0);
-//	jaguar_load_cart("C:/ftp/jaguar/roms/roms/Rayman.JAG",jaguar_mainRom,0x0000, 0x20000080,0);
-//	jaguar_load_cart("C:/ftp/jaguar/roms/roms/Tempest 2000.JAG",jaguar_mainRom,0x0000, 0x20000080,0);
-//	jaguar_load_cart("C:/ftp/jaguar/roms/roms/zool 2 (1994).jag",jaguar_mainRom,0x0000, 0x20000080,0);
-//	jaguar_load_cart("C:/ftp/jaguar/roms/roms/Bubsy - Fractured Furry Tails.JAG",jaguar_mainRom,0x0000, 0x20000080,0);
-//	jaguar_load_cart("C:/ftp/jaguar/roms/roms/Raiden.JAG",jaguar_mainRom,0x0000, 0x20000080,0);
-//	jaguar_load_cart("C:/ftp/jaguar/roms/roms/Dino Olympics.jag",jaguar_mainRom,0x0000, 0x20000080,0);
-//	jaguar_load_cart("C:/ftp/jaguar/roms/roms/I-War.jag",jaguar_mainRom,0x0000, 0x20000080,0);
-//	jaguar_load_cart("C:/ftp/jaguar/roms/roms/Attack of the Mutant Penguins.JAG",jaguar_mainRom,0x0000, 0x20000080,0);
-//	jaguar_load_cart("C:/ftp/jaguar/roms/roms/Cybermorph.jag",jaguar_mainRom,0x0000, 0x20000080,0);
-//	jaguar_load_cart("C:/ftp/jaguar/roms/roms/Troy Aikman NFL Football (1995) (Williams).jag",jaguar_mainRom,0x0000, 0x20000080,0);
-//	jaguar_load_cart("C:/ftp/jaguar/roms/roms/Power Drive Rally (1995) (TWI).jag",jaguar_mainRom,0x0000, 0x20000080,0);
-//	jaguar_load_cart("C:/ftp/jaguar/roms/roms/Zoop! (1996).jag",jaguar_mainRom,0x0000, 0x20000080,0);
-//	jaguar_load_cart("C:/ftp/jaguar/roms/roms/Missile Command 3D.JAG",jaguar_mainRom,0x0000, 0x20000080,0);
-//	jaguar_load_cart("C:/ftp/jaguar/roms/roms/Hover Strike.jag",jaguar_mainRom,0x0000, 0x20000080,0);
-//	jaguar_load_cart("C:/ftp/jaguar/roms/roms/worms.bin",jaguar_mainRom,0x0000, 0x20000080,0);
-//	jaguar_load_cart("C:/ftp/jaguar/roms/roms/Atari Kart.JAG",jaguar_mainRom,0x0000, 0x20000080,0);
-//	jaguar_load_cart("C:/ftp/jaguar/roms/roms/native.bin",jaguar_mainRam,0x5000, 0x50000000,0x00);
-
-	if (jaguar_mainRom_crc32==0xe21d0e2f)
-	{
-		dsp_enabled=true;
-		gpu_cycles_per_scanline=(26591000/1) /((jaguar_screen_scanlines)*60);
-		dsp_cycles_per_scanline=(26591000/1) /((jaguar_screen_scanlines)*60);
-	}
-	if (jaguar_mainRom_crc32==0x66f8914c)
-	{
-		gpu_cycles_per_scanline=(26591000/1) /((jaguar_screen_scanlines)*60);
-	}
-	if (jaguar_mainRom_crc32==0x5a5b9c68)
-	{
-		gpu_cycles_per_scanline=(26591000/1) /((jaguar_screen_scanlines)*60);
-	}
-//	jaguar_load_cart("C:/ftp/jaguar/roms/roms/Super Cross 3D.JAG",jaguar_mainRom,0x0000, 0x20000080,0);
-	if (jaguar_mainRom_crc32==0xdcb0197a)
-	{
-		dsp_enabled=true; // dsp not needed
-		gpu_cycles_per_scanline=(26591000/1) /((jaguar_screen_scanlines)*60);
-		//dsp_cycles_per_scanline=(26591000/1) /((jaguar_screen_scanlines)*60);
-	}
-//  jaguar_load_cart("C:/ftp/jaguar/roms/roms/wolfenstein 3d (1994).jag",jaguar_mainRom,0x0000, 0x20000080,0);
-	if ((jaguar_mainRom_crc32==0x3966698f)||(jaguar_mainRom_crc32==0xe21d0e2f))
-		dsp_enabled=true;
-//	jaguar_load_cart("C:/ftp/jaguar/roms/roms/NBA JAM.jag",jaguar_mainRom,0x0000, 0x20000080,0);
-//	jaguar_load_cart("C:/ftp/jaguar/roms/roms/Doom - Evil Unleashed.JAG",jaguar_mainRom,0x0000, 0x20000080,0);
-	if (jaguar_mainRom_crc32==0x5e705756)
-	{
-		gpu_cycles_per_scanline=(26591000/1) /((jaguar_screen_scanlines)*60);
-		dsp_enabled=true;
-	}
-//	jaguar_load_cart("C:/ftp/jaguar/roms/roms/Ultra Vortek.JAG",jaguar_mainRom,0x0000, 0x20000080,0);
-	if (jaguar_mainRom_crc32==0x2630cbc4)
-	{
-		// ultra vortek
-		gpu_cycles_per_scanline=(26591000/1) /((jaguar_screen_scanlines)*60);
-		dsp_cycles_per_scanline=(26591000/1) /((jaguar_screen_scanlines)*60);
-		dsp_enabled=true; 
-	}
-//	jaguar_load_cart("C:/ftp/jaguar/roms/roms/fflbeta.rom",jaguar_mainRom,0x0000, 0x20000080,0);
-// 	jaguar_load_cart("C:/ftp/jaguar/roms/roms/Fight for Your Life.jag",jaguar_mainRom,0x0000, 0x20000080,0);
-	if ((jaguar_mainRom_crc32==0xd46437e8)||(jaguar_mainRom_crc32==0xba74c3ed))
-	{
-		gpu_cycles_per_scanline=(26591000/1) /((jaguar_screen_scanlines)*60);
-//		dsp_cycles_per_scanline=(26591000/1) /((jaguar_screen_scanlines)*60);
-		dsp_enabled=true;
-	}
-//	jaguar_load_cart("C:/ftp/jaguar/roms/roms/Pitfall - The Mayan Adventure.JAG",jaguar_mainRom,0x0000, 0x20000080,0);
-	if (jaguar_mainRom_crc32==0x6e90989f)
-		gpu_cycles_per_scanline=(26591000/1) /((jaguar_screen_scanlines)*60);
-
-// missing some sprites
-//	jaguar_load_cart("C:/ftp/jaguar/roms/roms/Crescent Galaxy.jag",jaguar_mainRom,0x0000, 0x20000080,0);
-	if (jaguar_mainRom_crc32==0x41307601)
-	{
-		gpu_cycles_per_scanline=(26591000/1) /((jaguar_screen_scanlines)*60);
-	}
-
-// missing vertical bar shades	
-//	jaguar_load_cart("C:/ftp/jaguar/roms/roms/Phase Zero (2000) (PD).rom",jaguar_mainRom,0x0000, 0x20000080,0);
-	if (jaguar_mainRom_crc32==0x8483392b)
-	{
-		dsp_enabled=true;
-	}
-// cpu/dsp/gpu synchronization problems
-
-
-// locks up during the game
-//	jaguar_load_cart("C:/ftp/jaguar/roms/roms/Club Drive.JAG",jaguar_mainRom,0x0000, 0x20000080,0);
-
-// no parallax floor, locks up at the start of the game	
-// jaguar_load_cart("C:/ftp/jaguar/roms/roms/Kasumi Ninja.JAG",jaguar_mainRom,0x0000, 0x20000080,0);
-
-// displaying the sound control dialog. no way to exit from it	
-//	jaguar_load_cart("C:/ftp/jaguar/roms/roms/Checkered Flag.JAG",jaguar_mainRom,0x0000, 0x20000080,0);
-
-// no 3d	
-//  jaguar_load_cart("C:/ftp/jaguar/roms/roms/Iron Soldier.jag",jaguar_mainRom,0x0000, 0x20000080,0);
-
-// locks up at the start of the game
-//	jaguar_load_cart("C:/ftp/jaguar/roms/roms/Super Burnout.JAG",jaguar_mainRom,0x0000, 0x20000080,0);
-	if (jaguar_mainRom_crc32==0x20ae75f4)
-	{
-		dsp_enabled=true;
-		gpu_cycles_per_scanline=(26591000/1) /((jaguar_screen_scanlines)*60);
-		dsp_cycles_per_scanline=(26591000/1) /((jaguar_screen_scanlines)*60);
-	}
-// locks up at the start of the game	
-//	jaguar_load_cart("C:/ftp/jaguar/roms/roms/Val D'Isere Skiing & Snowboarding (1994).jag",jaguar_mainRom,0x0000, 0x20000080,0);
-	if (jaguar_mainRom_crc32==0x4664ebd1)
-	{
-		dsp_enabled=true;
-	}
-
-// fonctionne avec le gpu et le dsp activés et gpu à frequence nominale, et dsp à 1/4 de la frequence nominale
-//	jaguar_load_cart("C:/ftp/jaguar/roms/roms/white men can't jump (1995).jag",jaguar_mainRom,0x0000, 0x20000080,0);
-	if (jaguar_mainRom_crc32==0x7ae20823)
-	{
-		dsp_enabled=true;
-		gpu_cycles_per_scanline=(26591000/1) /((jaguar_screen_scanlines)*60);
-	}
-// not working at all
-//	jaguar_load_cart("C:/ftp/jaguar/roms/roms/Flip Out.JAG",jaguar_mainRom,0x0000, 0x20000080,0);
-	if (jaguar_mainRom_crc32==0x6f57dcd2)
-	{
-		gpu_cycles_per_scanline=(26591000/1) /((jaguar_screen_scanlines)*60);
-		dsp_enabled=false;
-
-	}
-
-	jaguar_load_cart("C:/ftp/jaguar/roms/roms/Ruiner.JAG",jaguar_mainRom,0x0000, 0x20000080,0);
-	if (jaguar_mainRom_crc32==0x6a7c7430)
-	{
-		dsp_enabled=true;
-	}
-
-	if (jaguar_mainRom_crc32==0x2f032271)
-	{
-		dsp_enabled=true;
-		dsp_cycles_per_scanline=(26591000/1) /((jaguar_screen_scanlines)*60);
-		gpu_cycles_per_scanline=(26591000/1) /((jaguar_screen_scanlines)*60);
-	}
-//	jaguar_load_cart("C:/ftp/jaguar/roms/roms/tetris.bin",jaguar_mainRam,0x4fe4, 0x50000000,0x00);
-//	jaguar_load_cart("C:/ftp/jaguar/roms/roms/painter.bin",jaguar_mainRam,0xffe4, 0x00000001,0x00);
-//	jaguar_load_cart("./roms/jagcd.rom",jaguar_mainRom,0x0000, 0x20000080,0);
-
-//	jaguar_load_cart("cart.jag",jaguar_mainRom,0x0000, 0x20000080,0);
-
-	
 //	cd_bios_boot("C:\\ftp\\jaguar\\cd\\Brain Dead 13.cdi");
 //	cd_bios_boot("C:\\ftp\\jaguar\\cd\\baldies.cdi");
 //	cd_bios_boot("C:\\ftp\\jaguar\\cd\\mystdemo.cdi");
@@ -793,13 +565,18 @@ void jaguar_init(void)
 //	cd_bios_boot("C:\\ftp\\jaguar\\cd\\primalrage.cdi");
 //	cd_bios_boot("C:\\ftp\\jaguar\\cd\\Dragons Lair.cdi");
 
-//	jaguar_load_cart("C:/ftp/jaguar/roms/roms/raw.jag",jaguar_mainRam,0x4000, 0x40000000,0x00);
-#endif	// #ifdef JAGUAR_WIP_RELEASE
+//                           NTSC       PAL
+// GPU/DSP/video clock rate  26.590906  26.593900
+// 68000 clock rate          13.295453  13.296950
+// (clock rates in MHz)
 
-#ifdef JAGUAR_REAL_SPEED
-	gpu_cycles_per_scanline = (26591000 / 1) / (jaguar_screen_scanlines * 60);
-	dsp_cycles_per_scanline = (26591000 / 1) / (jaguar_screen_scanlines * 60);
-#endif
+	// Should these be hardwired or read from VP?
+	jaguar_screen_scanlines = (hardwareTypeNTSC ? 524 : 624);
+//Should the divisor be 50 for PAL??? Let's try it!
+	m68k_cycles_per_scanline = (hardwareTypeNTSC ? 13295453 : 13296950) / (jaguar_screen_scanlines * (hardwareTypeNTSC ? 60 : 50));
+	gpu_cycles_per_scanline = dsp_cycles_per_scanline
+		= (hardwareTypeNTSC ? 26590906 : 26593900) / (jaguar_screen_scanlines * (hardwareTypeNTSC ? 60 : 50));
+
 #ifdef SOUND_OUTPUT
 	ws_audio_init();
 #endif
@@ -817,11 +594,28 @@ void jaguar_done(void)
 //#ifdef CPU_DEBUG
 //	for(int i=M68K_REG_A0; i<=M68K_REG_A7; i++)
 //		WriteLog("\tA%i = 0x%.8x\n", i-M68K_REG_A0, m68k_get_reg(NULL, (m68k_register_t)i));
-	uint32 topOfStack = m68k_get_reg(NULL, M68K_REG_A7);
+	int32 topOfStack = m68k_get_reg(NULL, M68K_REG_A7);
 	WriteLog("M68K: Top of stack: %08X. Stack trace:\n", jaguar_long_read(topOfStack));
-	for(int i=0; i<10; i++)
-		WriteLog("%06X: %08X\n", topOfStack - (i * 4), jaguar_long_read(topOfStack - (i * 4)));
+	for(int i=-2; i<9; i++)
+		WriteLog("%06X: %08X\n", topOfStack + (i * 4), jaguar_long_read(topOfStack + (i * 4)));
+
+/*	WriteLog("\nM68000 disassembly at $802288...\n");
+	jaguar_dasm(0x802288, 3);
+	WriteLog("\nM68000 disassembly at $802200...\n");
+	jaguar_dasm(0x802200, 500);
+	WriteLog("\nM68000 disassembly at $802518...\n");
+	jaguar_dasm(0x802518, 100);//*/
+
+/*	WriteLog("\n\nM68000 disassembly at $803F00 (look @ $803F2A)...\n");
+	jaguar_dasm(0x803F00, 500);
+	WriteLog("\n");//*/
+
+/*	WriteLog("\n\nM68000 disassembly at $802B00 (look @ $802B5E)...\n");
+	jaguar_dasm(0x802B00, 500);
+	WriteLog("\n");//*/
+
 //	WriteLog("Jaguar: CD BIOS version %04X\n", jaguar_word_read(0x3004));
+	WriteLog("Jaguar: Interrupt enable = %02X\n", tom_byte_read(0xF000E1) & 0x1F);
 	WriteLog("Jaguar: VBL interrupt is %s\n", ((tom_irq_enabled(IRQ_VBLANK)) && (jaguar_interrupt_handler_is_valid(64))) ? "enabled" : "disabled");
 	M68K_show_context();
 //#endif
@@ -881,7 +675,7 @@ void jaguar_exec(int16 * backbuffer, bool render)
 	// vblank
 	if ((tom_irq_enabled(IRQ_VBLANK)) && (jaguar_interrupt_handler_is_valid(64)))
 	{
-		if (jaguar_word_read(0xF0004E) != 0xFFFF)
+		if (jaguar_word_read(0xF0004E) != 0x07FF)	// VI (11 bits wide!)
 		{
 			tom_set_pending_video_int();
 //			s68000interrupt(7, IRQ_VBLANK+64);
@@ -927,6 +721,76 @@ void jaguar_exec(int16 * backbuffer, bool render)
 			dsp_exec(dsp_cycles_per_scanline);
 		backbuffer += tom_width;
 	}
+#ifdef SOUND_OUTPUT
+	system_sound_update();
+#endif
+}
+
+//
+// Main Jaguar execution loop (1 frame)
+//
+void JaguarExecute(int16 * backbuffer, bool render)
+{
+	uint16 vp = tom_word_read(0xF0003E);//Hmm. This is a WO register. Will work? Looks like. But wrong behavior!
+	uint16 vi = tom_word_read(0xF0004E);//Another WO register...
+	uint16 vdb = tom_word_read(0xF00046);
+//	uint16 endingLine = 
+//Note: This is the *definite* end of the display, though VDE *might* be less than this...
+//	uint16 vbb = tom_word_read(0xF00040);
+//It seems that they mean it when they say that VDE is the end of object processing.
+//However, we need to be able to tell the OP (or TOM) that we've reached the end of the
+//buffer and not to write any more pixels...
+	uint16 vde = tom_word_read(0xF00048);
+
+/*extern int effect_start;
+if (effect_start)
+{
+	WriteLog("JagExe: VP=%u, VI=%u, VDB=%u, VBB=%u CPU CPS=%u, GPU CPS=%u\n", vp, vi, vdb, vbb, m68k_cycles_per_scanline, gpu_cycles_per_scanline);
+}//*/
+
+	for(uint16 i=0; i<vp; i++)
+	{
+		// Increment the horizontal count (why? RNG?)
+		tom_word_write(0xF00004, tom_word_read(0xF00004) + 1);
+
+		tom_word_write(0xF00006, i);				// Write the VC
+
+		if (i == vi)								// Time for Vertical Interrupt?
+		{
+			if (tom_irq_enabled(IRQ_VBLANK) && jaguar_interrupt_handler_is_valid(64))
+			{
+				// We don't have to worry about autovectors & whatnot because the Jaguar
+				// tells you through registers who sent the interrupt...
+				tom_set_pending_video_int();
+				m68k_set_irq(7);
+			}
+		}
+		
+//		uint32 invalid_instruction_address = s68000exec(m68k_cycles_per_scanline);
+//		if (invalid_instruction_address != 0x80000000)
+//			cd_bios_process(invalid_instruction_address);
+		// These are divided by 2 because we're executing *half* lines...!
+		m68k_execute(m68k_cycles_per_scanline / 2);
+		// No CD handling... !!! FIX !!!
+		cd_bios_exec(i);	// NOTE: Ignores parameter...
+		tom_pit_exec(m68k_cycles_per_scanline / 2);
+		jerry_pit_exec(m68k_cycles_per_scanline / 2);
+		jerry_i2s_exec(m68k_cycles_per_scanline / 2);
+		gpu_exec(gpu_cycles_per_scanline / 2);
+		if (dsp_enabled)
+			dsp_exec(dsp_cycles_per_scanline / 2);
+
+//Interlacing is still not handled correctly here...
+		if (i >= vdb && i < vde)//vbb)
+		{
+			if (!(i & 0x01))						// Execute OP only on even lines (non-interlaced only!)
+			{
+				tom_exec_scanline(backbuffer, i/2, render);	// i/2 is a kludge...
+				backbuffer += TOMGetSDLScreenPitch() / 2;	// Convert bytes to words...
+			}
+		}
+	}
+
 #ifdef SOUND_OUTPUT
 	system_sound_update();
 #endif

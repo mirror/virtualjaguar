@@ -6,6 +6,15 @@
 // Cleanups/fixes by James L. Hammons
 //
 
+//
+// Important info:
+//
+//                           NTSC       PAL
+// GPU/DSP/video clock rate  26.590906  26.593900
+// 68000 clock rate          13.295453  13.296950
+// (clock rates in MHz)
+//
+
 // Added by SDLEMU (http://sdlemu.ngemu.com)
 // Added for GCC UNIX compatibility
 #ifdef __GCCUNIX__
@@ -72,9 +81,10 @@ void main_screen_switch(void)
 
 // Added/changed by SDLEMU http://sdlemu.ngemu.com
 
+uint32 totalFrames;//so we can grab this from somewhere else...
 int main(int argc, char * argv[])
 {
-	uint32 startTime, totalFrames;//, endTime;//, w, h;
+	uint32 startTime;//, totalFrames;//, endTime;//, w, h;
 //	int32 * vs;
 	uint32 nNormalLast = 0;
 	int32 nNormalFrac = 0; 
@@ -85,7 +95,7 @@ int main(int argc, char * argv[])
     int32 nFrame = 0;									// No. of Frame
     int32 nJoyport = 0;									// Joystick port
 
-	printf("Virtual Jaguar/SDL v1.0.4 (GCC/SDL Port)\n");
+	printf("Virtual Jaguar/SDL v1.0.5 (GCC/SDL Port)\n");
 	printf("Based upon Virtual Jaguar core v1.0.0 by cal2 of Potato emulation.\n");
 	printf("Written by Niels Wagenaar (Linux/WIN32) and Caz (BeOS)\n");
 	printf("Portions massaged by James L. Hammons (WIN32)\n");
@@ -248,7 +258,8 @@ int main(int argc, char * argv[])
 				jaguar_exec(backbuffer, false);
 #endif
             // Setting up new backbuffer with new pixels and data
-			jaguar_exec(backbuffer, true);
+//			jaguar_exec(backbuffer, true);
+			JaguarExecute(backbuffer, true);
 			totalFrames++;
 
 			// Simple frameskip

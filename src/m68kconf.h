@@ -131,8 +131,8 @@ int irq_ack_handler(int);
  * instruction.
  */
 void M68KInstructionHook(void);
-#define M68K_INSTRUCTION_HOOK       OPT_OFF
-//#define M68K_INSTRUCTION_HOOK       OPT_SPECIFY_HANDLER
+//#define M68K_INSTRUCTION_HOOK       OPT_OFF
+#define M68K_INSTRUCTION_HOOK       OPT_SPECIFY_HANDLER
 //#define M68K_INSTRUCTION_CALLBACK() your_instruction_hook_function()
 #define M68K_INSTRUCTION_CALLBACK() M68KInstructionHook()
 

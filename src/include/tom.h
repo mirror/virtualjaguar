@@ -7,7 +7,7 @@
 
 #include "jaguar.h"
 
-#define TOM_VBLANK_DURATION_IN_SCANLINES 25
+//#define TOM_VBLANK_DURATION_IN_SCANLINES 25
 
 #define VIDEO_MODE_16BPP_CRY	0
 #define VIDEO_MODE_24BPP_RGB	1
@@ -34,14 +34,15 @@ uint16 tom_get_vdb(void);
 uint16 tom_get_scanline(void);
 uint32 tom_getHBlankWidthInPixels(void);
 
-// Interrupts
+// 68000 Interrupt bit positions (enabled at $F000E0)
 
-#define IRQ_VBLANK	0
+/*#define IRQ_VBLANK	0
 #define IRQ_GPU		1
 #define IRQ_HBLANK  2
 #define IRQ_OPFLAG  IRQ_HBLANK
 #define IRQ_TIMER	3
-#define IRQ_DSP		4
+#define IRQ_DSP		4*/
+enum { IRQ_VBLANK = 0, IRQ_GPU, IRQ_OPFLAG, IRQ_TIMER, IRQ_DSP };
 
 int	tom_irq_enabled(int irq);
 uint16 tom_irq_control_reg(void);
@@ -53,5 +54,7 @@ void tom_set_pending_object_int(void);
 void tom_set_pending_gpu_int(void);
 void tom_set_pending_video_int(void);
 void tom_reset_timer(void);
+
+uint32 TOMGetSDLScreenPitch(void);
 
 #endif	// __TOM_H__

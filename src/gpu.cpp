@@ -14,42 +14,82 @@
 
 #include "gpu.h"
 
-// For GPU dissasembly...
+//#define GPU_DEBUG
 
-//#define GPU_DIS_ABS
-//#define GPU_DIS_ADDC
-//#define GPU_DIS_CMP
-//#define GPU_DIS_CMPQ
-//#define GPU_DIS_DIV
-//#define GPU_DIS_JUMP
-//#define GPU_DIS_JR
-//#define GPU_DIS_ROR
-//#define GPU_DIS_RORQ
-//#define GPU_DIS_SH
-//#define GPU_DIS_SHA
-//#define GPU_DIS_SHARQ
-//#define GPU_DIS_SHLQ
-//#define GPU_DIS_SHRQ
-//#define GPU_DIS_STORE14R
-//#define GPU_DIS_STORE15R
-//#define GPU_DIS_SUBC
+// For GPU dissasembly...
+/*
+#define GPU_DIS_ABS
+#define GPU_DIS_ADD
+#define GPU_DIS_ADDC
+#define GPU_DIS_ADDQ
+#define GPU_DIS_ADDQT
+#define GPU_DIS_AND
+#define GPU_DIS_BCLR
+#define GPU_DIS_BSET
+#define GPU_DIS_BTST
+#define GPU_DIS_CMP
+#define GPU_DIS_CMPQ
+#define GPU_DIS_DIV
+#define GPU_DIS_IMULT
+#define GPU_DIS_JUMP
+#define GPU_DIS_JR
+#define GPU_DIS_LOAD
+#define GPU_DIS_LOADB
+#define GPU_DIS_LOADW
+#define GPU_DIS_LOAD14I
+#define GPU_DIS_LOAD14R
+#define GPU_DIS_LOAD15I
+#define GPU_DIS_LOAD15R
+#define GPU_DIS_MOVE
+#define GPU_DIS_MOVEFA
+#define GPU_DIS_MOVEI
+#define GPU_DIS_MOVEPC
+#define GPU_DIS_MOVETA
+#define GPU_DIS_MOVEQ
+#define GPU_DIS_MULT
+#define GPU_DIS_NEG
+#define GPU_DIS_NOP
+#define GPU_DIS_NOT
+#define GPU_DIS_OR
+#define GPU_DIS_PACK
+#define GPU_DIS_ROR
+#define GPU_DIS_RORQ
+#define GPU_DIS_SAT8
+#define GPU_DIS_SH
+#define GPU_DIS_SHA
+#define GPU_DIS_SHARQ
+#define GPU_DIS_SHLQ
+#define GPU_DIS_SHRQ
+#define GPU_DIS_STORE
+#define GPU_DIS_STOREB
+#define GPU_DIS_STOREW
+#define GPU_DIS_STORE14I
+#define GPU_DIS_STORE14R
+#define GPU_DIS_STORE15I
+#define GPU_DIS_STORE15R
+#define GPU_DIS_SUB
+#define GPU_DIS_SUBC
+#define GPU_DIS_SUBQ
+#define GPU_DIS_SUBQT
+#define GPU_DIS_XOR
+//*/
 /*
 GPU opcodes use (BIOS flying ATARI logo):
-	              add 357416
-	             addq 538030
-	            addqt 6999
-	              sub 116663
-	             subq 188059
-	            subqt 15086
-	              neg 36097
-	              and 233993
-	               or 109332
-	              xor 1384
-	             btst 111924
-	             bset 25029
-	             bclr 10551
-	             mult 28147
-	            imult 69148
++	              add 357416
++	             addq 538030
++	            addqt 6999
++	              sub 116663
++	             subq 188059
++	            subqt 15086
++	              neg 36097
++	              and 233993
++	               or 109332
++	              xor 1384
++	             btst 111924
++	             bset 25029
++	             bclr 10551
++	             mult 28147
++	            imult 69148
 +	              div 64102
 +	              abs 159394
 +	             shlq 194690
@@ -58,34 +98,57 @@ GPU opcodes use (BIOS flying ATARI logo):
 +	             rorq 58672
 +	              cmp 244963
 +	             cmpq 114834
-	             move 833472
-	            moveq 56427
-	           moveta 220814
-	           movefa 170678
-	            movei 152025
-	            loadw 108220
-	             load 430936
-	           storew 3036
-	            store 372490
-	          move_pc 2330
++	             move 833472
++	            moveq 56427
++	           moveta 220814
++	           movefa 170678
++	            movei 152025
++	            loadw 108220
++	             load 430936
++	           storew 3036
++	            store 372490
++	          move_pc 2330
 +	             jump 349134
 +	               jr 529171
 	            mmult 64904
-	              nop 432179
++	              nop 432179
 */
 
+// Various bits
+
+#define CINT0FLAG			0x0200
+#define CINT1FLAG			0x0400
+#define CINT2FLAG			0x0800
+#define CINT3FLAG			0x1000
+#define CINT4FLAG			0x2000
+#define CINT04FLAGS			(CINT0FLAG | CINT1FLAG | CINT2FLAG | CINT3FLAG | CINT4FLAG)
+
+// GPU_FLAGS bits
+
+#define ZERO_FLAG		0x0001
+#define CARRY_FLAG		0x0002
+#define NEGA_FLAG		0x0004
+#define IMASK			0x0008
+#define INT_ENA0		0x0010
+#define INT_ENA1		0x0020
+#define INT_ENA2		0x0040
+#define INT_ENA3		0x0080
+#define INT_ENA4		0x0100
+#define INT_CLR0		0x0200
+#define INT_CLR1		0x0400
+#define INT_CLR2		0x0800
+#define INT_CLR3		0x1000
+#define INT_CLR4		0x2000
+#define REGPAGE			0x4000
+#define DMAEN			0x8000
+
 // Private function prototypes
+
+void GPUUpdateRegisterBanks(void);
 
 void gpu_dump_disassembly(void);
 void gpu_dump_registers(void);
 void gpu_dump_memory(void);
-
-#define CINT0FLAG			0x00200
-#define CINT1FLAG			0x00400
-#define CINT2FLAG			0x00800
-#define CINT3FLAG			0x01000
-#define CINT4FLAG			0x02000
-#define CINT04FLAGS			(CINT0FLAG | CINT1FLAG | CINT2FLAG | CINT3FLAG | CINT4FLAG)
 
 extern int start_logging;
 extern int gpu_start_log;
@@ -198,12 +261,14 @@ static uint32 gpu_pointer_to_matrix;
 static uint32 gpu_data_organization;
 static uint32 gpu_control;
 static uint32 gpu_div_control;
+// There is a distinct advantage to having these separated out--there's no need to clear
+// a bit before writing a result. I.e., if the result of an operation leaves a zero in
+// the carry flag, you don't have to zero gpu_flag_c before you can write that zero!
 static uint8 gpu_flag_z, gpu_flag_n, gpu_flag_c;
-static uint8 gpu_alternate_flag_z, gpu_alternate_flag_n, gpu_alternate_flag_c;
-static uint32 * gpu_reg;
-static uint32 * gpu_alternate_reg;
 static uint32 * gpu_reg_bank_0;
 static uint32 * gpu_reg_bank_1;
+static uint32 * gpu_reg;
+static uint32 * gpu_alternate_reg;
 
 static uint32 gpu_instruction;
 static uint32 gpu_opcode_first_parameter;
@@ -244,8 +309,6 @@ uint8 * branch_condition_table = 0;
 
 uint32 gpu_opcode_use[64];
 
-void gpu_update_register_banks(void);
-
 char * gpu_opcode_str[64]= 
 {	
 	"add",				"addc",				"addq",				"addqt",
@@ -268,7 +331,7 @@ char * gpu_opcode_str[64]=
 
 static uint32 gpu_in_exec = 0;
 static uint32 gpu_releaseTimeSlice_flag = 0;
-
+bool GPUInterruptPending = false;
 
 void gpu_releaseTimeslice(void)
 {
@@ -280,9 +343,9 @@ uint32 gpu_get_pc(void)
 	return gpu_pc;
 }
 
-#define ZFLAG	0x00001
+/*#define ZFLAG	0x00001
 #define CFLAG	0x00002
-#define NFLAG	0x00004
+#define NFLAG	0x00004*/
 
 void build_branch_condition_table(void)
 {
@@ -298,16 +361,16 @@ void build_branch_condition_table(void)
 				{
 					int result = 1;
 					if (j & 1)
-						if (i & ZFLAG)
+						if (i & ZERO_FLAG)
 							result = 0;
 					if (j & 2)
-						if (!(i & ZFLAG))
+						if (!(i & ZERO_FLAG))
 							result = 0;
 					if (j & 4)
-						if (i & (CFLAG << (j >> 4)))
+						if (i & (CARRY_FLAG << (j >> 4)))
 							result = 0;
 					if (j & 8)
-						if (!(i & (CFLAG << (j >> 4))))
+						if (!(i & (CARRY_FLAG << (j >> 4))))
 							result = 0;
 					branch_condition_table[i * 32 + j] = result;
 				}
@@ -319,9 +382,9 @@ void build_branch_condition_table(void)
 //
 // GPU byte access (read)
 //
-
+//unsigned gpu_byte_read(unsigned int offset, uint32 calledBy)
 unsigned gpu_byte_read(unsigned int offset)
-{	
+{
 	if ((offset >= GPU_WORK_RAM_BASE) && (offset < GPU_WORK_RAM_BASE+0x1000))
 		return gpu_ram_8[offset & 0xFFF];
 	else if ((offset >= GPU_CONTROL_RAM_BASE) && (offset < GPU_CONTROL_RAM_BASE+0x20))
@@ -344,7 +407,6 @@ unsigned gpu_byte_read(unsigned int offset)
 //
 // GPU word access (read)
 //
-
 unsigned gpu_word_read(unsigned int offset)
 {
 	if ((offset >= GPU_WORK_RAM_BASE) && (offset < GPU_WORK_RAM_BASE+0x1000))
@@ -378,17 +440,18 @@ WriteLog("[GPUR16] --> Possible GPU RAM mirror access!");
 //
 // GPU dword access (read)
 //
-
 unsigned gpu_long_read(unsigned int offset)
 {
-
-	if ((offset >= GPU_WORK_RAM_BASE) && (offset < GPU_WORK_RAM_BASE+0x1000))
+//	if ((offset >= GPU_WORK_RAM_BASE) && (offset < GPU_WORK_RAM_BASE + 0x1000))
+	if ((offset >= GPU_WORK_RAM_BASE) && (offset <= GPU_WORK_RAM_BASE + 0x0FFC))
 	{
 		offset &= 0xFFF;
 		return ((uint32)gpu_ram_8[offset] << 24) | ((uint32)gpu_ram_8[offset+1] << 16)
-			| ((uint32)gpu_ram_8[offset+2] << 8) | (uint32)gpu_ram_8[offset+3];
+			| ((uint32)gpu_ram_8[offset+2] << 8) | (uint32)gpu_ram_8[offset+3];//*/
+//		return GET32(gpu_ram_8, offset);
 	}
-	else if ((offset >= GPU_CONTROL_RAM_BASE) && (offset < GPU_CONTROL_RAM_BASE+0x20))
+//	else if ((offset >= GPU_CONTROL_RAM_BASE) && (offset < GPU_CONTROL_RAM_BASE+0x20))
+	else if ((offset >= GPU_CONTROL_RAM_BASE) && (offset <= GPU_CONTROL_RAM_BASE + 0x1C))
 	{
 		offset &= 0x1F;
 		switch (offset)
@@ -416,12 +479,11 @@ unsigned gpu_long_read(unsigned int offset)
 		case 0x1C:
 			return gpu_remain;
 		default:								// unaligned long read
+#ifdef GPU_DEBUG
+			WriteLog("GPU: Read32--unaligned 32 bit read at %08X.\n", GPU_CONTROL_RAM_BASE + offset);
+#endif	// GPU_DEBUG
 			return 0;
-			//exit(0);
-			//	   __asm int 3
-			//		   }
 		}
-		// to prevent any lock-ups
 	}
 //TEMP--Mirror of F03000?
 if (offset >= 0xF0B000 && offset <= 0xF0BFFF)
@@ -429,39 +491,38 @@ if (offset >= 0xF0B000 && offset <= 0xF0BFFF)
 /*if (offset >= 0xF1D000 && offset <= 0xF1DFFF)
 	WriteLog("[GPUR32] --> Reading from Wavetable ROM!\n");//*/
 
-	return (jaguar_word_read(offset) << 16) | jaguar_word_read(offset+2);
+	return (jaguar_word_read(offset) << 16) | jaguar_word_read(offset + 2);
 }
 
 //
 // GPU byte access (write)
 //
-
 void gpu_byte_write(unsigned offset, unsigned data)
 {
-	if ((offset >= GPU_WORK_RAM_BASE) && (offset < GPU_WORK_RAM_BASE+0x1000))
+	if ((offset >= GPU_WORK_RAM_BASE) && (offset <= GPU_WORK_RAM_BASE + 0x0FFF))
 	{
 		gpu_ram_8[offset & 0xFFF] = data;
-		if (gpu_in_exec == 0)
+
+		if (!gpu_in_exec)
 		{
-//			s68000releaseTimeslice();
 			m68k_end_timeslice();
 			dsp_releaseTimeslice();
 		}
 		return;
 	}
-	else if ((offset >= GPU_CONTROL_RAM_BASE) && (offset < GPU_CONTROL_RAM_BASE+0x20))
+	else if ((offset >= GPU_CONTROL_RAM_BASE) && (offset <= GPU_CONTROL_RAM_BASE + 0x1F))
 	{
 		uint32 reg = offset & 0x1C;
 		int bytenum = offset & 0x03;
 
 //This is definitely wrong!
 		if ((reg >= 0x1C) && (reg <= 0x1F))
-			gpu_div_control = (gpu_div_control & (~(0xFF << (bytenum << 3)))) | (data << (bytenum << 3));				
+			gpu_div_control = (gpu_div_control & (~(0xFF << (bytenum << 3)))) | (data << (bytenum << 3));
 		else
 		{
 			uint32 old_data = gpu_long_read(offset & 0xFFFFFFC);
 			bytenum = 3 - bytenum; // convention motorola !!!
-			old_data = (old_data & (~(0xFF << (bytenum << 3)))) | (data << (bytenum << 3));	
+			old_data = (old_data & (~(0xFF << (bytenum << 3)))) | (data << (bytenum << 3));
 			gpu_long_write(offset & 0xFFFFFFC, old_data);
 		}
 		return;
@@ -473,108 +534,117 @@ void gpu_byte_write(unsigned offset, unsigned data)
 //
 // GPU word access (write)
 //
-
 void gpu_word_write(unsigned offset, unsigned data)
 {
-
-	if ((offset >= GPU_WORK_RAM_BASE) && (offset < GPU_WORK_RAM_BASE+0x1000))
+	if ((offset >= GPU_WORK_RAM_BASE) && (offset <= GPU_WORK_RAM_BASE + 0x0FFE))
 	{
-//if (offset >= 0xF03000 && offset <= 0xF03003)
-//	WriteLog("--> GPU(16): Writing %04X at %08X ***\n", data, offset);
-
 		gpu_ram_8[offset & 0xFFF] = (data>>8) & 0xFF;
-		gpu_ram_8[(offset+1) & 0xFFF] = data & 0xFF;
-		if (gpu_in_exec == 0)
+		gpu_ram_8[(offset+1) & 0xFFF] = data & 0xFF;//*/
+/*		offset &= 0xFFF;
+		SET16(gpu_ram_8, offset, data);//*/
+
+		if (!gpu_in_exec)
 		{
-//			s68000releaseTimeslice();
 			m68k_end_timeslice();
 			dsp_releaseTimeslice();
 		}
 		return;
 	}
-	if ((offset >= GPU_CONTROL_RAM_BASE) && (offset < GPU_CONTROL_RAM_BASE+0x20))
+	else if ((offset >= GPU_CONTROL_RAM_BASE) && (offset <= GPU_CONTROL_RAM_BASE + 0x1E))
 	{
 		if (offset & 0x01)		// This is supposed to weed out unaligned writes, but does nothing...
 		{
-			//exit(0);
-			//__asm int 3
+#ifdef GPU_DEBUG
+			WriteLog("GPU: Write16--unaligned write @ %08X [%04X]\n", offset, data);
+			gpu_dump_registers();
+#endif	// GPU_DEBUG
+			return;
 		}
+//Dual locations in this range: $1C Divide unit remainder/Divide unit control (R/W)
+//This just literally sucks.
 		if ((offset & 0x1C) == 0x1C)
 		{
 //This doesn't look right either--handles cases 1, 2, & 3 all the same!
-			if (offset & 0x03)
-				gpu_div_control = (gpu_div_control&0xFFFF0000) | (data&0xFFFF);
+			if (offset & 0x02)
+				gpu_div_control = (gpu_div_control & 0xFFFF0000) | (data & 0xFFFF);
 			else
-				gpu_div_control = (gpu_div_control&0xFFFF) | ((data&0xFFFF)<<16);
+				gpu_div_control = (gpu_div_control & 0x0000FFFF) | ((data & 0xFFFF) << 16);
 		}
 		else 
 		{
+//WriteLog("[GPU W16:%08X,%04X]", offset, data);
 			uint32 old_data = gpu_long_read(offset & 0xFFFFFFC);
-			if (offset & 0x03)
+			if (offset & 0x02)
 				old_data = (old_data & 0xFFFF0000) | (data & 0xFFFF);
 			else
-				old_data = (old_data & 0xFFFF) | ((data & 0xFFFF) << 16);
+				old_data = (old_data & 0x0000FFFF) | ((data & 0xFFFF) << 16);
 			gpu_long_write(offset & 0xFFFFFFC, old_data);
 		}
 		return;
 	}
+	else if ((offset == GPU_WORK_RAM_BASE + 0x0FFF) || (GPU_CONTROL_RAM_BASE + 0x1F))
+	{
+#ifdef GPU_DEBUG
+			WriteLog("GPU: Write16--unaligned write @ %08X [%04X]\n", offset, data);
+			gpu_dump_registers();
+#endif	// GPU_DEBUG
+		return;
+	}
 
-//	WriteLog("gpu: writing %.4x at 0x%.8x\n",data,offset);
-//This is done by the blitter...
-//if ((offset >= 0x1FF020 && offset <= 0x1FF03F) || (offset >= 0x1FF820 && offset <= 0x1FF83F))
-//	WriteLog("GPU(16): Writing %08X at %08X\n", data, offset);
-//if ((offset >= 0x1FE020 && offset <= 0x1FE03F) || (offset >= 0x1FE820 && offset <= 0x1FE83F))
-//	WriteLog("GPU(16): Writing %08X at %08X\n", data, offset);
-//if (offset >= 0xF02200 && offset <= 0xF0229F)
-//	WriteLog("GPU(16): Writing to blitter --> %08X at %08X\n", data, offset);
-
+	// Have to be careful here--this can cause an infinite loop!
 	jaguar_word_write(offset, data);
 }
 
 //
 // GPU dword access (write)
 //
-
 void gpu_long_write(unsigned offset, unsigned data)
 {
-
-	if ((offset >= GPU_WORK_RAM_BASE) && (offset < GPU_WORK_RAM_BASE+0x1000))
+//	if ((offset >= GPU_WORK_RAM_BASE) && (offset < GPU_WORK_RAM_BASE + 0x1000))
+	if ((offset >= GPU_WORK_RAM_BASE) && (offset <= GPU_WORK_RAM_BASE + 0x0FFC))
 	{
 #ifdef GPU_DEBUG
 		if (offset & 0x03)
 		{
-			WriteLog("GPU: Someone is trying an unaligned write @ %08X [%08X]\n", offset, data)
+			WriteLog("GPU: Write32--unaligned write @ %08X [%08X]\n", offset, data);
 			gpu_dump_registers();
 		}
-#endif	// #ifdef GPU_DEBUG
-/*if (offset == 0xF03000)
-{
-	WriteLog("GPU Write [F03000]: %08X\n", data);
-//	data = 0x03D0DEAD;	// Why isn't this there???
-//	data = 0xABCDEFFF;	// Why isn't this there???
-}//*/
-		gpu_ram_8[offset & 0xFFF] = (data >> 24) & 0xFF,
+#endif	// GPU_DEBUG
+
+/*		gpu_ram_8[offset & 0xFFF] = (data >> 24) & 0xFF,
 		gpu_ram_8[(offset+1) & 0xFFF] = (data >> 16) & 0xFF,
 		gpu_ram_8[(offset+2) & 0xFFF] = (data >> 8) & 0xFF,
-		gpu_ram_8[(offset+3) & 0xFFF] = data & 0xFF;
+		gpu_ram_8[(offset+3) & 0xFFF] = data & 0xFF;//*/
+		offset &= 0xFFF;
+		SET32(gpu_ram_8, offset, data);//*/
 		return;
 	}
-	else if ((offset >= GPU_CONTROL_RAM_BASE) && (offset < GPU_CONTROL_RAM_BASE+0x20))
+//	else if ((offset >= GPU_CONTROL_RAM_BASE) && (offset < GPU_CONTROL_RAM_BASE+0x20))
+	else if ((offset >= GPU_CONTROL_RAM_BASE) && (offset <= GPU_CONTROL_RAM_BASE + 0x1C))
 	{
 		offset &= 0x1F;
 		switch (offset)
 		{
 		case 0x00:
-			/*if (data&0x8)
-				gpu_flags=(data&(~0x08))|(gpu_flags&0x08); // update dsp_flags, but keep imask unchanged
-			else*/
 			gpu_flags = data;
-			gpu_flag_z = gpu_flags & 0x01;
-			gpu_flag_c = (gpu_flags>>1) & 0x01;
-			gpu_flag_n = (gpu_flags>>2) & 0x01;
-			gpu_update_register_banks();
-			gpu_control &= ~((gpu_flags & CINT04FLAGS) >> 3);
-			gpu_check_irqs();
+			gpu_flag_z = gpu_flags & ZERO_FLAG;
+			gpu_flag_c = (gpu_flags & CARRY_FLAG) >> 1;
+			gpu_flag_n = (gpu_flags & NEGA_FLAG) >> 2;
+			GPUUpdateRegisterBanks();
+			gpu_control &= ~((gpu_flags & CINT04FLAGS) >> 3);	// Interrupt latch clear bits
+//Writing here is only an interrupt enable--this approach is just plain wrong!
+//			GPUHandleIRQs();
+//This, however, is A-OK! ;-)
+			if (!(gpu_flags & IMASK) && GPUInterruptPending)	// IMASK was cleared
+			{
+				GPUInterruptPending = false;
+				GPUHandleIRQs();
+			}
+#ifdef GPU_DEBUG
+			if (gpu_flags & (INT_ENA0 | INT_ENA1 | INT_ENA2 | INT_ENA3 | INT_ENA4))
+				WriteLog("GPU: Setting interrupt enable! Bits: %02X\n", (gpu_flags >> 4) & 0x1F);
+			WriteLog("GPU: REGPAGE %s...\n", (gpu_flags & REGPAGE ? "set" : "cleared"));
+#endif	// GPU_DEBUG
 			break;
 		case 0x04:
 			gpu_matrix_control = data;
@@ -587,69 +657,61 @@ void gpu_long_write(unsigned offset, unsigned data)
 			gpu_data_organization = data;
 			break;
 		case 0x10:
-			gpu_pc = data;	/*WriteLog("setting gpu pc to 0x%.8x\n",gpu_pc);*/
+			gpu_pc = data;
+#ifdef GPU_DEBUG
+WriteLog("GPU: Setting GPU PC to %08X %s\n", gpu_pc, (GPU_RUNNING ? "(GPU is RUNNING!)" : ""));//*/
+#endif	// GPU_DEBUG
 			break;
 		case 0x14:
 		{	
-			uint32 gpu_was_running = GPU_RUNNING;
-						
-//			data &= (~0x07C0); // disable writes to irq pending
-			data &= (~0xF7C0); // Disable writes to INT_LAT0-4 & TOM version number
-			/*if (GPU_RUNNING)
-			{
-				WriteLog("gpu pc is 0x%.8x\n",gpu_pc);
-				fclose(log_get());
-				exit(0);
-			}*/
-			// check for GPU->CPU interrupt
+//			uint32 gpu_was_running = GPU_RUNNING;
+			data &= ~0xF7C0;		// Disable writes to INT_LAT0-4 & TOM version number
+
+			// check for GPU -> CPU interrupt
 			if (data & 0x02)
 			{
-//				WriteLog("GPU->CPU interrupt\n");
+//WriteLog("GPU->CPU interrupt\n");
 				if (tom_irq_enabled(IRQ_GPU))
 				{
 					if ((tom_irq_enabled(IRQ_GPU)) && (jaguar_interrupt_handler_is_valid(64)))
 					{
 						tom_set_pending_gpu_int();
-//						s68000interrupt(7,64);
-//						s68000flushInterrupts();
 						m68k_set_irq(7);			// Set 68000 NMI
 						gpu_releaseTimeslice();
 					}
-/*
-					uint32 addr=jaguar_word_read(((IRQ_GPU+64)<<2)+0);
-					addr<<=16;
-					addr|=jaguar_word_read(((IRQ_GPU+64)<<2)+2);
-					if ((addr)&&(jaguar_interrupt_handler_is_valid(IRQ_GPU+64)))
-					{
-						s68000interrupt(7,IRQ_GPU+64);
-						s68000flushInterrupts();
-					}
-*/
 				}
-				data &= ~(0x02);
+				data &= ~0x02;
 			}
-			// check for CPU->GPU interrupt
+
+			// check for CPU -> GPU interrupt #0
 			if (data & 0x04)
 			{
-				//WriteLog("CPU->GPU interrupt\n");
-				gpu_set_irq_line(0, 1);
-//				s68000releaseTimeslice();
+//WriteLog("CPU->GPU interrupt\n");
+				GPUSetIRQLine(0, ASSERT_LINE);
 				m68k_end_timeslice();
 				dsp_releaseTimeslice();
-				data &= ~(0x04);
+				data &= ~0x04;
 			}
+
 			// single stepping
 			if (data & 0x10)
 			{
 				//WriteLog("asked to perform a single step (single step is %senabled)\n",(data&0x8)?"":"not ");
 			}
 //			gpu_control = (gpu_control & 0x107C0) | (data & (~0x107C0));
-			gpu_control = (gpu_control & 0x1F7C0) | (data & (~0x1F7C0));
+			gpu_control = (gpu_control & 0xF7C0) | (data & (~0xF7C0));
 
 			// if gpu wasn't running but is now running, execute a few cycles
 #ifndef GPU_SINGLE_STEPPING
-			if ((!gpu_was_running) && (GPU_RUNNING))
+/*			if (!gpu_was_running && GPU_RUNNING)
+#ifdef GPU_DEBUG
+			{
+				WriteLog("GPU: Write32--About to do stupid braindead GPU execution for 200 cycles.\n");
+#endif	// GPU_DEBUG
 				gpu_exec(200);
+#ifdef GPU_DEBUG
+			}
+#endif	// GPU_DEBUG//*/
 #else
 			if (gpu_control & 0x18)
 				gpu_exec(1);
@@ -657,11 +719,18 @@ void gpu_long_write(unsigned offset, unsigned data)
 #ifdef GPU_DEBUG
 WriteLog("Write to GPU CTRL: %08X ", data);
 if (GPU_RUNNING)
-	WriteLog("-- Starting to run at %08X...", gpu_pc);
+	WriteLog(" --> Starting to run at %08X...", gpu_pc);
+else
+	WriteLog(" --> Stopped! (GPU_PC: %08X)", gpu_pc);
 WriteLog("\n");
-#endif	// #ifdef GPU_DEBUG
+#endif	// GPU_DEBUG
 //if (GPU_RUNNING)
 //	gpu_dump_disassembly();
+			// (?) If we're set running by the M68K (or DSP?) then end its timeslice to
+			// allow the GPU a chance to run...
+			// Yes! This partially fixed Trevor McFur...
+			if (GPU_RUNNING)
+				m68k_end_timeslice();
 			break;
 		}
 		case 0x18:
@@ -677,102 +746,63 @@ WriteLog("\n");
 		return;
 	}
 
-//This is done by the blitter...
-//if ((offset >= 0x1FF020 && offset <= 0x1FF03F) || (offset >= 0x1FF820 && offset <= 0x1FF83F))
-//	WriteLog("GPU(32): Writing %08X at %08X\n", data, offset);
-//if ((offset >= 0x1FE020 && offset <= 0x1FE03F) || (offset >= 0x1FE820 && offset <= 0x1FE83F))
-//	WriteLog("GPU(32): Writing %08X at %08X\n", data, offset);
-//if (offset >= 0xF02200 && offset <= 0xF0229F)
-//	WriteLog("GPU(32): Writing to blitter --> %08X at %08X\n", data, offset);
-
 	jaguar_word_write(offset, (data >> 16) & 0xFFFF);
 	jaguar_word_write(offset+2, data & 0xFFFF);
 }
 
-void gpu_update_register_banks(void)
+//
+// Change register banks if necessary
+//
+void GPUUpdateRegisterBanks(void)
 {
-	uint32 temp;
-	int bank = (gpu_flags & 0x4000);
+	int bank = (gpu_flags & 0x4000);		// REGPAGE bit
 
-//	WriteLog("gpu_update_register_banks at gpu pc 0x%.8x bank=%i iflag=%i\n",gpu_pc,bank?1:0,(gpu_flags&0x8)?1:0);
+	if (gpu_flags & 0x0008)					// IMASK bit
+		bank = 0;							// IMASK forces main bank to be bank 0
 
-	if (gpu_flags & 0x8) 
-		bank = 0;
-
-	if ((!bank && (gpu_reg_bank_0 != gpu_reg)) || (bank && (gpu_reg_bank_1 != gpu_reg)))
-	{
-//		WriteLog("\tswitching to bank %i\n",bank?1:0);
-		for(int i=0; i<32; i++)
-		{
-			temp = gpu_reg[i];
-			gpu_reg[i] = gpu_alternate_reg[i];
-			gpu_alternate_reg[i] = temp;
-		}
-
-		// switch flags
-		temp = gpu_flag_z;
-		gpu_flag_z = gpu_alternate_flag_z;
-		gpu_alternate_flag_z = temp;
-
-		temp = gpu_flag_n;
-		gpu_flag_n = gpu_alternate_flag_n;
-		gpu_alternate_flag_n = temp;
-
-		temp = gpu_flag_c;
-		gpu_flag_c = gpu_alternate_flag_c;
-		gpu_alternate_flag_c = temp;
-
-		if (!bank)
-		{
-			gpu_reg_bank_0 = gpu_reg;
-			gpu_reg_bank_1 = gpu_alternate_reg;
-		}
-		else
-		{
-			gpu_reg_bank_0 = gpu_alternate_reg;
-			gpu_reg_bank_1 = gpu_reg;
-		}
-	}
-//	else
-//	{
-//		WriteLog("\tnot switching banks\n");
-//	}
+	if (bank)
+		gpu_reg = gpu_reg_bank_1, gpu_alternate_reg = gpu_reg_bank_0;
+	else
+		gpu_reg = gpu_reg_bank_0, gpu_alternate_reg = gpu_reg_bank_1;
 }
 
-void gpu_check_irqs(void)
+void GPUHandleIRQs(void)
 {
-	int bits, mask, which = 0;
-
-	// get the active interrupt bits 
-	bits = (gpu_control >> 6) & 0x1F;
-	bits |= (gpu_control >> 10) & 0x20;
-
-	// get the interrupt mask 
-	mask = (gpu_flags >> 4) & 0x1F;
-	mask |= (gpu_flags >> 11) & 0x20;
+	// Get the interrupt latch & enable bits
+	uint32 bits = (gpu_control >> 6) & 0x1F, mask = (gpu_flags >> 4) & 0x1F;
 	
-	// bail if nothing is available
+	// Bail out if latched interrupts aren't enabled
 	bits &= mask;
 	if (!bits)
 		return;
 	
-	// determine which interrupt 
-	if (bits & 0x01) which = 0;
-	if (bits & 0x02) which = 1;
-	if (bits & 0x04) which = 2;
-	if (bits & 0x08) which = 3;
-	if (bits & 0x10) which = 4;
-	if (bits & 0x20) which = 5;
-
-	if (gpu_flags & 0x08)
+	// Bail out if we're already in an interrupt! (Note that the order this executes
+	// in is critical--we don't have a pending interrupt unless it's been enabled!)
+	if (gpu_flags & IMASK)
+	{
+		GPUInterruptPending = true;
 		return;
+	}
+
+	// Determine which interrupt to service
+	uint32 which = 0; //Isn't there a #pragma to disable this warning???
+	if (bits & 0x01)
+		which = 0;
+	if (bits & 0x02)
+		which = 1;
+	if (bits & 0x04)
+		which = 2;
+	if (bits & 0x08)
+		which = 3;
+	if (bits & 0x10)
+		which = 4;
 
 	if (start_logging)
-		WriteLog("GPU: generating irq %i\n", which);
+		WriteLog("GPU: Generating IRQ #%i\n", which);
 
 	// set the interrupt flag 
-	gpu_flags |= 0x08;
-	gpu_update_register_banks();
+	gpu_flags |= IMASK;
+	GPUUpdateRegisterBanks();
 
 	// subqt  #4,r31		; pre-decrement stack pointer 
 	// move  pc,r30			; address of interrupted code 
@@ -788,17 +818,18 @@ void gpu_check_irqs(void)
 	gpu_reg[30] = gpu_pc;
 }
 
-void gpu_set_irq_line(int irqline, int state)
+void GPUSetIRQLine(int irqline, int state)
 {
 	if (start_logging)
-		WriteLog("GPU: setting irg line %i\n", irqline);
-	int mask = 0x40 << irqline;
-	gpu_control &= ~mask;
+		WriteLog("GPU: Setting GPU IRQ line #%i\n", irqline);
+
+	uint32 mask = 0x0040 << irqline;
+	gpu_control &= ~mask;				// Clear the interrupt latch
 
 	if (state)
 	{
-		gpu_control |= mask;
-		gpu_check_irqs();
+		gpu_control |= mask;			// Assert the interrupt latch
+		GPUHandleIRQs();				// And handle the interrupt...
 	}
 }
 
@@ -808,13 +839,12 @@ void gpu_set_irq_line(int irqline, int state)
 
 void gpu_init(void)
 {
-	memory_malloc_secure((void **)&gpu_ram_8, 0x1000, "GPU work ram");
-//	gpu_ram_16=(uint16*)gpu_ram_8;
-//	gpu_ram_32=(uint32*)gpu_ram_8;
+	memory_malloc_secure((void **)&gpu_ram_8, 0x1000, "GPU work RAM");
+//	memory_malloc_secure((void **)&gpu_reg, 32*sizeof(int32), "GPU bank 0 regs");
+//	memory_malloc_secure((void **)&gpu_alternate_reg, 32*sizeof(int32), "GPU bank 1 regs");
+	memory_malloc_secure((void **)&gpu_reg_bank_0, 32 * sizeof(int32), "GPU bank 0 regs");
+	memory_malloc_secure((void **)&gpu_reg_bank_1, 32 * sizeof(int32), "GPU bank 1 regs");
 
-	memory_malloc_secure((void **)&gpu_reg, 32*sizeof(int32), "GPU bank 0 regs");
-	memory_malloc_secure((void **)&gpu_alternate_reg, 32*sizeof(int32), "GPU bank 1 regs");
-	
 	build_branch_condition_table();
 
 	gpu_reset();
@@ -826,37 +856,30 @@ void gpu_init(void)
 
 void gpu_reset(void)
 {
-	gpu_pc				  = 0x00F03000;
-	gpu_acc				  = 0x00000000;
-	gpu_remain			  = 0x00000000;
-	gpu_hidata			  = 0x00000000;
-	gpu_flags			  = 0x00040000;
+	// GPU registers (directly visible)
+	gpu_flags			  = 0x00000000;
 	gpu_matrix_control    = 0x00000000;
 	gpu_pointer_to_matrix = 0x00000000;
 	gpu_data_organization = 0xFFFFFFFF;
-	gpu_control			  = 0x00012800;			// Correctly sets this a TOM Rev. 2
+	gpu_pc				  = 0x00F03000;
+	gpu_control			  = 0x00002800;			// Correctly sets this as TOM Rev. 2
+	gpu_hidata			  = 0x00000000;
+	gpu_remain			  = 0x00000000;			// These two registers are RO/WO
 	gpu_div_control		  = 0x00000000;
-	gpu_in_exec			  = 0;
+
+	// GPU internal register
+	gpu_acc				  = 0x00000000;
+
+	gpu_reg = gpu_reg_bank_0;
+	gpu_alternate_reg = gpu_reg_bank_1;
 
 	for(int i=0; i<32; i++)
-	{
-		gpu_reg[i]           = 0x00000000;
-		gpu_alternate_reg[i] = 0x00000000;
-	}
-	
-	gpu_reg_bank_0 = gpu_reg;
-	gpu_reg_bank_1 = gpu_alternate_reg;
-//	gpu_reg_bank_1 = gpu_reg;
-//	gpu_reg_bank_0 = gpu_alternate_reg;
+		gpu_reg[i] = gpu_alternate_reg[i] = 0x00000000;
 
 	CLR_ZNC;
-
-	gpu_alternate_flag_z = 0;
-	gpu_alternate_flag_n = 0;
-	gpu_alternate_flag_c = 0;
-
 	memset(gpu_ram_8, 0xFF, 0x1000);
-
+	gpu_in_exec = 0;
+	GPUInterruptPending = false;
 	gpu_reset_stats();
 }
 
@@ -921,16 +944,10 @@ void gpu_done(void)
 { 
 	WriteLog("GPU: stopped at PC=%08X (GPU %s running)\n", (unsigned int)gpu_pc, GPU_RUNNING ? "was" : "wasn't");
 
-	// get the active interrupt bits 
-	int bits = (gpu_control >> 6) & 0x1F;
-	bits |= (gpu_control >> 10) & 0x20;
+	// Get the interrupt latch & enable bits 
+	uint8 bits = (gpu_control >> 6) & 0x1F, mask = (gpu_flags >> 4) & 0x1F;
+	WriteLog("GPU: Latch bits = %02X, enable bits = %02X\n", bits, mask);
 
-	// get the interrupt mask 
-	int mask = (gpu_flags >> 4) & 0x1F;
-	mask |= (gpu_flags >> 11) & 0x20;
-	
-
-	WriteLog("GPU: ibits=0x%.8x imask=0x%.8x\n", bits, mask);
 //	WriteLog("\nregisters bank 0\n");
 //	for (int j=0;j<8;j++)
 //	{
@@ -985,7 +1002,6 @@ void gpu_done(void)
 //
 // Main GPU execution core
 //
-
 static int testCount = 1;
 static int len = 0;
 void gpu_exec(int32 cycles)
@@ -1000,7 +1016,7 @@ void gpu_exec(int32 cycles)
 		gpu_control &= ~0x10;
 	}
 #endif
-	gpu_check_irqs();
+	GPUHandleIRQs();
 	gpu_releaseTimeSlice_flag = 0;
 	gpu_in_exec++;
 
@@ -1099,7 +1115,7 @@ if (gpu_pc == 0xF034DE)
 
 if (gpu_start_log)
 {
-	gpu_reset_stats();
+//	gpu_reset_stats();
 static char buffer[512];
 dasmjag(JAGUAR_GPU, buffer, gpu_pc);
 WriteLog("GPU: [%08X] %s (RM=%08X, RN=%08X) -> ", gpu_pc, buffer, RM, RN);
@@ -1281,16 +1297,15 @@ if (gpu_start_log)
 
 static void gpu_opcode_add(void)
 {
-/*	int dreg = jaguar.op & 31;
-	UINT32 r1 = jaguar.r[(jaguar.op >> 5) & 31];
-	UINT32 r2 = jaguar.r[dreg];
-	UINT32 res = r2 + r1;
-	jaguar.r[dreg] = res;
-	CLR_ZNC; SET_ZNC_ADD(r2,r1,res);*/
-
+#ifdef GPU_DIS_ADD
+	WriteLog("%06X: ADD    R%02u, R%02u [NCZ:%u%u%u, R%02u=%08X, R%02u=%08X] -> ", gpu_pc-2, IMM_1, IMM_2, gpu_flag_n, gpu_flag_c, gpu_flag_z, IMM_1, RM, IMM_2, RN);
+#endif
 	UINT32 res = RN + RM;
 	CLR_ZNC; SET_ZNC_ADD(RN, RM, res);
 	RN = res;
+#ifdef GPU_DIS_ADD
+	WriteLog("[NCZ:%u%u%u, R%02u=%08X, R%02u=%08X]\n", gpu_flag_n, gpu_flag_c, gpu_flag_z, IMM_1, RM, IMM_2, RN);
+#endif
 }
 
 static void gpu_opcode_addc(void)
@@ -1318,36 +1333,40 @@ static void gpu_opcode_addc(void)
 
 static void gpu_opcode_addq(void)
 {
-/*	int dreg = jaguar.op & 31;
-	UINT32 r1 = convert_zero[(jaguar.op >> 5) & 31];
-	UINT32 r2 = jaguar.r[dreg];
-	UINT32 res = r2 + r1;
-	jaguar.r[dreg] = res;
-	CLR_ZNC; SET_ZNC_ADD(r2,r1,res);*/
-
+#ifdef GPU_DIS_ADDQ
+	WriteLog("%06X: ADDQ   #%u, R%02u [NCZ:%u%u%u, R%02u=%08X] -> ", gpu_pc-2, gpu_convert_zero[IMM_1], IMM_2, gpu_flag_n, gpu_flag_c, gpu_flag_z, IMM_2, RN);
+#endif
 	UINT32 r1 = gpu_convert_zero[IMM_1];
 	UINT32 res = RN + r1;
 	CLR_ZNC; SET_ZNC_ADD(RN, r1, res);
 	RN = res;
+#ifdef GPU_DIS_ADDQ
+	WriteLog("[NCZ:%u%u%u, R%02u=%08X]\n", gpu_flag_n, gpu_flag_c, gpu_flag_z, IMM_2, RN);
+#endif
 }
 
 static void gpu_opcode_addqt(void)
 {
+#ifdef GPU_DIS_ADDQT
+	WriteLog("%06X: ADDQT  #%u, R%02u [NCZ:%u%u%u, R%02u=%08X] -> ", gpu_pc-2, gpu_convert_zero[IMM_1], IMM_2, gpu_flag_n, gpu_flag_c, gpu_flag_z, IMM_2, RN);
+#endif
 	RN += gpu_convert_zero[IMM_1];
+#ifdef GPU_DIS_ADDQT
+	WriteLog("[NCZ:%u%u%u, R%02u=%08X]\n", gpu_flag_n, gpu_flag_c, gpu_flag_z, IMM_2, RN);
+#endif
 }
 
 static void gpu_opcode_sub(void)
 {
-/*	int dreg = jaguar.op & 31;
-	UINT32 r1 = jaguar.r[(jaguar.op >> 5) & 31];
-	UINT32 r2 = jaguar.r[dreg];
-	UINT32 res = r2 - r1;
-	jaguar.r[dreg] = res;
-	CLR_ZNC; SET_ZNC_SUB(r2,r1,res);*/
-
+#ifdef GPU_DIS_SUB
+	WriteLog("%06X: SUB    R%02u, R%02u [NCZ:%u%u%u, R%02u=%08X, R%02u=%08X] -> ", gpu_pc-2, IMM_1, IMM_2, gpu_flag_n, gpu_flag_c, gpu_flag_z, IMM_1, RM, IMM_2, RN);
+#endif
 	UINT32 res = RN - RM;
 	SET_ZNC_SUB(RN, RM, res);
 	RN = res;
+#ifdef GPU_DIS_SUB
+	WriteLog("[NCZ:%u%u%u, R%02u=%08X, R%02u=%08X]\n", gpu_flag_n, gpu_flag_c, gpu_flag_z, IMM_1, RM, IMM_2, RN);
+#endif
 }
 
 static void gpu_opcode_subc(void)
@@ -1367,15 +1386,27 @@ static void gpu_opcode_subc(void)
 
 static void gpu_opcode_subq(void)
 {
+#ifdef GPU_DIS_SUBQ
+	WriteLog("%06X: SUBQ   #%u, R%02u [NCZ:%u%u%u, R%02u=%08X] -> ", gpu_pc-2, gpu_convert_zero[IMM_1], IMM_2, gpu_flag_n, gpu_flag_c, gpu_flag_z, IMM_2, RN);
+#endif
 	UINT32 r1 = gpu_convert_zero[IMM_1];
 	UINT32 res = RN - r1;
 	SET_ZNC_SUB(RN, r1, res);
 	RN = res;
+#ifdef GPU_DIS_SUBQ
+	WriteLog("[NCZ:%u%u%u, R%02u=%08X]\n", gpu_flag_n, gpu_flag_c, gpu_flag_z, IMM_2, RN);
+#endif
 }
 
 static void gpu_opcode_subqt(void)
 {
+#ifdef GPU_DIS_SUBQT
+	WriteLog("%06X: SUBQT  #%u, R%02u [NCZ:%u%u%u, R%02u=%08X] -> ", gpu_pc-2, gpu_convert_zero[IMM_1], IMM_2, gpu_flag_n, gpu_flag_c, gpu_flag_z, IMM_2, RN);
+#endif
 	RN -= gpu_convert_zero[IMM_1];
+#ifdef GPU_DIS_SUBQT
+	WriteLog("[NCZ:%u%u%u, R%02u=%08X]\n", gpu_flag_n, gpu_flag_c, gpu_flag_z, IMM_2, RN);
+#endif
 }
 
 static void gpu_opcode_cmp(void)
@@ -1392,12 +1423,11 @@ static void gpu_opcode_cmp(void)
 
 static void gpu_opcode_cmpq(void)
 {
+	static int32 sqtable[32] =
+		{ 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,-16,-15,-14,-13,-12,-11,-10,-9,-8,-7,-6,-5,-4,-3,-2,-1 };
 #ifdef GPU_DIS_CMPQ
 	WriteLog("%06X: CMPQ   #%d, R%02u [NCZ:%u%u%u, R%02u=%08X] -> ", gpu_pc-2, sqtable[IMM_1], IMM_2, gpu_flag_n, gpu_flag_c, gpu_flag_z, IMM_2, RN);
 #endif
-	static int32 sqtable[32] =
-		{ 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,-16,-15,-14,-13,-12,-11,-10,-9,-8,-7,-6,-5,-4,-3,-2,-1 };
-
 	UINT32 r1 = sqtable[IMM_1 & 0x1F]; // I like this better -> (INT8)(jaguar.op >> 2) >> 3;
 	UINT32 res = RN - r1;
 	SET_ZNC_SUB(RN, r1, res);
@@ -1408,39 +1438,75 @@ static void gpu_opcode_cmpq(void)
 
 static void gpu_opcode_and(void)
 {
+#ifdef GPU_DIS_AND
+	WriteLog("%06X: AND    R%02u, R%02u [NCZ:%u%u%u, R%02u=%08X, R%02u=%08X] -> ", gpu_pc-2, IMM_1, IMM_2, gpu_flag_n, gpu_flag_c, gpu_flag_z, IMM_1, RM, IMM_2, RN);
+#endif
 	RN = RN & RM;
 	SET_ZN(RN);
+#ifdef GPU_DIS_AND
+	WriteLog("[NCZ:%u%u%u, R%02u=%08X, R%02u=%08X]\n", gpu_flag_n, gpu_flag_c, gpu_flag_z, IMM_1, RM, IMM_2, RN);
+#endif
 }
 
 static void gpu_opcode_or(void)
 {
+#ifdef GPU_DIS_OR
+	WriteLog("%06X: OR     R%02u, R%02u [NCZ:%u%u%u, R%02u=%08X, R%02u=%08X] -> ", gpu_pc-2, IMM_1, IMM_2, gpu_flag_n, gpu_flag_c, gpu_flag_z, IMM_1, RM, IMM_2, RN);
+#endif
 	RN = RN | RM;
 	SET_ZN(RN);
+#ifdef GPU_DIS_OR
+	WriteLog("[NCZ:%u%u%u, R%02u=%08X, R%02u=%08X]\n", gpu_flag_n, gpu_flag_c, gpu_flag_z, IMM_1, RM, IMM_2, RN);
+#endif
 }
 
 static void gpu_opcode_xor(void)
 {
+#ifdef GPU_DIS_XOR
+	WriteLog("%06X: XOR    R%02u, R%02u [NCZ:%u%u%u, R%02u=%08X, R%02u=%08X] -> ", gpu_pc-2, IMM_1, IMM_2, gpu_flag_n, gpu_flag_c, gpu_flag_z, IMM_1, RM, IMM_2, RN);
+#endif
 	RN = RN ^ RM;
 	SET_ZN(RN);
+#ifdef GPU_DIS_XOR
+	WriteLog("[NCZ:%u%u%u, R%02u=%08X, R%02u=%08X]\n", gpu_flag_n, gpu_flag_c, gpu_flag_z, IMM_1, RM, IMM_2, RN);
+#endif
 }
 
 static void gpu_opcode_not(void)
 {
+#ifdef GPU_DIS_NOT
+	WriteLog("%06X: NOT    R%02u, R%02u [NCZ:%u%u%u, R%02u=%08X, R%02u=%08X] -> ", gpu_pc-2, IMM_1, IMM_2, gpu_flag_n, gpu_flag_c, gpu_flag_z, IMM_1, RM, IMM_2, RN);
+#endif
 	RN = ~RN;
 	SET_ZN(RN);
+#ifdef GPU_DIS_NOT
+	WriteLog("[NCZ:%u%u%u, R%02u=%08X, R%02u=%08X]\n", gpu_flag_n, gpu_flag_c, gpu_flag_z, IMM_1, RM, IMM_2, RN);
+#endif
 }
 
 static void gpu_opcode_move_pc(void)
 {
+#ifdef GPU_DIS_MOVEPC
+	WriteLog("%06X: MOVE   PC, R%02u [NCZ:%u%u%u, PC=%08X, R%02u=%08X] -> ", gpu_pc-2, IMM_1, IMM_2, gpu_flag_n, gpu_flag_c, gpu_flag_z, gpu_pc-2, IMM_2, RN);
+#endif
 	// Should be previous PC--this might not always be previous instruction!
 	// Then again, this will point right at the *current* instruction, i.e., MOVE PC,R!
 	RN = gpu_pc - 2;
+#ifdef GPU_DIS_MOVEPC
+	WriteLog("[NCZ:%u%u%u, R%02u=%08X]\n", gpu_flag_n, gpu_flag_c, gpu_flag_z, IMM_2, RN);
+#endif
 }
 
 static void gpu_opcode_sat8(void)
 {
+#ifdef GPU_DIS_SAT8
+	WriteLog("%06X: SAT8   R%02u [NCZ:%u%u%u, R%02u=%08X] -> ", gpu_pc-2, IMM_2, gpu_flag_n, gpu_flag_c, gpu_flag_z, IMM_2, RN);
+#endif
 	RN = ((int32)RN < 0 ? 0 : (RN > 0xFF ? 0xFF : RN));
 	SET_ZN(RN);
+#ifdef GPU_DIS_SAT8
+	WriteLog("[NCZ:%u%u%u, R%02u=%08X]\n", gpu_flag_n, gpu_flag_c, gpu_flag_z, IMM_2, RN);
+#endif
 }
 
 static void gpu_opcode_sat16(void)
@@ -1457,22 +1523,40 @@ static void gpu_opcode_sat24(void)
 
 static void gpu_opcode_store_r14_indexed(void)
 {
+#ifdef GPU_DIS_STORE14I
+	WriteLog("%06X: STORE  R%02u, (R14+$%02X) [NCZ:%u%u%u, R%02u=%08X, R14+$%02X=%08X]\n", gpu_pc-2, IMM_2, gpu_convert_zero[IMM_1] << 2, gpu_flag_n, gpu_flag_c, gpu_flag_z, IMM_2, RN, gpu_convert_zero[IMM_1] << 2, gpu_reg[14]+(gpu_convert_zero[IMM_1] << 2));
+#endif
 	gpu_long_write(gpu_reg[14] + (gpu_convert_zero[IMM_1] << 2), RN);
 }
 
 static void gpu_opcode_store_r15_indexed(void)
 {
+#ifdef GPU_DIS_STORE15I
+	WriteLog("%06X: STORE  R%02u, (R15+$%02X) [NCZ:%u%u%u, R%02u=%08X, R15+$%02X=%08X]\n", gpu_pc-2, IMM_2, gpu_convert_zero[IMM_1] << 2, gpu_flag_n, gpu_flag_c, gpu_flag_z, IMM_2, RN, gpu_convert_zero[IMM_1] << 2, gpu_reg[15]+(gpu_convert_zero[IMM_1] << 2));
+#endif
 	gpu_long_write(gpu_reg[15] + (gpu_convert_zero[IMM_1] << 2), RN);
 }
 
 static void gpu_opcode_load_r14_ri(void)
 {
+#ifdef GPU_DIS_LOAD14R
+	WriteLog("%06X: LOAD   (R14+R%02u), R%02u [NCZ:%u%u%u, R14+R%02u=%08X, R%02u=%08X] -> ", gpu_pc-2, IMM_1, IMM_2, gpu_flag_n, gpu_flag_c, gpu_flag_z, IMM_1, RM+gpu_reg[14], IMM_2, RN);
+#endif
 	RN = gpu_long_read(gpu_reg[14] + RM);
+#ifdef GPU_DIS_LOAD14R
+	WriteLog("[NCZ:%u%u%u, R%02u=%08X]\n", gpu_flag_n, gpu_flag_c, gpu_flag_z, IMM_2, RN);
+#endif
 }
 
 static void gpu_opcode_load_r15_ri(void)
 {
+#ifdef GPU_DIS_LOAD15R
+	WriteLog("%06X: LOAD   (R15+R%02u), R%02u [NCZ:%u%u%u, R15+R%02u=%08X, R%02u=%08X] -> ", gpu_pc-2, IMM_1, IMM_2, gpu_flag_n, gpu_flag_c, gpu_flag_z, IMM_1, RM+gpu_reg[15], IMM_2, RN);
+#endif
 	RN = gpu_long_read(gpu_reg[15] + RM);
+#ifdef GPU_DIS_LOAD15R
+	WriteLog("[NCZ:%u%u%u, R%02u=%08X]\n", gpu_flag_n, gpu_flag_c, gpu_flag_z, IMM_2, RN);
+#endif
 }
 
 static void gpu_opcode_store_r14_ri(void)
@@ -1500,16 +1584,26 @@ static void gpu_opcode_nop(void)
 
 static void gpu_opcode_pack(void)
 {
+#ifdef GPU_DIS_PACK
+	WriteLog("%06X: %s R%02u [NCZ:%u%u%u, R%02u=%08X, R%02u=%08X] -> ", gpu_pc-2, (!IMM_1 ? "PACK  " : "UNPACK"), IMM_2, gpu_flag_n, gpu_flag_c, gpu_flag_z, IMM_2, RN);
+#endif
 	uint32 val = RN;
 
-	if (RM == 0)				// Pack
+//BUG!	if (RM == 0)				// Pack
+	if (IMM_1 == 0)				// Pack
 		RN = ((val >> 10) & 0x0000F000) | ((val >> 5) & 0x00000F00) | (val & 0x000000FF);
 	else						// Unpack
 		RN = ((val & 0x0000F000) << 10) | ((val & 0x00000F00) << 5) | (val & 0x000000FF);
+#ifdef GPU_DIS_PACK
+	WriteLog("[NCZ:%u%u%u, R%02u=%08X]\n", gpu_flag_n, gpu_flag_c, gpu_flag_z, IMM_2, RN);
+#endif
 }
 
 static void gpu_opcode_storeb(void)
 {
+#ifdef GPU_DIS_STOREB
+	WriteLog("%06X: STOREB R%02u, (R%02u) [NCZ:%u%u%u, R%02u=%08X, R%02u=%08X]\n", gpu_pc-2, IMM_2, IMM_1, gpu_flag_n, gpu_flag_c, gpu_flag_z, IMM_2, RN, IMM_1, RM);
+#endif
 //Is this right???
 // Would appear to be so...!
 	if ((RM >= 0xF03000) && (RM <= 0xF03FFF))
@@ -1520,6 +1614,9 @@ static void gpu_opcode_storeb(void)
 
 static void gpu_opcode_storew(void)
 {
+#ifdef GPU_DIS_STOREW
+	WriteLog("%06X: STOREW R%02u, (R%02u) [NCZ:%u%u%u, R%02u=%08X, R%02u=%08X]\n", gpu_pc-2, IMM_2, IMM_1, gpu_flag_n, gpu_flag_c, gpu_flag_z, IMM_2, RN, IMM_1, RM);
+#endif
 	if ((RM >= 0xF03000) && (RM <= 0xF03FFF))
 		gpu_long_write(RM, RN & 0xFFFF);
 	else
@@ -1528,6 +1625,9 @@ static void gpu_opcode_storew(void)
 
 static void gpu_opcode_store(void)
 {
+#ifdef GPU_DIS_STORE
+	WriteLog("%06X: STORE  R%02u, (R%02u) [NCZ:%u%u%u, R%02u=%08X, R%02u=%08X]\n", gpu_pc-2, IMM_2, IMM_1, gpu_flag_n, gpu_flag_c, gpu_flag_z, IMM_2, RN, IMM_1, RM);
+#endif
 	gpu_long_write(RM, RN);
 }
 
@@ -1539,23 +1639,41 @@ static void gpu_opcode_storep(void)
 
 static void gpu_opcode_loadb(void)
 {
+#ifdef GPU_DIS_LOADB
+	WriteLog("%06X: LOADB  (R%02u), R%02u [NCZ:%u%u%u, R%02u=%08X, R%02u=%08X] -> ", gpu_pc-2, IMM_1, IMM_2, gpu_flag_n, gpu_flag_c, gpu_flag_z, IMM_1, RM, IMM_2, RN);
+#endif
 	if ((RM >= 0xF03000) && (RM <= 0xF03FFF))
 		RN = gpu_long_read(RM) & 0xFF;
 	else
 		RN = jaguar_byte_read(RM);
+#ifdef GPU_DIS_LOADB
+	WriteLog("[NCZ:%u%u%u, R%02u=%08X]\n", gpu_flag_n, gpu_flag_c, gpu_flag_z, IMM_2, RN);
+#endif
 }
 
 static void gpu_opcode_loadw(void)
 {
+#ifdef GPU_DIS_LOADW
+	WriteLog("%06X: LOADW  (R%02u), R%02u [NCZ:%u%u%u, R%02u=%08X, R%02u=%08X] -> ", gpu_pc-2, IMM_1, IMM_2, gpu_flag_n, gpu_flag_c, gpu_flag_z, IMM_1, RM, IMM_2, RN);
+#endif
 	if ((RM >= 0xF03000) && (RM <= 0xF03FFF))
 		RN = gpu_long_read(RM) & 0xFFFF;
 	else
 		RN = jaguar_word_read(RM);
+#ifdef GPU_DIS_LOADW
+	WriteLog("[NCZ:%u%u%u, R%02u=%08X]\n", gpu_flag_n, gpu_flag_c, gpu_flag_z, IMM_2, RN);
+#endif
 }
 
 static void gpu_opcode_load(void)
 {
+#ifdef GPU_DIS_LOAD
+	WriteLog("%06X: LOAD   (R%02u), R%02u [NCZ:%u%u%u, R%02u=%08X, R%02u=%08X] -> ", gpu_pc-2, IMM_1, IMM_2, gpu_flag_n, gpu_flag_c, gpu_flag_z, IMM_1, RM, IMM_2, RN);
+#endif
 	RN = gpu_long_read(RM);
+#ifdef GPU_DIS_LOAD
+	WriteLog("[NCZ:%u%u%u, R%02u=%08X]\n", gpu_flag_n, gpu_flag_c, gpu_flag_z, IMM_2, RN);
+#endif
 }
 
 static void gpu_opcode_loadp(void)
@@ -1566,39 +1684,81 @@ static void gpu_opcode_loadp(void)
 
 static void gpu_opcode_load_r14_indexed(void)
 {
+#ifdef GPU_DIS_LOAD14I
+	WriteLog("%06X: LOAD   (R14+$%02X), R%02u [NCZ:%u%u%u, R14+$%02X=%08X, R%02u=%08X] -> ", gpu_pc-2, gpu_convert_zero[IMM_1] << 2, IMM_2, gpu_flag_n, gpu_flag_c, gpu_flag_z, gpu_convert_zero[IMM_1] << 2, gpu_reg[14]+(gpu_convert_zero[IMM_1] << 2), IMM_2, RN);
+#endif
 	RN = gpu_long_read(gpu_reg[14] + (gpu_convert_zero[IMM_1] << 2));
+#ifdef GPU_DIS_LOAD14I
+	WriteLog("[NCZ:%u%u%u, R%02u=%08X]\n", gpu_flag_n, gpu_flag_c, gpu_flag_z, IMM_2, RN);
+#endif
 }
 
 static void gpu_opcode_load_r15_indexed(void)
 {
+#ifdef GPU_DIS_LOAD15I
+	WriteLog("%06X: LOAD   (R15+$%02X), R%02u [NCZ:%u%u%u, R15+$%02X=%08X, R%02u=%08X] -> ", gpu_pc-2, gpu_convert_zero[IMM_1] << 2, IMM_2, gpu_flag_n, gpu_flag_c, gpu_flag_z, gpu_convert_zero[IMM_1] << 2, gpu_reg[15]+(gpu_convert_zero[IMM_1] << 2), IMM_2, RN);
+#endif
 	RN = gpu_long_read(gpu_reg[15] + (gpu_convert_zero[IMM_1] << 2));
+#ifdef GPU_DIS_LOAD15I
+	WriteLog("[NCZ:%u%u%u, R%02u=%08X]\n", gpu_flag_n, gpu_flag_c, gpu_flag_z, IMM_2, RN);
+#endif
 }
 
 static void gpu_opcode_movei(void)
 {
+#ifdef GPU_DIS_MOVEI
+	WriteLog("%06X: MOVEI  #$%08X, R%02u [NCZ:%u%u%u, R%02u=%08X] -> ", gpu_pc-2, (uint32)gpu_word_read(gpu_pc) | ((uint32)gpu_word_read(gpu_pc + 2) << 16), IMM_2, gpu_flag_n, gpu_flag_c, gpu_flag_z, IMM_2, RN);
+#endif
 	// This instruction is followed by 32-bit value in LSW / MSW format...
 	RN = (uint32)gpu_word_read(gpu_pc) | ((uint32)gpu_word_read(gpu_pc + 2) << 16);
 	gpu_pc += 4;
+#ifdef GPU_DIS_MOVEI
+	WriteLog("[NCZ:%u%u%u, R%02u=%08X]\n", gpu_flag_n, gpu_flag_c, gpu_flag_z, IMM_2, RN);
+#endif
 }
 
 static void gpu_opcode_moveta(void)
 {
+#ifdef GPU_DIS_MOVETA
+	WriteLog("%06X: MOVETA R%02u, R%02u [NCZ:%u%u%u, R%02u=%08X, R%02u(alt)=%08X] -> ", gpu_pc-2, IMM_1, IMM_2, gpu_flag_n, gpu_flag_c, gpu_flag_z, IMM_1, RM, IMM_2, ALTERNATE_RN);
+#endif
 	ALTERNATE_RN = RM;
+#ifdef GPU_DIS_MOVETA
+	WriteLog("[NCZ:%u%u%u, R%02u=%08X, R%02u(alt)=%08X]\n", gpu_flag_n, gpu_flag_c, gpu_flag_z, IMM_1, RM, IMM_2, ALTERNATE_RN);
+#endif
 }
 
 static void gpu_opcode_movefa(void)
 {
+#ifdef GPU_DIS_MOVEFA
+	WriteLog("%06X: MOVEFA R%02u, R%02u [NCZ:%u%u%u, R%02u(alt)=%08X, R%02u=%08X] -> ", gpu_pc-2, IMM_1, IMM_2, gpu_flag_n, gpu_flag_c, gpu_flag_z, IMM_1, ALTERNATE_RM, IMM_2, RN);
+#endif
 	RN = ALTERNATE_RM;
+#ifdef GPU_DIS_MOVEFA
+	WriteLog("[NCZ:%u%u%u, R%02u(alt)=%08X, R%02u=%08X]\n", gpu_flag_n, gpu_flag_c, gpu_flag_z, IMM_1, ALTERNATE_RM, IMM_2, RN);
+#endif
 }
 
 static void gpu_opcode_move(void)
 {
+#ifdef GPU_DIS_MOVE
+	WriteLog("%06X: MOVE   R%02u, R%02u [NCZ:%u%u%u, R%02u=%08X, R%02u=%08X] -> ", gpu_pc-2, IMM_1, IMM_2, gpu_flag_n, gpu_flag_c, gpu_flag_z, IMM_1, RM, IMM_2, RN);
+#endif
 	RN = RM;
+#ifdef GPU_DIS_MOVE
+	WriteLog("[NCZ:%u%u%u, R%02u=%08X, R%02u=%08X]\n", gpu_flag_n, gpu_flag_c, gpu_flag_z, IMM_1, RM, IMM_2, RN);
+#endif
 }
 
 static void gpu_opcode_moveq(void)
 {
-	RN = IMM_1;    
+#ifdef GPU_DIS_MOVEQ
+	WriteLog("%06X: MOVEQ  #%u, R%02u [NCZ:%u%u%u, R%02u=%08X] -> ", gpu_pc-2, IMM_1, IMM_2, gpu_flag_n, gpu_flag_c, gpu_flag_z, IMM_2, RN);
+#endif
+	RN = IMM_1;
+#ifdef GPU_DIS_MOVEQ
+	WriteLog("[NCZ:%u%u%u, R%02u=%08X]\n", gpu_flag_n, gpu_flag_c, gpu_flag_z, IMM_2, RN);
+#endif
 }
 
 static void gpu_opcode_resmac(void)
@@ -1608,33 +1768,63 @@ static void gpu_opcode_resmac(void)
 
 static void gpu_opcode_imult(void)
 {
+#ifdef GPU_DIS_IMULT
+	WriteLog("%06X: IMULT  R%02u, R%02u [NCZ:%u%u%u, R%02u=%08X, R%02u=%08X] -> ", gpu_pc-2, IMM_1, IMM_2, gpu_flag_n, gpu_flag_c, gpu_flag_z, IMM_1, RM, IMM_2, RN);
+#endif
 	RN = (int16)RN * (int16)RM;
 	SET_ZN(RN);
+#ifdef GPU_DIS_IMULT
+	WriteLog("[NCZ:%u%u%u, R%02u=%08X, R%02u=%08X]\n", gpu_flag_n, gpu_flag_c, gpu_flag_z, IMM_1, RM, IMM_2, RN);
+#endif
 }
 
 static void gpu_opcode_mult(void)
 {
+#ifdef GPU_DIS_MULT
+	WriteLog("%06X: MULT   R%02u, R%02u [NCZ:%u%u%u, R%02u=%08X, R%02u=%08X] -> ", gpu_pc-2, IMM_1, IMM_2, gpu_flag_n, gpu_flag_c, gpu_flag_z, IMM_1, RM, IMM_2, RN);
+#endif
 	RN = (uint16)RM * (uint16)RN;
 	SET_ZN(RN);
+#ifdef GPU_DIS_MULT
+	WriteLog("[NCZ:%u%u%u, R%02u=%08X, R%02u=%08X]\n", gpu_flag_n, gpu_flag_c, gpu_flag_z, IMM_1, RM, IMM_2, RN);
+#endif
 }
 
 static void gpu_opcode_bclr(void)
 {
+#ifdef GPU_DIS_BCLR
+	WriteLog("%06X: BCLR   #%u, R%02u [NCZ:%u%u%u, R%02u=%08X] -> ", gpu_pc-2, IMM_1, IMM_2, gpu_flag_n, gpu_flag_c, gpu_flag_z, IMM_2, RN);
+#endif
 	UINT32 res = RN & ~(1 << IMM_1);
 	RN = res;
 	SET_ZN(res);
+#ifdef GPU_DIS_BCLR
+	WriteLog("[NCZ:%u%u%u, R%02u=%08X]\n", gpu_flag_n, gpu_flag_c, gpu_flag_z, IMM_2, RN);
+#endif
 }
 
 static void gpu_opcode_btst(void)
 {
+#ifdef GPU_DIS_BTST
+	WriteLog("%06X: BTST   #%u, R%02u [NCZ:%u%u%u, R%02u=%08X] -> ", gpu_pc-2, IMM_1, IMM_2, gpu_flag_n, gpu_flag_c, gpu_flag_z, IMM_2, RN);
+#endif
 	gpu_flag_z = (~RN >> IMM_1) & 1;
+#ifdef GPU_DIS_BTST
+	WriteLog("[NCZ:%u%u%u, R%02u=%08X]\n", gpu_flag_n, gpu_flag_c, gpu_flag_z, IMM_2, RN);
+#endif
 }
 
 static void gpu_opcode_bset(void)
 {
+#ifdef GPU_DIS_BSET
+	WriteLog("%06X: BSET   #%u, R%02u [NCZ:%u%u%u, R%02u=%08X] -> ", gpu_pc-2, IMM_1, IMM_2, gpu_flag_n, gpu_flag_c, gpu_flag_z, IMM_2, RN);
+#endif
 	UINT32 res = RN | (1 << IMM_1);
 	RN = res;
 	SET_ZN(res);
+#ifdef GPU_DIS_BSET
+	WriteLog("[NCZ:%u%u%u, R%02u=%08X]\n", gpu_flag_n, gpu_flag_c, gpu_flag_z, IMM_2, RN);
+#endif
 }
 
 static void gpu_opcode_imacn(void)
@@ -1800,9 +1990,15 @@ static void gpu_opcode_imultn(void)
 
 static void gpu_opcode_neg(void)
 {
+#ifdef GPU_DIS_NEG
+	WriteLog("%06X: NEG    R%02u [NCZ:%u%u%u, R%02u=%08X] -> ", gpu_pc-2, IMM_2, gpu_flag_n, gpu_flag_c, gpu_flag_z, IMM_2, RN);
+#endif
 	UINT32 res = -RN;
 	SET_ZNC_SUB(0, RN, res);
 	RN = res;
+#ifdef GPU_DIS_NEG
+	WriteLog("[NCZ:%u%u%u, R%02u=%08X]\n", gpu_flag_n, gpu_flag_c, gpu_flag_z, IMM_2, RN);
+#endif
 }
 
 static void gpu_opcode_shlq(void)
