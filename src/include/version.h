@@ -6,10 +6,9 @@
 #define __VERSION_H__
 
 #include <stdio.h>
-#include <stdlib.h>
 
-void version_init(void);
+void InitVersion(void);
+void VersionDone(void);
 void version_display(FILE *);
-void version_done(void);
 
 #endif	// __VERSION_H__

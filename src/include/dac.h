@@ -5,6 +5,8 @@
 #ifndef __DAC_H__
 #define __DAC_H__
 
+#include "types.h"
+
 void DACInit(void);
 void DACReset(void);
 void DACDone(void);

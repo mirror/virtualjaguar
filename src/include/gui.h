@@ -7,6 +7,8 @@
 #ifndef __GUI_H__
 #define __GUI_H__
 
+#include "types.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif

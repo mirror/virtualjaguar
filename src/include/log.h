@@ -6,8 +6,6 @@
 #define __LOG_H__
 
 #include <stdio.h>
-#include <stdlib.h>
-#include <stdarg.h>
 
 #ifdef __cplusplus
 extern "C" {
