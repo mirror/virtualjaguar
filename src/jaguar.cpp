@@ -12,6 +12,9 @@
 #include "video.h"
 #include "settings.h"
 //#include "m68kdasmAG.h"
+#include "clock.h"
+#include <SDL.h>
+#include "SDL_opengl.h"
 
 #define CPU_DEBUG
 //Do this in makefile??? Yes! Could, but it's easier to define here...
@@ -620,7 +623,7 @@ uint32 jaguar_get_handler(uint32 i)
 	return JaguarReadLong(i * 4);
 }
 
-uint32 jaguar_interrupt_handler_is_valid(uint32 i)
+uint32 jaguar_interrupt_handler_is_valid(uint32 i) // Debug use only...
 {
 	uint32 handler = jaguar_get_handler(i);
 	if (handler && (handler != 0xFFFFFFFF))
@@ -1045,8 +1048,13 @@ void jaguar_init(void)
 	CDROMInit();
 }
 
+//New timer based code stuffola...
+void ScanlineCallback(void);
+void RenderCallback(void);
+extern uint32 * backbuffer;
 void jaguar_reset(void)
 {
+//NOTE: This causes a (virtual) crash if this is set in the config but not found... !!! FIX !!!
 	if (vjs.useJaguarBIOS)
 		memcpy(jaguar_mainRam, jaguar_bootRom, 8);
 	else
@@ -1060,6 +1068,14 @@ void jaguar_reset(void)
 	CDROMReset();
     m68k_pulse_reset();								// Reset the 68000
 	WriteLog("Jaguar: 68K reset. PC=%06X SP=%08X\n", m68k_get_reg(NULL, M68K_REG_PC), m68k_get_reg(NULL, M68K_REG_A7));
+
+	// New timer base code stuffola...
+	InitializeEventList();
+	TOMResetBackbuffer(backbuffer);
+//	SetCallbackTime(ScanlineCallback, 63.5555);
+	SetCallbackTime(ScanlineCallback, 31.77775);
+//	SetCallbackTime(RenderCallback, 33303.082);	// # Scanlines * scanline time
+//	SetCallbackTime(RenderCallback, 16651.541);	// # Scanlines * scanline time
 }
 
 void jaguar_done(void)
@@ -1158,9 +1174,10 @@ void jaguar_done(void)
 //
 void JaguarExecute(uint32 * backbuffer, bool render)
 {
-	uint16 vp = TOMReadWord(0xF0003E) + 1;//Hmm. This is a WO register. Will work? Looks like. But wrong behavior!
-	uint16 vi = TOMReadWord(0xF0004E);//Another WO register...
+	uint16 vp = TOMReadWord(0xF0003E) + 1;
+	uint16 vi = TOMReadWord(0xF0004E);
 //Using WO registers is OK, since we're the ones controlling access--there's nothing wrong here! ;-)
+//Though we shouldn't be able to do it using TOMReadWord... !!! FIX !!!
 
 //	uint16 vdb = TOMReadWord(0xF00046);
 //Note: This is the *definite* end of the display, though VDE *might* be less than this...
@@ -1171,6 +1188,9 @@ void JaguarExecute(uint32 * backbuffer, bool render)
 //	uint16 vde = TOMReadWord(0xF00048);
 
 	uint16 refreshRate = (vjs.hardwareTypeNTSC ? 60 : 50);
+//Not sure the above is correct, since the number of lines and timings given in the JTRM
+//seem to indicate the refresh rate is *half* the above...
+//	uint16 refreshRate = (vjs.hardwareTypeNTSC ? 30 : 25);
 	// Should these be hardwired or read from VP? Yes, from VP!
 	uint32 M68KCyclesPerScanline
 		= (vjs.hardwareTypeNTSC ? M68K_CLOCK_RATE_NTSC : M68K_CLOCK_RATE_PAL) / (vp * refreshRate);
@@ -1250,4 +1270,101 @@ void DumpMainMemory(void)
 uint8 * GetRamPtr(void)
 {
 	return jaguar_mainRam;
+}
+
+//
+// New Jaguar execution stack
+//
+
+void JaguarExecuteNew(void)
+{
+	extern bool finished, showGUI;
+	extern bool debounceRunKey;
+	// Pass a message to the "joystick" code to debounce the ESC key...
+	debounceRunKey = true;
+	finished = false;
+/*	InitializeEventList();
+	TOMResetBackbuffer(backbuffer);
+//	SetCallbackTime(ScanlineCallback, 63.5555);
+	SetCallbackTime(ScanlineCallback, 31.77775);
+//	SetCallbackTime(RenderCallback, 33303.082);	// # Scanlines * scanline time
+//	SetCallbackTime(RenderCallback, 16651.541);	// # Scanlines * scanline time//*/
+//	uint8 * keystate = SDL_GetKeyState(NULL);
+
+	do
+	{
+		double timeToNextEvent = GetTimeToNextEvent();
+//WriteLog("JEN: Time to next event (%u) is %f usec (%u RISC cycles)...\n", nextEvent, timeToNextEvent, USEC_TO_RISC_CYCLES(timeToNextEvent));
+
+		m68k_execute(USEC_TO_M68K_CYCLES(timeToNextEvent));
+		gpu_exec(USEC_TO_RISC_CYCLES(timeToNextEvent));
+
+		if (vjs.DSPEnabled)
+		{
+			if (vjs.usePipelinedDSP)
+				DSPExecP2(USEC_TO_RISC_CYCLES(timeToNextEvent));	// Pipelined DSP execution (3 stage)...
+			else
+				DSPExec(USEC_TO_RISC_CYCLES(timeToNextEvent));		// Ordinary non-pipelined DSP
+		}
+
+		HandleNextEvent();
+
+//		if (keystate[SDLK_ESCAPE])
+//			break;
+
+//	    SDL_PumpEvents();	// Needed to keep the keystate current...
+ 	}
+	while (!finished);
+}
+
+void ScanlineCallback(void)
+{
+	uint16 vc = TOMReadWord(0xF00006);
+	uint16 vp = TOMReadWord(0xF0003E) + 1;
+	uint16 vi = TOMReadWord(0xF0004E);
+//	uint16 vbb = TOMReadWord(0xF00040);
+	vc++;
+
+	if (vc >= vp)
+		vc = 0;
+
+//WriteLog("SLC: Currently on line %u (VP=%u)...\n", vc, vp);
+	TOMWriteWord(0xF00006, vc);
+
+//This is a crappy kludge, but maybe it'll work for now...
+//Maybe it's not so bad, since the IRQ happens on a scanline boundary...
+	if (vc == vi && vc > 0 && tom_irq_enabled(IRQ_VBLANK))	// Time for Vertical Interrupt?
+	{
+		// We don't have to worry about autovectors & whatnot because the Jaguar
+		// tells you through its HW registers who sent the interrupt...
+		tom_set_pending_video_int();
+		m68k_set_irq(7);
+	}
+
+	TOMExecScanline(vc, true);
+
+//Change this to VBB???
+//Doesn't seem to matter (at least for Flip Out & I-War)
+	if (vc == 0)
+//	if (vc == vbb)
+	{
+joystick_exec();
+
+		RenderBackbuffer();
+		TOMResetBackbuffer(backbuffer);
+	}//*/
+
+//	if (vc == 0)
+//		TOMResetBackbuffer(backbuffer);
+
+//	SetCallbackTime(ScanlineCallback, 63.5555);
+	SetCallbackTime(ScanlineCallback, 31.77775);
+}
+
+void RenderCallback(void)
+{
+	RenderBackbuffer();
+	TOMResetBackbuffer(backbuffer);
+//	SetCallbackTime(RenderCallback, 33303.082);	// # Scanlines * scanline time
+	SetCallbackTime(RenderCallback, 16651.541);	// # Scanlines * scanline time
 }

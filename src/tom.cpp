@@ -251,6 +251,9 @@
 #include "objectp.h"
 #include "cry2rgb.h"
 #include "settings.h"
+#include "clock.h"
+
+#define NEW_TIMER_SYSTEM
 
 // TOM registers (offset from $F00000)
 
@@ -969,7 +972,7 @@ uint16 topVisible = (vjs.hardwareTypeNTSC ? TOP_VISIBLE_VC : TOP_VISIBLE_VC_PAL)
 		}
 
 //		TOMBackbuffer += GetSDLScreenPitch() / 2;	// Returns bytes, but we need words
-		TOMBackbuffer += GetSDLScreenPitch() / 4;	// Returns bytes, but we need dwords
+		TOMBackbuffer += GetSDLScreenWidthInPixels();
 	}
 }
 
@@ -1467,8 +1470,16 @@ int tom_irq_enabled(int irq)
 	return (tom_ram_8[0xE0] << 8) | tom_ram_8[0xE1];
 }*/
 
+// NEW:
+// TOM Programmable Interrupt Timer handler
+// NOTE: TOM's PIT is only enabled if the prescaler is != 0
+//       The PIT only generates an interrupt when it counts down to zero, not when loaded!
+
+void TOMPITCallback(void);
+
 void TOMResetPIT(void)
 {
+#ifndef NEW_TIMER_SYSTEM
 //Probably should *add* this amount to the counter to retain cycle accuracy! !!! FIX !!! [DONE]
 //Also, why +1??? 'Cause that's what it says in the JTRM...!
 //There is a small problem with this approach: If both the prescaler and the divider are equal
@@ -1476,6 +1487,16 @@ void TOMResetPIT(void)
 	if (tom_timer_prescaler)
 		tom_timer_counter += (1 + tom_timer_prescaler) * (1 + tom_timer_divider);
 //	WriteLog("tom: reseting timer to 0x%.8x (%i)\n",tom_timer_counter,tom_timer_counter);
+#else
+	// Need to remove previous timer from the queue, if it exists...
+	RemoveCallback(TOMPITCallback);
+	
+	if (tom_timer_prescaler)
+	{
+		double usecs = (float)(tom_timer_prescaler + 1) * (float)(tom_timer_divider + 1) * RISC_CYCLE_IN_USEC;
+		SetCallbackTime(TOMPITCallback, usecs);
+	}
+#endif
 }
 
 //
@@ -1498,4 +1519,18 @@ void TOMExecPIT(uint32 cycles)
 			TOMResetPIT();
 		}
 	}
+}
+
+
+void TOMPITCallback(void)
+{
+//	INT1_RREG |= 0x08;                         // Set TOM PIT interrupt pending
+	tom_set_pending_timer_int();
+    GPUSetIRQLine(GPUIRQ_TIMER, ASSERT_LINE);  // It does the 'IRQ enabled' checking
+
+//	if (INT1_WREG & 0x08)
+	if (tom_irq_enabled(IRQ_TIMER))
+		m68k_set_irq(7);                       // Generate 68K NMI
+
+	TOMResetPIT();
 }
