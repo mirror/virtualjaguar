@@ -61,20 +61,19 @@ uint16 mousePic[] = {
 // 0 000 00 11 111 0 0000 -> 03E0
 // 0 000 00 11 000 0 0000 -> 0300
 
-#define NUM_MENU_ITEMS		3
-char * menu[NUM_MENU_ITEMS] = { "File", "Settings", "Options" };
+uint16 closeBox[] = {
+	7, 7,
 
-char * menu1[4] = { "Load...", "Reset", "Run", "Quit" };
-char * menu2[3] = { "Video...", "Audio...", "Misc..." };
-char * menu3[1] = { "About..." };
+	0x0000,0x4B5E,0x4B5E,0x4B5E,0x4B5E,0x4B5E,0x0000,		//  +++++
+	0x4B5E,0xFFFF,0x0000,0x0000,0x0000,0xFFFF,0x0217,		// +@   @.
+	0x4B5E,0x0000,0xFFFF,0x0000,0xFFFF,0x0000,0x0217,		// + @ @ .
+	0x4B5E,0x0000,0x0000,0xFFFF,0x0000,0x0000,0x0217,		// +  @  .
+	0x4B5E,0x0000,0xFFFF,0x0000,0xFFFF,0x0000,0x0217,		// + @ @ .
+	0x4B5E,0xFFFF,0x0000,0x0000,0x0000,0xFFFF,0x0217,		// +@   @.
+	0x0000,0x0217,0x0217,0x0217,0x0217,0x0217,0x0000		//  .....
+};
 
-char ** subMenu[NUM_MENU_ITEMS] = { menu1, menu2, menu3 };
-uint8 subMenuNumItems[NUM_MENU_ITEMS] = { 4, 3, 1 };
-
-void (* menu1Action[4])(void) = { LoadROM, NULL, RunEmu, Quit };
-void (* menu2Action[3])(void) = { NULL, NULL, NULL };
-void (* menu3Action[1])(void) = { About };
-void (** subMenuAction[NUM_MENU_ITEMS])(void) = { menu1Action, menu2Action, menu3Action };
+char separator[] = "--------------------------------------------------------";
 
 //
 // Local GUI classes
@@ -83,6 +82,8 @@ void (** subMenuAction[NUM_MENU_ITEMS])(void) = { menu1Action, menu2Action, menu
 class Element
 {
 	public:
+		Element(uint32 x = 0, uint32 y = 0, uint32 w = 0, uint32 h = 0)
+			{ extents.x = x, extents.y = y, extents.w = w, extents.h = h; }
 		virtual void HandleKey(SDLKey key) = 0;
 		virtual void HandleMouseMove(uint32 x, uint32 y) = 0;
 		virtual void HandleMouseButton(uint32 x, uint32 y, bool mouseDown) = 0;
@@ -95,6 +96,7 @@ class Element
 
 	protected:
 		SDL_Rect extents;
+		uint32 state;
 		// Class variables...
 		static int16 * screenBuffer;
 		static uint32 pitch;
@@ -112,17 +114,26 @@ bool Element::Inside(uint32 x, uint32 y)
 class Button: public Element
 {
 	public:
-		Button(uint32 x = 0, uint32 y = 0, uint32 w = 0, uint32 h = 0):	clicked(false),
-			inside(false), fgColor(0xFFFF), bgColor(0x03E0)
-			{ extents.x = x, extents.y = y, extents.w = w, extents.h = h; }
+		Button(uint32 x = 0, uint32 y = 0, uint32 w = 0, uint32 h = 0): Element(x, y, w, h),
+			activated(false), clicked(false), inside(false), fgColor(0xFFFF),
+			bgColor(0x03E0), pic(NULL) {}
+		Button(uint32 x, uint32 y, uint32 w, uint32 h, uint16 * p): Element(x, y, w, h),
+			activated(false), clicked(false), inside(false), fgColor(0xFFFF),
+			bgColor(0x03E0), pic(p) {}
+		Button(uint32 x, uint32 y, uint32 w, uint32 h, string s): Element(x, y, w, h),
+			activated(false), clicked(false), inside(false), fgColor(0xFFFF),
+			bgColor(0x03E0), pic(NULL), text(s) {}
 		virtual void HandleKey(SDLKey key) {}
 		virtual void HandleMouseMove(uint32 x, uint32 y);
 		virtual void HandleMouseButton(uint32 x, uint32 y, bool mouseDown);
 		virtual void Draw(uint32 offsetX = 0, uint32 offsetY = 0);
+		bool ButtonClicked(void) { return activated; }
 
 	protected:
-		bool clicked, inside;
+		bool activated, clicked, inside;
 		uint16 fgColor, bgColor;
+		uint16 * pic;
+		string text;
 };
 
 void Button::HandleMouseMove(uint32 x, uint32 y)
@@ -132,10 +143,16 @@ void Button::HandleMouseMove(uint32 x, uint32 y)
 
 void Button::HandleMouseButton(uint32 x, uint32 y, bool mouseDown)
 {
-	if (inside && mouseDown)
-		clicked = true;
+	if (inside)
+	{
+		if (mouseDown)
+			clicked = true;
+
+		if (clicked && !mouseDown)
+			clicked = false, activated = true;
+	}
 	else
-		clicked = false;
+		clicked = activated = false;
 }
 
 void Button::Draw(uint32 offsetX/*= 0*/, uint32 offsetY/*= 0*/)
@@ -149,26 +166,43 @@ void Button::Draw(uint32 offsetX/*= 0*/, uint32 offsetY/*= 0*/)
 			// Doesn't clip in y axis! !!! FIX !!!
 			if (extents.x + x < pitch)
 				screenBuffer[addr + x + (y * pitch)] 
-					= (clicked ? fgColor : (inside ? 0x43F0 : bgColor));
+					= (clicked && inside ? fgColor : (inside ? 0x43F0 : bgColor));
 		}
 	}
+
+//WriteLog("Button::Draw [%08X]\n", this);
+	if (pic != NULL)
+//{
+//WriteLog("--> Button: About to draw pic [%08X].\n", pic);
+		DrawTransparentBitmap(screenBuffer, extents.x + offsetX, extents.y + offsetY, pic);
+//}
+
+	if (text.length() > 0)
+//{
+//WriteLog("--> Button: About to draw string [%s].\n", text.c_str());
+		DrawString(screenBuffer, extents.x + offsetX, extents.y + offsetY, false, "%s", text.c_str());
+//}
 }
 
 class Window: public Element
 {
 	public:
-		Window(uint32 x = 0, uint32 y = 0, uint32 w = 0, uint32 h = 0):	/*clicked(false),
-			inside(false),*/ fgColor(0x4FF0), bgColor(0xFE10)
-			{ extents.x = x, extents.y = y, extents.w = w, extents.h = h; }
+		Window(uint32 x = 0, uint32 y = 0, uint32 w = 0, uint32 h = 0):	Element(x, y, w, h),
+			/*clicked(false), inside(false),*/ fgColor(0x4FF0), bgColor(0xFE10),
+			close(w - 8, 1, 7, 7, closeBox) { list.push_back(&close); }
 		virtual void HandleKey(SDLKey key) {}
 		virtual void HandleMouseMove(uint32 x, uint32 y);
 		virtual void HandleMouseButton(uint32 x, uint32 y, bool mouseDown);
 		virtual void Draw(uint32 offsetX = 0, uint32 offsetY = 0);
 		void AddElement(Element * e);
+		bool WindowActive(void) { return !close.ButtonClicked(); }
 
 	protected:
 //		bool clicked, inside;
 		uint16 fgColor, bgColor;
+		Button close;
+//We have to use a list of Element *pointers* because we can't make a list that will hold
+//all the different object types in the same list...
 		vector<Element *> list;
 };
 
@@ -212,6 +246,29 @@ void Window::AddElement(Element * e)
 	list.push_back(e);
 }
 
+class Text: public Element
+{
+	public:
+		Text(uint32 x = 0, uint32 y = 0, uint32 w = 0, uint32 h = 0): Element(x, y, w, h),
+			fgColor(0x4FF0), bgColor(0xFE10) {}
+		Text(uint32 x, uint32 y, string s): Element(x, y, 0, 0),
+			fgColor(0x4FF0), bgColor(0xFE10), text(s) {}
+		virtual void HandleKey(SDLKey key) {}
+		virtual void HandleMouseMove(uint32 x, uint32 y) {}
+		virtual void HandleMouseButton(uint32 x, uint32 y, bool mouseDown) {}
+		virtual void Draw(uint32 offsetX = 0, uint32 offsetY = 0);
+
+	protected:
+		uint16 fgColor, bgColor;
+		string text;
+};
+
+void Text::Draw(uint32 offsetX/*= 0*/, uint32 offsetY/*= 0*/)
+{
+	if (text.length() > 0)
+		DrawString(screenBuffer, extents.x + offsetX, extents.y + offsetY, false, "%s", text.c_str());
+}
+
 struct NameAction
 {
 	string name;
@@ -226,6 +283,9 @@ class MenuItems
 {
 	public:
 		MenuItems(): charLength(0) {}
+		bool Inside(uint32 x, uint32 y)
+		{ return (x >= (uint32)extents.x && x < (uint32)(extents.x + extents.w)
+		&& y >= (uint32)extents.y && y < (uint32)(extents.y + extents.h) ? true : false); }
 
 		string title;
 		vector<NameAction> item;
@@ -238,18 +298,25 @@ class Menu: public Element
 	public:
 		Menu(uint32 x = 0, uint32 y = 0, uint32 w = 0, uint32 h = 8,
 			uint16 fgc = 0x1CFF, uint16 bgc = 0x000F, uint16 fgch = 0x421F,
-			uint16 bgch = 0x1CFF): clicked(false), inside(0), fgColor(fgc), bgColor(bgc),
-			fgColorHL(fgch), bgColorHL(bgch), menuChosen(-1), menuItemChosen(-1)
-			{ extents.x = x, extents.y = y, extents.w = w, extents.h = h; }
+			uint16 bgch = 0x1CFF): Element(x, y, w, h), clicked(false), inside(0),
+			insidePopup(0), fgColor(fgc), bgColor(bgc), fgColorHL(fgch), bgColorHL(bgch),
+			menuChosen(-1), menuItemChosen(-1) {}
+//			{ extents.x = x, extents.y = y, extents.w = w, extents.h = h; }
 		virtual void HandleKey(SDLKey key);
 		virtual void HandleMouseMove(uint32 x, uint32 y);
 		virtual void HandleMouseButton(uint32 x, uint32 y, bool mouseDown);
 		virtual void Draw(uint32 offsetX = 0, uint32 offsetY = 0);
 		void Add(MenuItems mi);
+		//This is wrong. !!! FIX !!!
+		bool ItemChosen(void) { return (clicked && insidePopup); }
+		//This is bad... !!! FIX !!!
+		NameAction & GetItem(void)
+//		 { if (ItemChosen()) return itemList[menuChosen].item[menuItemChosen]; return NULL; }
+			{ return itemList[menuChosen].item[menuItemChosen]; }
 
 	protected:
 		bool clicked;
-		uint32 inside;
+		uint32 inside, insidePopup;
 		uint16 fgColor, bgColor, fgColorHL, bgColorHL;
 		int menuChosen, menuItemChosen;
 
@@ -263,9 +330,9 @@ void Menu::HandleKey(SDLKey Key)
 
 void Menu::HandleMouseMove(uint32 x, uint32 y)
 {
-	if (!Inside(x, y))
-		inside = 0;
-	else
+	inside = insidePopup = 0;
+
+	if (Inside(x, y))
 	{
 		// Find out *where* we are inside the menu bar
 		uint32 xpos = extents.x;
@@ -277,21 +344,61 @@ void Menu::HandleMouseMove(uint32 x, uint32 y)
 			if (x >= xpos && x < xpos + width)
 			{
 				inside = i + 1;
+				menuChosen = i;
 				break;
 			}
 
 			xpos += width;
 		}
 	}
+
+	if (!Inside(x, y) && !clicked)
+	{
+		menuChosen = -1;
+	}
+
+	if (itemList[menuChosen].Inside(x, y) && clicked)
+	{
+		insidePopup = ((y - itemList[menuChosen].extents.y) / 8) + 1;
+		menuItemChosen = insidePopup - 1;
+	}
 }
 
 void Menu::HandleMouseButton(uint32 x, uint32 y, bool mouseDown)
 {
-	if (inside && mouseDown)
-		clicked = true, menuChosen = inside - 1;
-//	else
-	if (!inside && mouseDown)
-		clicked = false, menuChosen = -1;
+	if (!clicked)
+	{
+		if (mouseDown)
+		{
+			if (inside)
+				clicked = true;
+			else
+				menuChosen = -1;					// clicked is already false...!
+		}
+	}
+	else											// clicked == true
+	{
+		if (insidePopup && !mouseDown)				// I.e., mouse-button-up
+		{
+			if (itemList[menuChosen].item[menuItemChosen].action != NULL)
+			{
+				itemList[menuChosen].item[menuItemChosen].action();
+
+				clicked = false, menuChosen = menuItemChosen = -1;
+
+				SDL_Event event;
+				while (SDL_PollEvent(&event));		// Flush the event queue...
+				event.type = SDL_MOUSEMOTION;
+				int mx, my;
+				SDL_GetMouseState(&mx, &my);
+				event.motion.x = mx, event.motion.y = my;
+			    SDL_PushEvent(&event);				// & update mouse position...!
+			}
+		}
+
+		if (!inside && !insidePopup && mouseDown)
+			clicked = false, menuChosen = menuItemChosen = -1;
+	}
 }
 
 void Menu::Draw(uint32 offsetX/*= 0*/, uint32 offsetY/*= 0*/)
@@ -309,24 +416,26 @@ void Menu::Draw(uint32 offsetX/*= 0*/, uint32 offsetY/*= 0*/)
 		xpos += (itemList[i].title.length() + 2) * 8;
 	}
 
-	// Draw sub menu
+	// Draw sub menu (but only if active)
 	if (clicked)
 	{
-//		menuItemChosen = -1;
 		uint32 ypos = extents.y + 9;
 
 		for(uint32 i=0; i<itemList[menuChosen].item.size(); i++)
 		{
 			uint16 color1 = fgColor, color2 = bgColor;
 
-//This won't work...
-//			if (((uint32)mouseX >= menuXPos && (uint32)mouseX < menuXPos + (length + 2) * 8)
-//				&& mouseY >= (extents.y + 9 + i * 8) && mouseY < (extents.y + 9 + (i + 1) * 8))
-//				color1 = fgColorHL, color2 = bgColorHL, menuItemChosen = i;
+			if (insidePopup == i + 1)
+				color1 = fgColorHL, color2 = bgColorHL, menuItemChosen = i;
 
-			DrawStringOpaque(screenBuffer, itemList[menuChosen].extents.x, ypos,
-				color1, color2, " %-*.*s ", itemList[menuChosen].charLength,
-				itemList[menuChosen].charLength, itemList[menuChosen].item[i].name.c_str());
+			if (itemList[menuChosen].item[i].name.length() > 0)
+				DrawStringOpaque(screenBuffer, itemList[menuChosen].extents.x, ypos,
+					color1, color2, " %-*.*s ", itemList[menuChosen].charLength,
+					itemList[menuChosen].charLength, itemList[menuChosen].item[i].name.c_str());
+			else
+				DrawStringOpaque(screenBuffer, itemList[menuChosen].extents.x, ypos,
+					fgColor, bgColor, "%.*s", itemList[menuChosen].charLength + 2, separator);
+
 			ypos += 8;
 		}
 	}
@@ -346,6 +455,7 @@ void Menu::Add(MenuItems mi)
 	extents.w += (mi.title.length() + 2) * 8;
 }
 
+//Do we even *need* this?
 class RootWindow: public Window
 {
 	public:
@@ -503,28 +613,24 @@ void DrawStringTrans(int16 * screen, uint32 x, uint32 y, uint16 color, uint8 tra
 //
 // GUI Main loop
 //
-enum { GUI_TOP_MENU, GUI_MENU_CLICKED, GUI_WINDOW };
 bool GUIMain(void)
 {
 	extern int16 * backbuffer;
 	bool done = false;
 	SDL_Event event;
-	int32 menuChosen = -1;
-	uint32 menuXPos = 0;
-	int32 menuItemChosen = -1;
-	uint32 GUIState = GUI_TOP_MENU;
 
+	// Set up the GUI classes...
 	Element::SetScreenAndPitch(backbuffer, GetSDLScreenPitch() / 2);
 
 	Button closeButton(45, 90, 16, 16);
 	Window someWindow(15, 16, 60, 60);
-	Button button1(50, 1, 9, 9), button2(10, 10, 8, 8), button3(25, 48, 15, 8);
+	Button button1(50, 15, 9, 9), button2(10, 10, 8, 8), button3(25, 48, 32, 8, " Ok ");
 	someWindow.AddElement(&button1);
 	someWindow.AddElement(&button2);
 	someWindow.AddElement(&button3);
 
+	Menu mainMenu;//(0, 160);
 	MenuItems mi;
-	Menu mainMenu(0, 160);
 	mi.title = "File";
 	mi.item.push_back(NameAction("Load...", LoadROM));
 	mi.item.push_back(NameAction("Reset"));
@@ -534,8 +640,13 @@ bool GUIMain(void)
 	mainMenu.Add(mi);
 	mi.title = "Settings";
 	mi.item.clear();
+	mi.item.push_back(NameAction("Video..."));
+	mi.item.push_back(NameAction("Audio..."));
+	mi.item.push_back(NameAction("Misc..."));
 	mainMenu.Add(mi);
 	mi.title = "Options";
+	mi.item.clear();
+	mi.item.push_back(NameAction("About..."));
 	mainMenu.Add(mi);
 
 	bool showMouse = true;
@@ -554,9 +665,10 @@ bool GUIMain(void)
 			}
 			if (event.type == SDL_KEYDOWN)
 			{
-//				if (event.key.keysym.sym == SDLK_ESCAPE)
-//					done = true;
-//					return false;
+				closeButton.HandleKey(event.key.keysym.sym);
+				if (someWindow.WindowActive())
+					someWindow.HandleKey(event.key.keysym.sym);
+				mainMenu.HandleKey(event.key.keysym.sym);
 			}
 			else if (event.type == SDL_MOUSEMOTION)
 			{
@@ -566,35 +678,20 @@ bool GUIMain(void)
 					mouseX /= 2, mouseY /= 2;
 
 				closeButton.HandleMouseMove(mouseX, mouseY);
-				someWindow.HandleMouseMove(mouseX, mouseY);
+				if (someWindow.WindowActive())
+					someWindow.HandleMouseMove(mouseX, mouseY);
 				mainMenu.HandleMouseMove(mouseX, mouseY);
 			}
 			else if (event.type == SDL_MOUSEBUTTONDOWN)
 			{
 				uint32 mx = event.button.x, my = event.button.y;
+
 				if (vjs.useOpenGL)
 					mx /= 2, my /= 2;
 
-				// Handle that click!
-				if (GUIState == GUI_TOP_MENU)
-				{
-					if (menuChosen != -1)
-						GUIState = GUI_MENU_CLICKED;
-				}
-				else if (GUIState == GUI_MENU_CLICKED)
-				{
-					if (menuItemChosen != -1)
-					{
-//						GUIState = GUI_WINDOW;
-						if (subMenuAction[menuChosen][menuItemChosen] != NULL)
-							subMenuAction[menuChosen][menuItemChosen]();
-					}
-//					else
-						GUIState = GUI_TOP_MENU;
-				}
-
 				closeButton.HandleMouseButton(mx, my, true);
-				someWindow.HandleMouseButton(mx, my, true);
+				if (someWindow.WindowActive())
+					someWindow.HandleMouseButton(mx, my, true);
 				mainMenu.HandleMouseButton(mx, my, true);
 			}
 			else if (event.type == SDL_MOUSEBUTTONUP)
@@ -605,69 +702,21 @@ bool GUIMain(void)
 					mx /= 2, my /= 2;
 
 				closeButton.HandleMouseButton(mx, my, false);
-				someWindow.HandleMouseButton(mx, my, false);
+				if (someWindow.WindowActive())
+					someWindow.HandleMouseButton(mx, my, false);
 				mainMenu.HandleMouseButton(mx, my, false);
 			}
 
 			// Draw the GUI...
-
 // The way we do things here is kinda stupid (redrawing the screen every frame), but
 // it's simple. Perhaps there may be a reason down the road to be more selective with
 // our clearing, but for now, this will suffice.
 			memset(backbuffer, 0x11, tom_getVideoModeWidth() * 240 * 2);
 
 			closeButton.Draw();
-			someWindow.Draw();
+			if (someWindow.WindowActive())
+				someWindow.Draw();
 			mainMenu.Draw();
-
-			// We always draw the top level menu...
-			if (GUIState == GUI_TOP_MENU)
-				menuChosen = -1;
-
-			uint32 xpos = 0;
-			for(uint32 i=0; i<NUM_MENU_ITEMS; i++)
-			{
-				uint16 colorFG = 0x1CFF, colorBG = 0x000F;
-				uint32 length = strlen(menu[i]) + 2;
-
-				if (((uint32)mouseX >= xpos && (uint32)mouseX < xpos + length * 8)
-					&& mouseY < 8)
-					colorFG = 0x421F, colorBG = 0x1CFF, menuChosen = i, menuXPos = xpos;
-
-				if (GUIState != GUI_TOP_MENU && i == (uint32)menuChosen)
-					colorFG = 0x421F, colorBG = 0x1CFF;
-// BG: 0 00011 00011 11111 -> 0000 1100 0111 1111
-// FG: 0 10000 10000 11111 -> 0100 0010 0001 1111
-				DrawStringOpaque(backbuffer, xpos, 0, colorFG, colorBG, " %s ", menu[i]);
-				xpos += length * 8;
-			}
-
-			// We don't always draw the submenus...
-			if (GUIState == GUI_MENU_CLICKED)
-			{
-				menuItemChosen = -1;
-				uint32 length = 0;
-				for(int i=0; i<subMenuNumItems[menuChosen]; i++)
-					if (strlen(subMenu[menuChosen][i]) > length)
-						length = strlen(subMenu[menuChosen][i]);
-
-				uint32 ypos = 9;
-				for(int i=0; i<subMenuNumItems[menuChosen]; i++)
-				{
-					uint16 colorFG = 0x1CFF, colorBG = 0x000F;
-
-					if (((uint32)mouseX >= menuXPos && (uint32)mouseX < menuXPos + (length + 2) * 8)
-						&& mouseY >= (9 + i * 8) && mouseY < (9 + (i + 1) * 8))
-						colorFG = 0x421F, colorBG = 0x1CFF, menuItemChosen = i;
-
-					DrawStringOpaque(backbuffer, menuXPos, ypos, colorFG, colorBG, " %-*.*s ", length, length, subMenu[menuChosen][i]);
-					ypos += 8;
-				}
-			}
-			// Windows? Isn't that an illegal monopoly or something? ;-)
-			else if (GUIState == GUI_WINDOW)
-			{
-			}
 
 			if (showMouse)
 				DrawTransparentBitmap(backbuffer, mouseX, mouseY, mousePic);
@@ -849,6 +898,9 @@ bool UserSelectFile(char * path, char * filename)
 	}
 
 	closedir(dp);
+
+	if (fileList.size() == 0)						// Any files found?
+		return false;								// Nope. Bail!
 
 	// Main GUI selection loop
 
