@@ -457,7 +457,7 @@ if (!inhibit)	// For OP testing only!
 				// NOTE: Would subtract 2 if in interlaced mode...!
 //				uint64 height = ((p0 & 0xFFC000) - 0x4000) & 0xFFC000;
 //				if (height)
-					height--;
+				height--;
 
 				uint64 data = (p0 & 0xFFFFF80000000000LL) >> 40;
 				uint64 dwidth = (p1 & 0xFFC0000) >> 15;
@@ -471,6 +471,7 @@ if (!inhibit)	// For OP testing only!
 //WriteLog("\t\tOld OP: %08X -> ", op_pointer);
 //Temp, for testing...
 //No doubt, this type of check will break all kinds of stuff... !!! FIX !!!
+//And it does! !!! FIX !!!
 	if (op_pointer > ((p0 & 0x000007FFFF000000LL) >> 21))
 		return;
 
@@ -1277,6 +1278,13 @@ if (op_start_log && startPos == 13)
 {
 	WriteLog("OP: Scaled line. SP=%i, EP=%i, clip=%u, iwidth=%u, hscale=%02X, depth=%u, firstPix=%u\n", startPos, endPos, clippedWidth, iwidth, hscale, depth, firstPix);
 	DumpScaledObject(p0, p1, p2);
+	if (iwidth == 7)
+	{
+		WriteLog("    %08X: ", data);
+		for(int i=0; i<7*8; i++)
+			WriteLog("%02X ", JaguarReadByte(data+i));
+		WriteLog("\n");
+	}
 }
 	// If the image is sitting on the line buffer left or right edge, we need to compensate
 	// by decreasing the image phrase width accordingly.
@@ -1293,8 +1301,8 @@ if (op_start_log && startPos == 13)
 //	uint32 lbufAddress = 0x1800 + (!in24BPPMode ? startPos * 2 : startPos * 4);
 	uint32 lbufAddress = 0x1800 + startPos * 2;
 	uint8 * currentLineBuffer = &tom_ram_8[lbufAddress];
-uint8 * lineBufferLowerLimit = &tom_ram_8[0x1800],
-	* lineBufferUpperLimit = &tom_ram_8[0x1800 + 719];
+//uint8 * lineBufferLowerLimit = &tom_ram_8[0x1800],
+//	* lineBufferUpperLimit = &tom_ram_8[0x1800 + 719];
 
 	// Render.
 
@@ -1335,13 +1343,20 @@ if (firstPix != 0)
 
 			currentLineBuffer += lbufDelta;
 
-			horizontalRemainder -= 0x20;		// Subtract 1.0f in [3.5] fixed point format
+/*			horizontalRemainder -= 0x20;		// Subtract 1.0f in [3.5] fixed point format
 			while (horizontalRemainder & 0x80)
 			{
 				horizontalRemainder += hscale;
 				pixCount++;
 				pixels <<= 1;
+			}//*/
+			while (horizontalRemainder <= 0x20)		// I.e., it's <= 0 (*before* subtraction)
+			{
+				horizontalRemainder += hscale;
+				pixCount++;
+				pixels <<= 1;
 			}
+			horizontalRemainder -= 0x20;		// Subtract 1.0f in [3.5] fixed point format
 
 			if (pixCount > 63)
 			{
@@ -1387,13 +1402,20 @@ if (firstPix != 0)
 
 			currentLineBuffer += lbufDelta;
 
-			horizontalRemainder -= 0x20;		// Subtract 1.0f in [3.5] fixed point format
+/*			horizontalRemainder -= 0x20;		// Subtract 1.0f in [3.5] fixed point format
 			while (horizontalRemainder & 0x80)
 			{
 				horizontalRemainder += hscale;
 				pixCount++;
 				pixels <<= 2;
+			}//*/
+			while (horizontalRemainder <= 0x20)		// I.e., it's <= 0 (*before* subtraction)
+			{
+				horizontalRemainder += hscale;
+				pixCount++;
+				pixels <<= 2;
 			}
+			horizontalRemainder -= 0x20;		// Subtract 1.0f in [3.5] fixed point format
 
 			if (pixCount > 31)
 			{
@@ -1439,13 +1461,20 @@ if (firstPix != 0)
 
 			currentLineBuffer += lbufDelta;
 
-			horizontalRemainder -= 0x20;		// Subtract 1.0f in [3.5] fixed point format
+/*			horizontalRemainder -= 0x20;		// Subtract 1.0f in [3.5] fixed point format
 			while (horizontalRemainder & 0x80)
 			{
 				horizontalRemainder += hscale;
 				pixCount++;
 				pixels <<= 4;
+			}//*/
+			while (horizontalRemainder <= 0x20)		// I.e., it's <= 0 (*before* subtraction)
+			{
+				horizontalRemainder += hscale;
+				pixCount++;
+				pixels <<= 4;
 			}
+			horizontalRemainder -= 0x20;		// Subtract 1.0f in [3.5] fixed point format
 
 			if (pixCount > 15)
 			{
@@ -1494,13 +1523,13 @@ if (firstPix)
 
 			currentLineBuffer += lbufDelta;
 
-			horizontalRemainder -= 0x20;		// Subtract 1.0f in [3.5] fixed point format
-			while (horizontalRemainder & 0x80)
+			while (horizontalRemainder <= 0x20)		// I.e., it's <= 0 (*before* subtraction)
 			{
 				horizontalRemainder += hscale;
 				pixCount++;
 				pixels <<= 8;
 			}
+			horizontalRemainder -= 0x20;		// Subtract 1.0f in [3.5] fixed point format
 
 			if (pixCount > 7)
 			{
@@ -1544,13 +1573,20 @@ if (firstPix != 0)
 
 			currentLineBuffer += lbufDelta;
 
-			horizontalRemainder -= 0x20;		// Subtract 1.0f in [3.5] fixed point format
+/*			horizontalRemainder -= 0x20;		// Subtract 1.0f in [3.5] fixed point format
 			while (horizontalRemainder & 0x80)
 			{
 				horizontalRemainder += hscale;
 				pixCount++;
 				pixels <<= 16;
+			}//*/
+			while (horizontalRemainder <= 0x20)		// I.e., it's <= 0 (*before* subtraction)
+			{
+				horizontalRemainder += hscale;
+				pixCount++;
+				pixels <<= 16;
 			}
+			horizontalRemainder -= 0x20;		// Subtract 1.0f in [3.5] fixed point format
 
 			if (pixCount > 3)
 			{
@@ -1600,15 +1636,4 @@ if (firstPix != 0)
 			}
 		}
 	}
-/*if (depth == 3 && startPos == 13)
-{
-if (op_start_log)
-WriteLog("OP: Writing in the margins...\n");
-	for(int i=0; i<100*2; i+=2)
-//	for(int i=0; i<14*2; i+=2)
-		tom_ram_8[0x1800 + i] = 0xFF,
-		tom_ram_8[0x1800 + i + 1] = 0xFF;
-}*/
-//	uint32 lbufAddress = 0x1800 + (!in24BPPMode ? startPos * 2 : startPos * 4);
-//	uint8 * currentLineBuffer = &tom_ram_8[lbufAddress];
 }
