@@ -327,6 +327,8 @@ bool inhibit;
 int bitmapCounter = 0;
 // *** END OP PROCESSOR TESTING ONLY ***
 
+	uint32 opCyclesToRun = 10000;					// This is a pulled-out-of-the-air value (will need to be fixed, obviously!)
+
 //	if (op_pointer) WriteLog(" new op list at 0x%.8x scanline %i\n",op_pointer,scanline);
 	while (op_pointer)
 	{
@@ -472,8 +474,9 @@ if (!inhibit)	// For OP testing only!
 //Temp, for testing...
 //No doubt, this type of check will break all kinds of stuff... !!! FIX !!!
 //And it does! !!! FIX !!!
-	if (op_pointer > ((p0 & 0x000007FFFF000000LL) >> 21))
-		return;
+//Let's remove this "fix" since it screws up more than it fixes.
+/*	if (op_pointer > ((p0 & 0x000007FFFF000000LL) >> 21))
+		return;*/
 
 			op_pointer = (p0 & 0x000007FFFF000000LL) >> 21;
 //WriteLog("New OP: %08X\n", op_pointer);
@@ -677,6 +680,13 @@ OP: Scaled bitmap 4x? 4bpp at 34,? hscale=80 fpix=0 data=000756E8 pitch 1 hflipp
 			WriteLog("op: unknown object type %i\n", ((uint8)p0 & 0x07)); 
 			return;
 		}
+
+		// Here is a little sanity check to keep the OP from locking up the machine
+		// when fed bad data. Better would be to count how many actual cycles it used
+		// and bail out/reenter to properly simulate an overloaded OP... !!! FIX !!!
+		opCyclesToRun--;
+		if (!opCyclesToRun)
+			return;
 	}
 }
 
@@ -1129,8 +1139,10 @@ if (firstPix)
 	uint16 * paletteRAM16 = (uint16 *)paletteRAM;
 
 	uint8 hscale = p2 & 0xFF;
-//	uint8 horizontalRemainder = hscale;				// Not sure if it starts full, but seems reasonable [It's not!]
-	uint8 horizontalRemainder = 0;					// Let's try zero! Seems to work! Yay!
+// Hmm. It seems that fixing the horizontal scale necessitated re-fixing this. Not sure why,
+// but seems to be consistent with the vertical scaling now (and it may turn out to be wrong!)...
+	uint8 horizontalRemainder = hscale;				// Not sure if it starts full, but seems reasonable [It's not!]
+//	uint8 horizontalRemainder = 0;					// Let's try zero! Seems to work! Yay! [No, it doesn't!]
 	int32 scaledWidthInPixels = (iwidth * phraseWidthToPixels[depth] * hscale) >> 5;
 	uint32 scaledPhrasePixels = (phraseWidthToPixels[depth] * hscale) >> 5;
 
@@ -1587,7 +1599,7 @@ if (firstPix != 0)
 				pixels <<= 16;
 			}
 			horizontalRemainder -= 0x20;		// Subtract 1.0f in [3.5] fixed point format
-
+//*/
 			if (pixCount > 3)
 			{
 				int phrasesToSkip = pixCount / 4, pixelShift = pixCount % 4;
