@@ -854,7 +854,7 @@ if (effect_start)
 				m68k_set_irq(7);
 			}
 		}
-		
+
 //		uint32 invalid_instruction_address = s68000exec(M68KCyclesPerScanline);
 //		if (invalid_instruction_address != 0x80000000)
 //			cd_bios_process(invalid_instruction_address);
@@ -868,8 +868,8 @@ if (effect_start)
 
 		if (vjs.DSPEnabled)
 //			DSPExec(RISCCyclesPerScanline);
-// Do pipelined DSP execution...
-			DSPExecP3(RISCCyclesPerScanline);
+// Do pipelined DSP execution (3 stage)...
+			DSPExecP2(RISCCyclesPerScanline);
 
 		TOMExecScanline(i, render);
 	}
