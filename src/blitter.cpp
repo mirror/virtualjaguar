@@ -8,7 +8,6 @@
 bool specialLog = false;
 
 #include "jaguar.h"
-#include "blitter2.h"			// Testing purposes only!
 
 #define REG(A)	(((uint32)blitter_ram[(A)] << 24) | ((uint32)blitter_ram[(A)+1] << 16) \
 				| ((uint32)blitter_ram[(A)+2] << 8) | (uint32)blitter_ram[(A)+3])
@@ -104,32 +103,39 @@ bool specialLog = false;
 #define YADD1_A1		(REG(A1_FLAGS)&0x040000)
 #define YADD1_A2		(REG(A2_FLAGS)&0x040000)
 
+//Put 'em back, once we fix the problem!!! [KO]
 // 1 bpp pixel read
 #define PIXEL_SHIFT_1(a)      (((~a##_x) >> 16) & 7)
 #define PIXEL_OFFSET_1(a)     (((((UINT32)a##_y >> 16) * a##_width / 8) + (((UINT32)a##_x >> 19) & ~7)) * (1 + a##_pitch) + (((UINT32)a##_x >> 19) & 7))
-#define READ_PIXEL_1(a)       ((jaguar_byte_read(a##_addr+PIXEL_OFFSET_1(a)) >> PIXEL_SHIFT_1(a)) & 0x01)
+#define READ_PIXEL_1(a)       ((JaguarReadByte(a##_addr+PIXEL_OFFSET_1(a), BLITTER) >> PIXEL_SHIFT_1(a)) & 0x01)
+//#define READ_PIXEL_1(a)       ((JaguarReadByte(a##_addr+PIXEL_OFFSET_1(a)) >> PIXEL_SHIFT_1(a)) & 0x01)
 
 // 2 bpp pixel read
 #define PIXEL_SHIFT_2(a)      (((~a##_x) >> 15) & 6)
 #define PIXEL_OFFSET_2(a)     (((((UINT32)a##_y >> 16) * a##_width / 4) + (((UINT32)a##_x >> 18) & ~7)) * (1 + a##_pitch) + (((UINT32)a##_x >> 18) & 7))
-#define READ_PIXEL_2(a)       ((jaguar_byte_read(a##_addr+PIXEL_OFFSET_2(a)) >> PIXEL_SHIFT_2(a)) & 0x03)
+#define READ_PIXEL_2(a)       ((JaguarReadByte(a##_addr+PIXEL_OFFSET_2(a), BLITTER) >> PIXEL_SHIFT_2(a)) & 0x03)
+//#define READ_PIXEL_2(a)       ((JaguarReadByte(a##_addr+PIXEL_OFFSET_2(a)) >> PIXEL_SHIFT_2(a)) & 0x03)
 
 // 4 bpp pixel read
 #define PIXEL_SHIFT_4(a)      (((~a##_x) >> 14) & 4)
 #define PIXEL_OFFSET_4(a)     (((((UINT32)a##_y >> 16) * (a##_width/2)) + (((UINT32)a##_x >> 17) & ~7)) * (1 + a##_pitch) + (((UINT32)a##_x >> 17) & 7))
-#define READ_PIXEL_4(a)       ((jaguar_byte_read(a##_addr+PIXEL_OFFSET_4(a)) >> PIXEL_SHIFT_4(a)) & 0x0f)
+#define READ_PIXEL_4(a)       ((JaguarReadByte(a##_addr+PIXEL_OFFSET_4(a), BLITTER) >> PIXEL_SHIFT_4(a)) & 0x0f)
+//#define READ_PIXEL_4(a)       ((JaguarReadByte(a##_addr+PIXEL_OFFSET_4(a)) >> PIXEL_SHIFT_4(a)) & 0x0f)
 
 // 8 bpp pixel read
 #define PIXEL_OFFSET_8(a)     (((((UINT32)a##_y >> 16) * a##_width) + (((UINT32)a##_x >> 16) & ~7)) * (1 + a##_pitch) + (((UINT32)a##_x >> 16) & 7))
-#define READ_PIXEL_8(a)       (jaguar_byte_read(a##_addr+PIXEL_OFFSET_8(a)))
+#define READ_PIXEL_8(a)       (JaguarReadByte(a##_addr+PIXEL_OFFSET_8(a), BLITTER))
+//#define READ_PIXEL_8(a)       (JaguarReadByte(a##_addr+PIXEL_OFFSET_8(a)))
 
 // 16 bpp pixel read
 #define PIXEL_OFFSET_16(a)    (((((UINT32)a##_y >> 16) * a##_width) + (((UINT32)a##_x >> 16) & ~3)) * (1 + a##_pitch) + (((UINT32)a##_x >> 16) & 3))
-#define READ_PIXEL_16(a)       (jaguar_word_read(a##_addr+(PIXEL_OFFSET_16(a)<<1)))
+#define READ_PIXEL_16(a)       (JaguarReadWord(a##_addr+(PIXEL_OFFSET_16(a)<<1), BLITTER))
+//#define READ_PIXEL_16(a)       (JaguarReadWord(a##_addr+(PIXEL_OFFSET_16(a)<<1)))
 
 // 32 bpp pixel read
 #define PIXEL_OFFSET_32(a)    (((((UINT32)a##_y >> 16) * a##_width) + (((UINT32)a##_x >> 16) & ~1)) * (1 + a##_pitch) + (((UINT32)a##_x >> 16) & 1))
-#define READ_PIXEL_32(a)      (jaguar_long_read(a##_addr+(PIXEL_OFFSET_32(a)<<2)))
+#define READ_PIXEL_32(a)      (JaguarReadLong(a##_addr+(PIXEL_OFFSET_32(a)<<2), BLITTER))
+//#define READ_PIXEL_32(a)      (JaguarReadLong(a##_addr+(PIXEL_OFFSET_32(a)<<2)))
 
 // pixel read
 #define READ_PIXEL(a,f) (\
@@ -142,14 +148,15 @@ bool specialLog = false;
 
 // 16 bpp z data read
 #define ZDATA_OFFSET_16(a)     (PIXEL_OFFSET_16(a) + a##_zoffs * 4)
-#define READ_ZDATA_16(a)       (jaguar_word_read(a##_addr+(ZDATA_OFFSET_16(a)<<1)))
+#define READ_ZDATA_16(a)       (JaguarReadWord(a##_addr+(ZDATA_OFFSET_16(a)<<1), BLITTER))
+//#define READ_ZDATA_16(a)       (JaguarReadWord(a##_addr+(ZDATA_OFFSET_16(a)<<1)))
 
 // z data read
 #define READ_ZDATA(a,f) (READ_ZDATA_16(a))
 
 // 16 bpp z data write
-#define WRITE_ZDATA_16(a,d)     {  jaguar_word_write(a##_addr+(ZDATA_OFFSET_16(a)<<1),d); }
-//#define WRITE_ZDATA_16(a,d)     {  jaguar_word_write(a##_addr+(ZDATA_OFFSET_16(a)<<1),d); WriteLog("16bpp z write --> "); }
+#define WRITE_ZDATA_16(a,d)     {  JaguarWriteWord(a##_addr+(ZDATA_OFFSET_16(a)<<1), d, BLITTER); }
+//#define WRITE_ZDATA_16(a,d)     {  JaguarWriteWord(a##_addr+(ZDATA_OFFSET_16(a)<<1), d); }
 
 // z data write
 #define WRITE_ZDATA(a,f,d) WRITE_ZDATA_16(a,d); 
@@ -182,24 +189,29 @@ bool specialLog = false;
 	 (((f>>3)&0x07) == 5) ? (READ_RDATA_32(r,a,p)) : 0)
 
 // 1 bpp pixel write
-#define WRITE_PIXEL_1(a,d)       { jaguar_byte_write(a##_addr+PIXEL_OFFSET_1(a),(jaguar_byte_read(a##_addr+PIXEL_OFFSET_1(a))&(~(0x01 << PIXEL_SHIFT_1(a))))|(d<<PIXEL_SHIFT_1(a))); }
+#define WRITE_PIXEL_1(a,d)       { JaguarWriteByte(a##_addr+PIXEL_OFFSET_1(a), (JaguarReadByte(a##_addr+PIXEL_OFFSET_1(a), BLITTER)&(~(0x01 << PIXEL_SHIFT_1(a))))|(d<<PIXEL_SHIFT_1(a)), BLITTER); }
+//#define WRITE_PIXEL_1(a,d)       { JaguarWriteByte(a##_addr+PIXEL_OFFSET_1(a), (JaguarReadByte(a##_addr+PIXEL_OFFSET_1(a))&(~(0x01 << PIXEL_SHIFT_1(a))))|(d<<PIXEL_SHIFT_1(a))); }
 
 // 2 bpp pixel write
-#define WRITE_PIXEL_2(a,d)       { jaguar_byte_write(a##_addr+PIXEL_OFFSET_2(a),(jaguar_byte_read(a##_addr+PIXEL_OFFSET_2(a))&(~(0x03 << PIXEL_SHIFT_2(a))))|(d<<PIXEL_SHIFT_2(a))); }
+#define WRITE_PIXEL_2(a,d)       { JaguarWriteByte(a##_addr+PIXEL_OFFSET_2(a), (JaguarReadByte(a##_addr+PIXEL_OFFSET_2(a), BLITTER)&(~(0x03 << PIXEL_SHIFT_2(a))))|(d<<PIXEL_SHIFT_2(a)), BLITTER); }
+//#define WRITE_PIXEL_2(a,d)       { JaguarWriteByte(a##_addr+PIXEL_OFFSET_2(a), (JaguarReadByte(a##_addr+PIXEL_OFFSET_2(a))&(~(0x03 << PIXEL_SHIFT_2(a))))|(d<<PIXEL_SHIFT_2(a))); }
 
 // 4 bpp pixel write
-#define WRITE_PIXEL_4(a,d)       { jaguar_byte_write(a##_addr+PIXEL_OFFSET_4(a),(jaguar_byte_read(a##_addr+PIXEL_OFFSET_4(a))&(~(0x0f << PIXEL_SHIFT_4(a))))|(d<<PIXEL_SHIFT_4(a))); }
+#define WRITE_PIXEL_4(a,d)       { JaguarWriteByte(a##_addr+PIXEL_OFFSET_4(a), (JaguarReadByte(a##_addr+PIXEL_OFFSET_4(a), BLITTER)&(~(0x0f << PIXEL_SHIFT_4(a))))|(d<<PIXEL_SHIFT_4(a)), BLITTER); }
+//#define WRITE_PIXEL_4(a,d)       { JaguarWriteByte(a##_addr+PIXEL_OFFSET_4(a), (JaguarReadByte(a##_addr+PIXEL_OFFSET_4(a))&(~(0x0f << PIXEL_SHIFT_4(a))))|(d<<PIXEL_SHIFT_4(a))); }
 
 // 8 bpp pixel write
-#define WRITE_PIXEL_8(a,d)       { jaguar_byte_write(a##_addr+PIXEL_OFFSET_8(a),d); }
+#define WRITE_PIXEL_8(a,d)       { JaguarWriteByte(a##_addr+PIXEL_OFFSET_8(a), d, BLITTER); }
+//#define WRITE_PIXEL_8(a,d)       { JaguarWriteByte(a##_addr+PIXEL_OFFSET_8(a), d); }
 
 // 16 bpp pixel write
-//#define WRITE_PIXEL_16(a,d)     {  jaguar_word_write(a##_addr+(PIXEL_OFFSET_16(a)<<1),d); }
-#define WRITE_PIXEL_16(a,d)     {  jaguar_word_write(a##_addr+(PIXEL_OFFSET_16(a)<<1),d); if (specialLog) WriteLog("Pixel write address: %08X\n", a##_addr+(PIXEL_OFFSET_16(a)<<1)); }
+//#define WRITE_PIXEL_16(a,d)     {  JaguarWriteWord(a##_addr+(PIXEL_OFFSET_16(a)<<1),d); }
+#define WRITE_PIXEL_16(a,d)     {  JaguarWriteWord(a##_addr+(PIXEL_OFFSET_16(a)<<1), d, BLITTER); if (specialLog) WriteLog("Pixel write address: %08X\n", a##_addr+(PIXEL_OFFSET_16(a)<<1)); }
+//#define WRITE_PIXEL_16(a,d)     {  JaguarWriteWord(a##_addr+(PIXEL_OFFSET_16(a)<<1), d); if (specialLog) WriteLog("Pixel write address: %08X\n", a##_addr+(PIXEL_OFFSET_16(a)<<1)); }
 
 // 32 bpp pixel write
-#define WRITE_PIXEL_32(a,d)		{ jaguar_long_write(a##_addr+(PIXEL_OFFSET_32(a)<<2),d); } 
-//#define WRITE_PIXEL_32(a,d)		{ jaguar_long_write(a##_addr+(PIXEL_OFFSET_32(a)<<2),d); WriteLog("32bpp pixel write --> "); }
+#define WRITE_PIXEL_32(a,d)		{ JaguarWriteLong(a##_addr+(PIXEL_OFFSET_32(a)<<2), d, BLITTER); } 
+//#define WRITE_PIXEL_32(a,d)		{ JaguarWriteLong(a##_addr+(PIXEL_OFFSET_32(a)<<2), d); } 
 
 // pixel write
 #define WRITE_PIXEL(a,f,d) {\
@@ -870,35 +882,35 @@ WriteLog("BLIT: Asked to used invalid bit combo for A2...\n");
 	// zbuffering
 	if (GOURZ)
 	{
-		zadd = jaguar_long_read(0xF02274);
+		zadd = JaguarReadLong(0xF02274, BLITTER);
 
 		for(int v=0; v<4; v++) 
-			z_i[v] = (int32)jaguar_long_read(0xF0228C + (v << 2));
+			z_i[v] = (int32)JaguarReadLong(0xF0228C + (v << 2), BLITTER);
 	}
 	if (GOURD || GOURZ || SRCSHADE)
 	{
 		// gouraud shading
-		gouraud_add = jaguar_long_read(0xF02270);
+		gouraud_add = JaguarReadLong(0xF02270, BLITTER);
 		
-		gd_c[0]	= jaguar_byte_read(0xF02268);
-		gd_i[0]	= jaguar_byte_read(0xF02269);
+		gd_c[0]	= JaguarReadByte(0xF02268, BLITTER);
+		gd_i[0]	= JaguarReadByte(0xF02269, BLITTER);
 		gd_i[0] <<= 16;
-		gd_i[0] |= jaguar_word_read(0xF02240);
+		gd_i[0] |= JaguarReadWord(0xF02240, BLITTER);
 
-		gd_c[1]	= jaguar_byte_read(0xF0226A);
-		gd_i[1]	= jaguar_byte_read(0xF0226B);
+		gd_c[1]	= JaguarReadByte(0xF0226A, BLITTER);
+		gd_i[1]	= JaguarReadByte(0xF0226B, BLITTER);
 		gd_i[1] <<= 16;
-		gd_i[1] |= jaguar_word_read(0xF02242);
+		gd_i[1] |= JaguarReadWord(0xF02242, BLITTER);
 
-		gd_c[2]	= jaguar_byte_read(0xF0226C);
-		gd_i[2]	= jaguar_byte_read(0xF0226D);
+		gd_c[2]	= JaguarReadByte(0xF0226C, BLITTER);
+		gd_i[2]	= JaguarReadByte(0xF0226D, BLITTER);
 		gd_i[2] <<= 16;
-		gd_i[2] |= jaguar_word_read(0xF02244);
+		gd_i[2] |= JaguarReadWord(0xF02244, BLITTER);
 
-		gd_c[3]	= jaguar_byte_read(0xF0226E);
-		gd_i[3]	= jaguar_byte_read(0xF0226F);
+		gd_c[3]	= JaguarReadByte(0xF0226E, BLITTER);
+		gd_i[3]	= JaguarReadByte(0xF0226F, BLITTER);
 		gd_i[3] <<= 16; 
-		gd_i[3] |= jaguar_word_read(0xF02246);
+		gd_i[3] |= JaguarReadWord(0xF02246, BLITTER);
 
 		gd_ia = gouraud_add & 0xFFFFFF;
 		if (gd_ia & 0x800000)
@@ -1090,26 +1102,15 @@ if (blit_start_log)
 	{
 		WriteLog("\nBytes at 004D58:\n");
 		for(int i=0x004D58; i<0x004D58+(10*127*4); i++)
-			WriteLog("%02X ", jaguar_byte_read(i));
+			WriteLog("%02X ", JaguarReadByte(i));
 		WriteLog("\nBytes at F03000:\n");
 		for(int i=0xF03000; i<0xF03000+(6*127*4); i++)
-			WriteLog("%02X ", jaguar_byte_read(i));
+			WriteLog("%02X ", JaguarReadByte(i));
 		WriteLog("\n\n");
 	}
 }//*/
 
 	blitter_working = 0;
-}
-
-uint32 blitter_long_read(uint32 offset)
-{
-	return (blitter_word_read(offset) << 16) | blitter_word_read(offset+2);
-}
-
-void blitter_long_write(uint32 offset, uint32 data)
-{
-	blitter_word_write(offset, data >> 16);
-	blitter_word_write(offset+2, data & 0xFFFF);
 }
 
 void blitter_init(void)
@@ -1127,7 +1128,28 @@ void blitter_done(void)
 	WriteLog("BLIT: Done.\n");
 }
 
-void blitter_byte_write(uint32 offset, uint8 data)
+uint8 BlitterReadByte(uint32 offset, uint32 who/*=UNKNOWN*/)
+{
+	offset &= 0xFF;
+
+	// status register
+	if (offset == (0x38 + 3))
+		return 0x01;	// always idle
+
+	return blitter_ram[offset];
+}
+
+uint16 BlitterReadWord(uint32 offset, uint32 who/*=UNKNOWN*/)
+{
+	return ((uint16)BlitterReadByte(offset, who) << 8) | (uint16)BlitterReadByte(offset+1, who);
+}
+
+uint32 BlitterReadLong(uint32 offset, uint32 who/*=UNKNOWN*/)
+{
+	return (BlitterReadWord(offset, who) << 16) | BlitterReadWord(offset+2, who);
+}
+
+void BlitterWriteByte(uint32 offset, uint8 data, uint32 who/*=UNKNOWN*/)
 {
 /*if (offset & 0xFF == 0x7B)
 	WriteLog("--> Wrote to B_STOP: value -> %02X\n", data);*/
@@ -1166,10 +1188,10 @@ void blitter_byte_write(uint32 offset, uint8 data)
 	blitter_ram[offset] = data;
 }
 
-void blitter_word_write(uint32 offset, uint16 data)
+void BlitterWriteWord(uint32 offset, uint16 data, uint32 who/*=UNKNOWN*/)
 {
-	blitter_byte_write(offset+0, (data>>8) & 0xFF);
-	blitter_byte_write(offset+1, data & 0xFF);
+	BlitterWriteByte(offset+0, (data>>8) & 0xFF, who);
+	BlitterWriteByte(offset+1, data & 0xFF, who);
 
 	if ((offset & 0xFF) == 0x3A)
 	// I.e., the second write of 32-bit value--not convinced this is the best way to do this!
@@ -1181,18 +1203,8 @@ void blitter_word_write(uint32 offset, uint16 data)
 }
 //F02278,9,A,B
 
-uint8 blitter_byte_read(uint32 offset)
+void BlitterWriteLong(uint32 offset, uint32 data, uint32 who/*=UNKNOWN*/)
 {
-	offset &= 0xFF;
-
-	// status register
-	if (offset == (0x38 + 3))
-		return 0x01;	// always idle
-
-	return blitter_ram[offset];
-}
-
-uint16 blitter_word_read(uint32 offset)
-{
-	return ((uint16)blitter_byte_read(offset) << 8) | (uint16)blitter_byte_read(offset+1);
+	BlitterWriteWord(offset, data >> 16, who);
+	BlitterWriteWord(offset+2, data & 0xFFFF, who);
 }

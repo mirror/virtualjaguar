@@ -3,10 +3,112 @@
 //
 // by cal2
 // GCC/SDL port by Niels Wagenaar (Linux/WIN32) and Caz (BeOS)
-// Cleanups by James L. Hammons
+// Extensive cleanups/rewrites by James L. Hammons
 //
 
+#include <SDL.h>	// Used only for SDL_GetTicks...
 #include "dsp.h"
+
+#define DSP_DEBUG
+//#define DSP_DEBUG_IRQ
+
+// Disassembly definitions
+
+#define DSP_DIS_ADD
+#define DSP_DIS_ADDC
+#define DSP_DIS_ADDQ
+#define DSP_DIS_ADDQMOD
+#define DSP_DIS_ADDQT
+#define DSP_DIS_AND
+#define DSP_DIS_BCLR
+#define DSP_DIS_BSET
+#define DSP_DIS_BTST
+#define DSP_DIS_CMP
+#define DSP_DIS_CMPQ
+#define DSP_DIS_IMACN
+#define DSP_DIS_IMULT
+#define DSP_DIS_IMULTN
+#define DSP_DIS_JR
+#define DSP_DIS_JUMP
+#define DSP_DIS_LOAD
+#define DSP_DIS_LOAD14I
+#define DSP_DIS_LOAD14R
+#define DSP_DIS_LOAD15I
+#define DSP_DIS_LOAD15R
+#define DSP_DIS_LOADB
+#define DSP_DIS_LOADW
+#define DSP_DIS_MOVE
+#define DSP_DIS_MOVEI
+#define DSP_DIS_MOVEQ
+#define DSP_DIS_MOVEFA
+#define DSP_DIS_MOVETA
+#define DSP_DIS_MULT
+#define DSP_DIS_NEG
+#define DSP_DIS_NOP
+#define DSP_DIS_NOT
+#define DSP_DIS_OR
+#define DSP_DIS_RESMAC
+#define DSP_DIS_ROR
+#define DSP_DIS_RORQ
+#define DSP_DIS_SHARQ
+#define DSP_DIS_SHLQ
+#define DSP_DIS_SHRQ
+#define DSP_DIS_STORE
+#define DSP_DIS_STORE14I
+#define DSP_DIS_STORE15I
+#define DSP_DIS_STOREB
+#define DSP_DIS_STOREW
+#define DSP_DIS_SUB
+#define DSP_DIS_SUBC
+#define DSP_DIS_SUBQ
+#define DSP_DIS_SUBQT
+#define DSP_DIS_XOR
+
+bool doDSPDis = false;
+//*/
+
+/*
+No dis yet:
++	subqt 4560
++	mult 1472
++	imultn 395024
++	resmac 395024
++	imacn 395024
++	addqmod 93328
+
+dsp opcodes use:
++	add 1672497
++	addq 4366576
++	addqt 44405640
++	sub 94833
++	subq 111769
++	and 47416
++	btst 94521
++	bset 2277826
++	bclr 3223372
++	mult 47104
++	imult 237080
++	shlq 365464
++	shrq 141624
++	sharq 318368
++	cmp 45175078
++	move 2238994
++	moveq 335305
++	moveta 19
++	movefa 47406440
++	movei 1920664
++	loadb 94832
++	load 4031281
++	load_r15_indexed 284500
++	store 2161732
++	store_r15_indexed 47416
++	jump 3872424
++	jr 46386967
++	nop 3300029
++	load_r14_ri 1229448
+*/
+
+// DSP flags (old--have to get rid of this crap)
 
 #define CINT0FLAG			0x00200
 #define CINT1FLAG			0x00400
@@ -16,78 +118,112 @@
 #define CINT04FLAGS			(CINT0FLAG | CINT1FLAG | CINT2FLAG | CINT3FLAG | CINT4FLAG)
 #define CINT5FLAG			0x20000		/* DSP only */
 
+// DSP_FLAGS bits
+
+#define ZERO_FLAG		0x00001
+#define CARRY_FLAG		0x00002
+#define NEGA_FLAG		0x00004
+#define IMASK			0x00008
+#define INT_ENA0		0x00010
+#define INT_ENA1		0x00020
+#define INT_ENA2		0x00040
+#define INT_ENA3		0x00080
+#define INT_ENA4		0x00100
+#define INT_CLR0		0x00200
+#define INT_CLR1		0x00400
+#define INT_CLR2		0x00800
+#define INT_CLR3		0x01000
+#define INT_CLR4		0x02000
+#define REGPAGE			0x04000
+#define DMAEN			0x08000
+#define INT_ENA5		0x10000
+#define INT_CLR5		0x20000
+
+// DSP_CTRL bits
+
+#define DSPGO			0x00001
+#define CPUINT			0x00002
+#define DSPINT0			0x00004
+#define SINGLE_STEP		0x00008
+#define SINGLE_GO		0x00010
+// Bit 5 is unused!
+#define INT_LAT0		0x00040
+#define INT_LAT1		0x00080
+#define INT_LAT2		0x00100
+#define INT_LAT3		0x00200
+#define INT_LAT4		0x00400
+#define BUS_HOG			0x00800
+#define VERSION			0x0F000
+#define INT_LAT5		0x10000
+
 extern uint32 jaguar_mainRom_crc32;
 
-static void dsp_opcode_addqmod(void);	
-static void dsp_opcode_subqmod(void);	
-static void dsp_opcode_mirror(void);	
-static void dsp_opcode_sat32s(void);	
-static void dsp_opcode_sat16s(void);	
+// Is opcode 62 *really* a NOP? Seems like it...
+static void dsp_opcode_abs(void);
 static void dsp_opcode_add(void);
 static void dsp_opcode_addc(void);
 static void dsp_opcode_addq(void);
+static void dsp_opcode_addqmod(void);	
 static void dsp_opcode_addqt(void);
+static void dsp_opcode_and(void);
+static void dsp_opcode_bclr(void);
+static void dsp_opcode_bset(void);
+static void dsp_opcode_btst(void);
+static void dsp_opcode_cmp(void);
+static void dsp_opcode_cmpq(void);
+static void dsp_opcode_div(void);
+static void dsp_opcode_imacn(void);
+static void dsp_opcode_imult(void);
+static void dsp_opcode_imultn(void);
+static void dsp_opcode_jr(void);
+static void dsp_opcode_jump(void);
+static void dsp_opcode_load(void);
+static void dsp_opcode_loadb(void);
+static void dsp_opcode_loadw(void);
+static void dsp_opcode_load_r14_indexed(void);
+static void dsp_opcode_load_r14_ri(void);
+static void dsp_opcode_load_r15_indexed(void);
+static void dsp_opcode_load_r15_ri(void);
+static void dsp_opcode_mirror(void);	
+static void dsp_opcode_mmult(void);
+static void dsp_opcode_move(void);
+static void dsp_opcode_movei(void);
+static void dsp_opcode_movefa(void);
+static void dsp_opcode_move_pc(void);
+static void dsp_opcode_moveq(void);
+static void dsp_opcode_moveta(void);
+static void dsp_opcode_mtoi(void);
+static void dsp_opcode_mult(void);
+static void dsp_opcode_neg(void);
+static void dsp_opcode_nop(void);
+static void dsp_opcode_normi(void);
+static void dsp_opcode_not(void);
+static void dsp_opcode_or(void);
+static void dsp_opcode_resmac(void);
+static void dsp_opcode_ror(void);
+static void dsp_opcode_rorq(void);
+static void dsp_opcode_xor(void);
+static void dsp_opcode_sat16s(void);	
+static void dsp_opcode_sat32s(void);	
+static void dsp_opcode_sh(void);
+static void dsp_opcode_sha(void);
+static void dsp_opcode_sharq(void);
+static void dsp_opcode_shlq(void);
+static void dsp_opcode_shrq(void);
+static void dsp_opcode_store(void);
+static void dsp_opcode_storeb(void);
+static void dsp_opcode_storew(void);
+static void dsp_opcode_store_r14_indexed(void);
+static void dsp_opcode_store_r14_ri(void);
+static void dsp_opcode_store_r15_indexed(void);
+static void dsp_opcode_store_r15_ri(void);
 static void dsp_opcode_sub(void);
 static void dsp_opcode_subc(void);
 static void dsp_opcode_subq(void);
+static void dsp_opcode_subqmod(void);	
 static void dsp_opcode_subqt(void);
-static void dsp_opcode_neg(void);
-static void dsp_opcode_and(void);
-static void dsp_opcode_or(void);
-static void dsp_opcode_xor(void);
-static void dsp_opcode_not(void);
-static void dsp_opcode_btst(void);
-static void dsp_opcode_bset(void);
-static void dsp_opcode_bclr(void);
-static void dsp_opcode_mult(void);
-static void dsp_opcode_imult(void);
-static void dsp_opcode_imultn(void);
-static void dsp_opcode_resmac(void);
-static void dsp_opcode_imacn(void);
-static void dsp_opcode_div(void);
-static void dsp_opcode_abs(void);
-static void dsp_opcode_sh(void);
-static void dsp_opcode_shlq(void);
-static void dsp_opcode_shrq(void);
-static void dsp_opcode_sha(void);
-static void dsp_opcode_sharq(void);
-static void dsp_opcode_ror(void);
-static void dsp_opcode_rorq(void);
-static void dsp_opcode_cmp(void);
-static void dsp_opcode_cmpq(void);
-static void dsp_opcode_sat8(void);
-static void dsp_opcode_sat16(void);
-static void dsp_opcode_move(void);
-static void dsp_opcode_moveq(void);
-static void dsp_opcode_moveta(void);
-static void dsp_opcode_movefa(void);
-static void dsp_opcode_movei(void);
-static void dsp_opcode_loadb(void);
-static void dsp_opcode_loadw(void);
-static void dsp_opcode_load(void);
-static void dsp_opcode_loadp(void);
-static void dsp_opcode_load_r14_indexed(void);
-static void dsp_opcode_load_r15_indexed(void);
-static void dsp_opcode_storeb(void);
-static void dsp_opcode_storew(void);
-static void dsp_opcode_store(void);
-static void dsp_opcode_storep(void);
-static void dsp_opcode_store_r14_indexed(void);
-static void dsp_opcode_store_r15_indexed(void);
-static void dsp_opcode_move_pc(void);
-static void dsp_opcode_jump(void);
-static void dsp_opcode_jr(void);
-static void dsp_opcode_mmult(void);
-static void dsp_opcode_mtoi(void);
-static void dsp_opcode_normi(void);
-static void dsp_opcode_nop(void);
-static void dsp_opcode_load_r14_ri(void);
-static void dsp_opcode_load_r15_ri(void);
-static void dsp_opcode_store_r14_ri(void);
-static void dsp_opcode_store_r15_ri(void);
-static void dsp_opcode_sat24(void);
 
-uint8 dsp_opcode_cycles[64] = 
+uint8 dsp_opcode_cycles[64] =
 {
 	3,  3,  3,  3,  
 	3,  3,  3,  3,  
@@ -107,7 +243,7 @@ uint8 dsp_opcode_cycles[64] =
 	2,  2,  3,  3
 };
 
-void (*dsp_opcode[64])()= 
+void (* dsp_opcode[64])() =
 {	
 	dsp_opcode_add,					dsp_opcode_addc,				dsp_opcode_addq,				dsp_opcode_addqt,
 	dsp_opcode_sub,					dsp_opcode_subc,				dsp_opcode_subq,				dsp_opcode_subqt,
@@ -129,7 +265,7 @@ void (*dsp_opcode[64])()=
 
 uint32 dsp_opcode_use[64];
 
-char *dsp_opcode_str[64]= 
+char * dsp_opcode_str[64]=
 {	
 	"add",				"addc",				"addq",				"addqt",
 	"sub",				"subc",				"subq",				"subqt",
@@ -149,84 +285,82 @@ char *dsp_opcode_str[64]=
 	"store_r14_ri",		"store_r15_ri",		"nop",				"addqmod",
 };
 
-static uint16	*mirror_table;
-static uint8	*dsp_ram_8;
-
 uint32 dsp_pc;
-static uint32	dsp_acc;
-static uint32	dsp_remain;
-static uint32	dsp_modulo;
-static uint32	dsp_flags;
-static uint32	dsp_matrix_control;
-static uint32	dsp_pointer_to_matrix;
-static uint32	dsp_data_organization;
+static uint64 dsp_acc;								// 40 bit register, NOT 32!
+static uint32 dsp_remain;
+static uint32 dsp_modulo;
+static uint32 dsp_flags;
+static uint32 dsp_matrix_control;
+static uint32 dsp_pointer_to_matrix;
+static uint32 dsp_data_organization;
 uint32 dsp_control;
-static uint32	dsp_div_control;
-static uint8	dsp_flag_z;
-static uint8	dsp_flag_n;
-static uint8	dsp_flag_c;    
-static uint8	dsp_alternate_flag_z;
-static uint8	dsp_alternate_flag_n;
-static uint8	dsp_alternate_flag_c;    
-static uint32	*dsp_reg;
-static uint32	*dsp_alternate_reg;
-static uint32	*dsp_reg_bank_0;
-static uint32	*dsp_reg_bank_1;
+static uint32 dsp_div_control;
+static uint8 dsp_flag_z, dsp_flag_n, dsp_flag_c;    
+static uint32 * dsp_reg, * dsp_alternate_reg;
+static uint32 * dsp_reg_bank_0, * dsp_reg_bank_1;
 
-static uint32	dsp_opcode_first_parameter;
-static uint32	dsp_opcode_second_parameter;
+static uint32 dsp_opcode_first_parameter;
+static uint32 dsp_opcode_second_parameter;
 
-#define dsp_running (dsp_control&0x01)
+#define DSP_RUNNING			(dsp_control & 0x01)
 
-#define Rm dsp_reg[dsp_opcode_first_parameter]
-#define Rn dsp_reg[dsp_opcode_second_parameter]
-#define alternate_Rm dsp_alternate_reg[dsp_opcode_first_parameter]
-#define alternate_Rn dsp_alternate_reg[dsp_opcode_second_parameter]
-#define imm_1 dsp_opcode_first_parameter
-#define imm_2 dsp_opcode_second_parameter
+#define RM					dsp_reg[dsp_opcode_first_parameter]
+#define RN					dsp_reg[dsp_opcode_second_parameter]
+#define ALTERNATE_RM		dsp_alternate_reg[dsp_opcode_first_parameter]
+#define ALTERNATE_RN		dsp_alternate_reg[dsp_opcode_second_parameter]
+#define IMM_1				dsp_opcode_first_parameter
+#define IMM_2				dsp_opcode_second_parameter
 
-#define set_flag_z(r) dsp_flag_z=(r==0); 
-#define set_flag_n(r) dsp_flag_n=(r&0x80000000);
-
-#define reset_flag_z()	dsp_flag_z=0;
-#define reset_flag_n()	dsp_flag_n=0;
-#define reset_flag_c()	dsp_flag_c=0;    
+#define CLR_Z				(dsp_flag_z = 0)
+#define CLR_ZN				(dsp_flag_z = dsp_flag_n = 0)
+#define CLR_ZNC				(dsp_flag_z = dsp_flag_n = dsp_flag_c = 0)
+#define SET_Z(r)			(dsp_flag_z = ((r) == 0))
+#define SET_N(r)			(dsp_flag_n = (((UINT32)(r) >> 31) & 0x01))
+#define SET_C_ADD(a,b)		(dsp_flag_c = ((UINT32)(b) > (UINT32)(~(a))))
+#define SET_C_SUB(a,b)		(dsp_flag_c = ((UINT32)(b) > (UINT32)(a)))
+#define SET_ZN(r)			SET_N(r); SET_Z(r)
+#define SET_ZNC_ADD(a,b,r)	SET_N(r); SET_Z(r); SET_C_ADD(a,b)
+#define SET_ZNC_SUB(a,b,r)	SET_N(r); SET_Z(r); SET_C_SUB(a,b)
 
 uint32 dsp_convert_zero[32] = { 32,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31 };
-uint8 *dsp_branch_condition_table=0;
-#define branch_condition(x)	dsp_branch_condition_table[(x) + ((jaguar_flags & 7) << 5)]
+uint8 * dsp_branch_condition_table = NULL;
+static uint16 * mirror_table = NULL;
+static uint8 * dsp_ram_8 = NULL;
+
+#define BRANCH_CONDITION(x)		dsp_branch_condition_table[(x) + ((jaguar_flags & 7) << 5)]
 
 static uint32 dsp_in_exec = 0;
 static uint32 dsp_releaseTimeSlice_flag = 0;
 
 FILE * dsp_fp;
 
+// Private function prototypes
+
+void DSPDumpRegisters(void);
+void DSPDumpDisassembly(void);
+
 
 void dsp_reset_stats(void)
 {
-	for (uint32 i=0; i<64; i++)
+	for(int i=0; i<64; i++)
 		dsp_opcode_use[i] = 0;
 }
 
 void dsp_releaseTimeslice(void)
 {
+//This does absolutely nothing!!! !!! FIX !!!
 	dsp_releaseTimeSlice_flag = 1;
 }
 
 void dsp_build_branch_condition_table(void)
 {
-	int i,j;
-	#define ZFLAG				0x00001
-	#define CFLAG				0x00002
-	#define NFLAG				0x00004
-	
-	/* allocate the mirror table */
+	// Allocate the mirror table
 	if (!mirror_table)
-		mirror_table = (uint16*)malloc(65536 * sizeof(mirror_table[0]));
+		mirror_table = (uint16 *)malloc(65536 * sizeof(mirror_table[0]));
 
-	/* fill in the mirror table */
+	// Fill in the mirror table
 	if (mirror_table)
-		for (int i = 0; i < 65536; i++)
+		for(int i=0; i<65536; i++)
 			mirror_table[i] = ((i >> 15) & 0x0001) | ((i >> 13) & 0x0002) |
 			                  ((i >> 11) & 0x0004) | ((i >> 9)  & 0x0008) |
 			                  ((i >> 7)  & 0x0010) | ((i >> 5)  & 0x0020) |
@@ -238,44 +372,52 @@ void dsp_build_branch_condition_table(void)
 
 	if (!dsp_branch_condition_table)
 	{
-		dsp_branch_condition_table = (uint8*)malloc(32 * 8 * sizeof(dsp_branch_condition_table[0]));
+		dsp_branch_condition_table = (uint8 *)malloc(32 * 8 * sizeof(dsp_branch_condition_table[0]));
 
-		/* fill in the condition table */
+		// Fill in the condition table
 		if (dsp_branch_condition_table)
-			for (i = 0; i < 8; i++)
-				for (j = 0; j < 32; j++)
+		{
+			for(int i=0; i<8; i++)
+			{
+				for(int j=0; j<32; j++)
 				{
 					int result = 1;
 					if (j & 1)
-						if (i & ZFLAG) result = 0;
+						if (i & ZERO_FLAG)
+							result = 0;
 					if (j & 2)
-						if (!(i & ZFLAG)) result = 0;
+						if (!(i & ZERO_FLAG))
+							result = 0;
 					if (j & 4)
-						if (i & (CFLAG << (j >> 4))) result = 0;
+						if (i & (CARRY_FLAG << (j >> 4)))
+							result = 0;
 					if (j & 8)
-						if (!(i & (CFLAG << (j >> 4)))) result = 0;
+						if (!(i & (CARRY_FLAG << (j >> 4))))
+							result = 0;
 					dsp_branch_condition_table[i * 32 + j] = result;
 				}
+			}
+		}
 	}
 }
 
-unsigned dsp_byte_read(unsigned int offset)
+uint8 DSPReadByte(uint32 offset, uint32 who/*=UNKNOWN*/)
 {
 // battlemorph
 //	if ((offset==0xF1CFE0)||(offset==0xF1CFE2))
 //		return(0xffff);
 	// mutant penguin
-	if ((jaguar_mainRom_crc32==0xbfd751a4)||(jaguar_mainRom_crc32==0x053efaf9))
+/*	if ((jaguar_mainRom_crc32==0xbfd751a4)||(jaguar_mainRom_crc32==0x053efaf9))
 	{
 		if (offset==0xF1CFE0)
 			return(0xff);
-	}
-	if ((offset>=DSP_WORK_RAM_BASE)&&(offset<DSP_WORK_RAM_BASE+0x2000))
-		return(dsp_ram_8[offset-DSP_WORK_RAM_BASE]);
+	}*/
+	if (offset >= DSP_WORK_RAM_BASE && offset <= (DSP_WORK_RAM_BASE + 0x1FFF))
+		return dsp_ram_8[offset - DSP_WORK_RAM_BASE];
 
-	if ((offset>=DSP_CONTROL_RAM_BASE)&&(offset<DSP_CONTROL_RAM_BASE+0x20))
+	if (offset >= DSP_CONTROL_RAM_BASE && offset <= (DSP_CONTROL_RAM_BASE + 0x1F))
 	{
-		uint32 data=dsp_long_read(offset&0xfffffffc);
+		uint32 data = DSPReadLong(offset & 0xFFFFFFFC, who);
 
 		if ((offset&0x03)==0)
 			return(data>>24);
@@ -289,20 +431,22 @@ unsigned dsp_byte_read(unsigned int offset)
 		if ((offset&0x03)==3)
 			return(data&0xff);
 	}
-	return(jaguar_byte_read(offset));
+
+	return JaguarReadByte(offset, who);
 } 
 
-unsigned dsp_word_read(unsigned int offset)
+uint16 DSPReadWord(uint32 offset, uint32 who/*=UNKNOWN*/)
 {
-	offset&=0xFFFFFFFE;
+	//???
+	offset &= 0xFFFFFFFE;
 	// jaguar cd bios
-	if (jaguar_mainRom_crc32==0xa74a97cd)
+/*	if (jaguar_mainRom_crc32==0xa74a97cd)
 	{
 		if (offset==0xF1A114) return(0x0000);
 		if (offset==0xF1A116) return(0x0000);
 		if (offset==0xF1B000) return(0x1234);
 		if (offset==0xF1B002) return(0x5678);
-	}
+	}*/
 /*
 	if (jaguar_mainRom_crc32==0x7ae20823)
 	{
@@ -318,7 +462,7 @@ unsigned dsp_word_read(unsigned int offset)
 */
 
 		// pour permettre à nba jam de tourner sans le dsp
-	if (jaguar_mainRom_crc32==0x4faddb18)
+/*	if (jaguar_mainRom_crc32==0x4faddb18)
 	{
 		if (offset==0xf1b2c0) return(0);
 		if (offset==0xf1b2c2) return(0);
@@ -336,82 +480,84 @@ unsigned dsp_word_read(unsigned int offset)
 		if (offset==0xF1B142) return(0);
 		if (offset==0xF1B1C0) return(0);
 		if (offset==0xF1B1C2) return(0);
-	}
+	}*/
 
-	if ((offset>=DSP_WORK_RAM_BASE)&&(offset<DSP_WORK_RAM_BASE+0x2000))
+	if (offset >= DSP_WORK_RAM_BASE && offset <= DSP_WORK_RAM_BASE+0x1FFF)
 	{
-		offset-=DSP_WORK_RAM_BASE;
-		uint16 data=(((uint16)dsp_ram_8[offset])<<8)|((uint16)dsp_ram_8[offset+1]);
-		return(data);
+		offset -= DSP_WORK_RAM_BASE;
+/*		uint16 data = (((uint16)dsp_ram_8[offset])<<8)|((uint16)dsp_ram_8[offset+1]);
+		return data;*/
+		return GET16(dsp_ram_8, offset);
 	}
-	if ((offset>=DSP_CONTROL_RAM_BASE)&&(offset<DSP_CONTROL_RAM_BASE+0x20))
+	else if ((offset>=DSP_CONTROL_RAM_BASE)&&(offset<DSP_CONTROL_RAM_BASE+0x20))
 	{
-		uint32 data;
+		uint32 data = DSPReadLong(offset & 0xFFFFFFFC, who);
 
-		data=dsp_long_read(offset&0xfffffffc);
-
-		if (offset&0x03)
-			return(data&0xffff);
+		if (offset & 0x03)
+			return data & 0xFFFF;
 		else
-			return(data>>16);
+			return data >> 16;
 	}
-	return(jaguar_word_read(offset));
+
+	return JaguarReadWord(offset, who);
 }
 
-unsigned dsp_long_read(unsigned int offset)
+uint32 DSPReadLong(uint32 offset, uint32 who/*=UNKNOWN*/)
 {
-	offset&=0xFFFFFFFC;
-
-	if ((offset>=DSP_WORK_RAM_BASE)&&(offset<DSP_WORK_RAM_BASE+0x2000))
+	// ??? WHY ???
+	offset &= 0xFFFFFFFC;
+/*if (offset == 0xF1BCF4)
+{
+	WriteLog("DSPReadLong: Reading from 0xF1BCF4... -> %08X [%02X %02X %02X %02X][%04X %04X]\n", GET32(dsp_ram_8, 0x0CF4), dsp_ram_8[0x0CF4], dsp_ram_8[0x0CF5], dsp_ram_8[0x0CF6], dsp_ram_8[0x0CF7], JaguarReadWord(0xF1BCF4, DSP), JaguarReadWord(0xF1BCF6, DSP));
+	DSPDumpDisassembly();
+}*/
+	if (offset >= DSP_WORK_RAM_BASE && offset <= DSP_WORK_RAM_BASE + 0x1FFF)
 	{
-		offset-=DSP_WORK_RAM_BASE;
-		uint32 data= (((uint32)dsp_ram_8[offset]  )<<24)|
-			         (((uint32)dsp_ram_8[offset+1])<<16)|
-					 (((uint32)dsp_ram_8[offset+2])<<8 )|
-					 ( (uint32)dsp_ram_8[offset+3]);
-		return(data);
+		offset -= DSP_WORK_RAM_BASE;
+		return GET32(dsp_ram_8, offset);
 	}
-	if ((offset>=DSP_CONTROL_RAM_BASE)&&(offset<DSP_CONTROL_RAM_BASE+0x20))
+//NOTE: Didn't return DSP_ACCUM!!!
+//Mebbe it's not 'spose to! Yes, it is!
+	if (offset >= DSP_CONTROL_RAM_BASE && offset <= DSP_CONTROL_RAM_BASE + 0x23)
 	{
-		offset&=0x1f;
+		offset &= 0x3F;
 		switch (offset)
 		{
-		case 0x00:	dsp_flag_c?(dsp_flag_c=1):(dsp_flag_c=0);
+		case 0x00:	/*dsp_flag_c?(dsp_flag_c=1):(dsp_flag_c=0);
 					dsp_flag_z?(dsp_flag_z=1):(dsp_flag_z=0);
-					dsp_flag_n?(dsp_flag_n=1):(dsp_flag_n=0);
+					dsp_flag_n?(dsp_flag_n=1):(dsp_flag_n=0);*/
 
-					dsp_flags=(dsp_flags&0xFFFFFFF8)|(dsp_flag_n<<2)|(dsp_flag_c<<1)|dsp_flag_z;
-					
-					return(dsp_flags&0xFFFFC1FF);
-		case 0x04: return(dsp_matrix_control);
-		case 0x08: return(dsp_pointer_to_matrix);
-		case 0x0C: return(dsp_data_organization);
-		case 0x10: return(dsp_pc);
-		case 0x14: return(dsp_control);
-		case 0x18: return(dsp_modulo);
-		case 0x1C: return(dsp_remain);
-//		default:   // unaligned long read //__asm int 3
+					dsp_flags = (dsp_flags & 0xFFFFFFF8) | (dsp_flag_n << 2) | (dsp_flag_c << 1) | dsp_flag_z;
+					return dsp_flags & 0xFFFFC1FF;
+		case 0x04: return dsp_matrix_control;
+		case 0x08: return dsp_pointer_to_matrix;
+		case 0x0C: return dsp_data_organization;
+		case 0x10: return dsp_pc;
+		case 0x14: return dsp_control;
+		case 0x18: return dsp_modulo;
+		case 0x1C: return dsp_remain;
+		case 0x20:
+			return (int32)((int8)(dsp_acc >> 32));	// Top 8 bits of 40-bit accumulator, sign extended
 		}
-		return(0xfffffff);
+		// unaligned long read-- !!! FIX !!!
+		return 0xFFFFFFFF;
 	}
-	uint32 data=jaguar_word_read(offset);
-	data<<=16;
-	data|=jaguar_word_read(offset+2);
-	return(data);
+
+	return JaguarReadLong(offset, who);
 }
 
-void dsp_byte_write(unsigned offset, unsigned data)
+void DSPWriteByte(uint32 offset, uint8 data, uint32 who/*=UNKNOWN*/)
 {
 	if ((offset >= DSP_WORK_RAM_BASE) && (offset < DSP_WORK_RAM_BASE+0x2000))
 	{
 		offset -= DSP_WORK_RAM_BASE;
 		dsp_ram_8[offset] = data;
-		if (dsp_in_exec == 0)
+//This is rather stupid! !!! FIX !!!
+/*		if (dsp_in_exec == 0)
 		{
-//			s68000releaseTimeslice();
 			m68k_end_timeslice();
 			gpu_releaseTimeslice();
-		}
+		}*/
 		return;
 	}
 	if ((offset >= DSP_CONTROL_RAM_BASE) && (offset < DSP_CONTROL_RAM_BASE+0x20))
@@ -423,33 +569,39 @@ void dsp_byte_write(unsigned offset, unsigned data)
 			dsp_div_control = (dsp_div_control & (~(0xFF << (bytenum << 3)))) | (data << (bytenum << 3));
 		else
 		{
-			uint32 old_data = dsp_long_read(offset&0xFFFFFFC);
+//This looks funky. !!! FIX !!!
+			uint32 old_data = DSPReadLong(offset&0xFFFFFFC, who);
 			bytenum = 3 - bytenum; // convention motorola !!!
 			old_data = (old_data & (~(0xFF << (bytenum << 3)))) | (data << (bytenum << 3));	
-			dsp_long_write(offset & 0xFFFFFFC, old_data);
+			DSPWriteLong(offset & 0xFFFFFFC, old_data, who);
 		}
 		return;
 	}
-//	fprintf(log_get(),"dsp: writing %.2x at 0x%.8x\n",data,offset);
-	jaguar_byte_write(offset, data);
+//	WriteLog("dsp: writing %.2x at 0x%.8x\n",data,offset);
+//Should this *ever* happen??? Shouldn't we be saying "unknown" here???
+	JaguarWriteByte(offset, data, who);
 }
 
-void dsp_word_write(unsigned offset, unsigned data)
+void DSPWriteWord(uint32 offset, uint16 data, uint32 who/*=UNKNOWN*/)
 {
 	offset &= 0xFFFFFFFE;
-//	fprintf(log_get(),"dsp: writing %.4x at 0x%.8x\n",data,offset);
+/*if (offset == 0xF1BCF4)
+{
+	WriteLog("DSPWriteWord: Writing to 0xF1BCF4... %04X -> %04X\n", GET16(dsp_ram_8, 0x0CF4), data);
+}*/
+//	WriteLog("dsp: writing %.4x at 0x%.8x\n",data,offset);
 	if ((offset >= DSP_WORK_RAM_BASE) && (offset < DSP_WORK_RAM_BASE+0x2000))
 	{
 		offset -= DSP_WORK_RAM_BASE;
 		dsp_ram_8[offset] = data >> 8;
 		dsp_ram_8[offset+1] = data & 0xFF;
-		if (dsp_in_exec == 0)
+//This is rather stupid! !!! FIX !!!
+/*		if (dsp_in_exec == 0)
 		{
-//			fprintf(log_get(),"dsp: writing %.4x at 0x%.8x\n",data,offset+DSP_WORK_RAM_BASE);
-//			s68000releaseTimeslice();
+//			WriteLog("dsp: writing %.4x at 0x%.8x\n",data,offset+DSP_WORK_RAM_BASE);
 			m68k_end_timeslice();
 			gpu_releaseTimeslice();
-		}
+		}*/
 		return;
 	}
 	else if ((offset >= DSP_CONTROL_RAM_BASE) && (offset < DSP_CONTROL_RAM_BASE+0x20))
@@ -463,46 +615,64 @@ void dsp_word_write(unsigned offset, unsigned data)
 		}
 		else
 		{
-			uint32 old_data = dsp_long_read(offset & 0xffffffc);
+			uint32 old_data = DSPReadLong(offset & 0xffffffc, who);
 			if (offset & 0x03)
 				old_data = (old_data&0xffff0000)|(data&0xffff);
 			else
 				old_data = (old_data&0xffff)|((data&0xffff)<<16);
-			dsp_long_write(offset & 0xffffffc, old_data);
+			DSPWriteLong(offset & 0xffffffc, old_data, who);
 		}
 		return;
 	}
-	jaguar_word_write(offset, data);
+
+	JaguarWriteWord(offset, data, who);
 }
 
-void dsp_long_write(unsigned offset, unsigned data)
+void DSPWriteLong(uint32 offset, uint32 data, uint32 who/*=UNKNOWN*/)
 {
+	// ??? WHY ???
 	offset &= 0xFFFFFFFC;
-//	fprintf(log_get(),"dsp: writing %.8x at 0x%.8x\n",data,offset);
-	if ((offset >= DSP_WORK_RAM_BASE) && (offset < DSP_WORK_RAM_BASE+0x2000))
+/*if (offset == 0xF1BCF4)
+{
+	WriteLog("DSPWriteLong: Writing to 0xF1BCF4... %08X -> %08X\n", GET32(dsp_ram_8, 0x0CF4), data);
+}*/
+//	WriteLog("dsp: writing %.8x at 0x%.8x\n",data,offset);
+	if (offset >= DSP_WORK_RAM_BASE && offset <= DSP_WORK_RAM_BASE + 0x1FFF)
 	{
+if (offset == 0xF1BE2C)
+{
+	WriteLog("DSP: %s is writing %08X at location 0xF1BE2C (DSP_PC: %08X)...\n", whoName[who], data, dsp_pc - 2);
+}
 		offset -= DSP_WORK_RAM_BASE;
-		dsp_ram_8[offset]  = data >> 24;
-		dsp_ram_8[offset+1] = (data>>16) & 0xFF;
-		dsp_ram_8[offset+2] = (data>>8) & 0xFF;
-		dsp_ram_8[offset+3] = data & 0xFF;
+		SET32(dsp_ram_8, offset, data);
 		return;
 	}
-	else if ((offset >= DSP_CONTROL_RAM_BASE) && (offset < DSP_CONTROL_RAM_BASE+0x20))
+	else if (offset >= DSP_CONTROL_RAM_BASE && offset <= (DSP_CONTROL_RAM_BASE + 0x1F))
 	{
-		offset&=0x1f;
+		offset &= 0x1F;
 		switch (offset)
 		{
 		case 0x00:
+		{
+			bool IMASKCleared = (dsp_flags & IMASK) && !(data & IMASK);
 			dsp_flags = data;
 			dsp_flag_z = dsp_flags & 0x01;
-			dsp_flag_c = (dsp_flags>>1) & 0x01;
-			dsp_flag_n = (dsp_flags>>2) & 0x01;
-			dsp_update_register_banks();
+			dsp_flag_c = (dsp_flags >> 1) & 0x01;
+			dsp_flag_n = (dsp_flags >> 2) & 0x01;
+			DSPUpdateRegisterBanks();
 			dsp_control &= ~((dsp_flags & CINT04FLAGS) >> 3);
 			dsp_control &= ~((dsp_flags & CINT5FLAG) >> 1);
-			dsp_check_irqs();
+			if (IMASKCleared)						// If IMASK was cleared,
+#ifdef DSP_DEBUG_IRQ
+			{
+				WriteLog("DSP: Finished interrupt.\n");
+#endif
+				DSPHandleIRQs();					// see if any other interrupts need servicing!
+#ifdef DSP_DEBUG_IRQ
+			}
+#endif
 			break;
+		}
 		case 0x04:
 			dsp_matrix_control = data;
 			break;
@@ -514,1443 +684,1003 @@ void dsp_long_write(unsigned offset, unsigned data)
 			break;
 		case 0x10:
 			dsp_pc = data;
+#ifdef DSP_DEBUG
+			WriteLog("DSP: Setting DSP PC to %08X by %s%s\n", dsp_pc, whoName[who], (DSP_RUNNING ? " (DSP is RUNNING!)" : ""));//*/
+#endif
 			break;
 		case 0x14:
 		{	
-			uint32 dsp_was_running = dsp_running;
-			// check for DSP->CPU interrupt
-			if (data & 0x02)
+//			uint32 dsp_was_running = DSP_RUNNING;
+			// Check for DSP -> CPU interrupt
+			if (data & CPUINT)
 			{
-//							fprintf(log_get(),"DSP->CPU interrupt\n");
-				if (tom_irq_enabled(IRQ_GPU) && jaguar_interrupt_handler_is_valid(64))
+//				WriteLog("DSP: DSP -> CPU interrupt\n");
+// This was WRONG
+// Why do we check for a valid handler at 64? Isn't that the Jag programmer's responsibility?
+				if (JERRYIRQEnabled(IRQ2_DSP) && jaguar_interrupt_handler_is_valid(64))
 				{
-					tom_set_pending_gpu_int();
-//					s68000interrupt(7,64);
-//					s68000flushInterrupts();
-					m68k_set_irq(7);			// Set 68000 NMI...
+					JERRYSetPendingIRQ(IRQ2_DSP);
 					dsp_releaseTimeslice();
+					m68k_set_irq(7);			// Set 68000 NMI...
 				}
-				data &= ~(0x02);
+				data &= ~CPUINT;
 			}
-			// check for CPU->DSP interrupt
-			if (data & 0x04)
+			// Check for CPU -> DSP interrupt
+			if (data & DSPINT0)
 			{
-//							fprintf(log_get(),"CPU->DSP interrupt\n");
-				dsp_set_irq_line(0, 1);
-//				s68000releaseTimeslice();
+//				WriteLog("DSP: CPU -> DSP interrupt\n");
 				m68k_end_timeslice();
 				gpu_releaseTimeslice();
-				data &= ~(0x04);
+				DSPSetIRQLine(DSPIRQ_CPU, ASSERT_LINE);
+				data &= ~DSPINT0;
 			}
 			// single stepping
-			if (data & 0x10)
+			if (data & SINGLE_STEP)
 			{
-							//fprintf(log_get(),"asked to perform a single step (single step is %senabled)\n",(data&0x8)?"":"not ");
+//				WriteLog("DSP: Asked to perform a single step (single step is %senabled)\n", (data & 0x8 ? "" : "not "));
 			}
-			dsp_control = data;
+
+			// Protect writes to VERSION and the interrupt latches...
+			uint32 mask = VERSION | INT_LAT0 | INT_LAT1 | INT_LAT2 | INT_LAT3 | INT_LAT4 | INT_LAT5;
+			dsp_control = (dsp_control & mask) | (data & ~mask);
 
 			// if dsp wasn't running but is now running
 			// execute a few cycles
+//This is just plain wrong, wrong, WRONG!
 #ifndef DSP_SINGLE_STEPPING
-			if (!dsp_was_running && dsp_running)
+/*			if (!dsp_was_running && DSP_RUNNING)
 			{
-				dsp_exec(200);
-			}
+				DSPExec(200);
+			}*/
 #else
+//This is WRONG! !!! FIX !!!
 			if (dsp_control & 0x18)
-				dsp_exec(1);
+				DSPExec(1);
 #endif
+#ifdef DSP_DEBUG
+WriteLog("Write to DSP CTRL: %08X ", data);
+if (DSP_RUNNING)
+	WriteLog(" --> Starting to run at %08X by %s...", dsp_pc, whoName[who]);
+else
+	WriteLog(" --> Stopped by %s! (DSP PC: %08X)", whoName[who], dsp_pc);
+WriteLog("\n");
+#endif	// DSP_DEBUG
+//This isn't exactly right either--we don't know if it was the M68K or the GPU writing here...
+// !!! FIX !!!
+			if (DSP_RUNNING)
+				m68k_end_timeslice();
 			break;
 		}
 		case 0x18:
 			dsp_modulo = data;
 			break;
 		case 0x1C:
-			dsp_div_control=data;
+			dsp_div_control = data;
 			break;
 //		default:   // unaligned long read
 				   //__asm int 3
 		}
 		return;
 	}
-	jaguar_word_write(offset, (data>>16) & 0xFFFF);
-	jaguar_word_write(offset+2, data & 0xFFFF);
+
+//We don't have to break this up like this! We CAN do 32 bit writes!
+//	JaguarWriteWord(offset, (data>>16) & 0xFFFF, DSP);
+//	JaguarWriteWord(offset+2, data & 0xFFFF, DSP);
+	JaguarWriteLong(offset, data, who);
 }
 
-/*uint8 * jaguar_rom_load(char * path, uint32 * romSize);
-void dsp_load_bin_at(char * path, uint32 offset)
+//
+// Update the DSP register file pointers depending on REGPAGE bit
+//
+void DSPUpdateRegisterBanks(void)
 {
-	uint32 romSize;
-	uint8 * rom;
+	int bank = (dsp_flags & REGPAGE);
 
-	rom = jaguar_rom_load(path, &romSize);
-	for(uint32 i=0; i<romSize; i++)
-		jaguar_byte_write(offset+i, rom[i]);
-}//*/
+	if (dsp_flags & IMASK)
+		bank = 0;							// IMASK forces main bank to be bank 0
 
-static int go = 0;
-void dsp_update_register_banks(void)
-{
-	uint32 temp;
-	int i, bank;
-
-	bank = dsp_flags&0x4000;
-
-	if (dsp_flags & 0x8) 
-		bank = 0;
-	
-	if ((!bank && (dsp_reg_bank_0 != dsp_reg)) || (bank && (dsp_reg_bank_1 != dsp_reg)))
-	{
-		for (i = 0; i < 32; i++)
-		{
-			temp = dsp_reg[i];
-			dsp_reg[i] = dsp_alternate_reg[i];
-			dsp_alternate_reg[i]= temp;
-		}
-		// switch flags
-		temp=dsp_flag_z;
-		dsp_flag_z=dsp_alternate_flag_z;
-		dsp_alternate_flag_z=temp;
-
-		temp=dsp_flag_n;
-		dsp_flag_n=dsp_alternate_flag_n;
-		dsp_alternate_flag_n=temp;
-
-		temp=dsp_flag_c;
-		dsp_flag_c=dsp_alternate_flag_c;
-		dsp_alternate_flag_c=temp;
-	
-		if (!bank)
-		{
-			dsp_reg_bank_0 = dsp_reg;
-			dsp_reg_bank_1 = dsp_alternate_reg;
-		}
-		else
-		{
-			dsp_reg_bank_0 = dsp_alternate_reg;
-			dsp_reg_bank_1 = dsp_reg;
-		}
-	}
+	if (bank)
+		dsp_reg = dsp_reg_bank_1, dsp_alternate_reg = dsp_reg_bank_0;
+	else
+		dsp_reg = dsp_reg_bank_0, dsp_alternate_reg = dsp_reg_bank_1;
 }
 
-
-void dsp_check_if_i2s_interrupt_needed(void)
+//
+// Check for an handle any asserted DSP IRQs
+//
+void DSPHandleIRQs(void)
 {
-// Commenting this shit out helped a little bit... This is probably the reason
-// why the sound isn't working right!
-/*	static uint32 count=8;
-
-//	int mask;
-	count--;
-	if (count>0)
+	if (dsp_flags & IMASK) 							// Bail if we're already inside an interrupt
 		return;
 
-	count=4;*/
-	// already in an interrupt handler ?
-	if (dsp_flags & 0x8) 
-		return;
+	// Get the active interrupt bits (latches) & interrupt mask (enables)
+	uint32 bits = ((dsp_control >> 10) & 0x20) | ((dsp_control >> 6) & 0x1F),
+		mask = ((dsp_flags >> 11) & 0x20) | ((dsp_flags >> 4) & 0x1F);
 
-	// get the interrupt mask 
-	int mask = (dsp_flags >> 4) & 0x1f;
-	mask |= (dsp_flags >> 11) & 0x20;
-
-	if (mask & 0x02)
-		dsp_set_irq_line(1, 1);
-}
-
-void dsp_check_irqs(void)
-{
-	int bits, mask, which = 0;
-
-	if (dsp_flags & 0x8) 
-		return;
-
-	// get the active interrupt bits 
-	bits = (dsp_control >> 6) & 0x1f;
-	bits |= (dsp_control >> 10) & 0x20;
-
-	// get the interrupt mask 
-	mask = (dsp_flags >> 4) & 0x1f;
-	mask |= (dsp_flags >> 11) & 0x20;
-
-//	fprintf(log_get(),"dsp: bits=%.2x mask=%.2x\n",bits,mask);
-	// bail if nothing is available
+//	WriteLog("dsp: bits=%.2x mask=%.2x\n",bits,mask);
 	bits &= mask;
 
-	if (!bits)
+	if (!bits)										// Bail if nothing is enabled
 		return;
 
-	// determine which interrupt 
-	if (bits & 0x01) which = 0;
-	if (bits & 0x02) which = 1;
-	if (bits & 0x04) which = 2;
-	if (bits & 0x08) which = 3;
-	if (bits & 0x10) which = 4;
-	if (bits & 0x20) which = 5;
+	int which = 0;									// Determine which interrupt 
+	if (bits & 0x01)
+		which = 0;
+	if (bits & 0x02)
+		which = 1;
+	if (bits & 0x04)
+		which = 2;
+	if (bits & 0x08)
+		which = 3;
+	if (bits & 0x10)
+		which = 4;
+	if (bits & 0x20)
+		which = 5;
 
-//	fprintf(log_get(),"dsp: generating interrupt %i\n",which);
+#ifdef DSP_DEBUG_IRQ
+	WriteLog("DSP: Generating interrupt #%i...\n", which);
+#endif
 
-	dsp_flags |= 0x08;
-	dsp_update_register_banks();
+	dsp_flags |= IMASK;
+	DSPUpdateRegisterBanks();
 
 	// subqt  #4,r31		; pre-decrement stack pointer 
 	// move  pc,r30			; address of interrupted code 
 	// store  r30,(r31)     ; store return address
 	dsp_reg[31] -= 4;
-	dsp_reg[30]=dsp_pc;
-	dsp_long_write(dsp_reg[31], dsp_pc - 2);
+	DSPWriteLong(dsp_reg[31], dsp_pc - 2, DSP);
 
 	// movei  #service_address,r30  ; pointer to ISR entry 
 	// jump  (r30)					; jump to ISR 
 	// nop
-	dsp_pc = DSP_WORK_RAM_BASE;
-	dsp_pc += which * 0x10;
-	dsp_reg[30]=dsp_pc;
+	dsp_pc = dsp_reg[30] = DSP_WORK_RAM_BASE + (which * 0x10);
 }
 
-void dsp_set_irq_line(int irqline, int state)
+//
+// Set the specified DSP IRQ line to a given state
+//
+void DSPSetIRQLine(int irqline, int state)
 {
-	int mask = 0x40 << irqline;
-	dsp_control &= ~mask;
+//NOTE: This doesn't take INT_LAT5 into account. !!! FIX !!!
+	uint32 mask = INT_LAT0 << irqline;
+	dsp_control &= ~mask;							// Clear the latch bit
+
 	if (state)
 	{
-		dsp_control |= mask;
-		dsp_check_irqs();
+		dsp_control |= mask;						// Set the latch bit
+		DSPHandleIRQs();
 	}
 }
 
-void dsp_init(void)
+void DSPInit(void)
 {
 	memory_malloc_secure((void **)&dsp_ram_8, 0x2000, "DSP work RAM");
-	memory_malloc_secure((void **)&dsp_reg, 32*sizeof(int32), "DSP bank 0 regs");
-	memory_malloc_secure((void **)&dsp_alternate_reg, 32*sizeof(int32), "DSP bank 1 regs");
+	memory_malloc_secure((void **)&dsp_reg_bank_0, 32 * sizeof(int32), "DSP bank 0 regs");
+	memory_malloc_secure((void **)&dsp_reg_bank_1, 32 * sizeof(int32), "DSP bank 1 regs");
 
 	dsp_build_branch_condition_table();
-	dsp_reset();
+	DSPReset();
 }
 
-void dsp_reset(void)
+void DSPReset(void)
 {
-	dsp_pc				  = 0x00f1b000;
+	dsp_pc				  = 0x00F1B000;
 	dsp_acc				  = 0x00000000;
 	dsp_remain			  = 0x00000000;
 	dsp_modulo			  = 0xFFFFFFFF;
 	dsp_flags			  = 0x00040000;
 	dsp_matrix_control    = 0x00000000;
 	dsp_pointer_to_matrix = 0x00000000;
-	dsp_data_organization = 0xffffffff;
-	dsp_control			  = 0x00012800;
+	dsp_data_organization = 0xFFFFFFFF;
+	dsp_control			  = 0x00002000;				// Report DSP version 2
 	dsp_div_control		  = 0x00000000;
 	dsp_in_exec			  = 0;
 
+	dsp_reg = dsp_reg_bank_0;
+	dsp_alternate_reg = dsp_reg_bank_1;
+
 	for(int i=0; i<32; i++)
-	{
-		dsp_reg[i]           = 0x00000000;
-		dsp_alternate_reg[i] = 0x00000000;
-	}
-	
-	dsp_reg_bank_0 = dsp_reg;
-	dsp_reg_bank_1 = dsp_alternate_reg;
-//	dsp_reg_bank_1 = dsp_reg;
-//	dsp_reg_bank_0 = dsp_alternate_reg;
+		dsp_reg[i] = dsp_alternate_reg[i] = 0x00000000;
 
-	reset_flag_z();
-	reset_flag_n();
-	reset_flag_c();
-
-	dsp_alternate_flag_z = 0;
-	dsp_alternate_flag_n = 0;
-	dsp_alternate_flag_c = 0;
+	CLR_ZNC;
 
 	dsp_reset_stats();
 	memset(dsp_ram_8, 0xFF, 0x2000);
 }
 
-void dsp_done(void)
+void DSPDumpDisassembly(void)
 {
-	int i, j;
-	fprintf(log_get(), "DSP: Stopped at PC=%08X dsp_modulo=%08X(dsp %s running)\n", dsp_pc, dsp_modulo, dsp_running ? "was" : "wasn't");
-	fprintf(log_get(), "DSP: %sin interrupt handler\n", (dsp_flags & 0x8) ? "" : "not ");
-	int bits, mask;
+	char buffer[512];
 
-	// get the active interrupt bits 
-	bits = (dsp_control >> 6) & 0x1F;
-	bits |= (dsp_control >> 10) & 0x20;
+	WriteLog("\n---[DSP code at 00F1B000]---------------------------\n");
+	uint32 j = 0xF1B000;
+	while (j <= 0xF1CFFF)
+	{
+		uint32 oldj = j;
+		j += dasmjag(JAGUAR_DSP, buffer, j);
+		WriteLog("\t%08X: %s\n", oldj, buffer);
+	}
+}
 
-	// get the interrupt mask 
-	mask = (dsp_flags >> 4) & 0x1F;
-	mask |= (dsp_flags >> 11) & 0x20;
-
-	fprintf(log_get(), "DSP: bits=%08X mask=%08X\n", bits, mask);
-	fprintf(log_get(), "\nRegisters bank 0\n");
+void DSPDumpRegisters(void)
+{
+//Shoud add modulus, etc to dump here...
+	WriteLog("\n---[DSP flags: NCZ %d%d%d, DSP PC: %08X]------------\n", dsp_flag_n, dsp_flag_c, dsp_flag_z, dsp_pc);
+	WriteLog("\nRegisters bank 0\n");
 	for(int j=0; j<8; j++)
 	{
-		fprintf(log_get(), "\tr%2i=0x%.8x r%2i=0x%.8x r%2i=0x%.8x r%2i=0x%.8x\n",
-						  (j << 2) + 0, dsp_reg[(j << 2) + 0],
-						  (j << 2) + 1, dsp_reg[(j << 2) + 1],
-						  (j << 2) + 2, dsp_reg[(j << 2) + 2],
-						  (j << 2) + 3, dsp_reg[(j << 2) + 3]);
+		WriteLog("\tR%02i = %08X R%02i = %08X R%02i = %08X R%02i = %08X\n",
+						  (j << 2) + 0, dsp_reg_bank_0[(j << 2) + 0],
+						  (j << 2) + 1, dsp_reg_bank_0[(j << 2) + 1],
+						  (j << 2) + 2, dsp_reg_bank_0[(j << 2) + 2],
+						  (j << 2) + 3, dsp_reg_bank_0[(j << 2) + 3]);
 	}
-//	fprintf(log_get(),"registers bank 1\n");
-//	for (j=0;j<8;j++)
-//	{
-//		fprintf(log_get(),"\tr%2i=0x%.8x r%2i=0x%.8x r%2i=0x%.8x r%2i=0x%.8x\n",
-//						  (j<<2)+0,dsp_alternate_reg[(j<<2)+0],
-//						  (j<<2)+1,dsp_alternate_reg[(j<<2)+1],
-//						  (j<<2)+2,dsp_alternate_reg[(j<<2)+2],
-//						  (j<<2)+3,dsp_alternate_reg[(j<<2)+3]);
-//
-//	}
+	WriteLog("Registers bank 1\n");
+	for(int j=0; j<8; j++)
+	{
+		WriteLog("\tR%02i = %08X R%02i = %08X R%02i = %08X R%02i = %08X\n",
+						  (j << 2) + 0, dsp_reg_bank_1[(j << 2) + 0],
+						  (j << 2) + 1, dsp_reg_bank_1[(j << 2) + 1],
+						  (j << 2) + 2, dsp_reg_bank_1[(j << 2) + 2],
+						  (j << 2) + 3, dsp_reg_bank_1[(j << 2) + 3]);
+	}
+}
+
+void DSPDone(void)
+{
+	int i, j;
+	WriteLog("DSP: Stopped at PC=%08X dsp_modulo=%08X (dsp %s running)\n", dsp_pc, dsp_modulo, (DSP_RUNNING ? "was" : "wasn't"));
+	WriteLog("DSP: %sin interrupt handler\n", (dsp_flags & IMASK ? "" : "not "));
+
+	// get the active interrupt bits 
+	int bits = ((dsp_control >> 10) & 0x20) | ((dsp_control >> 6) & 0x1F);
+	// get the interrupt mask 
+	int mask = ((dsp_flags >> 11) & 0x20) | ((dsp_flags >> 4) & 0x1F);
+
+	WriteLog("DSP: pending=%08X enabled=%08X\n", bits, mask);
+	WriteLog("\nRegisters bank 0\n");
+	for(int j=0; j<8; j++)
+	{
+		WriteLog("\tr%2i=0x%.8x r%2i=0x%.8x r%2i=0x%.8x r%2i=0x%.8x\n",
+						  (j << 2) + 0, dsp_reg_bank_0[(j << 2) + 0],
+						  (j << 2) + 1, dsp_reg_bank_0[(j << 2) + 1],
+						  (j << 2) + 2, dsp_reg_bank_0[(j << 2) + 2],
+						  (j << 2) + 3, dsp_reg_bank_0[(j << 2) + 3]);
+	}
+	WriteLog("\nRegisters bank 1\n");
+	for (j=0; j<8; j++)
+	{
+		WriteLog("\tr%2i=0x%.8x r%2i=0x%.8x r%2i=0x%.8x r%2i=0x%.8x\n",
+						  (j << 2) + 0, dsp_reg_bank_1[(j << 2) + 0],
+						  (j << 2) + 1, dsp_reg_bank_1[(j << 2) + 1],
+						  (j << 2) + 2, dsp_reg_bank_1[(j << 2) + 2],
+						  (j << 2) + 3, dsp_reg_bank_1[(j << 2) + 3]);
+
+	}
+
 	static char buffer[512];
 	j = DSP_WORK_RAM_BASE;
-//	for(int i=0; i<4096; i++)
 	while (j <= 0xF1BFFF)
 	{
 		uint32 oldj = j;
 		j += dasmjag(JAGUAR_DSP, buffer, j);
-		fprintf(log_get(), "\t%08X: %s\n", oldj, buffer);
+		WriteLog("\t%08X: %s\n", oldj, buffer);
 	}//*/
 
-	fprintf(log_get(),"dsp opcodes use:\n");
+	WriteLog("DSP opcodes use:\n");
 	for (i=0;i<64;i++)
 	{
 		if (dsp_opcode_use[i])
-			fprintf(log_get(),"\t%s %i\n",dsp_opcode_str[i],dsp_opcode_use[i]);
+			WriteLog("\t%s %i\n", dsp_opcode_str[i], dsp_opcode_use[i]);
 	}//*/
 
 	memory_free(dsp_ram_8);
 }
 
-void dsp_exec(int32 cycles)
+//
+// DSP execution core
+//
+static bool R20Set = false, tripwire = false;
+static uint32 pcQueue[32], ptrPCQ = 0;
+void DSPExec(int32 cycles)
 {
-	if ((cycles!=1)&&(jaguar_mainRom_crc32==0xba74c3ed))
-		dsp_check_if_i2s_interrupt_needed();
+/*HACKS!!! ->	if (cycles != 1 && jaguar_mainRom_crc32 == 0xba74c3ed)
+		dsp_check_if_i2s_interrupt_needed();*/
 
 #ifdef DSP_SINGLE_STEPPING
-	if (dsp_control&0x18)
+	if (dsp_control & 0x18)
 	{
-		cycles=1;
-		dsp_control&=~0x10;
+		cycles = 1;
+		dsp_control &= ~0x10;
 	}
 #endif
-	dsp_check_irqs();
-	dsp_releaseTimeSlice_flag=0;
+//There is *no* good reason to do this here!
+//	DSPHandleIRQs();
+	dsp_releaseTimeSlice_flag = 0;
 	dsp_in_exec++;
-	while ((cycles>0)&&(dsp_running))
+
+	while (cycles > 0 && DSP_RUNNING)
 	{
-		dsp_flag_c=(dsp_flag_c?1:0);
-		dsp_flag_z=(dsp_flag_z?1:0);
-		dsp_flag_n=(dsp_flag_n?1:0);
-
-
-/*
-		if (dsp_pc==0x00f1b02c)
-		{
-			if (dsp_fp)
-			{
-				fclose(dsp_fp);
-				exit(0);
-			}
-		}
-		else 
-		if (dsp_pc==0x00f1b032)
-		{
-			dsp_fp=fopen("c:\\bad.log","wrt");
-			if (dsp_fp==NULL)
-				MessageBox(NULL,"Cannot open dsp log","",MB_OK);
-		}
-		if (dsp_fp)
-		{
-			fprintf(dsp_fp,"0x%.8x\n",dsp_pc);
-		}
-		
-//		if (dsp_pc==0x00f1b130)
-//			dsp_load_bin_at("SCHRIFT.DAT",0x120000);
-*/		
-		uint16 opcode=dsp_word_read(dsp_pc);
-		dsp_opcode_first_parameter=(opcode&0x3e0)>>5;
-		dsp_opcode_second_parameter=(opcode&0x1f);
-		dsp_pc+=2;
-		dsp_opcode[opcode>>10]();
-		dsp_opcode_use[opcode>>10]++;
-		cycles-=dsp_opcode_cycles[opcode>>10];
+if (dsp_pc == 0xF1B5D8)
+{
+	WriteLog("DSP: At $F1B4D8--R15 = %08X at %u ms%s...\n", dsp_reg[15], SDL_GetTicks(), (dsp_flags & IMASK ? " (inside interrupt)" : ""));
+}
+/*if (dsp_pc == 0xF1B7D2)	// Start here???
+	doDSPDis = true;
+pcQueue[ptrPCQ++] = dsp_pc;
+ptrPCQ %= 32;*/
+		uint16 opcode = DSPReadWord(dsp_pc, DSP);
+		uint32 index = opcode >> 10;
+		dsp_opcode_first_parameter = (opcode >> 5) & 0x1F;
+		dsp_opcode_second_parameter = opcode & 0x1F;
+		dsp_pc += 2;
+		dsp_opcode[index]();
+		dsp_opcode_use[index]++;
+		cycles -= dsp_opcode_cycles[index];
+/*if (dsp_reg_bank_0[20] == 0xF1A100 & !R20Set)
+{
+	WriteLog("DSP: R20 set to $F1A100 at %u ms%s...\n", SDL_GetTicks(), (dsp_flags & IMASK ? " (inside interrupt)" : ""));
+	R20Set = true;
+}
+if (dsp_reg_bank_0[20] != 0xF1A100 && R20Set)
+{
+	WriteLog("DSP: R20 corrupted at %u ms from starting%s!\nAborting!\n", SDL_GetTicks(), (dsp_flags & IMASK ? " (inside interrupt)" : ""));
+	DSPDumpRegisters();
+	DSPDumpDisassembly();
+	exit(1);
+}
+if ((dsp_pc < 0xF1B000 || dsp_pc > 0xF1CFFE) && !tripwire)
+{
+	char buffer[512];
+	WriteLog("DSP: Jumping outside of DSP RAM at %u ms. Register dump:\n", SDL_GetTicks());
+	DSPDumpRegisters();
+	tripwire = true;
+	WriteLog("\nBacktrace:\n");
+	for(int i=0; i<32; i++)
+	{
+		dasmjag(JAGUAR_DSP, buffer, pcQueue[(ptrPCQ + i) % 32]);
+		WriteLog("\t%08X: %s\n", pcQueue[(ptrPCQ + i) % 32], buffer);
 	}
+	WriteLog("\n");
+}*/
+	}
+
 	dsp_in_exec--;
 }
 
+//
+// DSP opcode handlers
+//
+
+// There is a problem here with interrupt handlers the JUMP and JR instructions that
+// can cause trouble because an interrupt can occur *before* the instruction following the
+// jump can execute... !!! FIX !!!
 static void dsp_opcode_jump(void)
 {
-	uint32 delayed_pc = Rm;
-	uint32 jaguar_flags;
-
+#ifdef DSP_DIS_JUMP
+char * condition[32] =
+{	"T", "nz", "z", "???", "nc", "nc nz", "nc z", "???", "c", "c nz",
+	"c z", "???", "???", "???", "???", "???", "???", "???", "???",
+	"???", "nn", "nn nz", "nn z", "???", "n", "n nz", "n z", "???",
+	"???", "???", "???", "F" };
+	if (doDSPDis)
+		WriteLog("%06X: JUMP   %s, (R%02u) [NCZ:%u%u%u, R%02u=%08X] ", dsp_pc-2, condition[IMM_2], IMM_1, dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_1, RM);
+#endif
 	// normalize flags
-	dsp_flag_c=dsp_flag_c?1:0;
+/*	dsp_flag_c=dsp_flag_c?1:0;
 	dsp_flag_z=dsp_flag_z?1:0;
-	dsp_flag_n=dsp_flag_n?1:0;
+	dsp_flag_n=dsp_flag_n?1:0;*/
+	// KLUDGE: Used by BRANCH_CONDITION
+	uint32 jaguar_flags = (dsp_flag_n << 2) | (dsp_flag_c << 1) | dsp_flag_z;
 
-	jaguar_flags=(dsp_flag_n<<2)|(dsp_flag_c<<1)|dsp_flag_z;
-
-	if (branch_condition(imm_2))
+	if (BRANCH_CONDITION(IMM_2))
 	{
-		dsp_exec(1);
-		dsp_pc=delayed_pc;
+#ifdef DSP_DIS_JUMP
+	if (doDSPDis)
+		WriteLog("Branched!\n");
+#endif
+		uint32 delayed_pc = RM;
+		DSPExec(1);
+		dsp_pc = delayed_pc;
 	}
+#ifdef DSP_DIS_JUMP
+	else
+		if (doDSPDis)
+			WriteLog("Branch NOT taken.\n");
+#endif
 }
 
 static void dsp_opcode_jr(void)
 {
-	int32 offset=(imm_1&0x10) ? (0xFFFFFFF0|imm_1) : imm_1;
-
-	int32 delayed_pc = dsp_pc + (offset * 2);
-	uint32 jaguar_flags;
-
+#ifdef DSP_DIS_JR
+char * condition[32] =
+{	"T", "nz", "z", "???", "nc", "nc nz", "nc z", "???", "c", "c nz",
+	"c z", "???", "???", "???", "???", "???", "???", "???", "???",
+	"???", "nn", "nn nz", "nn z", "???", "n", "n nz", "n z", "???",
+	"???", "???", "???", "F" };
+	if (doDSPDis)
+		WriteLog("%06X: JR     %s, %06X [NCZ:%u%u%u] ", dsp_pc-2, condition[IMM_2], dsp_pc+((IMM_1 & 0x10 ? 0xFFFFFFF0 | IMM_1 : IMM_1) * 2), dsp_flag_n, dsp_flag_c, dsp_flag_z);
+#endif
 	// normalize flags
-	dsp_flag_c=dsp_flag_c?1:0;
+/*	dsp_flag_c=dsp_flag_c?1:0;
 	dsp_flag_z=dsp_flag_z?1:0;
-	dsp_flag_n=dsp_flag_n?1:0;
-	
-	jaguar_flags=(dsp_flag_n<<2)|(dsp_flag_c<<1)|dsp_flag_z;
+	dsp_flag_n=dsp_flag_n?1:0;*/
+	// KLUDGE: Used by BRANCH_CONDITION
+	uint32 jaguar_flags = (dsp_flag_n << 2) | (dsp_flag_c << 1) | dsp_flag_z;
 
-	if (branch_condition(imm_2))
+	if (BRANCH_CONDITION(IMM_2))
 	{
-		dsp_exec(1);
-		dsp_pc=delayed_pc;
+#ifdef DSP_DIS_JR
+	if (doDSPDis)
+		WriteLog("Branched!\n");
+#endif
+		int32 offset = (IMM_1 & 0x10 ? 0xFFFFFFF0 | IMM_1 : IMM_1);		// Sign extend IMM_1
+		int32 delayed_pc = dsp_pc + (offset * 2);
+		DSPExec(1);
+		dsp_pc = delayed_pc;
 	}
+#ifdef DSP_DIS_JR
+	else
+		if (doDSPDis)
+			WriteLog("Branch NOT taken.\n");
+#endif
 }
 
 static void dsp_opcode_add(void)
 {
-	uint32 _Rm=Rm;
-	uint32 _Rn=Rn;
-	uint32 res;
-#ifdef __PORT__
-
-    /*
-       GCC on WIN32 (more importantly mingw) doesn't know the declared
-       variables in asm until we put a _ before it.
-       
-       So the declaration dsp_flag_c needs to be _dsp_flag_c on mingw.
-    */
-    #ifdef __GCCWIN32__
-	asm(
-	"addl %1, %2
-    setc  _dsp_flag_c
-	setz  _dsp_flag_z
-	sets  _dsp_flag_n
-	movl %%eax, %0
-	"
-	: "=m"(res)
-	: "d"(_Rm), "a"(_Rn));
-	
-	#else
-	asm(
-	"addl %1, %2
-	setc  dsp_flag_c
-	setz  dsp_flag_z
-	sets  dsp_flag_n
-	movl %%eax, %0
-	"
-	: "=m"(res)
-	: "d"(_Rm), "a"(_Rn));
-	#endif
-	
-#else
-	__asm 
-	{
-		mov   edx,_Rm
-		mov   eax,_Rn
-		add   eax,edx
-		setc  [dsp_flag_c]
-		setz  [dsp_flag_z]
-		sets  [dsp_flag_n]
-		mov	  res,eax
-	};
+#ifdef DSP_DIS_ADD
+	if (doDSPDis)
+		WriteLog("%06X: ADD    R%02u, R%02u [NCZ:%u%u%u, R%02u=%08X, R%02u=%08X] -> ", dsp_pc-2, IMM_1, IMM_2, dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_1, RM, IMM_2, RN);
 #endif
-	Rn=res;
+	UINT32 res = RN + RM;
+	SET_ZNC_ADD(RN, RM, res);
+	RN = res;
+#ifdef DSP_DIS_ADD
+	if (doDSPDis)
+		WriteLog("[NCZ:%u%u%u, R%02u=%08X, R%02u=%08X]\n", dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_1, RM, IMM_2, RN);
+#endif
 }
 
 static void dsp_opcode_addc(void)
 {
-	uint32 _Rm=Rm;
-	uint32 _Rn=Rn;
-	uint32 res;
-#ifdef __PORT__
-
-    /*
-       GCC on WIN32 (more importantly mingw) doesn't know the declared
-       variables in asm until we put a _ before it.
-       
-       So the declaration dsp_flag_c needs to be _dsp_flag_c on mingw.
-       We use __GCCWIN32__ for this "bug".
-    */
-
-    #ifdef __GCCWIN32__	
-	
-    asm(
-	"addl %1, %2
-	cmp	  $0, _dsp_flag_c
-	clc
-	jz 1f
-	stc
-	1:
-	adc %1, %2
-	setc  _dsp_flag_c
-	setz  _dsp_flag_z
-	sets  _dsp_flag_n
-	movl %%eax, %0
-	"
-	: "=m"(res)
-	: "d"(_Rm), "a"(_Rn));
-	#else
-
-    asm(
-	"addl %1, %2
-	cmp	  $0, dsp_flag_c
-	clc
-	jz 1f
-	stc
-	1:
-	adc %1, %2
-	setc  dsp_flag_c
-	setz  dsp_flag_z
-	sets  dsp_flag_n
-	movl %%eax, %0
-	"
-	: "=m"(res)
-	: "d"(_Rm), "a"(_Rn));
-
-    #endif	
-	
-#else
-	__asm 
-	{
-		mov   edx,_Rm
-		mov   eax,_Rn
-		cmp	  [dsp_flag_c],0
-		clc
-		jz	  dsp_opcode_addc_no_carry
-		stc
-dsp_opcode_addc_no_carry:
-		adc   eax,edx
-		setc  [dsp_flag_c]
-		setz  [dsp_flag_z]
-		sets  [dsp_flag_n]
-		mov	  res,eax
-	};
+#ifdef DSP_DIS_ADDC
+	if (doDSPDis)
+		WriteLog("%06X: ADDC   R%02u, R%02u [NCZ:%u%u%u, R%02u=%08X, R%02u=%08X] -> ", dsp_pc-2, IMM_1, IMM_2, dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_1, RM, IMM_2, RN);
 #endif
-	Rn=res;
+	UINT32 res = RN + RM + dsp_flag_c;
+	UINT32 carry = dsp_flag_c;
+//	SET_ZNC_ADD(RN, RM, res); //???BUG??? Yes!
+	SET_ZNC_ADD(RN + carry, RM, res);
+//	SET_ZNC_ADD(RN, RM + carry, res);
+	RN = res;
+#ifdef DSP_DIS_ADDC
+	if (doDSPDis)
+		WriteLog("[NCZ:%u%u%u, R%02u=%08X, R%02u=%08X]\n", dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_1, RM, IMM_2, RN);
+#endif
 }
 
 static void dsp_opcode_addq(void)
 {
-	uint32 _Rn=Rn;
-	uint32 _Rm=dsp_convert_zero[imm_1];
-	uint32 res;
-	
-#ifdef __PORT__
-
-    /*
-       GCC on WIN32 (more importantly mingw) doesn't know the declared
-       variables in asm until we put a _ before it.
-       
-       So the declaration dsp_flag_c needs to be _dsp_flag_c on mingw.
-    */
-
-    #ifdef __GCCWIN32__
-    
-	asm(
-	"addl %1, %2
-	setc  _dsp_flag_c
-	setz  _dsp_flag_z
-	sets  _dsp_flag_n
-	movl %%eax, %0
-	"
-	: "=m"(res)
-	: "d"(_Rm), "a"(_Rn));
-	
-	#else
-	
-	asm(
-	"addl %1, %2
-	setc  dsp_flag_c
-	setz  dsp_flag_z
-	sets  dsp_flag_n
-	movl %%eax, %0
-	"
-	: "=m"(res)
-	: "d"(_Rm), "a"(_Rn));
-
-	#endif
-	
-#else
-	__asm 
-	{
-		mov   edx,_Rm
-		mov   eax,_Rn
-		add   eax,edx
-		setc  [dsp_flag_c]
-		setz  [dsp_flag_z]
-		sets  [dsp_flag_n]
-		mov	  res,eax
-	};
+#ifdef DSP_DIS_ADDQ
+	if (doDSPDis)
+		WriteLog("%06X: ADDQ   #%u, R%02u [NCZ:%u%u%u, R%02u=%08X] -> ", dsp_pc-2, dsp_convert_zero[IMM_1], IMM_2, dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_2, RN);
 #endif
-	Rn=res;
+	UINT32 r1 = dsp_convert_zero[IMM_1];
+	UINT32 res = RN + r1;
+	CLR_ZNC; SET_ZNC_ADD(RN, r1, res);
+	RN = res;
+#ifdef DSP_DIS_ADDQ
+	if (doDSPDis)
+		WriteLog("[NCZ:%u%u%u, R%02u=%08X]\n", dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_2, RN);
+#endif
 }
 
 static void dsp_opcode_sub(void)
 {
-	uint32 _Rm=Rm;
-	uint32 _Rn=Rn;
-	uint32 res;
-#ifdef __PORT__
-
-    /*
-       GCC on WIN32 (more importantly mingw) doesn't know the declared
-       variables in asm until we put a _ before it.
-       
-       So the declaration dsp_flag_c needs to be _dsp_flag_c on mingw.
-    */
-
-    #ifdef __GCCWIN32__
-    
-	asm(
-	"subl %1, %2
-	setc  _dsp_flag_c
-	setz  _dsp_flag_z
-	sets  _dsp_flag_n
-	movl %%eax, %0
-	"
-	: "=m"(res)
-	: "d"(_Rm), "a"(_Rn));
-	
-	#else
-
-	asm(
-	"subl %1, %2
-	setc  dsp_flag_c
-	setz  dsp_flag_z
-	sets  dsp_flag_n
-	movl %%eax, %0
-	"
-	: "=m"(res)
-	: "d"(_Rm), "a"(_Rn));
-
-	#endif	
-	
-#else
-	__asm 
-	{
-		mov   eax,_Rn
-		mov   edx,_Rm
-		sub   eax,edx
-		setc  [dsp_flag_c]
-		setz  [dsp_flag_z]
-		sets  [dsp_flag_n]
-		mov	  res,eax
-	};
+#ifdef DSP_DIS_SUB
+	if (doDSPDis)
+		WriteLog("%06X: SUB    R%02u, R%02u [NCZ:%u%u%u, R%02u=%08X, R%02u=%08X] -> ", dsp_pc-2, IMM_1, IMM_2, dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_1, RM, IMM_2, RN);
 #endif
-	Rn=res;
+	UINT32 res = RN - RM;
+	SET_ZNC_SUB(RN, RM, res);
+	RN = res;
+#ifdef DSP_DIS_SUB
+	if (doDSPDis)
+		WriteLog("[NCZ:%u%u%u, R%02u=%08X, R%02u=%08X]\n", dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_1, RM, IMM_2, RN);
+#endif
 }
 
 static void dsp_opcode_subc(void)
 {
-	uint32 _Rm=Rm;
-	uint32 _Rn=Rn;
-	uint32 res;
-#ifdef __PORT__
-
-    /*
-       GCC on WIN32 (more importantly mingw) doesn't know the declared
-       variables in asm until we put a _ before it.
-       
-       So the declaration dsp_flag_c needs to be _dsp_flag_c on mingw.
-    */
-
-    #ifdef __GCCWIN32__
-
-	asm(
-	"addl %1, %2
-	cmp	  $0, _dsp_flag_c
-	clc
-	jz 1f
-	stc
-	1:
-	sbb %1, %2
-	setc  _dsp_flag_c
-	setz  _dsp_flag_z
-	sets  _dsp_flag_n
-	movl %%eax, %0
-	"
-	: "=m"(res)
-	: "d"(_Rm), "a"(_Rn));
-	
-	#else
-
-	asm(
-	"addl %1, %2
-	cmp	  $0, dsp_flag_c
-	clc
-	jz 1f
-	stc
-	1:
-	sbb %1, %2
-	setc  dsp_flag_c
-	setz  dsp_flag_z
-	sets  dsp_flag_n
-	movl %%eax, %0
-	"
-	: "=m"(res)
-	: "d"(_Rm), "a"(_Rn));
-
-	#endif
-	
-#else
-	__asm 
-	{
-		mov   edx,_Rm
-		mov   eax,_Rn
-		cmp	  [dsp_flag_c],0
-		clc
-		jz	  dsp_opcode_subc_no_carry
-		stc
-dsp_opcode_subc_no_carry:
-		sbb   eax,edx
-		setc  [dsp_flag_c]
-		setz  [dsp_flag_z]
-		sets  [dsp_flag_n]
-		mov	  res,eax
-	};
+#ifdef DSP_DIS_SUBC
+	if (doDSPDis)
+		WriteLog("%06X: SUBC   R%02u, R%02u [NCZ:%u%u%u, R%02u=%08X, R%02u=%08X] -> ", dsp_pc-2, IMM_1, IMM_2, dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_1, RM, IMM_2, RN);
 #endif
-	Rn=res;
+	UINT32 res = RN - RM - dsp_flag_c;
+	UINT32 borrow = dsp_flag_c;
+	SET_ZNC_SUB(RN - borrow, RM, res);
+	RN = res;
+#ifdef DSP_DIS_SUBC
+	if (doDSPDis)
+		WriteLog("[NCZ:%u%u%u, R%02u=%08X, R%02u=%08X]\n", dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_1, RM, IMM_2, RN);
+#endif
 }
 
 static void dsp_opcode_subq(void)
 {
-	uint32 _Rm=dsp_convert_zero[imm_1];
-	uint32 _Rn=Rn;
-	uint32 res;
-#ifdef __PORT__
-
-    /*
-       GCC on WIN32 (more importantly mingw) doesn't know the declared
-       variables in asm until we put a _ before it.
-       
-       So the declaration dsp_flag_c needs to be _dsp_flag_c on mingw.
-    */
-
-    #ifdef __GCCWIN32__
-
-	asm(
-	"subl %1, %2
-	setc  _dsp_flag_c
-	setz  _dsp_flag_z
-	sets  _dsp_flag_n
-	movl %%eax, %0
-	"
-	: "=m"(res)
-	: "d"(_Rm), "a"(_Rn));
-	
-	#else
-
-	asm(
-	"subl %1, %2
-	setc  dsp_flag_c
-	setz  dsp_flag_z
-	sets  dsp_flag_n
-	movl %%eax, %0
-	"
-	: "=m"(res)
-	: "d"(_Rm), "a"(_Rn));
-	
-	#endif
-#else
-	__asm 
-	{
-		mov   eax,_Rn
-		mov   edx,_Rm
-		sub   eax,edx
-		setc  [dsp_flag_c]
-		setz  [dsp_flag_z]
-		sets  [dsp_flag_n]
-		mov	  res,eax
-	};
+#ifdef DSP_DIS_SUBQ
+	if (doDSPDis)
+		WriteLog("%06X: SUBQ   #%u, R%02u [NCZ:%u%u%u, R%02u=%08X] -> ", dsp_pc-2, dsp_convert_zero[IMM_1], IMM_2, dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_2, RN);
 #endif
-	Rn=res;
+	UINT32 r1 = dsp_convert_zero[IMM_1];
+	UINT32 res = RN - r1;
+	SET_ZNC_SUB(RN, r1, res);
+	RN = res;
+#ifdef DSP_DIS_SUBQ
+	if (doDSPDis)
+		WriteLog("[NCZ:%u%u%u, R%02u=%08X]\n", dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_2, RN);
+#endif
 }
 
 static void dsp_opcode_cmp(void)
 {
-	uint32 _Rm=Rm;
-	uint32 _Rn=Rn;
-#ifdef __PORT__
-
-    /*
-       GCC on WIN32 (more importantly mingw) doesn't know the declared
-       variables in asm until we put a _ before it.
-       
-       So the declaration dsp_flag_c needs to be _dsp_flag_c on mingw.
-    */
-
-    #ifdef __GCCWIN32__
-
-	asm(
-	"cmpl %0, %1
-	setc  _dsp_flag_c
-	setz  _dsp_flag_z
-	sets  _dsp_flag_n
-	"
-	:
-	: "d"(_Rm), "a"(_Rn));
-	
-	#else
-	
-	asm(
-	"cmpl %0, %1
-	setc  dsp_flag_c
-	setz  dsp_flag_z
-	sets  dsp_flag_n
-	"
-	:
-	: "d"(_Rm), "a"(_Rn));
-	
-	#endif
-	
-#else
-	__asm 
-	{
-		mov   eax,_Rn
-		mov   edx,_Rm
-		cmp   eax,edx
-		setc  [dsp_flag_c]
-		setz  [dsp_flag_z]
-		sets  [dsp_flag_n]
-	};
+#ifdef DSP_DIS_CMP
+	if (doDSPDis)
+		WriteLog("%06X: CMP    R%02u, R%02u [NCZ:%u%u%u, R%02u=%08X, R%02u=%08X] -> ", dsp_pc-2, IMM_1, IMM_2, dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_1, RM, IMM_2, RN);
+#endif
+	UINT32 res = RN - RM;
+	SET_ZNC_SUB(RN, RM, res);
+#ifdef DSP_DIS_CMP
+	if (doDSPDis)
+		WriteLog("[NCZ:%u%u%u]\n", dsp_flag_n, dsp_flag_c, dsp_flag_z);
 #endif
 }
 
 static void dsp_opcode_cmpq(void)
 {
-	static int32 sqtable[32] = { 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,-16,-15,-14,-13,-12,-11,-10,-9,-8,-7,-6,-5,-4,-3,-2,-1};
-	int32 _Rm=sqtable[imm_1&0x1f];
-	uint32 _Rn=Rn;
-#ifdef __PORT__
-
-    /*
-       GCC on WIN32 (more importantly mingw) doesn't know the declared
-       variables in asm until we put a _ before it.
-       
-       So the declaration dsp_flag_c needs to be _dsp_flag_c on mingw.
-    */
-
-    #ifdef __GCCWIN32__
-
-	asm(
-	"cmpl %0, %1
-	setc  _dsp_flag_c
-	setz  _dsp_flag_z
-	sets  _dsp_flag_n
-	"
-	:
-	: "d"(_Rm), "a"(_Rn));
-	
-	#else
-
-	asm(
-	"cmpl %0, %1
-	setc  dsp_flag_c
-	setz  dsp_flag_z
-	sets  dsp_flag_n
-	"
-	:
-	: "d"(_Rm), "a"(_Rn));
-	
-	#endif
-	
-#else
-	__asm 
-	{
-		mov   eax,_Rn
-		mov   edx,_Rm
-		cmp   eax,edx
-		setc  [dsp_flag_c]
-		setz  [dsp_flag_z]
-		sets  [dsp_flag_n]
-	};
+	static int32 sqtable[32] =
+		{ 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,-16,-15,-14,-13,-12,-11,-10,-9,-8,-7,-6,-5,-4,-3,-2,-1 };
+#ifdef DSP_DIS_CMPQ
+	if (doDSPDis)
+		WriteLog("%06X: CMPQ   #%d, R%02u [NCZ:%u%u%u, R%02u=%08X] -> ", dsp_pc-2, sqtable[IMM_1], IMM_2, dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_2, RN);
+#endif
+	UINT32 r1 = sqtable[IMM_1 & 0x1F]; // I like this better -> (INT8)(jaguar.op >> 2) >> 3;
+	UINT32 res = RN - r1;
+	SET_ZNC_SUB(RN, r1, res);
+#ifdef DSP_DIS_CMPQ
+	if (doDSPDis)
+		WriteLog("[NCZ:%u%u%u]\n", dsp_flag_n, dsp_flag_c, dsp_flag_z);
 #endif
 }
 
 static void dsp_opcode_and(void)
 {
-	uint32 _Rm=Rm;
-	uint32 _Rn=Rn;
-	uint32 res;
-#ifdef __PORT__
-
-    /*
-       GCC on WIN32 (more importantly mingw) doesn't know the declared
-       variables in asm until we put a _ before it.
-       
-       So the declaration dsp_flag_c needs to be _dsp_flag_c on mingw.
-    */
-
-    #ifdef __GCCWIN32__
-
-	asm(
-	"andl %1, %2
-	setz  _dsp_flag_z
-	sets  _dsp_flag_n
-	movl %%eax, %0
-	"
-	: "=m"(res)
-	: "d"(_Rm), "a"(_Rn));
-	
-	#else
-
-	asm(
-	"andl %1, %2
-	setz  dsp_flag_z
-	sets  dsp_flag_n
-	movl %%eax, %0
-	"
-	: "=m"(res)
-	: "d"(_Rm), "a"(_Rn));
-	
-	#endif
-	
-#else
-	__asm 
-	{
-		mov   eax,_Rn
-		mov   edx,_Rm
-		and   eax,edx
-		setz  [dsp_flag_z]
-		sets  [dsp_flag_n]
-		mov   res,eax
-	};
+#ifdef DSP_DIS_AND
+	if (doDSPDis)
+		WriteLog("%06X: AND    R%02u, R%02u [NCZ:%u%u%u, R%02u=%08X, R%02u=%08X] -> ", dsp_pc-2, IMM_1, IMM_2, dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_1, RM, IMM_2, RN);
 #endif
-	Rn=res;
+	RN = RN & RM;
+	SET_ZN(RN);
+#ifdef DSP_DIS_AND
+	if (doDSPDis)
+		WriteLog("[NCZ:%u%u%u, R%02u=%08X, R%02u=%08X]\n", dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_1, RM, IMM_2, RN);
+#endif
 }
 
 static void dsp_opcode_or(void)
 {
-	uint32 _Rm=Rm;
-	uint32 _Rn=Rn;
-	uint32 res;
-#ifdef __PORT__
-
-    /*
-       GCC on WIN32 (more importantly mingw) doesn't know the declared
-       variables in asm until we put a _ before it.
-       
-       So the declaration dsp_flag_c needs to be _dsp_flag_c on mingw.
-    */
-
-    #ifdef __GCCWIN32__
-
-	asm(
-	"orl %1, %2
-	setz  _dsp_flag_z
-	sets  _dsp_flag_n
-	movl %%eax, %0
-	"
-	: "=m"(res)
-	: "d"(_Rm), "a"(_Rn));
-	
-	#else
-	
-	asm(
-	"orl %1, %2
-	setz  dsp_flag_z
-	sets  dsp_flag_n
-	movl %%eax, %0
-	"
-	: "=m"(res)
-	: "d"(_Rm), "a"(_Rn));
-	
-	#endif
-
-#else
-	__asm 
-	{
-		mov   eax,_Rn
-		mov   edx,_Rm
-		or    eax,edx
-		setz  [dsp_flag_z]
-		sets  [dsp_flag_n]
-		mov   res,eax
-	};
+#ifdef DSP_DIS_OR
+	if (doDSPDis)
+		WriteLog("%06X: OR     R%02u, R%02u [NCZ:%u%u%u, R%02u=%08X, R%02u=%08X] -> ", dsp_pc-2, IMM_1, IMM_2, dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_1, RM, IMM_2, RN);
 #endif
-	Rn=res;
+	RN = RN | RM;
+	SET_ZN(RN);
+#ifdef DSP_DIS_OR
+	if (doDSPDis)
+		WriteLog("[NCZ:%u%u%u, R%02u=%08X, R%02u=%08X]\n", dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_1, RM, IMM_2, RN);
+#endif
 }
 
 static void dsp_opcode_xor(void)
 {
-	uint32 _Rm=Rm;
-	uint32 _Rn=Rn;
-	uint32 res;
-#ifdef __PORT__
-
-    /*
-       GCC on WIN32 (more importantly mingw) doesn't know the declared
-       variables in asm until we put a _ before it.
-       
-       So the declaration dsp_flag_c needs to be _dsp_flag_c on mingw.
-    */
-
-    #ifdef __GCCWIN32__
-
-	asm(
-	"xorl %1, %2
-	setz  _dsp_flag_z
-	sets  _dsp_flag_n
-	movl %%eax, %0
-	"
-	: "=m"(res)
-	: "d"(_Rm), "a"(_Rn));
-	
-	#else
-	
-	asm(
-	"xorl %1, %2
-	setz  dsp_flag_z
-	sets  dsp_flag_n
-	movl %%eax, %0
-	"
-	: "=m"(res)
-	: "d"(_Rm), "a"(_Rn));
-	
-	#endif
-	
-#else
-	__asm 
-	{
-		mov   eax,_Rn
-		mov   edx,_Rm
-		xor   eax,edx
-		setz  [dsp_flag_z]
-		sets  [dsp_flag_n]
-		mov   res,eax
-	};
+#ifdef DSP_DIS_XOR
+	if (doDSPDis)
+		WriteLog("%06X: XOR    R%02u, R%02u [NCZ:%u%u%u, R%02u=%08X, R%02u=%08X] -> ", dsp_pc-2, IMM_1, IMM_2, dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_1, RM, IMM_2, RN);
 #endif
-	Rn=res;
+	RN = RN ^ RM;
+	SET_ZN(RN);
+#ifdef DSP_DIS_XOR
+	if (doDSPDis)
+		WriteLog("[NCZ:%u%u%u, R%02u=%08X, R%02u=%08X]\n", dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_1, RM, IMM_2, RN);
+#endif
 }
 
 static void dsp_opcode_not(void)
 {
-	uint32 _Rn=Rn;
-	uint32 res;
-#ifdef __PORT__
-
-    /*
-       GCC on WIN32 (more importantly mingw) doesn't know the declared
-       variables in asm until we put a _ before it.
-       
-       So the declaration dsp_flag_c needs to be _dsp_flag_c on mingw.
-    */
-
-    #ifdef __GCCWIN32__
-
-	asm(
-	"notl %1
-	setz  _dsp_flag_z
-	sets  _dsp_flag_n
-	movl %%eax, %0
-	"
-	: "=m"(res)
-	: "a"(_Rn));
-	
-	#else
-	
-	asm(
-	"notl %1
-	setz  dsp_flag_z
-	sets  dsp_flag_n
-	movl %%eax, %0
-	"
-	: "=m"(res)
-	: "a"(_Rn));
-	
-	#endif
-	
-#else
-	__asm 
-	{
-		mov   eax,_Rn
-		not   eax
-		setz  [dsp_flag_z]
-		sets  [dsp_flag_n]
-		mov   res,eax
-	};
+#ifdef DSP_DIS_NOT
+	if (doDSPDis)
+		WriteLog("%06X: NOT    R%02u, R%02u [NCZ:%u%u%u, R%02u=%08X, R%02u=%08X] -> ", dsp_pc-2, IMM_1, IMM_2, dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_1, RM, IMM_2, RN);
 #endif
-	Rn=res;
+	RN = ~RN;
+	SET_ZN(RN);
+#ifdef DSP_DIS_NOT
+	if (doDSPDis)
+		WriteLog("[NCZ:%u%u%u, R%02u=%08X, R%02u=%08X]\n", dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_1, RM, IMM_2, RN);
+#endif
 }
 
 static void dsp_opcode_move_pc(void)
 {
-	Rn = dsp_pc-2; 
-}
-
-static void dsp_opcode_sat8(void)
-{
-	int32 _Rn=(int32)Rn;
-
-	uint32 res= Rn = (_Rn<0) ? 0 : (_Rn > 0xff ? 0xff : _Rn);
-	set_flag_z(res);
-	reset_flag_n();
-}
-
-static void dsp_opcode_sat16(void)
-{
-	uint32 _Rn=Rn;
-	uint32 res= Rn = (_Rn&0x80000000) ? 0 : (_Rn > 0xFFFF ? 0xFFFF : _Rn);
-	set_flag_z(res);
-	reset_flag_n();
-}
-
-static void dsp_opcode_sat24(void)
-{
-	uint32 _Rn=Rn;
-
-	uint32 res= Rn = (_Rn&0x80000000) ? 0 : (_Rn > 0xFFFFFF ? 0xFFFFFF : _Rn);
-	set_flag_z(res);
-	reset_flag_n();
+	RN = dsp_pc - 2;
 }
 
 static void dsp_opcode_store_r14_indexed(void)
 {
-	dsp_long_write( dsp_reg[14] + (dsp_convert_zero[imm_1] << 2),Rn);
+#ifdef DSP_DIS_STORE14I
+	if (doDSPDis)
+		WriteLog("%06X: STORE  R%02u, (R14+$%02X) [NCZ:%u%u%u, R%02u=%08X, R14+$%02X=%08X]\n", dsp_pc-2, IMM_2, dsp_convert_zero[IMM_1] << 2, dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_2, RN, dsp_convert_zero[IMM_1] << 2, dsp_reg[14]+(dsp_convert_zero[IMM_1] << 2));
+#endif
+	DSPWriteLong(dsp_reg[15] + (dsp_convert_zero[IMM_1] << 2), RN, DSP);
 }
 
 static void dsp_opcode_store_r15_indexed(void)
 {
-	dsp_long_write( dsp_reg[15] + (dsp_convert_zero[imm_1] << 2),Rn);
+#ifdef DSP_DIS_STORE15I
+	if (doDSPDis)
+		WriteLog("%06X: STORE  R%02u, (R15+$%02X) [NCZ:%u%u%u, R%02u=%08X, R15+$%02X=%08X]\n", dsp_pc-2, IMM_2, dsp_convert_zero[IMM_1] << 2, dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_2, RN, dsp_convert_zero[IMM_1] << 2, dsp_reg[15]+(dsp_convert_zero[IMM_1] << 2));
+#endif
+	DSPWriteLong(dsp_reg[15] + (dsp_convert_zero[IMM_1] << 2), RN, DSP);
 }
 
 static void dsp_opcode_load_r14_ri(void)
 {
-	Rn=dsp_long_read(dsp_reg[14] + Rm);
+#ifdef DSP_DIS_LOAD14R
+	if (doDSPDis)
+		WriteLog("%06X: LOAD   (R14+R%02u), R%02u [NCZ:%u%u%u, R14+R%02u=%08X, R%02u=%08X] -> ", dsp_pc-2, IMM_1, IMM_2, dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_1, RM+dsp_reg[14], IMM_2, RN);
+#endif
+	RN = DSPReadLong(dsp_reg[14] + RM, DSP);
+#ifdef DSP_DIS_LOAD14R
+	if (doDSPDis)
+		WriteLog("[NCZ:%u%u%u, R%02u=%08X]\n", dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_2, RN);
+#endif
 }
 
 static void dsp_opcode_load_r15_ri(void)
 {
-	Rn=dsp_long_read(dsp_reg[15] + Rm);
+#ifdef DSP_DIS_LOAD15R
+	if (doDSPDis)
+		WriteLog("%06X: LOAD   (R15+R%02u), R%02u [NCZ:%u%u%u, R15+R%02u=%08X, R%02u=%08X] -> ", dsp_pc-2, IMM_1, IMM_2, dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_1, RM+dsp_reg[15], IMM_2, RN);
+#endif
+	RN = DSPReadLong(dsp_reg[15] + RM, DSP);
+#ifdef DSP_DIS_LOAD15R
+	if (doDSPDis)
+		WriteLog("[NCZ:%u%u%u, R%02u=%08X]\n", dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_2, RN);
+#endif
 }
 
 static void dsp_opcode_store_r14_ri(void)
 {
-	dsp_long_write(dsp_reg[14] + Rm,Rn);
+	DSPWriteLong(dsp_reg[14] + RM, RN, DSP);
 }
 
 static void dsp_opcode_store_r15_ri(void)
 {
-	dsp_long_write(dsp_reg[15] + Rm,Rn);
+	DSPWriteLong(dsp_reg[15] + RM, RN, DSP);
 }
 
 static void dsp_opcode_nop(void)
 {
-}
-
-static void dsp_opcode_pack(void)
-{
-	uint32 _Rn=Rn;
-
-	if (Rm==0)
-	{
-		Rn =((_Rn & 0x03C00000) >> 10) |
-			((_Rn & 0x0001E000) >> 5)  |
-			((_Rn & 0x000000FF));
-	}
-	else
-	{
-		Rn =((_Rn & 0x0000F000) << 10) |
-			((_Rn & 0x00000F00) << 5)  |
-			((_Rn & 0x000000FF));
-	}
-	reset_flag_z();
-	reset_flag_n();
-	set_flag_z(Rn);
-	set_flag_n(Rn);
+#ifdef DSP_DIS_NOP
+	if (doDSPDis)
+		WriteLog("%06X: NOP    [NCZ:%u%u%u]\n", dsp_pc-2, dsp_flag_n, dsp_flag_c, dsp_flag_z);
+#endif
 }
 
 static void dsp_opcode_storeb(void)
 {
-	if ((Rm >= DSP_WORK_RAM_BASE) && (Rm < (DSP_WORK_RAM_BASE+0x2000)))
-		dsp_long_write(Rm,Rn&0xff);
+#ifdef DSP_DIS_STOREB
+	if (doDSPDis)
+		WriteLog("%06X: STOREB R%02u, (R%02u) [NCZ:%u%u%u, R%02u=%08X, R%02u=%08X]\n", dsp_pc-2, IMM_2, IMM_1, dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_2, RN, IMM_1, RM);
+#endif
+	if (RM >= DSP_WORK_RAM_BASE && RM <= (DSP_WORK_RAM_BASE + 0x1FFF))
+		DSPWriteLong(RM, RN & 0xFF, DSP);
 	else
-		jaguar_byte_write(Rm,Rn);
+		JaguarWriteByte(RM, RN, DSP);
 }
 
 static void dsp_opcode_storew(void)
 {
-	if ((Rm >= DSP_WORK_RAM_BASE) && (Rm < (DSP_WORK_RAM_BASE+0x2000)))
-		dsp_long_write(Rm,Rn&0xffff);
+#ifdef DSP_DIS_STOREW
+	if (doDSPDis)
+		WriteLog("%06X: STOREW R%02u, (R%02u) [NCZ:%u%u%u, R%02u=%08X, R%02u=%08X]\n", dsp_pc-2, IMM_2, IMM_1, dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_2, RN, IMM_1, RM);
+#endif
+	if (RM >= DSP_WORK_RAM_BASE && RM <= (DSP_WORK_RAM_BASE + 0x1FFF))
+		DSPWriteLong(RM, RN & 0xFFFF, DSP);
 	else
-		jaguar_word_write(Rm,Rn);
+		JaguarWriteWord(RM, RN, DSP);
 }
 
 static void dsp_opcode_store(void)
 {
-	dsp_long_write(Rm,Rn);
+#ifdef DSP_DIS_STORE
+	if (doDSPDis)
+		WriteLog("%06X: STORE  R%02u, (R%02u) [NCZ:%u%u%u, R%02u=%08X, R%02u=%08X]\n", dsp_pc-2, IMM_2, IMM_1, dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_2, RN, IMM_1, RM);
+#endif
+	DSPWriteLong(RM, RN, DSP);
 }
 
 static void dsp_opcode_loadb(void)
 {
-	if ((Rm >= DSP_WORK_RAM_BASE) && (Rm < (DSP_WORK_RAM_BASE+0x2000)))
-		Rn=dsp_long_read(Rm)&0xff;
+#ifdef DSP_DIS_LOADB
+	if (doDSPDis)
+		WriteLog("%06X: LOADB  (R%02u), R%02u [NCZ:%u%u%u, R%02u=%08X, R%02u=%08X] -> ", dsp_pc-2, IMM_1, IMM_2, dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_1, RM, IMM_2, RN);
+#endif
+	if (RM >= DSP_WORK_RAM_BASE && RM <= (DSP_WORK_RAM_BASE + 0x1FFF))
+		RN = DSPReadLong(RM, DSP) & 0xFF;
 	else
-		Rn=jaguar_byte_read(Rm);
+		RN = JaguarReadByte(RM, DSP);
+#ifdef DSP_DIS_LOADB
+	if (doDSPDis)
+		WriteLog("[NCZ:%u%u%u, R%02u=%08X]\n", dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_2, RN);
+#endif
 }
 
 static void dsp_opcode_loadw(void)
 {
-	if ((Rm >= DSP_WORK_RAM_BASE) && (Rm < (DSP_WORK_RAM_BASE+0x2000)))
-		Rn=dsp_long_read(Rm)&0xffff;
+#ifdef DSP_DIS_LOADW
+	if (doDSPDis)
+		WriteLog("%06X: LOADW  (R%02u), R%02u [NCZ:%u%u%u, R%02u=%08X, R%02u=%08X] -> ", dsp_pc-2, IMM_1, IMM_2, dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_1, RM, IMM_2, RN);
+#endif
+	if (RM >= DSP_WORK_RAM_BASE && RM <= (DSP_WORK_RAM_BASE + 0x1FFF))
+		RN = DSPReadLong(RM, DSP) & 0xFFFF;
 	else
-		Rn=jaguar_word_read(Rm);
+		RN = JaguarReadWord(RM, DSP);
+#ifdef DSP_DIS_LOADW
+	if (doDSPDis)
+		WriteLog("[NCZ:%u%u%u, R%02u=%08X]\n", dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_2, RN);
+#endif
 }
 
 static void dsp_opcode_load(void)
 {
-	Rn = dsp_long_read(Rm);
+#ifdef DSP_DIS_LOAD
+	if (doDSPDis)
+		WriteLog("%06X: LOAD   (R%02u), R%02u [NCZ:%u%u%u, R%02u=%08X, R%02u=%08X] -> ", dsp_pc-2, IMM_1, IMM_2, dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_1, RM, IMM_2, RN);
+#endif
+	RN = DSPReadLong(RM, DSP);
+#ifdef DSP_DIS_LOAD
+	if (doDSPDis)
+		WriteLog("[NCZ:%u%u%u, R%02u=%08X]\n", dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_2, RN);
+#endif
 }
 
 static void dsp_opcode_load_r14_indexed(void)
 {
-	Rn = dsp_long_read( dsp_reg[14] + (dsp_convert_zero[imm_1] << 2));
+#ifdef DSP_DIS_LOAD14I
+	if (doDSPDis)
+		WriteLog("%06X: LOAD   (R14+$%02X), R%02u [NCZ:%u%u%u, R14+$%02X=%08X, R%02u=%08X] -> ", dsp_pc-2, dsp_convert_zero[IMM_1] << 2, IMM_2, dsp_flag_n, dsp_flag_c, dsp_flag_z, dsp_convert_zero[IMM_1] << 2, dsp_reg[14]+(dsp_convert_zero[IMM_1] << 2), IMM_2, RN);
+#endif
+	RN = DSPReadLong(dsp_reg[14] + (dsp_convert_zero[IMM_1] << 2), DSP);
+#ifdef DSP_DIS_LOAD14I
+	if (doDSPDis)
+		WriteLog("[NCZ:%u%u%u, R%02u=%08X]\n", dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_2, RN);
+#endif
 }
 
 static void dsp_opcode_load_r15_indexed(void)
 {
-	Rn = dsp_long_read( dsp_reg[15] + (dsp_convert_zero[imm_1] << 2));
+#ifdef DSP_DIS_LOAD15I
+	if (doDSPDis)
+		WriteLog("%06X: LOAD   (R15+$%02X), R%02u [NCZ:%u%u%u, R15+$%02X=%08X, R%02u=%08X] -> ", dsp_pc-2, dsp_convert_zero[IMM_1] << 2, IMM_2, dsp_flag_n, dsp_flag_c, dsp_flag_z, dsp_convert_zero[IMM_1] << 2, dsp_reg[15]+(dsp_convert_zero[IMM_1] << 2), IMM_2, RN);
+#endif
+	RN = DSPReadLong(dsp_reg[15] + (dsp_convert_zero[IMM_1] << 2), DSP);
+#ifdef DSP_DIS_LOAD15I
+	if (doDSPDis)
+		WriteLog("[NCZ:%u%u%u, R%02u=%08X]\n", dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_2, RN);
+#endif
 }
 
 static void dsp_opcode_movei(void)
 {
-	Rn = ((uint32)dsp_word_read(dsp_pc)) + (((uint32)dsp_word_read(dsp_pc+2))<<16);
-	dsp_pc+=4;
+#ifdef DSP_DIS_MOVEI
+	if (doDSPDis)
+		WriteLog("%06X: MOVEI  #$%08X, R%02u [NCZ:%u%u%u, R%02u=%08X] -> ", dsp_pc-2, (uint32)DSPReadWord(dsp_pc) | ((uint32)DSPReadWord(dsp_pc + 2) << 16), IMM_2, dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_2, RN);
+#endif
+	// This instruction is followed by 32-bit value in LSW / MSW format...
+	RN = (uint32)DSPReadWord(dsp_pc, DSP) | ((uint32)DSPReadWord(dsp_pc + 2, DSP) << 16);
+	dsp_pc += 4;
+#ifdef DSP_DIS_MOVEI
+	if (doDSPDis)
+		WriteLog("[NCZ:%u%u%u, R%02u=%08X]\n", dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_2, RN);
+#endif
 }
 
 static void dsp_opcode_moveta(void)
 {
-	alternate_Rn = Rm;
+#ifdef DSP_DIS_MOVETA
+	if (doDSPDis)
+		WriteLog("%06X: MOVETA R%02u, R%02u [NCZ:%u%u%u, R%02u=%08X, R%02u(alt)=%08X] -> ", dsp_pc-2, IMM_1, IMM_2, dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_1, RM, IMM_2, ALTERNATE_RN);
+#endif
+	ALTERNATE_RN = RM;
+#ifdef DSP_DIS_MOVETA
+	if (doDSPDis)
+		WriteLog("[NCZ:%u%u%u, R%02u=%08X, R%02u(alt)=%08X]\n", dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_1, RM, IMM_2, ALTERNATE_RN);
+#endif
 }
 
 static void dsp_opcode_movefa(void)
 {
-	Rn = alternate_Rm;
+#ifdef DSP_DIS_MOVEFA
+	if (doDSPDis)
+		WriteLog("%06X: MOVEFA R%02u, R%02u [NCZ:%u%u%u, R%02u(alt)=%08X, R%02u=%08X] -> ", dsp_pc-2, IMM_1, IMM_2, dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_1, ALTERNATE_RM, IMM_2, RN);
+#endif
+	RN = ALTERNATE_RM;
+#ifdef DSP_DIS_MOVEFA
+	if (doDSPDis)
+		WriteLog("[NCZ:%u%u%u, R%02u(alt)=%08X, R%02u=%08X]\n", dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_1, ALTERNATE_RM, IMM_2, RN);
+#endif
 }
 
 static void dsp_opcode_move(void)
 {
-	Rn = Rm;
+#ifdef DSP_DIS_MOVE
+	if (doDSPDis)
+		WriteLog("%06X: MOVE   R%02u, R%02u [NCZ:%u%u%u, R%02u=%08X, R%02u=%08X] -> ", dsp_pc-2, IMM_1, IMM_2, dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_1, RM, IMM_2, RN);
+#endif
+	RN = RM;
+#ifdef DSP_DIS_MOVE
+	if (doDSPDis)
+		WriteLog("[NCZ:%u%u%u, R%02u=%08X, R%02u=%08X]\n", dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_1, RM, IMM_2, RN);
+#endif
 }
 
 static void dsp_opcode_moveq(void)
 {
-	Rn = imm_1;    
+#ifdef DSP_DIS_MOVEQ
+	if (doDSPDis)
+		WriteLog("%06X: MOVEQ  #%u, R%02u [NCZ:%u%u%u, R%02u=%08X] -> ", dsp_pc-2, IMM_1, IMM_2, dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_2, RN);
+#endif
+	RN = IMM_1;
+#ifdef DSP_DIS_MOVEQ
+	if (doDSPDis)
+		WriteLog("[NCZ:%u%u%u, R%02u=%08X]\n", dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_2, RN);
+#endif
 }
 
 static void dsp_opcode_resmac(void)
 {
-	Rn = dsp_acc;
+#ifdef DSP_DIS_RESMAC
+	if (doDSPDis)
+		WriteLog("%06X: RESMAC R%02u [NCZ:%u%u%u, R%02u=%08X, DSP_ACC=%02X%08X] -> ", dsp_pc-2, IMM_2, dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_2, RN, (uint8)(dsp_acc >> 32), (uint32)(dsp_acc & 0xFFFFFFFF));
+#endif
+	RN = (uint32)dsp_acc;
+#ifdef DSP_DIS_RESMAC
+	if (doDSPDis)
+		WriteLog("[NCZ:%u%u%u, R%02u=%08X]\n", dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_2, RN);
+#endif
 }
 
 static void dsp_opcode_imult(void)
 {
-	uint32 res=Rn=((int16)Rn)*((int16)Rm);
-	set_flag_z(res);
-	set_flag_n(res);
+#ifdef DSP_DIS_IMULT
+	if (doDSPDis)
+		WriteLog("%06X: IMULT  R%02u, R%02u [NCZ:%u%u%u, R%02u=%08X, R%02u=%08X] -> ", dsp_pc-2, IMM_1, IMM_2, dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_1, RM, IMM_2, RN);
+#endif
+	RN = (int16)RN * (int16)RM;
+	SET_ZN(RN);
+#ifdef DSP_DIS_IMULT
+	if (doDSPDis)
+		WriteLog("[NCZ:%u%u%u, R%02u=%08X, R%02u=%08X]\n", dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_1, RM, IMM_2, RN);
+#endif
 }
 
 static void dsp_opcode_mult(void)
 {
-	uint32 res=Rn =  ((uint16)Rm) * ((uint16)Rn);
-	set_flag_z(res);
-	set_flag_n(res);
+#ifdef DSP_DIS_MULT
+	if (doDSPDis)
+		WriteLog("%06X: MULT   R%02u, R%02u [NCZ:%u%u%u, R%02u=%08X, R%02u=%08X] -> ", dsp_pc-2, IMM_1, IMM_2, dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_1, RM, IMM_2, RN);
+#endif
+	RN = (uint16)RM * (uint16)RN;
+	SET_ZN(RN);
+#ifdef DSP_DIS_MULT
+	if (doDSPDis)
+		WriteLog("[NCZ:%u%u%u, R%02u=%08X, R%02u=%08X]\n", dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_1, RM, IMM_2, RN);
+#endif
 }
 
 static void dsp_opcode_bclr(void)
 {
-	uint32 _Rm=imm_1;
-	uint32 _Rn=Rn;
-	uint32 res;
-#ifdef __PORT__
-
-    /*
-       GCC on WIN32 (more importantly mingw) doesn't know the declared
-       variables in asm until we put a _ before it.
-       
-       So the declaration dsp_flag_c needs to be _dsp_flag_c on mingw.
-    */
-
-    #ifdef __GCCWIN32__
-
-	asm(
-	"btrl %1, %2
-	cmpl $0, %2
-	setz  _dsp_flag_z
-	sets  _dsp_flag_n
-	movl %%eax, %0
-	"
-	: "=m"(res)
-	: "c"(_Rm), "a"(_Rn));
-	
-	#else
-
-	asm(
-	"btrl %1, %2
-	cmpl $0, %2
-	setz  dsp_flag_z
-	sets  dsp_flag_n
-	movl %%eax, %0
-	"
-	: "=m"(res)
-	: "c"(_Rm), "a"(_Rn));
-	
-	#endif
-	
-	
-#else
-	__asm 
-	{
-		mov   eax,_Rn
-		mov   ecx,_Rm
-		btr	  eax,ecx
-		cmp   eax,0
-		setz  [dsp_flag_z]
-		sets  [dsp_flag_n]
-		mov   res,eax
-	};
+#ifdef DSP_DIS_BCLR
+	if (doDSPDis)
+		WriteLog("%06X: BCLR   #%u, R%02u [NCZ:%u%u%u, R%02u=%08X] -> ", dsp_pc-2, IMM_1, IMM_2, dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_2, RN);
 #endif
-	Rn=res;
+	UINT32 res = RN & ~(1 << IMM_1);
+	RN = res;
+	SET_ZN(res);
+#ifdef DSP_DIS_BCLR
+	if (doDSPDis)
+		WriteLog("[NCZ:%u%u%u, R%02u=%08X]\n", dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_2, RN);
+#endif
 }
 
 static void dsp_opcode_btst(void)
 {
-	uint32 _Rm=imm_1;
-	uint32 _Rn=Rn;
-#ifdef __PORT__
-
-    /*
-       GCC on WIN32 (more importantly mingw) doesn't know the declared
-       variables in asm until we put a _ before it.
-       
-       So the declaration dsp_flag_c needs to be _dsp_flag_c on mingw.
-    */
-
-    #ifdef __GCCWIN32__
-
-	asm(
-	"bt %0, %1
-	setnc _dsp_flag_z
-	"
-	:
-	: "c"(_Rm), "a"(_Rn));
-	
-	#else
-	
-	asm(
-	"bt %0, %1
-	setnc dsp_flag_z
-	"
-	:
-	: "c"(_Rm), "a"(_Rn));
-	
-	#endif
-	
-#else
-	__asm 
-	{
-		mov   eax,_Rn
-		mov   ecx,_Rm
-		bt	  eax,ecx
-		setnc [dsp_flag_z]
-	};
+#ifdef DSP_DIS_BTST
+	if (doDSPDis)
+		WriteLog("%06X: BTST   #%u, R%02u [NCZ:%u%u%u, R%02u=%08X] -> ", dsp_pc-2, IMM_1, IMM_2, dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_2, RN);
+#endif
+	dsp_flag_z = (~RN >> IMM_1) & 1;
+#ifdef DSP_DIS_BTST
+	if (doDSPDis)
+		WriteLog("[NCZ:%u%u%u, R%02u=%08X]\n", dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_2, RN);
 #endif
 }
 
 static void dsp_opcode_bset(void)
 {
-	uint32 _Rm=imm_1;
-	uint32 _Rn=Rn;
-	uint32 res;
-#ifdef __PORT__
-
-    /*
-       GCC on WIN32 (more importantly mingw) doesn't know the declared
-       variables in asm until we put a _ before it.
-       
-       So the declaration dsp_flag_c needs to be _dsp_flag_c on mingw.
-    */
-
-    #ifdef __GCCWIN32__
-
-	asm(
-	"btsl %1, %2
-	cmpl $0, %2
-	setz  _dsp_flag_z
-	sets  _dsp_flag_n
-	movl %%eax, %0
-	"
-	: "=m"(res)
-	: "c"(_Rm), "a"(_Rn));
-	
-	#else
-	
-	asm(
-	"btsl %1, %2
-	cmpl $0, %2
-	setz  dsp_flag_z
-	sets  dsp_flag_n
-	movl %%eax, %0
-	"
-	: "=m"(res)
-	: "c"(_Rm), "a"(_Rn));
-	
-	#endif
-	
-#else
-	__asm 
-	{
-		mov   eax,_Rn
-		mov   ecx,_Rm
-		bts	  eax,ecx
-		cmp   eax,0
-		setz  [dsp_flag_z]
-		sets  [dsp_flag_n]
-		mov   res,eax
-	};
+#ifdef DSP_DIS_BSET
+	if (doDSPDis)
+		WriteLog("%06X: BSET   #%u, R%02u [NCZ:%u%u%u, R%02u=%08X] -> ", dsp_pc-2, IMM_1, IMM_2, dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_2, RN);
 #endif
-	Rn=res;
+	UINT32 res = RN | (1 << IMM_1);
+	RN = res;
+	SET_ZN(res);
+#ifdef DSP_DIS_BSET
+	if (doDSPDis)
+		WriteLog("[NCZ:%u%u%u, R%02u=%08X]\n", dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_2, RN);
+#endif
 }
 
 static void dsp_opcode_subqt(void)
 {
-	Rn -= dsp_convert_zero[imm_1];
+#ifdef DSP_DIS_SUBQT
+	if (doDSPDis)
+		WriteLog("%06X: SUBQT  #%u, R%02u [NCZ:%u%u%u, R%02u=%08X] -> ", dsp_pc-2, dsp_convert_zero[IMM_1], IMM_2, dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_2, RN);
+#endif
+	RN -= dsp_convert_zero[IMM_1];
+#ifdef DSP_DIS_SUBQT
+	if (doDSPDis)
+		WriteLog("[NCZ:%u%u%u, R%02u=%08X]\n", dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_2, RN);
+#endif
 }
 
 static void dsp_opcode_addqt(void)
 {
-	Rn += dsp_convert_zero[imm_1];
+#ifdef DSP_DIS_ADDQT
+	if (doDSPDis)
+		WriteLog("%06X: ADDQT  #%u, R%02u [NCZ:%u%u%u, R%02u=%08X] -> ", dsp_pc-2, dsp_convert_zero[IMM_1], IMM_2, dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_2, RN);
+#endif
+	RN += dsp_convert_zero[IMM_1];
+#ifdef DSP_DIS_ADDQT
+	if (doDSPDis)
+		WriteLog("[NCZ:%u%u%u, R%02u=%08X]\n", dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_2, RN);
+#endif
 }
 
 static void dsp_opcode_imacn(void)
 {
-	uint32 res=((int16)Rm) * ((int16)(Rn));
-	dsp_acc += res;
+#ifdef DSP_DIS_IMACN
+	if (doDSPDis)
+		WriteLog("%06X: IMACN  R%02u, R%02u [NCZ:%u%u%u, R%02u=%08X, R%02u=%08X] -> ", dsp_pc-2, IMM_1, IMM_2, dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_1, RM, IMM_2, RN);
+#endif
+	int32 res = (int16)RM * (int16)RN;
+	dsp_acc += (int64)res;
+//Should we AND the result to fit into 40 bits here???
+#ifdef DSP_DIS_IMACN
+	if (doDSPDis)
+		WriteLog("[NCZ:%u%u%u, DSP_ACC=%02X%08X]\n", dsp_flag_n, dsp_flag_c, dsp_flag_z, (uint8)(dsp_acc >> 32), (uint32)(dsp_acc & 0xFFFFFFFF));
+#endif
 } 
 
 static void dsp_opcode_mtoi(void)
 {
-	uint32 _Rm=Rm;
-	uint32 res=Rn=(((INT32)_Rm >> 8) & 0xff800000) | (_Rm & 0x007fffff);
-	set_flag_z(res);
-	set_flag_n(res);
+	RN = (((INT32)RM >> 8) & 0xFF800000) | (RM & 0x007FFFFF);
+	SET_ZN(RN);
 }
 
 static void dsp_opcode_normi(void)
 {
-	uint32 _Rm = Rm;
+	uint32 _Rm = RM;
 	uint32 res = 0;
 
 	if (_Rm)
@@ -1966,9 +1696,8 @@ static void dsp_opcode_normi(void)
 			res++;
 		}
 	}
-	Rn = res;
-	set_flag_z(res);
-	set_flag_n(res);
+	RN = res;
+	SET_ZN(RN);
 }
 
 static void dsp_opcode_mmult(void)
@@ -1987,7 +1716,7 @@ static void dsp_opcode_mmult(void)
 				a=(int16)((dsp_alternate_reg[dsp_opcode_first_parameter + (i>>1)]>>16)&0xffff);
 			else
 				a=(int16)(dsp_alternate_reg[dsp_opcode_first_parameter + (i>>1)]&0xffff);
-			int16 b=((int16)dsp_word_read(addr+2));
+			int16 b=((int16)DSPReadWord(addr + 2, DSP));
 			accum += a*b;
 			addr += 4;
 		}
@@ -2001,39 +1730,36 @@ static void dsp_opcode_mmult(void)
 				a=(int16)((dsp_alternate_reg[dsp_opcode_first_parameter + (i>>1)]>>16)&0xffff);
 			else
 				a=(int16)(dsp_alternate_reg[dsp_opcode_first_parameter + (i>>1)]&0xffff);
-			int16 b=((int16)dsp_word_read(addr+2));
+			int16 b=((int16)DSPReadWord(addr + 2, DSP));
 			accum += a*b;
 			addr += 4 * count;
 		}
 	}
-	Rn = res = (int32)accum;
+	RN = res = (int32)accum;
 	// carry flag to do
-	set_flag_z(res);
-	set_flag_n(res);
+//NOTE: The flags are set based upon the last add/multiply done...
+	SET_ZN(RN);
 }
 
 static void dsp_opcode_abs(void)
 {
-	uint32 _Rn=Rn;
+	uint32 _Rn = RN;
 	uint32 res;
 	
-	if (_Rn==0x80000000)
-	{
-		set_flag_n(1);
-	}
+	if (_Rn == 0x80000000)
+		dsp_flag_n = 1;
 	else
 	{
-		dsp_flag_c  = ((_Rn&0x80000000)>>31);
-		res= Rn =  (_Rn & 0x80000000) ? -_Rn : _Rn;
-		reset_flag_n();
-		set_flag_z(res);
+		dsp_flag_c = ((_Rn & 0x80000000) >> 31);
+		res = RN = (_Rn & 0x80000000 ? -_Rn : _Rn);
+		CLR_ZN; SET_Z(res);
 	}
 }
 
 static void dsp_opcode_div(void)
 {
-	uint32 _Rm=Rm;
-	uint32 _Rn=Rn;
+	uint32 _Rm=RM;
+	uint32 _Rn=RN;
 
 	if (_Rm)
 	{
@@ -2042,333 +1768,120 @@ static void dsp_opcode_div(void)
 			dsp_remain = (((uint64)_Rn) << 16) % _Rm;
 			if (dsp_remain&0x80000000)
 				dsp_remain-=_Rm;
-			Rn = (((uint64)_Rn) << 16) / _Rm;
+			RN = (((uint64)_Rn) << 16) / _Rm;
 		}
 		else
 		{
 			dsp_remain = _Rn % _Rm;
 			if (dsp_remain&0x80000000)
 				dsp_remain-=_Rm;
-			Rn/=_Rm;
+			RN/=_Rm;
 		}
 	}
 	else
-		Rn=0xffffffff;
+		RN=0xffffffff;
 }
 
 static void dsp_opcode_imultn(void)
 {
-	uint32 res=(int32)(((int16)Rn)*((int16)Rm));
-	dsp_acc=(int32)res;
-	set_flag_z(res);
-	set_flag_n(res);
+#ifdef DSP_DIS_IMULTN
+	if (doDSPDis)
+		WriteLog("%06X: IMULTN R%02u, R%02u [NCZ:%u%u%u, R%02u=%08X, R%02u=%08X] -> ", dsp_pc-2, IMM_1, IMM_2, dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_1, RM, IMM_2, RN);
+#endif
+	// This is OK, since this multiply won't overflow 32 bits...
+	int32 res = (int32)((int16)RN * (int16)RM);
+	dsp_acc = (int64)res;
+	SET_ZN(res);
+#ifdef DSP_DIS_IMULTN
+	if (doDSPDis)
+		WriteLog("[NCZ:%u%u%u, DSP_ACC=%02X%08X]\n", dsp_flag_n, dsp_flag_c, dsp_flag_z, (uint8)(dsp_acc >> 32), (uint32)(dsp_acc & 0xFFFFFFFF));
+#endif
 }
 
 static void dsp_opcode_neg(void)
 {
-	uint32 _Rn=Rn;
-	uint32 res;
-#ifdef __PORT__
-
-    /*
-       GCC on WIN32 (more importantly mingw) doesn't know the declared
-       variables in asm until we put a _ before it.
-       
-       So the declaration dsp_flag_c needs to be _dsp_flag_c on mingw.
-    */
-
-    #ifdef __GCCWIN32__
-
-	asm(
-	"
-	subl %1, %2
-	setc  _dsp_flag_c
-	setz  _dsp_flag_z
-	sets  _dsp_flag_n
-	movl %%eax, %0
-	"
-	: "=m"(res)
-	: "d"(_Rn), "a"(0));
-	
-	#else
-
-	asm(
-	"
-	subl %1, %2
-	setc  dsp_flag_c
-	setz  dsp_flag_z
-	sets  dsp_flag_n
-	movl %%eax, %0
-	"
-	: "=m"(res)
-	: "d"(_Rn), "a"(0));
-	
-	#endif
-	
-#else
-	__asm 
-	{
-		xor	  eax,eax
-		mov   edx,_Rn
-		sub   eax,edx
-		setc  [dsp_flag_c]
-		setz  [dsp_flag_z]
-		sets  [dsp_flag_n]
-		mov	  res,eax
-	};
+#ifdef DSP_DIS_NEG
+	if (doDSPDis)
+		WriteLog("%06X: NEG    R%02u [NCZ:%u%u%u, R%02u=%08X] -> ", dsp_pc-2, IMM_2, dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_2, RN);
 #endif
-	Rn=res;
+	UINT32 res = -RN;
+	SET_ZNC_SUB(0, RN, res);
+	RN = res;
+#ifdef DSP_DIS_NEG
+	if (doDSPDis)
+		WriteLog("[NCZ:%u%u%u, R%02u=%08X]\n", dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_2, RN);
+#endif
 }
 
 static void dsp_opcode_shlq(void)
 {
-	uint32 shift=(32-dsp_convert_zero[imm_1]);
-	uint32 _Rn=Rn;
-	uint32 res;
-#ifdef __PORT__
-
-    /*
-       GCC on WIN32 (more importantly mingw) doesn't know the declared
-       variables in asm until we put a _ before it.
-       
-       So the declaration dsp_flag_c needs to be _dsp_flag_c on mingw.
-    */
-
-    #ifdef __GCCWIN32__
-
-	asm(
-	"testl $0x80000000, %2
-	setnz _dsp_flag_c
-	shl %%cl, %2
-	cmpl $0, %2
-	setz  _dsp_flag_z
-	sets  _dsp_flag_n
-	movl %%eax, %0
-	"
-	: "=m"(res)
-	: "c"(shift), "a"(_Rn));
-	
-	#else
-	
-	asm(
-	"testl $0x80000000, %2
-	setnz dsp_flag_c
-	shl %%cl, %2
-	cmpl $0, %2
-	setz  dsp_flag_z
-	sets  dsp_flag_n
-	movl %%eax, %0
-	"
-	: "=m"(res)
-	: "c"(shift), "a"(_Rn));
-
-	#endif	
-	
-#else
-	__asm 
-	{
-		mov ecx,shift
-		mov eax,_Rn
-		test eax,0x80000000
-		setnz [dsp_flag_c]
-		shl eax,cl
-		cmp eax,0
-		setz [dsp_flag_z]
-		sets [dsp_flag_n]
-		mov res,eax
-	}
+#ifdef DSP_DIS_SHLQ
+	if (doDSPDis)
+		WriteLog("%06X: SHLQ   #%u, R%02u [NCZ:%u%u%u, R%02u=%08X] -> ", dsp_pc-2, 32 - IMM_1, IMM_2, dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_2, RN);
 #endif
-	Rn=res;
+	INT32 r1 = 32 - IMM_1;
+	UINT32 res = RN << r1;
+	SET_ZN(res); dsp_flag_c = (RN >> 31) & 1;
+	RN = res;
+#ifdef DSP_DIS_SHLQ
+	if (doDSPDis)
+		WriteLog("[NCZ:%u%u%u, R%02u=%08X]\n", dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_2, RN);
+#endif
 }
 
 static void dsp_opcode_shrq(void)
 {
-	uint32 shift=dsp_convert_zero[imm_1];
-	uint32 _Rn=Rn;
-	
-	uint32 res;
-#ifdef __PORT__
-
-    /*
-       GCC on WIN32 (more importantly mingw) doesn't know the declared
-       variables in asm until we put a _ before it.
-       
-       So the declaration dsp_flag_c needs to be _dsp_flag_c on mingw.
-    */
-
-    #ifdef __GCCWIN32__
-
-	asm(
-	"testl $0x00000001, %2
-	setnz _dsp_flag_c
-	shr %%cl, %2
-	cmpl $0, %2
-	setz  _dsp_flag_z
-	sets  _dsp_flag_n
-	movl %%eax, %0
-	"
-	: "=m"(res)
-	: "c"(shift), "a"(_Rn));
-	
-	#else
-	
-	asm(
-	"testl $0x00000001, %2
-	setnz dsp_flag_c
-	shr %%cl, %2
-	cmpl $0, %2
-	setz  dsp_flag_z
-	sets  dsp_flag_n
-	movl %%eax, %0
-	"
-	: "=m"(res)
-	: "c"(shift), "a"(_Rn));
-
-	#endif	
-
-#else
-	__asm 
-	{
-		mov ecx,shift
-		mov eax,_Rn
-		test eax,0x00000001
-		setnz [dsp_flag_c]
-		shr eax,cl
-		cmp eax,0
-		setz [dsp_flag_z]
-		sets [dsp_flag_n]
-		mov res,eax
-	}
+#ifdef DSP_DIS_SHRQ
+	if (doDSPDis)
+		WriteLog("%06X: SHRQ   #%u, R%02u [NCZ:%u%u%u, R%02u=%08X] -> ", dsp_pc-2, dsp_convert_zero[IMM_1], IMM_2, dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_2, RN);
 #endif
-	Rn=res;
+	INT32 r1 = dsp_convert_zero[IMM_1];
+	UINT32 res = RN >> r1;
+	SET_ZN(res); dsp_flag_c = RN & 1;
+	RN = res;
+#ifdef DSP_DIS_SHRQ
+	if (doDSPDis)
+		WriteLog("[NCZ:%u%u%u, R%02u=%08X]\n", dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_2, RN);
+#endif
 }
 
 static void dsp_opcode_ror(void)
 {
-	uint32 shift=Rm;
-	uint32 _Rn=Rn;
-	uint32 res;
-#ifdef __PORT__
-
-    /*
-       GCC on WIN32 (more importantly mingw) doesn't know the declared
-       variables in asm until we put a _ before it.
-       
-       So the declaration dsp_flag_c needs to be _dsp_flag_c on mingw.
-    */
-
-    #ifdef __GCCWIN32__
-
-	asm(
-	"testl $0x80000000, %2
-	setnz _dsp_flag_c
-	ror %%cl, %2
-	cmpl $0, %2
-	setz  _dsp_flag_z
-	sets  _dsp_flag_n
-	movl %%eax, %0
-	"
-	: "=m"(res)
-	: "c"(shift), "a"(_Rn));
-	
-	#else
-
-	asm(
-	"testl $0x80000000, %2
-	setnz dsp_flag_c
-	ror %%cl, %2
-	cmpl $0, %2
-	setz  dsp_flag_z
-	sets  dsp_flag_n
-	movl %%eax, %0
-	"
-	: "=m"(res)
-	: "c"(shift), "a"(_Rn));
-	
-	#endif
-	
-#else
-	__asm 
-	{
-		mov ecx,shift
-		mov eax,_Rn
-		test eax,0x80000000
-		setnz [dsp_flag_c]
-		ror eax,cl
-		cmp eax,0
-		setz [dsp_flag_z]
-		sets [dsp_flag_n]
-		mov res,eax
-	}
+#ifdef DSP_DIS_ROR
+	if (doDSPDis)
+		WriteLog("%06X: ROR    R%02u, R%02u [NCZ:%u%u%u, R%02u=%08X, R%02u=%08X] -> ", dsp_pc-2, IMM_1, IMM_2, dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_1, RM, IMM_2, RN);
 #endif
-	Rn=res;
+	UINT32 r1 = RM & 0x1F;
+	UINT32 res = (RN >> r1) | (RN << (32 - r1));
+	SET_ZN(res); dsp_flag_c = (RN >> 31) & 1;
+	RN = res;
+#ifdef DSP_DIS_ROR
+	if (doDSPDis)
+		WriteLog("[NCZ:%u%u%u, R%02u=%08X, R%02u=%08X]\n", dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_1, RM, IMM_2, RN);
+#endif
 }
 
 static void dsp_opcode_rorq(void)
 {
-	uint32 shift=dsp_convert_zero[imm_1&0x1f];
-	uint32 _Rn=Rn;
-	uint32 res;
-#ifdef __PORT__
-
-    /*
-       GCC on WIN32 (more importantly mingw) doesn't know the declared
-       variables in asm until we put a _ before it.
-       
-       So the declaration dsp_flag_c needs to be _dsp_flag_c on mingw.
-    */
-
-    #ifdef __GCCWIN32__
-
-	asm(
-	"testl $0x80000000, %2
-	setnz _dsp_flag_c
-	ror %%cl, %2
-	cmpl $0, %2
-	setz  _dsp_flag_z
-	sets  _dsp_flag_n
-	movl %%eax, %0
-	"
-	: "=m"(res)
-	: "c"(shift), "a"(_Rn));
-	
-	#else
-	
-	asm(
-	"testl $0x80000000, %2
-	setnz dsp_flag_c
-	ror %%cl, %2
-	cmpl $0, %2
-	setz  dsp_flag_z
-	sets  dsp_flag_n
-	movl %%eax, %0
-	"
-	: "=m"(res)
-	: "c"(shift), "a"(_Rn));
-
-	#endif
-	
-#else
-	__asm 
-	{
-		mov ecx,shift
-		mov eax,_Rn
-		test eax,0x80000000
-		setnz [dsp_flag_c]
-		ror eax,cl
-		cmp eax,0
-		setz [dsp_flag_z]
-		sets [dsp_flag_n]
-		mov res,eax
-	}
+#ifdef DSP_DIS_RORQ
+	if (doDSPDis)
+		WriteLog("%06X: RORQ   #%u, R%02u [NCZ:%u%u%u, R%02u=%08X] -> ", dsp_pc-2, dsp_convert_zero[IMM_1], IMM_2, dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_2, RN);
 #endif
-	Rn=res;
+	UINT32 r1 = dsp_convert_zero[IMM_1 & 0x1F];
+	UINT32 r2 = RN;
+	UINT32 res = (r2 >> r1) | (r2 << (32 - r1));
+	RN = res;
+	SET_ZN(res); dsp_flag_c = (r2 >> 31) & 0x01;
+#ifdef DSP_DIS_RORQ
+	if (doDSPDis)
+		WriteLog("[NCZ:%u%u%u, R%02u=%08X]\n", dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_2, RN);
+#endif
 }
 
 static void dsp_opcode_sha(void)
 {
-	int32 sRm=(int32)Rm;
-	uint32 _Rn=Rn;
+	int32 sRm=(int32)RM;
+	uint32 _Rn=RN;
 
 	if (sRm<0)
 	{
@@ -2392,31 +1905,29 @@ static void dsp_opcode_sha(void)
 			shift--;
 		}
 	}
-	Rn=_Rn;
-	set_flag_z(_Rn);
-	set_flag_n(_Rn);
+	RN = _Rn;
+	SET_ZN(RN);
 }
 
 static void dsp_opcode_sharq(void)
 {
-	uint32 shift=dsp_convert_zero[imm_1];
-	uint32 _Rn=Rn;
-
-	dsp_flag_c  = (_Rn & 0x1);
-	while (shift)
-	{
-		_Rn=((int32)_Rn)>>1;
-		shift--;
-	}
-	Rn=_Rn;
-	set_flag_z(_Rn);
-	set_flag_n(_Rn);
+#ifdef DSP_DIS_SHARQ
+	if (doDSPDis)
+		WriteLog("%06X: SHARQ  #%u, R%02u [NCZ:%u%u%u, R%02u=%08X] -> ", dsp_pc-2, dsp_convert_zero[IMM_1], IMM_2, dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_2, RN);
+#endif
+	UINT32 res = (INT32)RN >> dsp_convert_zero[IMM_1];
+	SET_ZN(res); dsp_flag_c = RN & 0x01;
+	RN = res;
+#ifdef DSP_DIS_SHARQ
+	if (doDSPDis)
+		WriteLog("[NCZ:%u%u%u, R%02u=%08X]\n", dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_2, RN);
+#endif
 }
 
 static void dsp_opcode_sh(void)
 {
-	int32 sRm=(int32)Rm;
-	uint32 _Rn=Rn;
+	int32 sRm=(int32)RM;
+	uint32 _Rn=RN;
 
 	if (sRm<0)
 	{
@@ -2440,59 +1951,59 @@ static void dsp_opcode_sh(void)
 			shift--;
 		}
 	}
-	Rn=_Rn;
-	set_flag_z(_Rn);
-	set_flag_n(_Rn);
+	RN = _Rn;
+	SET_ZN(RN);
 }
 
-#define CLR_ZN  { dsp_flag_n=0; dsp_flag_z=0; };
-#define CLR_ZNC { dsp_flag_c=0; dsp_flag_n=0; dsp_flag_z=0; };
-#define SET_Z(r)			(dsp_flag_z= ((r) == 0))
-#define SET_C_ADD(a,b)		(dsp_flag_c= ((UINT32)(b) > (UINT32)(~(a))) << 1)
-#define SET_C_SUB(a,b)		(dsp_flag_c= ((UINT32)(b) > (UINT32)(a)) << 1)
-#define SET_N(r)			(dsp_flag_n= (((UINT32)(r) >> 29) & 4))
-#define SET_ZN(r)			SET_N(r); SET_Z(r)
-#define SET_ZNC_ADD(a,b,r)	SET_N(r); SET_Z(r); SET_C_ADD(a,b)
-#define SET_ZNC_SUB(a,b,r)	SET_N(r); SET_Z(r); SET_C_SUB(a,b)
-
-void dsp_opcode_addqmod(void)	
+void dsp_opcode_addqmod(void)
 {
-	UINT32 r1 = dsp_convert_zero[imm_1];
-	UINT32 r2 = Rn;
+#ifdef DSP_DIS_ADDQMOD
+	if (doDSPDis)
+		WriteLog("%06X: ADDQMOD #%u, R%02u [NCZ:%u%u%u, R%02u=%08X, DSP_MOD=%08X] -> ", dsp_pc-2, dsp_convert_zero[IMM_1], IMM_2, dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_2, RN, dsp_modulo);
+#endif
+	UINT32 r1 = dsp_convert_zero[IMM_1];
+	UINT32 r2 = RN;
 	UINT32 res = r2 + r1;
 	res = (res & (~dsp_modulo)) | (r2 & dsp_modulo);
-	Rn = res;
-	CLR_ZNC; SET_ZNC_ADD(r2,r1,res);
+	RN = res;
+	SET_ZNC_ADD(r2, r1, res);
+#ifdef DSP_DIS_ADDQMOD
+	if (doDSPDis)
+		WriteLog("[NCZ:%u%u%u, R%02u=%08X]\n", dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_2, RN);
+#endif
 }
+
 void dsp_opcode_subqmod(void)	
 {
-	UINT32 r1 = dsp_convert_zero[imm_1];
-	UINT32 r2 = Rn;
+	UINT32 r1 = dsp_convert_zero[IMM_1];
+	UINT32 r2 = RN;
 	UINT32 res = r2 - r1;
 	res = (res & (~dsp_modulo)) | (r2 & dsp_modulo);
-	Rn = res;
+	RN = res;
 	
-	SET_ZNC_SUB(r2,r1,res);
+	SET_ZNC_SUB(r2, r1, res);
 }
+
 void dsp_opcode_mirror(void)	
 {
-	UINT32 r1 = Rn;
-	UINT32 res = (mirror_table[r1 & 0xffff] << 16) | mirror_table[r1 >> 16];
-	Rn = res;
-	CLR_ZN; SET_ZN(res);
+	UINT32 r1 = RN;
+	RN = (mirror_table[r1 & 0xFFFF] << 16) | mirror_table[r1 >> 16];
+	SET_ZN(RN);
 }
+
 void dsp_opcode_sat32s(void)		
 {
-	INT32 r2 = (UINT32)Rn;
+	INT32 r2 = (UINT32)RN;
 	INT32 temp = dsp_acc >> 32;
-	UINT32 res = (temp < -1) ? (INT32)0x80000000 : (temp > 0) ? (INT32)0x7fffffff : r2;
-	Rn = res;
-	CLR_ZN; SET_ZN(res);
+	UINT32 res = (temp < -1) ? (INT32)0x80000000 : (temp > 0) ? (INT32)0x7FFFFFFF : r2;
+	RN = res;
+	SET_ZN(res);
 }
+
 void dsp_opcode_sat16s(void)		
 {
-	INT32 r2 = Rn;
+	INT32 r2 = RN;
 	UINT32 res = (r2 < -32768) ? -32768 : (r2 > 32767) ? 32767 : r2;
-	Rn = res;
-	CLR_ZN; SET_ZN(res);
+	RN = res;
+	SET_ZN(res);
 }

@@ -658,7 +658,7 @@ void tom_exec_scanline(int16 * backbuffer, int32 scanline, bool render)
 	tom_scanline = scanline;
 
 	// Increment the horizontal count (why? RNG?)
-//	tom_word_write(0xF00004, tom_word_read(0xF00004) + 1);
+//	TOMWriteWord(0xF00004, TOMReadWord(0xF00004) + 1);
 
 	if (render)
 	{
@@ -708,9 +708,9 @@ void tom_done(void)
 		videoMode_to_str[tom_getVideoMode()]);
 //	WriteLog("\ntom: object processor:\n");
 //	WriteLog("tom: pointer to object list: 0x%.8x\n",op_get_list_pointer());
-//	WriteLog("tom: INT1=0x%.2x%.2x\n",tom_byte_read(0xf000e0),tom_byte_read(0xf000e1));
-	gpu_done();
-	dsp_done();
+//	WriteLog("tom: INT1=0x%.2x%.2x\n",TOMReadByte(0xf000e0),TOMReadByte(0xf000e1));
+//	gpu_done();
+//	dsp_done();
 	memory_free(tom_ram_8);
 }
 
@@ -859,13 +859,12 @@ void tom_reset(void)
 	tom_timer_divider = 0;
 	tom_timer_counter = 0;
 	memcpy(scanline_render, scanline_render_normal, sizeof(scanline_render));
-} 
+}
 
 //
 // TOM byte access (read)
 //
-
-unsigned tom_byte_read(unsigned int offset)
+uint8 TOMReadByte(uint32 offset, uint32 who/*=UNKNOWN*/)
 {
 //???Is this needed???
 // It seems so. Perhaps it's the +$8000 offset being written to (32-bit interface)?
@@ -878,13 +877,13 @@ unsigned tom_byte_read(unsigned int offset)
 #endif
 
 	if ((offset >= GPU_CONTROL_RAM_BASE) && (offset < GPU_CONTROL_RAM_BASE+0x20))
-		return gpu_byte_read(offset);
+		return GPUReadByte(offset, who);
 	else if ((offset >= GPU_WORK_RAM_BASE) && (offset < GPU_WORK_RAM_BASE+0x1000))
-		return gpu_byte_read(offset);
+		return GPUReadByte(offset, who);
 	else if ((offset >= 0xF00010) && (offset < 0xF00028))
-		return op_byte_read(offset);
+		return OPReadByte(offset, who);
 	else if ((offset >= 0xF02200) && (offset < 0xF022A0))
-		return blitter_byte_read(offset);
+		return BlitterReadByte(offset, who);
 	else if (offset == 0xF00050)
 		return tom_timer_prescaler >> 8;
 	else if (offset == 0xF00051)
@@ -900,8 +899,7 @@ unsigned tom_byte_read(unsigned int offset)
 //
 // TOM word access (read)
 //
-
-unsigned tom_word_read(unsigned int offset)
+uint16 TOMReadWord(uint32 offset, uint32 who/*=UNKNOWN*/)
 {
 //???Is this needed???
 //	offset &= 0xFF3FFF;
@@ -909,7 +907,7 @@ unsigned tom_word_read(unsigned int offset)
 	WriteLog("TOM: Reading word at %06X\n", offset);
 #endif
 if (offset >= 0xF02000 && offset <= 0xF020FF)
-	WriteLog("TOM: Read attempted from GPU register file (unimplemented)!\n");
+	WriteLog("TOM: Read attempted from GPU register file by %s (unimplemented)!\n", whoName[who]);
 
 	if (offset == 0xF000E0)
 	{
@@ -928,27 +926,26 @@ if (offset >= 0xF02000 && offset <= 0xF020FF)
 //Because VC is even in NI mode when calling the OP! That's why!
 		return (tom_scanline << 1) + 1;//*/
 	else if ((offset >= GPU_CONTROL_RAM_BASE) && (offset < GPU_CONTROL_RAM_BASE+0x20))
-		return gpu_word_read(offset);
+		return GPUReadWord(offset, who);
 	else if ((offset >= GPU_WORK_RAM_BASE) && (offset < GPU_WORK_RAM_BASE+0x1000))
-		return gpu_word_read(offset);
+		return GPUReadWord(offset, who);
 	else if ((offset >= 0xF00010) && (offset < 0xF00028))
-		return op_word_read(offset);
+		return OPReadWord(offset, who);
 	else if ((offset >= 0xF02200) && (offset < 0xF022A0))
-		return blitter_word_read(offset);
+		return BlitterReadWord(offset, who);
 	else if (offset == 0xF00050)
 		return tom_timer_prescaler;
 	else if (offset == 0xF00052)
 		return tom_timer_divider;
 
 	offset &= 0x3FFF;
-	return (tom_byte_read(offset) << 8) | tom_byte_read(offset+1);
+	return (TOMReadByte(offset, who) << 8) | TOMReadByte(offset + 1, who);
 }
 
 //
 // TOM byte access (write)
 //
-
-void tom_byte_write(unsigned offset, unsigned data)
+void TOMWriteByte(uint32 offset, uint8 data, uint32 who/*=UNKNOWN*/)
 {
 //???Is this needed???
 // Perhaps on the writes--32-bit writes that is! And masked with FF7FFF...
@@ -960,22 +957,22 @@ void tom_byte_write(unsigned offset, unsigned data)
 
 	if ((offset >= GPU_CONTROL_RAM_BASE) && (offset < GPU_CONTROL_RAM_BASE+0x20))
 	{
-		gpu_byte_write(offset, data);
+		GPUWriteByte(offset, data, who);
 		return;
 	}
 	else if ((offset >= GPU_WORK_RAM_BASE) && (offset < GPU_WORK_RAM_BASE+0x1000))
 	{
-		gpu_byte_write(offset, data);
+		GPUWriteByte(offset, data, who);
 		return;
 	}
 	else if ((offset >= 0xF00010) && (offset < 0xF00028))
 	{
-		op_byte_write(offset, data);
+		OPWriteByte(offset, data, who);
 		return;
 	}
 	else if ((offset >= 0xF02200) && (offset < 0xF022A0))
 	{
-		blitter_byte_write(offset, data);
+		BlitterWriteByte(offset, data, who);
 		return;
 	}
 	else if (offset == 0xF00050)
@@ -1015,8 +1012,7 @@ void tom_byte_write(unsigned offset, unsigned data)
 //
 // TOM word access (write)
 //
-
-void tom_word_write(unsigned offset, unsigned data)
+void TOMWriteWord(uint32 offset, uint16 data, uint32 who/*=UNKNOWN*/)
 {
 //???Is this needed???
 	offset &= 0xFF3FFF;
@@ -1025,31 +1021,31 @@ void tom_word_write(unsigned offset, unsigned data)
 	WriteLog("TOM: Writing word %04X at %06X\n", data, offset);
 #endif
 if (offset == 0xF00000 + MEMCON1)
-	WriteLog("TOM: Memory Configuration 1 written: %04X\n", data);
+	WriteLog("TOM: Memory Configuration 1 written by %s: %04X\n", whoName[who], data);
 if (offset == 0xF00000 + MEMCON2)
-	WriteLog("TOM: Memory Configuration 2 written: %04X\n", data);
+	WriteLog("TOM: Memory Configuration 2 written by %s: %04X\n", whoName[who], data);
 if (offset >= 0xF02000 && offset <= 0xF020FF)
-	WriteLog("TOM: Write attempted to GPU register file (unimplemented)!\n");
+	WriteLog("TOM: Write attempted to GPU register file by %s (unimplemented)!\n", whoName[who]);
 
 	if ((offset >= GPU_CONTROL_RAM_BASE) && (offset < GPU_CONTROL_RAM_BASE+0x20))
 	{
-		gpu_word_write(offset, data);
+		GPUWriteWord(offset, data, who);
 		return;
 	}
 	else if ((offset >= GPU_WORK_RAM_BASE) && (offset < GPU_WORK_RAM_BASE+0x1000))
 	{
-		gpu_word_write(offset, data);
+		GPUWriteWord(offset, data, who);
 		return;
 	}
 //What's so special about this?
 /*	else if ((offset >= 0xF00000) && (offset < 0xF00002))
 	{
-		tom_byte_write(offset, data >> 8);
-		tom_byte_write(offset+1, data & 0xFF);
+		TOMWriteByte(offset, data >> 8);
+		TOMWriteByte(offset+1, data & 0xFF);
 	}*/
 	else if ((offset >= 0xF00010) && (offset < 0xF00028))
 	{
-		op_word_write(offset, data);
+		OPWriteWord(offset, data, who);
 		return;
 	}
 	else if (offset == 0xF00050)
@@ -1080,7 +1076,7 @@ if (offset >= 0xF02000 && offset <= 0xF020FF)
 	}
 	else if ((offset >= 0xF02200) && (offset <= 0xF0229F))
 	{
-		blitter_word_write(offset, data);
+		BlitterWriteWord(offset, data, who);
 		return;
 	}
 	else if (offset >= 0xF00400 && offset <= 0xF007FE)	// CLUT (A & B)
@@ -1100,35 +1096,35 @@ if (offset >= 0xF02000 && offset <= 0xF020FF)
 	if (offset == 0x2E || offset == 0x36 || offset == 0x54)
 		data &= 0x03FF;			// These are all 10-bit registers
 
-	tom_byte_write(offset, data >> 8);
-	tom_byte_write(offset+1, data & 0xFF);
+	TOMWriteByte(offset, data >> 8, who);
+	TOMWriteByte(offset+1, data & 0xFF, who);
 
 if (offset == VDB)
-	WriteLog("TOM: Vertical Display Begin written: %u\n", data);
+	WriteLog("TOM: Vertical Display Begin written by %s: %u\n", whoName[who], data);
 if (offset == VDE)
-	WriteLog("TOM: Vertical Display End written: %u\n", data);
+	WriteLog("TOM: Vertical Display End written by %s: %u\n", whoName[who], data);
 if (offset == VP)
-	WriteLog("TOM: Vertical Period written: %u (%sinterlaced)\n", data, (data & 0x01 ? "non-" : ""));
+	WriteLog("TOM: Vertical Period written by %s: %u (%sinterlaced)\n", whoName[who], data, (data & 0x01 ? "non-" : ""));
 if (offset == HDB1)
-	WriteLog("TOM: Horizontal Display Begin 1 written: %u\n", data);
+	WriteLog("TOM: Horizontal Display Begin 1 written by %s: %u\n", whoName[who], data);
 if (offset == HDE)
-	WriteLog("TOM: Horizontal Display End written: %u\n", data);
+	WriteLog("TOM: Horizontal Display End written by %s: %u\n", whoName[who], data);
 if (offset == HP)
-	WriteLog("TOM: Horizontal Period written: %u\n", data);
+	WriteLog("TOM: Horizontal Period written by %s: %u\n", whoName[who], data);
 if (offset == VBB)
-	WriteLog("TOM: Vertical Blank Begin written: %u\n", data);
+	WriteLog("TOM: Vertical Blank Begin written by %s: %u\n", whoName[who], data);
 if (offset == VBE)
-	WriteLog("TOM: Vertical Blank End written: %u\n", data);
+	WriteLog("TOM: Vertical Blank End written by %s: %u\n", whoName[who], data);
 if (offset == VS)
-	WriteLog("TOM: Vertical Sync written: %u\n", data);
+	WriteLog("TOM: Vertical Sync written by %s: %u\n", whoName[who], data);
 if (offset == VI)
-	WriteLog("TOM: Vertical Interrupt written: %u\n", data);
+	WriteLog("TOM: Vertical Interrupt written by %s: %u\n", whoName[who], data);
 if (offset == HBB)
-	WriteLog("TOM: Horizontal Blank Begin written: %u\n", data);
+	WriteLog("TOM: Horizontal Blank Begin written by %s: %u\n", whoName[who], data);
 if (offset == HBE)
-	WriteLog("TOM: Horizontal Blank End written: %u\n", data);
+	WriteLog("TOM: Horizontal Blank End written by %s: %u\n", whoName[who], data);
 if (offset == VMODE)
-	WriteLog("TOM: Video Mode written: %04X (PWIDTH = %u, VC = %u)\n", data, ((data >> 9) & 0x07) + 1, GET16(tom_ram_8, VC));
+	WriteLog("TOM: Video Mode written by %s: %04X (PWIDTH = %u, VC = %u)\n", whoName[who], data, ((data >> 9) & 0x07) + 1, GET16(tom_ram_8, VC));
 
 	// detect screen resolution changes
 //This may go away in the future, if we do the virtualized screen thing...
@@ -1150,14 +1146,9 @@ if (offset == VMODE)
 		{
 			extern SDL_Surface * surface, * mainSurface;
 			extern Uint32 mainSurfaceFlags;
-//			ws_audio_done();
-		
 			static char window_title[256];
-//			delete surface;
 			
 			tom_width = width, tom_height = height;
-//			Format format(16, 0x007C00, 0x00003E0, 0x0000001F);
-//			surface = new Surface(tom_width, tom_height, format);
 			SDL_FreeSurface(surface);
 			surface = SDL_CreateRGBSurface(SDL_SWSURFACE, tom_width, tom_height,
 				16, 0x7C00, 0x03E0, 0x001F, 0);
@@ -1168,9 +1159,7 @@ if (offset == VMODE)
 			}
 
 			sprintf(window_title, "Virtual Jaguar (%i x %i)", (int)tom_width, (int)tom_height);
-//			console.close();
-//			console.open(window_title, width, tom_height, format);
-//???Should we do this???
+//???Should we do this??? No!
 //	SDL_FreeSurface(mainSurface);
 			mainSurface = SDL_SetVideoMode(tom_width, tom_height, 16, mainSurfaceFlags);
 
@@ -1181,9 +1170,6 @@ if (offset == VMODE)
 			}
 
 			SDL_WM_SetCaption(window_title, window_title);
-
-//			ws_audio_init();
-//			ws_audio_reset();
 		}
 	}
 }
@@ -1212,10 +1198,15 @@ void tom_reset_timer(void)
 	if (!tom_timer_prescaler || !tom_timer_divider)
 		tom_timer_counter = 0;
 	else
+//Probably should *add* this amount to the counter to retain cycle accuracy! !!! FIX !!!
+//Also, why +1???
 		tom_timer_counter = (1 + tom_timer_prescaler) * (1 + tom_timer_divider);
 //	WriteLog("tom: reseting timer to 0x%.8x (%i)\n",tom_timer_counter,tom_timer_counter);
 }
 
+//
+// TOM Programmable Interrupt Timer handler
+//
 void tom_pit_exec(uint32 cycles)
 {
 	if (tom_timer_counter > 0)
@@ -1225,8 +1216,8 @@ void tom_pit_exec(uint32 cycles)
 		if (tom_timer_counter <= 0)
 		{
 			tom_set_pending_timer_int();
-			GPUSetIRQLine(2, ASSERT_LINE);
-			if ((tom_irq_enabled(IRQ_TIMER)) && (jaguar_interrupt_handler_is_valid(64)))
+			GPUSetIRQLine(GPUIRQ_TIMER, ASSERT_LINE);
+			if (tom_irq_enabled(IRQ_TIMER) && jaguar_interrupt_handler_is_valid(64))
 				m68k_set_irq(7);				// Cause a 68000 NMI...
 
 			tom_reset_timer();

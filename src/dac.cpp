@@ -25,10 +25,10 @@ uint32 LeftFIFOHeadPtr, LeftFIFOTailPtr, RightFIFOHeadPtr, RightFIFOTailPtr;
 SDL_AudioSpec desired;
 
 // We can get away with using native endian here because we can tell SDL to use the native
-// when looking at the sample buffer, i.e., no need to worry about it.
+// endian when looking at the sample buffer, i.e., no need to worry about it.
 
 uint16 * DACBuffer;
-uint8 SCLKFrequencyDivider = 9;						// Start out roughly 44.1K (46164 Hz in NTSC mode)
+uint8 SCLKFrequencyDivider = 19;						// Default is roughly 22 KHz (20774 Hz in NTSC mode)
 uint16 serialMode = 0;
 
 // Private function prototypes
@@ -86,6 +86,8 @@ void DACDone(void)
 //
 void SDLSoundCallback(void * userdata, Uint8 * buffer, int length)
 {
+	// Clear the buffer to silence, in case the DAC buffer is empty (or short)
+	memset(buffer, desired.silence, length);
 //WriteLog("DAC: Inside callback...\n");
 	if (LeftFIFOHeadPtr != LeftFIFOTailPtr)
 	{
@@ -98,10 +100,19 @@ void SDLSoundCallback(void * userdata, Uint8 * buffer, int length)
 				- RightFIFOHeadPtr;
 		int numSamplesReady
 			= (numLeftSamplesReady < numRightSamplesReady
-				? numLeftSamplesReady : numRightSamplesReady) * 2;
+				? numLeftSamplesReady : numRightSamplesReady);//Hmm. * 2;
 
-		if (numSamplesReady > length)
-			numSamplesReady = length;
+//The numbers look good--it's just that the DSP can't get enough samples in the DAC buffer!
+//WriteLog("DAC: Left/RightFIFOHeadPtr: %u/%u, Left/RightFIFOTailPtr: %u/%u\n", LeftFIFOHeadPtr, RightFIFOHeadPtr, LeftFIFOTailPtr, RightFIFOTailPtr);
+//WriteLog("     numLeft/RightSamplesReady: %i/%i, numSamplesReady: %i, length of buffer: %i\n", numLeftSamplesReady, numRightSamplesReady, numSamplesReady, length);
+
+/*		if (numSamplesReady > length)
+			numSamplesReady = length;//*/
+		if (numSamplesReady > length / 2)	// length / 2 because we're comparing 16-bit lengths
+			numSamplesReady = length / 2;
+//else
+//	WriteLog("     Not enough samples to fill the buffer (short by %u L/R samples)...\n", (length / 2) - numSamplesReady);
+//WriteLog("DAC: %u samples ready.\n", numSamplesReady);
 
 		// Actually, it's a bit more involved than this, but this is the general idea:
 //		memcpy(buffer, DACBuffer, length);
@@ -110,12 +121,16 @@ void SDLSoundCallback(void * userdata, Uint8 * buffer, int length)
 			((uint16 *)buffer)[i] = DACBuffer[(LeftFIFOHeadPtr + i) % BUFFER_SIZE];
 //			buffer[i] = DACBuffer[(LeftFIFOHeadPtr + i) & (BUFFER_SIZE - 1)];
 
-		LeftFIFOHeadPtr = (LeftFIFOHeadPtr + (numSamplesReady / 2)) % BUFFER_SIZE;
-		RightFIFOHeadPtr = (RightFIFOHeadPtr + (numSamplesReady / 2)) % BUFFER_SIZE;
+		LeftFIFOHeadPtr = (LeftFIFOHeadPtr + numSamplesReady) % BUFFER_SIZE;
+		RightFIFOHeadPtr = (RightFIFOHeadPtr + numSamplesReady) % BUFFER_SIZE;
 		// Could also use (as long as BUFFER_SIZE is a multiple of 2):
-//		LeftFIFOHeadPtr = (LeftFIFOHeadPtr + (numSamplesReady / 2)) & (BUFFER_SIZE - 1);
-//		RightFIFOHeadPtr = (RightFIFOHeadPtr + (numSamplesReady / 2)) & (BUFFER_SIZE - 1);
+//		LeftFIFOHeadPtr = (LeftFIFOHeadPtr + (numSamplesReady)) & (BUFFER_SIZE - 1);
+//		RightFIFOHeadPtr = (RightFIFOHeadPtr + (numSamplesReady)) & (BUFFER_SIZE - 1);
+//WriteLog("  -> Left/RightFIFOHeadPtr: %u/%u, Left/RightFIFOTailPtr: %u/%u\n", LeftFIFOHeadPtr, RightFIFOHeadPtr, LeftFIFOTailPtr, RightFIFOTailPtr);
 	}
+//Hmm. Seems that the SDL buffer isn't being starved by the DAC buffer...
+//	else
+//		WriteLog("DAC: Silence...!\n");
 }
 
 //
@@ -136,7 +151,9 @@ int GetCalculatedFrequency(void)
 //
 void DACWriteByte(uint32 offset, uint8 data)
 {
-//	WriteLog("DAC: Writing %02X at %08X\n", data, offset);
+	WriteLog("DAC: Writing %02X at %08X\n", data, offset);
+	if (offset == SCLK + 3)
+		DACWriteWord(offset - 3, (uint16)data);
 }
 
 void DACWriteWord(uint32 offset, uint16 data)
@@ -147,12 +164,14 @@ void DACWriteWord(uint32 offset, uint16 data)
 		{
 			SDL_LockAudio();						// Is it necessary to do this? Mebbe.
 			// We use a circular buffer 'cause it's easy. Note that the callback function
-			// takes care of dumping audio to the soundcard...!
+			// takes care of dumping audio to the soundcard...! Also note that we're writing
+			// the samples in the buffer in an interleaved L/R format.
 			LeftFIFOTailPtr = (LeftFIFOTailPtr + 2) % BUFFER_SIZE;
 			DACBuffer[LeftFIFOTailPtr] = data;
 // Aaron's code does this, but I don't know why...
 //Flipping this bit makes the audio MUCH louder. Need to look at the amplitude of the
 //waveform to see if any massaging is needed here...
+//Looks like a cheap & dirty way to convert signed samples to unsigned...
 //			DACBuffer[LeftFIFOTailPtr] = data ^ 0x8000;
 			SDL_UnlockAudio();
 		}
@@ -175,22 +194,27 @@ void DACWriteWord(uint32 offset, uint16 data)
 	}
 	else if (offset == SCLK + 2)					// Sample rate
 	{
+		WriteLog("DAC: Writing %u to SCLK...\n", data);
 		if ((uint8)data != SCLKFrequencyDivider)
 		{
-WriteLog("DAC: Changing sample rate!\n");
-			SDL_CloseAudio();
 			SCLKFrequencyDivider = (uint8)data;
-			desired.freq = GetCalculatedFrequency();// SDL will do conversion on the fly, if it can't get the exact rate. Nice!
-
-			if (SDL_OpenAudio(&desired, NULL) < 0)	// NULL means SDL guarantees what we want
+//Of course a better way would be to query the hardware to find the upper limit...
+			if (data > 7)	// Anything less is too high!
 			{
-				WriteLog("DAC: Failed to initialize SDL sound. Shutting down!\n");
-				log_done();
-				exit(1);
-			}
+				SDL_CloseAudio();
+				desired.freq = GetCalculatedFrequency();// SDL will do conversion on the fly, if it can't get the exact rate. Nice!
+				WriteLog("DAC: Changing sample rate to %u Hz!\n", desired.freq);
 
-			DACReset();
-			SDL_PauseAudio(false);					// Start playback!
+				if (SDL_OpenAudio(&desired, NULL) < 0)	// NULL means SDL guarantees what we want
+				{
+					WriteLog("DAC: Failed to initialize SDL sound: %s.\nDesired freq: %u\nShutting down!\n", SDL_GetError(), desired.freq);
+					log_done();
+					exit(1);
+				}
+
+				DACReset();
+				SDL_PauseAudio(false);				// Start playback!
+			}
 		}
 	}
 	else if (offset == SMODE + 2)

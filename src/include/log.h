@@ -14,7 +14,7 @@ extern "C" {
 #endif
 
 int log_init(char *);
-FILE *log_get(void);
+FILE * log_get(void);
 void log_done(void);
 void WriteLog(const char * text, ...);
 

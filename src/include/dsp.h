@@ -1,4 +1,6 @@
+//
 // DSP.H
+//
 
 #ifndef __DSP_H__
 #define __DSP_H__
@@ -8,20 +10,23 @@
 #define DSP_CONTROL_RAM_BASE    0x00F1A100
 #define DSP_WORK_RAM_BASE		0x00F1B000
 
-void dsp_init(void);
-void dsp_reset(void);
-void dsp_exec(int32);
-void dsp_done(void);
-void dsp_update_register_banks(void);
-void dsp_check_irqs(void);
-void dsp_set_irq_line(int irqline, int state);
-unsigned dsp_byte_read(unsigned int offset);
-unsigned dsp_word_read(unsigned int offset);
-unsigned dsp_long_read(unsigned int offset);
-void dsp_byte_write(unsigned  offset, unsigned  data);
-void dsp_word_write(unsigned  offset, unsigned  data);
-void dsp_long_write(unsigned  offset, unsigned  data);
-void dsp_check_if_i2s_interrupt_needed(void);
+void DSPInit(void);
+void DSPReset(void);
+void DSPExec(int32);
+void DSPDone(void);
+void DSPUpdateRegisterBanks(void);
+void DSPHandleIRQs(void);
+void DSPSetIRQLine(int irqline, int state);
+uint8 DSPReadByte(uint32 offset, uint32 who = UNKNOWN);
+uint16 DSPReadWord(uint32 offset, uint32 who = UNKNOWN);
+uint32 DSPReadLong(uint32 offset, uint32 who = UNKNOWN);
+void DSPWriteByte(uint32 offset, uint8 data, uint32 who = UNKNOWN);
+void DSPWriteWord(uint32 offset, uint16 data, uint32 who = UNKNOWN);
+void DSPWriteLong(uint32 offset, uint32 data, uint32 who = UNKNOWN);
 void dsp_releaseTimeslice(void);
 
-#endif	// #ifndef __DSP_H__
+// DSP interrupt numbers (in $F1A100, bits 4-8 & 16)
+
+enum { DSPIRQ_CPU = 0, DSPIRQ_SSI, DSPIRQ_TIMER0, DSPIRQ_TIMER1, DSPIRQ_EXT0, DSPIRQ_EXT1 };
+
+#endif	// __DSP_H__

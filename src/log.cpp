@@ -34,13 +34,8 @@ void log_done(void)
 // This logger is used mainly to ensure that text gets written to the log file
 // even if the program crashes. The performance hit is acceptable in this case!
 //
-//bool suppressOutput = true;//temporary stuff
-bool suppressOutput = false;//temporary stuff
 void WriteLog(const char * text, ...)
 {
-	if (suppressOutput)
-		return;
-
 	va_list arg;
 
 	va_start(arg, text);

@@ -131,7 +131,7 @@ void op_done(void)
 	WriteLog("OP: Phrase dump\n    ----------\n");
 	for(uint32 i=0; i<0x100; i+=8)
 	{
-		uint32 hi = jaguar_long_read(olp + i), lo = jaguar_long_read(olp + i + 4);
+		uint32 hi = JaguarReadLong(olp + i, OP), lo = JaguarReadLong(olp + i + 4, OP);
 		WriteLog("\t%08X: %08X %08X %s", olp + i, hi, lo, opType[lo & 0x07]);
 		if ((lo & 0x07) == 3)
 		{
@@ -153,34 +153,14 @@ void op_done(void)
 // Object Processor memory access
 // Memory range: F00010 - F00027
 //
-void op_byte_write(uint32 offset, uint8 data)
-{
-	offset &= 0x3F;
-	objectp_ram[offset] = data;
-}
-
-void op_word_write(uint32 offset, uint16 data)
-{
-	offset &= 0x3F;
-//	objectp_ram[offset] = (data >> 8) & 0xFF;
-//	objectp_ram[offset+1] = data & 0xFF;
-	SET16(objectp_ram, offset, data);
-
-/*if (offset == 0x20)
-WriteLog("OP: Setting lo list pointer: %04X\n", data);
-if (offset == 0x22)
-WriteLog("OP: Setting hi list pointer: %04X\n", data);//*/
-}
-
-uint8 op_byte_read(uint32 offset)
+uint8 OPReadByte(uint32 offset, uint32 who/*=UNKNOWN*/)
 {
 	offset &= 0x3F;
 	return objectp_ram[offset];
 }
 
-uint16 op_word_read(uint32 offset)
+uint16 OPReadWord(uint32 offset, uint32 who/*=UNKNOWN*/)
 {
-//	return (objectp_ram[offset & 0x3F] << 8) | objectp_ram[(offset+1) & 0x3F];
 	offset &= 0x3F;
 	return GET16(objectp_ram, offset);
 }
@@ -188,6 +168,23 @@ uint16 op_word_read(uint32 offset)
 //	F00010-F00017   R     xxxxxxxx xxxxxxxx   OB - current object code from the graphics processor
 //	F00020-F00023     W   xxxxxxxx xxxxxxxx   OLP - start of the object list
 //	F00026            W   -------- -------x   OBF - object processor flag
+
+void OPWriteByte(uint32 offset, uint8 data, uint32 who/*=UNKNOWN*/)
+{
+	offset &= 0x3F;
+	objectp_ram[offset] = data;
+}
+
+void OPWriteWord(uint32 offset, uint16 data, uint32 who/*=UNKNOWN*/)
+{
+	offset &= 0x3F;
+	SET16(objectp_ram, offset, data);
+
+/*if (offset == 0x20)
+WriteLog("OP: Setting lo list pointer: %04X\n", data);
+if (offset == 0x22)
+WriteLog("OP: Setting hi list pointer: %04X\n", data);//*/
+}
 
 uint32 op_get_list_pointer(void)
 {
@@ -245,14 +242,14 @@ void op_set_current_object(uint64 object)
 uint64 op_load_phrase(uint32 offset)
 {
 	offset &= ~0x07;						// 8 byte alignment
-	return ((uint64)jaguar_long_read(offset) << 32) | (uint64)jaguar_long_read(offset+4);
+	return ((uint64)JaguarReadLong(offset, OP) << 32) | (uint64)JaguarReadLong(offset+4, OP);
 }
 
 void OPStorePhrase(uint32 offset, uint64 p)
 {
 	offset &= ~0x07;						// 8 byte alignment
-	jaguar_long_write(offset, p >> 32);
-	jaguar_long_write(offset + 4, p & 0xFFFFFFFF);
+	JaguarWriteLong(offset, p >> 32, OP);
+	JaguarWriteLong(offset + 4, p & 0xFFFFFFFF, OP);
 }
 
 //
@@ -431,7 +428,7 @@ WriteLog("    --> List end\n");
 //No, the reason this was needed is that the OP code before was wrong. Any value
 //less than VDB will get written to the top line of the display!
 //			if (ypos == 0)
-//				ypos = tom_word_read(0xF00046) / 2;			// Get the VDB value
+//				ypos = TOMReadWord(0xF00046, OP) / 2;			// Get the VDB value
 			uint32 height = (p0 & 0xFFC000) >> 14;
 			uint32 oldOPP = op_pointer - 8;
 // *** BEGIN OP PROCESSOR TESTING ONLY ***
@@ -488,7 +485,7 @@ if (!inhibit)	// For OP testing only!
 //No, the reason this was needed is that the OP code before was wrong. Any value
 //less than VDB will get written to the top line of the display!
 //			if (ypos == 0)
-//				ypos = tom_word_read(0xF00046) / 2;			// Get the VDB value
+//				ypos = TOMReadWord(0xF00046, OP) / 2;			// Get the VDB value
 			uint32 height = (p0 & 0xFFC000) >> 14;
 			uint32 oldOPP = op_pointer - 8;
 // *** BEGIN OP PROCESSOR TESTING ONLY ***
@@ -593,17 +590,17 @@ if (!inhibit)	// For OP testing only!
 //				 	ypos ^= 0x01;
 //				if ((2 * tom_get_scanline()) == ypos || ypos == 0x7FF)
 //Here we're using VC instead of the bogus tom_get_scanline() value...
-				if (tom_word_read(0xF00006) == ypos || ypos == 0x7FF)
+				if (TOMReadWord(0xF00006, OP) == ypos || ypos == 0x7FF)
 					op_pointer = link;
 				break;
 			case CONDITION_LESS_THAN:
 //				if ((2 * tom_get_scanline()) < ypos)
-				if (tom_word_read(0xF00006) < ypos)
+				if (TOMReadWord(0xF00006, OP) < ypos)
 					op_pointer = link;
 				break;
 			case CONDITION_GREATER_THAN:
 //				if ((2 * tom_get_scanline()) > ypos)
-				if (tom_word_read(0xF00006) > ypos)
+				if (TOMReadWord(0xF00006, OP) > ypos)
 					op_pointer = link;
 				break;
 			case CONDITION_OP_FLAG_SET:
@@ -820,7 +817,7 @@ if (depth > 5)
 		int32 lbufDelta = ((int8)((flags << 7) & 0xFF) >> 5) | 0x02;
 
 		// Fetch 1st phrase...
-		uint64 pixels = ((uint64)jaguar_long_read(data) << 32) | jaguar_long_read(data + 4);
+		uint64 pixels = ((uint64)JaguarReadLong(data, OP) << 32) | JaguarReadLong(data + 4, OP);
 //Note that firstPix should only be honored *if* we start with the 1st phrase of the bitmap
 //i.e., we didn't clip on the margin...
 		pixels <<= firstPix;						// Skip first N pixels (N=firstPix)...
@@ -854,7 +851,7 @@ if (depth > 5)
 			i = 0;
 			// Fetch next phrase...
 			data += pitch << 3;						// Multiply pitch * 8 (optimize: precompute this value)
-			pixels = ((uint64)jaguar_long_read(data) << 32) | jaguar_long_read(data + 4);
+			pixels = ((uint64)JaguarReadLong(data, OP) << 32) | JaguarReadLong(data + 4, OP);
 		}
 	}
 	else if (depth == 1)							// 2 BPP
@@ -868,7 +865,7 @@ if (firstPix)
 		while (iwidth--)
 		{
 			// Fetch phrase...
-			uint64 pixels = ((uint64)jaguar_long_read(data) << 32) | jaguar_long_read(data + 4);
+			uint64 pixels = ((uint64)JaguarReadLong(data, OP) << 32) | JaguarReadLong(data + 4, OP);
 			data += pitch << 3;						// Multiply pitch * 8 (optimize: precompute this value)
 
 			for(int i=0; i<32; i++)
@@ -908,7 +905,7 @@ if (firstPix)
 		while (iwidth--)
 		{
 			// Fetch phrase...
-			uint64 pixels = ((uint64)jaguar_long_read(data) << 32) | jaguar_long_read(data + 4);
+			uint64 pixels = ((uint64)JaguarReadLong(data, OP) << 32) | JaguarReadLong(data + 4, OP);
 			data += pitch << 3;						// Multiply pitch * 8 (optimize: precompute this value)
 
 			for(int i=0; i<16; i++)
@@ -947,7 +944,7 @@ if (firstPix)
 		while (iwidth--)
 		{
 			// Fetch phrase...
-			uint64 pixels = ((uint64)jaguar_long_read(data) << 32) | jaguar_long_read(data + 4);
+			uint64 pixels = ((uint64)JaguarReadLong(data, OP) << 32) | JaguarReadLong(data + 4, OP);
 			data += pitch << 3;						// Multiply pitch * 8 (optimize: precompute this value)
 
 			for(int i=0; i<8; i++)
@@ -986,7 +983,7 @@ if (firstPix)
 		while (iwidth--)
 		{
 			// Fetch phrase...
-			uint64 pixels = ((uint64)jaguar_long_read(data) << 32) | jaguar_long_read(data + 4);
+			uint64 pixels = ((uint64)JaguarReadLong(data, OP) << 32) | JaguarReadLong(data + 4, OP);
 			data += pitch << 3;						// Multiply pitch * 8 (optimize: precompute this value)
 
 			for(int i=0; i<4; i++)
@@ -1030,7 +1027,7 @@ if (firstPix)
 		while (iwidth--)
 		{
 			// Fetch phrase...
-			uint64 pixels = ((uint64)jaguar_long_read(data) << 32) | jaguar_long_read(data + 4);
+			uint64 pixels = ((uint64)JaguarReadLong(data, OP) << 32) | JaguarReadLong(data + 4, OP);
 			data += pitch << 3;						// Multiply pitch * 8 (optimize: precompute this value)
 
 			for(int i=0; i<2; i++)
@@ -1240,7 +1237,7 @@ if (firstPix != 0)
 		int32 lbufDelta = ((int8)((flags << 7) & 0xFF) >> 5) | 0x02;
 
 		int pixCount = 0;
-		uint64 pixels = ((uint64)jaguar_long_read(data) << 32) | jaguar_long_read(data + 4);
+		uint64 pixels = ((uint64)JaguarReadLong(data, OP) << 32) | JaguarReadLong(data + 4, OP);
 
 		while ((int32)iwidth > 0)
 		{
@@ -1276,7 +1273,7 @@ if (firstPix != 0)
 				int phrasesToSkip = pixCount / 64, pixelShift = pixCount % 64;
 
 				data += (pitch << 3) * phrasesToSkip;
-				pixels = ((uint64)jaguar_long_read(data) << 32) | jaguar_long_read(data + 4);
+				pixels = ((uint64)JaguarReadLong(data, OP) << 32) | JaguarReadLong(data + 4, OP);
 				pixels <<= 1 * pixelShift;
 				iwidth -= phrasesToSkip;
 				pixCount = pixelShift;
@@ -1292,7 +1289,7 @@ if (firstPix != 0)
 		int32 lbufDelta = ((int8)((flags << 7) & 0xFF) >> 5) | 0x02;
 
 		int pixCount = 0;
-		uint64 pixels = ((uint64)jaguar_long_read(data) << 32) | jaguar_long_read(data + 4);
+		uint64 pixels = ((uint64)JaguarReadLong(data, OP) << 32) | JaguarReadLong(data + 4, OP);
 
 		while ((int32)iwidth > 0)
 		{
@@ -1328,7 +1325,7 @@ if (firstPix != 0)
 				int phrasesToSkip = pixCount / 32, pixelShift = pixCount % 32;
 
 				data += (pitch << 3) * phrasesToSkip;
-				pixels = ((uint64)jaguar_long_read(data) << 32) | jaguar_long_read(data + 4);
+				pixels = ((uint64)JaguarReadLong(data, OP) << 32) | JaguarReadLong(data + 4, OP);
 				pixels <<= 2 * pixelShift;
 				iwidth -= phrasesToSkip;
 				pixCount = pixelShift;
@@ -1344,7 +1341,7 @@ if (firstPix != 0)
 		int32 lbufDelta = ((int8)((flags << 7) & 0xFF) >> 5) | 0x02;
 
 		int pixCount = 0;
-		uint64 pixels = ((uint64)jaguar_long_read(data) << 32) | jaguar_long_read(data + 4);
+		uint64 pixels = ((uint64)JaguarReadLong(data, OP) << 32) | JaguarReadLong(data + 4, OP);
 
 		while ((int32)iwidth > 0)
 		{
@@ -1380,7 +1377,7 @@ if (firstPix != 0)
 				int phrasesToSkip = pixCount / 16, pixelShift = pixCount % 16;
 
 				data += (pitch << 3) * phrasesToSkip;
-				pixels = ((uint64)jaguar_long_read(data) << 32) | jaguar_long_read(data + 4);
+				pixels = ((uint64)JaguarReadLong(data, OP) << 32) | JaguarReadLong(data + 4, OP);
 				pixels <<= 4 * pixelShift;
 				iwidth -= phrasesToSkip;
 				pixCount = pixelShift;
@@ -1395,7 +1392,7 @@ if (firstPix)
 		int32 lbufDelta = ((int8)((flags << 7) & 0xFF) >> 5) | 0x02;
 
 		int pixCount = 0;
-		uint64 pixels = ((uint64)jaguar_long_read(data) << 32) | jaguar_long_read(data + 4);
+		uint64 pixels = ((uint64)JaguarReadLong(data, OP) << 32) | JaguarReadLong(data + 4, OP);
 
 		while ((int32)iwidth > 0)
 		{
@@ -1431,7 +1428,7 @@ if (firstPix)
 				int phrasesToSkip = pixCount / 8, pixelShift = pixCount % 8;
 
 				data += (pitch << 3) * phrasesToSkip;
-				pixels = ((uint64)jaguar_long_read(data) << 32) | jaguar_long_read(data + 4);
+				pixels = ((uint64)JaguarReadLong(data, OP) << 32) | JaguarReadLong(data + 4, OP);
 				pixels <<= 8 * pixelShift;
 				iwidth -= phrasesToSkip;
 				pixCount = pixelShift;
@@ -1446,7 +1443,7 @@ if (firstPix != 0)
 		int32 lbufDelta = ((int8)((flags << 7) & 0xFF) >> 5) | 0x02;
 
 		int pixCount = 0;
-		uint64 pixels = ((uint64)jaguar_long_read(data) << 32) | jaguar_long_read(data + 4);
+		uint64 pixels = ((uint64)JaguarReadLong(data, OP) << 32) | JaguarReadLong(data + 4, OP);
 
 		while ((int32)iwidth > 0)
 		{
@@ -1481,7 +1478,7 @@ if (firstPix != 0)
 				int phrasesToSkip = pixCount / 4, pixelShift = pixCount % 4;
 
 				data += (pitch << 3) * phrasesToSkip;
-				pixels = ((uint64)jaguar_long_read(data) << 32) | jaguar_long_read(data + 4);
+				pixels = ((uint64)JaguarReadLong(data, OP) << 32) | JaguarReadLong(data + 4, OP);
 				pixels <<= 16 * pixelShift;
 
 				iwidth -= phrasesToSkip;
@@ -1503,7 +1500,7 @@ if (firstPix != 0)
 		while (iwidth--)
 		{
 			// Fetch phrase...
-			uint64 pixels = ((uint64)jaguar_long_read(data) << 32) | jaguar_long_read(data + 4);
+			uint64 pixels = ((uint64)JaguarReadLong(data, OP) << 32) | JaguarReadLong(data + 4, OP);
 			data += pitch << 3;						// Multiply pitch * 8 (optimize: precompute this value)
 
 			for(int i=0; i<2; i++)

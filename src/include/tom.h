@@ -20,10 +20,12 @@ extern uint32 tom_height;
 void tom_init(void);
 void tom_reset(void);
 void tom_done(void);
-unsigned tom_byte_read(unsigned int offset);
-unsigned tom_word_read(unsigned int offset);
-void tom_byte_write(unsigned  offset, unsigned  data);
-void tom_word_write(unsigned  offset, unsigned  data);
+
+uint8 TOMReadByte(uint32 offset, uint32 who = UNKNOWN);
+uint16 TOMReadWord(uint32 offset, uint32 who = UNKNOWN);
+void TOMWriteByte(uint32 offset, uint8 data, uint32 who = UNKNOWN);
+void TOMWriteWord(uint32 offset, uint16 data, uint32 who = UNKNOWN);
+
 void tom_exec_scanline(int16 * backbuffer, int32 scanline, bool render);
 uint32 tom_getVideoModeWidth(void);
 uint32 tom_getVideoModeHeight(void);

@@ -1,3 +1,4 @@
+//
 // GCC/SDL port by Niels Wagenaar (Linux/WIN32) and Caz (BeOS)
 // Removal of unsafe macros and addition of typdefs by James L. Hammons
 //
@@ -5,18 +6,14 @@
 #ifndef __TYPES_H__
 #define __TYPES_H__
 
-#ifdef __PORT__
-#include <string.h>
-typedef unsigned char	BYTE;
-typedef unsigned short	WORD;
-typedef unsigned long	DWORD;
-#ifdef __GCCUNIX__
-typedef long long		__int64;		// Could probably remove this crap with some judicious pruning
-#endif	// #ifdef __GCCUNIX__
-typedef int				HWND;
-#else
-#include <windows.h>
-#endif	// #ifdef __PORT__
+#include <string.h>	// Why???
+
+//typedef unsigned char	BYTE;
+//typedef unsigned short	WORD;
+//typedef unsigned long	DWORD;
+//#ifdef __GCCUNIX__
+//typedef long long		__int64;		// Could probably remove this crap with some judicious pruning
+//#endif
 
 // This is only good on certain intel 32-bit platforms...
 // You may need to tweak to suit your specific platform.
@@ -39,4 +36,8 @@ typedef INT32	int32;
 typedef UINT64	uint64;
 typedef INT64	int64;
 
-#endif	// #ifndef __TYPES_H__
+// Read/write tracing enumeration
+
+enum { UNKNOWN, JAGUAR, DSP, GPU, TOM, JERRY, M68K, BLITTER, OP };
+
+#endif	// __TYPES_H__

@@ -142,16 +142,16 @@ void cdbios_encode_toc(void)
 	int i;
 	uint32 base=CD_TOC;
 
-	jaguar_byte_write(base++,0x00);
-	jaguar_byte_write(base++,0x00);
-	jaguar_byte_write(base++,0x01);
+	JaguarWriteByte(base++,0x00);
+	JaguarWriteByte(base++,0x00);
+	JaguarWriteByte(base++,0x01);
 
 	int nbtracks=0;
 	for (i=0;i<cdi_descriptor->nb_of_sessions;i++)
 		nbtracks+=cdi_descriptor->sessions[i].nb_of_tracks;
 
-	jaguar_byte_write(base++,nbtracks+1);
-	jaguar_byte_write(base++,cdi_descriptor->nb_of_sessions);
+	JaguarWriteByte(base++,nbtracks+1);
+	JaguarWriteByte(base++,cdi_descriptor->nb_of_sessions);
 	
 	uint32 mm=0;
 	uint32 ss=0;
@@ -162,9 +162,9 @@ void cdbios_encode_toc(void)
 					cdi_descriptor->sessions[cdi_descriptor->nb_of_sessions-1].tracks[cdi_descriptor->sessions[cdi_descriptor->nb_of_sessions-1].nb_of_tracks-1].pregap_length,
 					&mm,&ss,&ff);
 
-	jaguar_byte_write(base++,mm);
-	jaguar_byte_write(base++,ss);
-	jaguar_byte_write(base++,ff);
+	JaguarWriteByte(base++,mm);
+	JaguarWriteByte(base++,ss);
+	JaguarWriteByte(base++,ff);
 
 	int track_count=1;
 	for (i=0;i<cdi_descriptor->nb_of_sessions;i++)
@@ -174,16 +174,16 @@ void cdbios_encode_toc(void)
 			
 //			fprintf(log_get(),"track %i\n",track_count);
 
-			jaguar_byte_write(base++,track_count);
+			JaguarWriteByte(base++,track_count);
 			cdbios_get_time(track->start_lba+track->pregap_length,&mm,&ss,&ff);
-			jaguar_byte_write(base++,mm);
-			jaguar_byte_write(base++,ss);
-			jaguar_byte_write(base++,ff);
-			jaguar_byte_write(base++,i);
+			JaguarWriteByte(base++,mm);
+			JaguarWriteByte(base++,ss);
+			JaguarWriteByte(base++,ff);
+			JaguarWriteByte(base++,i);
 			cdbios_get_time(track->length,&mm,&ss,&ff);
-			jaguar_byte_write(base++,mm);
-			jaguar_byte_write(base++,ss);
-			jaguar_byte_write(base++,ff);
+			JaguarWriteByte(base++,mm);
+			JaguarWriteByte(base++,ss);
+			JaguarWriteByte(base++,ff);
 				
 			track_count++;
 		}
@@ -209,11 +209,11 @@ void cdbios_decode_toc(void)
 	fprintf(log_get(),"cdbios: toc:\n");
 	fprintf(log_get(),"cdbios:\n");
 	addr+=2;
-	fprintf(log_get(),"cdbios: minimum track number: %i\n",jaguar_byte_read(addr++));
-	fprintf(log_get(),"cdbios: maximum track number: %i\n",nb_tracks=jaguar_byte_read(addr++));
-	fprintf(log_get(),"cdbios: number of sessions  : %i\n",jaguar_byte_read(addr++));
+	fprintf(log_get(),"cdbios: minimum track number: %i\n",JaguarReadByte(addr++));
+	fprintf(log_get(),"cdbios: maximum track number: %i\n",nb_tracks=JaguarReadByte(addr++));
+	fprintf(log_get(),"cdbios: number of sessions  : %i\n",JaguarReadByte(addr++));
 	fprintf(log_get(),"cdbios: start of last lead out time: %.2i:%.2i:%.2i\n",
-					  jaguar_byte_read(addr++),jaguar_byte_read(addr++),jaguar_byte_read(addr++));
+					  JaguarReadByte(addr++),JaguarReadByte(addr++),JaguarReadByte(addr++));
 
 	uint32 mm,ss,ff;
 
@@ -222,18 +222,18 @@ void cdbios_decode_toc(void)
 	while (nb_tracks)
 	{
 		fprintf(log_get(),"cdbios:\n");
-		fprintf(log_get(),"cdbios: track          : %i\n",jaguar_byte_read(addr++));
+		fprintf(log_get(),"cdbios: track          : %i\n",JaguarReadByte(addr++));
 		
-		mm=jaguar_byte_read(addr++);
-		ss=jaguar_byte_read(addr++);
-		ff=jaguar_byte_read(addr++);
+		mm=JaguarReadByte(addr++);
+		ss=JaguarReadByte(addr++);
+		ff=JaguarReadByte(addr++);
 
 		fprintf(log_get(),"cdbios: start at       : %.2i:%.2i:%.2i\n",mm,ss,ff);
-		fprintf(log_get(),"cdbios: session        : %i\n",jaguar_byte_read(addr++));
+		fprintf(log_get(),"cdbios: session        : %i\n",JaguarReadByte(addr++));
 		
-		mm=jaguar_byte_read(addr++);
-		ss=jaguar_byte_read(addr++);
-		ff=jaguar_byte_read(addr++);
+		mm=JaguarReadByte(addr++);
+		ss=JaguarReadByte(addr++);
+		ff=JaguarReadByte(addr++);
 
 		fprintf(log_get(),"cdbios: duration       : %.2i:%.2i:%.2i\n",mm,ss,ff);
 		nb_tracks--;
@@ -260,10 +260,10 @@ void cd_bios_boot(char *filename)
 
 	// copy the code to ram
 	for (uint32 i=0;i<cdi_code_length;i++)
-		jaguar_byte_write(cdi_load_address+i,code[i]);
+		JaguarWriteByte(cdi_load_address+i,code[i]);
 
 	// set the boot address
-	jaguar_long_write(0x00000004,cdi_load_address);
+	JaguarWriteLong(0x00000004,cdi_load_address);
 
 	// write the toc
 	cdbios_encode_toc();
@@ -281,7 +281,7 @@ void cd_bios_init(void)
 	for (int i=0;i<19;i++)
 	{
 		// RESET opcode
-		jaguar_word_write(0x3000+(i*6),0x4E70);
+		JaguarWriteWord(0x3000+(i*6),0x4E70);
 	}
 	cd_bios_reset();
 	cdbios_init_done=1;
@@ -290,7 +290,7 @@ void cd_bios_init(void)
 void cd_bios_reset(void)
 {
 	fprintf(log_get(), "cd_bios: reset\n");
-	jaguar_word_write(BIOS_VER, 0x0405);
+	JaguarWriteWord(BIOS_VER, 0x0405);
 	cdrom_mode				= CDROM_DATA_MODE;
 	cdrom_speed				= CDROM_SINGLE_SPEED;
 	cdrom_oversample_factor	= 1;
@@ -306,7 +306,7 @@ void cd_bios_done(void)
 void cdbios_cmd_init(void)
 {
 	cdbios_init_type = CDBIOS_INIT;
-    jaguar_word_write(ERR_FLAG, CDROM_STATUS_OK);
+    JaguarWriteWord(ERR_FLAG, CDROM_STATUS_OK);
 	fprintf(log_get(), "cdbios: init(0x%.8x)\n", m68k_get_reg(NULL, M68K_REG_A0));
 }
 
@@ -317,7 +317,7 @@ void cdbios_cmd_mode(void)
 
 	uint32 cdrom_mode = (data>>1) & 0x01;
 	uint32 cdrom_speed = data & 0x01;
-	jaguar_word_write(ERR_FLAG, CDROM_STATUS_OK);
+	JaguarWriteWord(ERR_FLAG, CDROM_STATUS_OK);
 
 //	fprintf(log_get(),"cdbios: %s\n",(cdrom_mode==CDROM_AUDIO_MODE)?"audio mode":"data mode");
 //	fprintf(log_get(),"cdbios: %s\n",(cdrom_speed==CDROM_DOUBLE_SPEED)?"double speed":"single speed");
@@ -325,12 +325,12 @@ void cdbios_cmd_mode(void)
 
 void cdbios_cmd_ack(void)
 {
-    jaguar_word_write(ERR_FLAG,CDROM_STATUS_OK);
+    JaguarWriteWord(ERR_FLAG,CDROM_STATUS_OK);
 }
 
 void cdbios_cmd_jeri(void)
 {
-    jaguar_word_write(ERR_FLAG,CDROM_STATUS_OK);
+    JaguarWriteWord(ERR_FLAG,CDROM_STATUS_OK);
 }
 
 void cdbios_cmd_spin(void)
@@ -338,33 +338,33 @@ void cdbios_cmd_spin(void)
 //	uint16 spin=(1<<(s68000context.dreg[0]&0xffff));
 	uint16 spin = (1 << (m68k_get_reg(NULL, M68K_REG_D0) & 0xFFFF));
 	cdbios_session = spin;
-    jaguar_word_write(ERR_FLAG, CDROM_STATUS_OK);
+    JaguarWriteWord(ERR_FLAG, CDROM_STATUS_OK);
 //	fprintf(log_get(),"cdbios: switching to session %i\n",spin);
 }
 
 void cdbios_cmd_stop(void)
 {
-    jaguar_word_write(ERR_FLAG,CDROM_STATUS_OK);
+    JaguarWriteWord(ERR_FLAG,CDROM_STATUS_OK);
 }
 
 void cdbios_cmd_mute(void)
 {
-    jaguar_word_write(ERR_FLAG,CDROM_STATUS_OK);
+    JaguarWriteWord(ERR_FLAG,CDROM_STATUS_OK);
 }
 
 void cdbios_cmd_umute(void)
 {
-    jaguar_word_write(ERR_FLAG,CDROM_STATUS_OK);
+    JaguarWriteWord(ERR_FLAG,CDROM_STATUS_OK);
 }
 
 void cdbios_cmd_pause(void)
 {
-    jaguar_word_write(ERR_FLAG,CDROM_STATUS_OK);
+    JaguarWriteWord(ERR_FLAG,CDROM_STATUS_OK);
 }
 
 void cdbios_cmd_upause(void)
 {
-    jaguar_word_write(ERR_FLAG,CDROM_STATUS_OK);
+    JaguarWriteWord(ERR_FLAG,CDROM_STATUS_OK);
 }
 void cdi_read_block(uint32 sector, uint8 *buffer, uint32 count)
 {
@@ -440,7 +440,7 @@ void cdbios_cmd_read(void)
 			uint8 *buffer=(uint8*)malloc((nb_sectors+1)*2352);
 			cdi_read_block(track_offset,buffer,nb_sectors+1);
 			for (uint32 k=0;k<nb_bytes_to_read;k++)
-				jaguar_byte_write(cdrom_destination_buffer_beginning+k,buffer[k]);
+				JaguarWriteByte(cdrom_destination_buffer_beginning+k,buffer[k]);
 			free(buffer);
 		}
 		else
@@ -472,7 +472,7 @@ void cdbios_cmd_read(void)
 						exit(0);
 						alias+=4;
 						for (uint32 k=0;k<nb_bytes_to_read;k++)
-							jaguar_byte_write(cdrom_destination_buffer_beginning+k,alias[k]);
+							JaguarWriteByte(cdrom_destination_buffer_beginning+k,alias[k]);
 						free(buffer);
 						return;
 					}
@@ -487,45 +487,45 @@ void cdbios_cmd_read(void)
 			fprintf(log_get(),"cdbios: unsupported read mode\n");
 		}
 	}
-    jaguar_word_write(ERR_FLAG,CDROM_STATUS_OK);
+    JaguarWriteWord(ERR_FLAG,CDROM_STATUS_OK);
 }
 
 void cdbios_cmd_uread(void)
 {
 	// stop the recording started with a cd_read command
 	// for now, there is nothing to do
-    jaguar_word_write(ERR_FLAG,CDROM_STATUS_OK);
+    JaguarWriteWord(ERR_FLAG,CDROM_STATUS_OK);
 }
 
 void cdbios_cmd_setup(void)
 {
 	// initialize the cd system
-    jaguar_word_write(ERR_FLAG, CDROM_STATUS_OK);
+    JaguarWriteWord(ERR_FLAG, CDROM_STATUS_OK);
 }
 
 void cdbios_cmd_ptr(void)
 {
 //	s68000context.areg[0]=cdrom_destination_buffer_end+4;
 	m68k_set_reg(M68K_REG_A0, cdrom_destination_buffer_end + 4);
-    jaguar_word_write(ERR_FLAG, CDROM_STATUS_OK);
+    JaguarWriteWord(ERR_FLAG, CDROM_STATUS_OK);
 }
 
 void cdbios_cmd_osamp(void)
 {
 //	cdrom_oversample_factor=(1<<(s68000context.dreg[0]&0xffff));
 	cdrom_oversample_factor = 1 << (m68k_get_reg(NULL, M68K_REG_D0) & 0xFFFF);
-    jaguar_word_write(ERR_FLAG, CDROM_STATUS_OK);
+    JaguarWriteWord(ERR_FLAG, CDROM_STATUS_OK);
 }
 
 void cdbios_cmd_gettoc(void)
 {
-    jaguar_word_write(ERR_FLAG,CDROM_STATUS_OK);
+    JaguarWriteWord(ERR_FLAG,CDROM_STATUS_OK);
 }
 
 void cdbios_cmd_initm(void)
 {
 	cdbios_init_type = CDBIOS_INITM;
-    jaguar_word_write(ERR_FLAG, CDROM_STATUS_OK);
+    JaguarWriteWord(ERR_FLAG, CDROM_STATUS_OK);
 //	fprintf(log_get(),"cdbios: initm(0x%.8x)\n",s68000context.areg[0]);
 	fprintf(log_get(), "cdbios: initm(0x%.8x)\n", m68k_get_reg(NULL, M68K_REG_A0));
 }
@@ -533,7 +533,7 @@ void cdbios_cmd_initm(void)
 void cdbios_cmd_initf(void)
 {
 	cdbios_init_type = CDBIOS_INITF;
-    jaguar_word_write(ERR_FLAG, CDROM_STATUS_OK);
+    JaguarWriteWord(ERR_FLAG, CDROM_STATUS_OK);
 //	fprintf(log_get(),"cdbios: initf(0x%.8x)\n",s68000context.areg[0]);
 	fprintf(log_get(), "cdbios: initf(0x%.8x)\n", m68k_get_reg(NULL, M68K_REG_A0));
 }
@@ -544,7 +544,7 @@ void cd_bios_process(uint32 offset)
 		return;
 
 	fprintf(log_get(), "cdbios: processing command '%s'\n", cdbios_command[(offset-0x3000) / 6]);
-	fprintf(log_get(), "cdbios: 68K PC=%08X SP=%08X\n", jaguar_long_read(m68k_get_reg(NULL, M68K_REG_A7)), m68k_get_reg(NULL, M68K_REG_A7));
+	fprintf(log_get(), "cdbios: 68K PC=%08X SP=%08X\n", JaguarReadLong(m68k_get_reg(NULL, M68K_REG_A7)), m68k_get_reg(NULL, M68K_REG_A7));
 
 	switch (offset)
 	{
@@ -567,14 +567,14 @@ void cd_bios_process(uint32 offset)
 	case CD_INITM:	cdbios_cmd_initm();		break;
 	case CD_INITF:	cdbios_cmd_initf();		break;
 
-	default: fprintf(log_get(), "cdbios: unemulated entry point at %08X 68K PC=%08X SP=%08X\n", offset, jaguar_long_read(m68k_get_reg(NULL, M68K_REG_A7)), m68k_get_reg(NULL, M68K_REG_A7));
-		jaguar_word_write(ERR_FLAG, CDROM_STATUS_OK);
+	default: fprintf(log_get(), "cdbios: unemulated entry point at %08X 68K PC=%08X SP=%08X\n", offset, JaguarReadLong(m68k_get_reg(NULL, M68K_REG_A7)), m68k_get_reg(NULL, M68K_REG_A7));
+		JaguarWriteWord(ERR_FLAG, CDROM_STATUS_OK);
 	}
 
 	// rts
-//	s68000context.pc=jaguar_long_read(s68000context.areg[7]);
+//	s68000context.pc=JaguarReadLong(s68000context.areg[7]);
 //	s68000context.areg[7]=(s68000context.areg[7]+4)&0xffffffff;
-	m68k_set_reg(M68K_REG_PC, jaguar_long_read(m68k_get_reg(NULL, M68K_REG_A7)));
+	m68k_set_reg(M68K_REG_PC, JaguarReadLong(m68k_get_reg(NULL, M68K_REG_A7)));
 	m68k_set_reg(M68K_REG_A7, (m68k_get_reg(NULL, M68K_REG_A7) + 4) & 0xFFFFFFFF);
 }
 

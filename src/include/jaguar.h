@@ -17,31 +17,30 @@
 #include "joystick.h"
 #include "dac.h"
 #include "jagdasm.h"
-#include "dsnd.h"
 #include "cdrom.h"
 #include "eeprom.h"
 #include "cdi.h"
 #include "cdbios.h"
 
+// Exports from JAGUAR.CPP
+
 extern int32 jaguar_cpu_in_exec;
 extern uint32 jaguar_mainRom_crc32;
 extern char * jaguar_eeproms_path;
+extern char * whoName[9];
 
-//#ifdef __PORT__
-//void jaguar_init(const char * filename);
-//#else
 void jaguar_init(void);
-//#endif	// #ifdef __PORT__
 void jaguar_reset(void);
 void jaguar_reset_handler(void);
 void jaguar_done(void);
-void jaguar_exec(int16 * backbuffer, bool render);
-unsigned jaguar_byte_read(unsigned int offset);
-unsigned jaguar_word_read(unsigned int offset);
-unsigned jaguar_long_read(unsigned int offset);
-void jaguar_byte_write(unsigned offset, unsigned data);
-void jaguar_word_write(unsigned offset, unsigned data);
-void jaguar_long_write(unsigned offset, unsigned data);
+
+uint8 JaguarReadByte(uint32 offset, uint32 who = UNKNOWN);
+uint16 JaguarReadWord(uint32 offset, uint32 who = UNKNOWN);
+uint32 JaguarReadLong(uint32 offset, uint32 who = UNKNOWN);
+void JaguarWriteByte(uint32 offset, uint8 data, uint32 who = UNKNOWN);
+void JaguarWriteWord(uint32 offset, uint16 data, uint32 who = UNKNOWN);
+void JaguarWriteLong(uint32 offset, uint32 data, uint32 who = UNKNOWN);
+
 uint32 jaguar_interrupt_handler_is_valid(uint32 i);
 void jaguar_dasm(uint32 offset, uint32 qt);
 
@@ -64,8 +63,12 @@ void JaguarExecute(int16 * backbuffer, bool render);
 #define RISC_CLOCK_RATE_PAL		26593900
 #define RISC_CLOCK_RATE_NTSC	26590906
 
+// Stuff for IRQ handling
 
-//Temp debug stuff (will go away soon, so don't use these)
+#define ASSERT_LINE		1
+#define CLEAR_LINE		0
+
+//Temp debug stuff (will go away soon, so don't depend on these)
 
 void DumpMainMemory(void);
 uint8 * GetRamPtr(void);

@@ -14,10 +14,10 @@
 
 #include <time.h>
 #include <SDL.h>
-//#include "SDLptc.h"			// Ick! Aargh! Bleah!
 #include "jaguar.h"
 #include "crc32.h"
 #include "unzip.h"
+#include "gui.h"
 
 // Uncomment this for speed control
 //#define SPEED_CONTROL
@@ -49,14 +49,12 @@ SDL_Surface * surface, * mainSurface;
 SDL_Joystick * joystick;
 Uint32 mainSurfaceFlags = SDL_SWSURFACE;
 
-//Console console;
-//Surface * surface;
-//Format format(16, 0x007C00, 0x00003E0, 0x0000001F);
 bool finished = false;
 bool fullscreen = false;
 bool hardwareTypeNTSC = true;			// Set to false for PAL
 
 bool useJoystick = false;
+bool showGUI = false;
 
 
 // Added/changed by SDLEMU http://sdlemu.ngemu.com
@@ -65,12 +63,8 @@ uint32 totalFrames;//so we can grab this from elsewhere...
 int main(int argc, char * argv[])
 {
 	uint32 startTime;//, totalFrames;//, endTime;//, w, h;
-//	int32 * vs;
 	uint32 nNormalLast = 0;
 	int32 nNormalFrac = 0; 
-//	int32 i = 0;
-//unused	int32 nTime = 0;
-//unused	int32 nCount = 0;
     int32 nFrameskip = 0;								// Default: Show every frame
     int32 nFrame = 0;									// No. of Frame
     int32 nJoyport = 0;									// Joystick port
@@ -80,8 +74,6 @@ int main(int argc, char * argv[])
 	printf("Written by Niels Wagenaar (Linux/WIN32) and Caz (BeOS)\n");
 	printf("Portions massaged by James L. Hammons (WIN32)\n");
 	printf("Contact: http://sdlemu.ngemu.com/ | sdlemu@ngemu.com\n");
-
-//    console.option("windowed output");
 
 	// BIOS is now ON by default--use the -nobios switch to turn it off!
 	jaguar_use_bios = true;
@@ -96,10 +88,7 @@ int main(int argc, char * argv[])
 			haveCart = true;								// It looks like we have a cartridge!
 
 		if (!strcmp(argv[i], "-fullscreen")) 
-//		{
 			fullscreen = true;
-//			console.option("fullscreen output");
-//		}
 
 //We *don't* need this option!
 /*		if (!strcmp(argv[i], "-window")) 
@@ -107,7 +96,6 @@ int main(int argc, char * argv[])
 			fullscreen = false;*/
 
 		if (!strcmp(argv[i], "-joystick")) 
-//			console.option("joystick enabled");
 			useJoystick = true;
 
 		if (!strcmp(argv[i], "-joyport"))
@@ -184,12 +172,12 @@ int main(int argc, char * argv[])
 		exit(1);
 	}
 
-	// Let's get proper info about the platform we're running on.
+	// Let's get proper info about the platform we're running on...
 	const SDL_VideoInfo * info = SDL_GetVideoInfo();
 
 	if (!info)
 	{
-		WriteLog("VJ: SDL is unable to get the video query: %s\n", SDL_GetError());
+		WriteLog("VJ: SDL is unable to get the video info: %s\n", SDL_GetError());
 		exit(1);
 	}
 
@@ -203,7 +191,7 @@ int main(int argc, char * argv[])
 		mainSurfaceFlags |= SDL_FULLSCREEN;
 
 	// Note: mainSurface is *never* used again!
-	//Not true--had to look at what's what here...
+	//Not true--had to look at what's what here... It's the primary surface...
 	mainSurface = SDL_SetVideoMode(tom_getVideoModeWidth(), tom_getVideoModeHeight(), 16, mainSurfaceFlags);
 
 	if (mainSurface == NULL)
@@ -215,42 +203,34 @@ int main(int argc, char * argv[])
 	SDL_WM_SetCaption("Virtual Jaguar", "Virtual Jaguar");
 
 	// Create the primary SDL display (16 BPP, 5/5/5 RGB format)
-//	surface = new Surface(tom_getVideoModeWidth(), tom_getVideoModeHeight(), format);
-//Format format(16, 0x007C00, 0x00003E0, 0x0000001F);
 	surface = SDL_CreateRGBSurface(SDL_SWSURFACE, tom_getVideoModeWidth(),
 		tom_getVideoModeHeight(), 16, 0x7C00, 0x03E0, 0x001F, 0);
+
 	if (surface == NULL)
 	{
-		WriteLog("VJ: Could not create primary SDL surface: %s", SDL_GetError());
+		WriteLog("VJ: Could not create primary SDL surface: %s\n", SDL_GetError());
 		exit(1);
 	}
 
 	// Initialize Joystick support under SDL
-//	if (console.JoyEnabled() == 1)
 	if (useJoystick)
 	{
 		if (SDL_NumJoysticks() <= 0)
 		{
-//	        console.option("joystick disabled");
 			useJoystick = false;
-			printf("No joystick(s) or joypad(s) detected on your system. Using keyboard...\n");
+			printf("VJ: No joystick(s) or joypad(s) detected on your system. Using keyboard...\n");
 		}
 		else
 		{
-//			if ((console.joystick = SDL_JoystickOpen(nJoyport)) == 0)
 			if ((joystick = SDL_JoystickOpen(nJoyport)) == 0)
 			{
-//				console.option("joystick disabled");
 				useJoystick = false;
-				printf("Unable to open a Joystick on port: %d\n", (int)nJoyport);
+				printf("VJ: Unable to open a Joystick on port: %d\n", (int)nJoyport);
 			}
 			else
-				printf("Using: %s\n", SDL_JoystickName(nJoyport));
+				printf("VJ: Using: %s\n", SDL_JoystickName(nJoyport));
 		}
 	}
-
-	// Open the display and start emulating some 3l337 Atari Jaguar games :P
-//	console.open("Virtual Jaguar", tom_getVideoModeWidth(), tom_getVideoModeHeight(), format);
 
 	totalFrames = 0;
 	startTime = clock();
@@ -286,34 +266,36 @@ int main(int argc, char * argv[])
 				jaguar_exec(backbuffer, false);
 #endif
             // Setting up new backbuffer with new pixels and data
-//			jaguar_exec(backbuffer, true);
 			JaguarExecute(backbuffer, true);
 			totalFrames++;
+
+			// GUI stuff here...
+			if (showGUI)
+			{
+				extern uint32 gpu_pc;
+				extern uint32 dsp_pc;
+				DrawText(backbuffer, 8, 0, "Friendly GUI brought to you by JLH ;-)");
+				DrawText(backbuffer, 8, 8, "GPU PC: %08X", gpu_pc);
+				DrawText(backbuffer, 8, 16, "DSP PC: %08X", dsp_pc);
+			}
 
 			// Simple frameskip
 			if (nFrame == nFrameskip)
 			{
-//				int32 * vs = (int32 *)surface->lock();
 				if (SDL_MUSTLOCK(surface))
 					while (SDL_LockSurface(surface) < 0)
 						SDL_Delay(10);
-//				uint8 * vs = (Uint8 *)surface->pixels;
-//				memcpy(vs, backbuffer, tom_width * tom_height * 2);
+
 				memcpy(surface->pixels, backbuffer, tom_width * tom_height * 2);
-//				surface->unlock();
+
 				if (SDL_MUSTLOCK(surface))
 					SDL_UnlockSurface(surface);
-//				surface->copy(console);
+
 				SDL_Rect srcrect, dstrect;
 				srcrect.x = srcrect.y = 0, srcrect.w = surface->w, srcrect.h = surface->h;
 				dstrect.x = dstrect.y = 0, dstrect.w = surface->w, dstrect.h = surface->h;
-//				SDL_LowerBlit(surface, &srcrect, dst.surface, &dstrect);
 				SDL_BlitSurface(surface, &srcrect, mainSurface, &dstrect);
-//				dst.updates[dst.nupdates++] = dstrect;
-//				console.update();
 			    SDL_Flip(mainSurface);      
-//				nupdates = 0;
-
 				nFrame = 0;
 			}
 			else
@@ -328,13 +310,13 @@ int main(int argc, char * argv[])
 
 	int elapsedTime = clock() - startTime;
 	int fps = (1000 * totalFrames) / elapsedTime;
-	fprintf(log_get(), "Statistics: %i FPS\n", fps);
+	fprintf(log_get(), "VJ: Ran at an average of %i FPS.\n", fps);
 
 	jaguar_done();
 	version_done();
 	memory_done();
 	log_done();	
-//	console.close();									// Close SDL items as last!
+
 	SDL_JoystickClose(joystick);
 	SDL_FreeSurface(surface);
 	SDL_QuitSubSystem(SDL_INIT_VIDEO | SDL_INIT_JOYSTICK | SDL_INIT_AUDIO | SDL_INIT_TIMER);
