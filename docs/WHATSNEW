@@ -1,8 +1,14 @@
 Virtual Jaguar v1.0.5 GCC/SDL
 -----------------------------
 
-* Added a simple file selector so that typing in long filenames in order
-  to run the emulator is no longer necessary. :-) To use it, instead of
+* Various fixes to the codebase so that it compiles and works properly on
+  Linux. :-) The makefiles are almost identical now, the only thing that's
+  different between them are the SYSTYPE and EXESUFFIX variables defined at
+  the top. [Shamus]
+* Fixed a pernicious blitter bug that kept Rayman from doing proper collision
+  detection. [Shamus]
+* Added a simple file selector so that typing in long filenames in order to
+  run the emulator is no longer necessary. :-) To use it, instead of
   supplying a ROM name, simple put in the name of the directory where your
   ROMs live. [Shamus]
 * Removed all the assembly language code from the DSP, so it should be a
