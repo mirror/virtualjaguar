@@ -22,7 +22,6 @@
 
 #include "SDL.h"
 #include "SDL_opengl.h"
-//#include "sdlemu_system.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -32,6 +31,10 @@ void sdlemu_init_opengl(SDL_Surface * src, SDL_Surface * dst, int texturetype, i
 void sdlemu_draw_texture(SDL_Surface * dst, SDL_Surface * src, int texturetype);
 void sdlemu_close_opengl(void);
 void sdlemu_create_texture(SDL_Surface * src, SDL_Surface * dst, int filter, int src_bpp);
+void * sdlemuGetOverlayPixels(void);
+Uint32 sdlemuGetOverlayWidthInPixels(void);
+void sdlemuEnableOverlay(void);
+void sdlemuDisableOverlay(void);
 
 #ifdef __cplusplus
 }
