@@ -156,6 +156,7 @@ int main(int argc, char * argv[])
 
 	SET32(jaguar_mainRam, 0, 0x00200000);			// Set top of stack...
 
+//This is done here, so that we get valid numbers from TOM... !!! FIX !!!
 	jaguar_reset();
 
 	// Set up the backbuffer
@@ -188,8 +189,6 @@ int main(int argc, char * argv[])
 	if (fullscreen)
 		mainSurfaceFlags |= SDL_FULLSCREEN;
 
-	// Note: mainSurface is *never* used again!
-	//Not true--had to look at what's what here... It's the primary surface...
 	mainSurface = SDL_SetVideoMode(tom_getVideoModeWidth(), tom_getVideoModeHeight(), 16, mainSurfaceFlags);
 
 	if (mainSurface == NULL)
@@ -234,7 +233,7 @@ int main(int argc, char * argv[])
 //	if (haveCart)
 //		JaguarLoadCart(jaguar_mainRom, argv[1]);
 	// Now with crunchy GUI goodness!
-	JaguarLoadCart(jaguar_mainRom, (haveCart ? argv[1] : (char *)"."));
+	JaguarLoadCart(jaguar_mainRom, (haveCart ? argv[1] : (char *)""));
 
 //Do this again??? Hmm... This is not very nice.
 //Maybe it's not necessary??? Seems to be, at least for PD ROMs... !!! FIX !!!
@@ -330,7 +329,7 @@ uint32 JaguarLoadROM(uint8 * rom, char * path)
 	{
 		WriteLog("VJ: Loading %s...", path);
 
-		if (strcmpi(ext, ".zip") == 0)
+		if (stricmp(ext, ".zip") == 0)
 		{
 			// Handle ZIP file loading here...
 			WriteLog("(ZIPped)...");
@@ -376,7 +375,9 @@ void JaguarLoadCart(uint8 * mem, char * path)
 		char newPath[2048];
 		WriteLog("VJ: Trying GUI...\n");
 
-		if (!UserSelectFile(path, newPath))
+//This is not *nix friendly for some reason...
+//		if (!UserSelectFile(path, newPath))
+		if (!UserSelectFile((path == "" ? (char *)"." : path), newPath))
 		{
 			WriteLog("VJ: Could not find valid ROM in directory \"%s\"...\nAborting!\n", path);
 			log_done();
