@@ -15,7 +15,7 @@
 
 #define CPU_DEBUG
 //Do this in makefile??? Yes! Could, but it's easier to define here...
-#define LOG_UNMAPPED_MEMORY_ACCESSES
+//#define LOG_UNMAPPED_MEMORY_ACCESSES
 //#define ABORT_ON_UNMAPPED_MEMORY_ACCESS
 #define CPU_DEBUG_MEMORY
 
@@ -381,9 +381,11 @@ if (address == 0xF02110)
 	else
 	{
 		jaguar_unknown_writeword(address, value, M68K);
+#ifdef LOG_UNMAPPED_MEMORY_ACCESSES
 		WriteLog("\tA0=%08X, A1=%08X, D0=%08X, D1=%08X\n",
 			m68k_get_reg(NULL, M68K_REG_A0), m68k_get_reg(NULL, M68K_REG_A1),
 			m68k_get_reg(NULL, M68K_REG_D0), m68k_get_reg(NULL, M68K_REG_D1));
+#endif
 	}
 }
 
