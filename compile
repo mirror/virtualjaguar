@@ -28,7 +28,7 @@ if [ "$OSTYPE" = "msys" ]; then
 #This doesn't seem to make a difference on Win32...
 #	SDLLIBTYPE=--static-libs
 
-elif [ "$OSTYPE" = "macosx" ]; then
+elif [ "$OSTYPE" = "darwin7.0" ]; then
 
 	echo -n Mac OS X
 
