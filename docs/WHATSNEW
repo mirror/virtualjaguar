@@ -1,6 +1,8 @@
 Virtual Jaguar v1.0.7 GCC/SDL
 -----------------------------
 
+* Fixed a long standing blitter bug that kept certain doors in AvP from
+  rendering correctly. [Shamus]
 * Fixed some vertical positioning bugs in the OP. Now Checkered Flag, Alien
   vs Predator and probably others now work as they should (graphically ;-)
   [Caz]
