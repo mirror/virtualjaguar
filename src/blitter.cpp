@@ -344,12 +344,21 @@ Blit! (0018FA70 <- 008DDC40) count: 2 x 13, A1/2_FLAGS: 00014218/00013C18 [cmd: 
 //Testing only!
 //uint32 logGo = ((cmd == 0x01800E01 && REG(A1_BASE) == 0x898000) ? 1 : 0);
 	uint32 srcdata, srczdata, dstdata, dstzdata, writedata, inhibit;
+	uint32 bppSrc = (DSTA2 ? 1 << ((REG(A1_FLAGS) >> 3) & 0x07) : 1 << ((REG(A2_FLAGS) >> 3) & 0x07));
 
 if (specialLog)
 {
 	WriteLog("About to do n x m blit (BM width is ? pixels)...\n");
 	WriteLog("A1_STEP_X/Y = %08X/%08X, A2_STEP_X/Y = %08X/%08X\n", a1_step_x, a1_step_y, a2_step_x, a2_step_y);
 }
+/*	if (BCOMPEN)
+	{
+		if (DSTA2)
+			a1_xadd = 0;
+		else
+			a2_xadd = 0;
+	}//*/
+
 	while (outer_loop--)
 	{
 if (specialLog)
@@ -357,13 +366,15 @@ if (specialLog)
 	WriteLog("  A1_X/Y = %08X/%08X, A2_X/Y = %08X/%08X\n", a1_x, a1_y, a2_x, a2_y);
 }
 		uint32 a1_start = a1_x, a2_start = a2_x, bitPos = 0;
-//Kludge for Hover Strike...
-//I wonder if this kludge is in conjunction with the SRCENX down below...
-if (BCOMPEN && SRCENX)
-{
-	if (n_pixels < 8)
-		bitPos = 8 - n_pixels;
-}
+
+		//Kludge for Hover Strike...
+		//I wonder if this kludge is in conjunction with the SRCENX down below...
+		// This isn't so much a kludge but the way things work in BCOMPEN mode...!
+		if (BCOMPEN && SRCENX)
+		{
+			if (n_pixels < bppSrc)
+				bitPos = bppSrc - n_pixels;
+		}
 
 		inner_loop = n_pixels;
 		while (inner_loop--)
@@ -373,15 +384,12 @@ if (specialLog)
 	WriteLog("    A1_X/Y = %08X/%08X, A2_X/Y = %08X/%08X\n", a1_x, a1_y, a2_x, a2_y);
 }
 			srcdata = srczdata = dstdata = dstzdata = writedata = inhibit = 0;
-//Kludge...
-//Doesn't work...
-srcdata = 0xFFFFFFFF;
 
 			if (!DSTA2)							// Data movement: A1 <- A2
 			{
 				// load src data and Z
 //				if (SRCEN)
-				if (SRCEN || SRCENX)	// Not sure if this is correct...
+				if (SRCEN || SRCENX)	// Not sure if this is correct... (seems to be...!)
 				{
 					srcdata = READ_PIXEL(a2, REG(A2_FLAGS));
 					if (SRCENZ)
@@ -392,7 +400,7 @@ srcdata = 0xFFFFFFFF;
 				else	// Use SRCDATA register...
 				{
 					srcdata = READ_RDATA(SRCDATA, a2, REG(A2_FLAGS), a2_phrase_mode);
-					if (cmd & 0x0001C020)	// PATDSEL | TOPBEN | TOPNEN | DSTWRZ
+					if (cmd & 0x0001C020)		// PATDSEL | TOPBEN | TOPNEN | DSTWRZ
 						srczdata = READ_RDATA(SRCZINT, a2, REG(A2_FLAGS), a2_phrase_mode);
 				}
 
@@ -442,34 +450,16 @@ srcdata = 0xFFFFFFFF;
 //to honor the BPP when calculating the start address (which it kinda does already). Second,
 //it has to step bit by bit when using BCOMPEN. How to do this???
 	if (BCOMPEN)
-//		srcdata = READ_RDATA_1(SRCDATA, a2, a2_phrase_mode);
-//		srcdata = READ_PIXEL_1(a2);
-//		srcdata = READ_PIXEL(a2, REG(A2_FLAGS));
-/*
-#define PIXEL_SHIFT_1(a)      (((~a##_x) >> 16) & 0x07)
-#define PIXEL_OFFSET_1(a)     (((((UINT32)a##_y >> 16) * a##_width / 8) + (((UINT32)a##_x >> 19) & ~7)) * (1 + a##_pitch) + (((UINT32)a##_x >> 19) & 7))
-#define READ_PIXEL_1(a)       ((JaguarReadByte(a##_addr+PIXEL_OFFSET_1(a), BLITTER) >> PIXEL_SHIFT_1(a)) & 0x01)
-
-#define PIXEL_SHIFT_1(a)
-	(((~a2_x) >> 16) & 0x07)
-#define PIXEL_OFFSET_1(a)
-	(((((UINT32)a2_y >> 16) * a2_width / 8) + (((UINT32)a2_x >> 19) & ~7)) * (1 + a2_pitch) + (((UINT32)a2_x >> 19) & 7))
-#define READ_PIXEL_1(a)
-	((JaguarReadByte(a2_addr+PIXEL_OFFSET_1(a2), BLITTER) >> PIXEL_SHIFT_1(a2)) & 0x01)
-*/
 //small problem with this approach: it's not accurate... We need a proper address to begin with
 //and *then* we can do the bit stepping from there the way it's *supposed* to be done... !!! FIX !!!
+//[DONE]
 	{
-//		uint32 pixShift = ((~(a2_x * 8)) >> 16) & 0x07;
-//		uint32 pixShift = (~(a2_x >> 13)) & 0x07;
-		uint32 pixShift = (~bitPos) & 0x07;		// 8BPP only...!
-//		uint32 pixOffset = (((((UINT32)a2_y >> 16) * a2_width / 8) + (((UINT32)(a2_x * 8) >> 19) & ~0x07)) * (1 + a2_pitch) + (((UINT32)(a2_x * 8) >> 19) & 0x07));
-//		uint32 pixOffset = (((((UINT32)a2_y >> 16) * a2_width) + (((UINT32)(a2_x * 8) >> 19) & ~0x07)) * (1 + a2_pitch) + (((UINT32)(a2_x * 8) >> 19) & 0x07));
-//		uint32 pixOffset = (((((UINT32)a2_y >> 16) * a2_width) + (((UINT32)a2_x >> 16) & ~0x07)) * (1 + a2_pitch)) + (((UINT32)a2_x >> 16) & 0x07);
-//		srcdata = (JaguarReadByte(a2_addr+pixOffset, BLITTER) >> pixShift) & 0x01;
+		uint32 pixShift = (~bitPos) & (bppSrc - 1);
 		srcdata = (srcdata >> pixShift) & 0x01;
 
 		bitPos++;
+//		if (bitPos % bppSrc == 0)
+//			a2_x += 0x00010000;
 	}
 /*
 Interesting (Hover Strike--large letter):
@@ -700,7 +690,7 @@ Blit! (00098D90 <- 0081DDC0) count: 320 x 287, A1/2_FLAGS: 00004220/00004020 [cm
 						WRITE_ZDATA(a1, REG(A1_FLAGS), srczdata);
 				}
 			}
-			else	// if (DSTA2)
+			else	// if (DSTA2) 							// Data movement: A1 -> A2
 			{
 				// load src data and Z
 				if (SRCEN)
@@ -857,20 +847,30 @@ Blit! (00098D90 <- 0081DDC0) count: 320 x 287, A1/2_FLAGS: 00004220/00004020 [cm
 				}
 			}
 
-			// update x and y (inner loop)
-//kludge to test shiatsu...
-//nope, no wok.
-//Now it does! But crappy, crappy, crappy! !!! FIX !!!
-if (!BCOMPEN)
-{
-			a1_x += a1_xadd, a1_y += a1_yadd;
-			a2_x = (a2_x + a2_xadd) & a2_mask_x, a2_y = (a2_y + a2_yadd) & a2_mask_y;
-}
-else
-{
-	a1_x += a1_xadd, a1_y += a1_yadd;
-	a2_x = (a2_x + (a2_xadd / 8)) & a2_mask_x, a2_y = (a2_y + a2_yadd) & a2_mask_y;
-}//*/
+			// Update x and y (inner loop)
+//Now it does! But crappy, crappy, crappy! !!! FIX !!! [DONE]
+//This is less than ideal, but it works...
+			if (!BCOMPEN)
+			{//*/
+				a1_x += a1_xadd, a1_y += a1_yadd;
+				a2_x = (a2_x + a2_xadd) & a2_mask_x, a2_y = (a2_y + a2_yadd) & a2_mask_y;
+			}
+			else
+			{
+				a1_y += a1_yadd, a2_y = (a2_y + a2_yadd) & a2_mask_y;
+				if (!DSTA2)
+				{
+					a1_x += a1_xadd;
+					if (bitPos % bppSrc == 0)
+						a2_x = (a2_x + a2_xadd) & a2_mask_x;
+				}
+				else
+				{
+					a2_x = (a2_x + a2_xadd) & a2_mask_x;
+					if (bitPos % bppSrc == 0)
+						a1_x += a1_xadd;
+				}
+			}//*/
 
 			if (GOURZ)
 				z_i[colour_index] += zadd;
@@ -901,23 +901,43 @@ if (gd_c[colour_index] > 0x000000FF)
 			}
 		}
 
-//more kludge to test shiatsu...
-//nope, no wok.
-//Now it does! But crappy, crappy, crappy! !!! FIX !!!
-if (BCOMPEN)
-{
-	if (a2_x & 0xFFFF)
-		a2_x = (a2_x & 0xFFFF0000) + 0x00010000;
-}//*/
-/*if (BCOMPEN && !DSTA2)//kludge for Hover Strike... !!! FIX !!!
-{
-	a2_x -= n_pixels << 16;
-	a2_x += ((n_pixels << 16) / 8) & 0XFFFF0000;
-	a2_x += (n_pixels % 8 == 0 ? 0 : 1 << 16);
-}//*/
+/*
+Here's the problem... The phrase mode code!
+Blit! (00100000 -> 00148000) count: 327 x 267, A1/2_FLAGS: 00004420/00004420 [cmd: 41802E01]
+ CMD -> src: SRCEN  dst:  misc:  a1ctl: UPDA1 UPDA2 mode: DSTA2 GOURZ ity:  z-op:  op: LFU_REPLACE ctrl: SRCSHADE
+  A1 step values: -327 (X), 1 (Y)
+  A2 step values: -327 (X), 1 (Y) [mask (unused): 00000000 - FFFFFFFF/FFFFFFFF]
+  A1 -> pitch: 1 phrases, depth: 16bpp, z-off: 0, width: 384 (22), addctl: XADDPHR YADD0 XSIGNADD YSIGNADD
+  A2 -> pitch: 1 phrases, depth: 16bpp, z-off: 0, width: 384 (22), addctl: XADDPHR YADD0 XSIGNADD YSIGNADD
+        A1 x/y: 28/58, A2 x/y: 28/58 Pattern: 00EA7BEA77EA77EA SRCDATA: 7BFF7BFF7BFF7BFF
+
+Below fixes it, but then borks:
+; O
+
+Blit! (00110000 <- 0010B2A8) count: 12 x 12, A1/2_FLAGS: 000042E2/00000020 [cmd: 09800609]
+ CMD -> src: SRCEN  dst: DSTEN  misc:  a1ctl: UPDA1 UPDA2 mode:  ity:  z-op:  op: LFU_REPLACE ctrl: DCOMPEN 
+  A1 step values: -15 (X), 1 (Y)
+  A2 step values: -4 (X), 0 (Y) [mask (unused): 00000000 - FFFFFFFF/FFFFFFFF]
+  A1 -> pitch: 4 phrases, depth: 16bpp, z-off: 3, width: 320 (21), addctl: XADDPHR YADD0 XSIGNADD YSIGNADD
+  A2 -> pitch: 1 phrases, depth: 16bpp, z-off: 0, width: 1 (00), addctl: XADDPHR YADD0 XSIGNADD YSIGNADD
+        A1 x/y: 173/144, A2 x/y: 4052/0
+
+Lesse, with pre-add we'd have:
+
+     oooooooooooo
+00001111222233334444555566667777
+  ^  ^starts here...
+  |             ^ends here.
+  |rolls back to here. Hmm.
+
+*/
+		a1_x += a1_step_x;
+		a1_y += a1_step_y;
+		a2_x += a2_step_x;
+		a2_y += a2_step_y;//*/
 
 		//New: Phrase mode taken into account! :-p
-		if (a1_phrase_mode)
+/*		if (a1_phrase_mode)			// v1
 		{
 			// Bump the pointer to the next phrase boundary
 			// Even though it works, this is crappy... Clean it up!
@@ -934,9 +954,25 @@ if (BCOMPEN)
 			uint32 newxrem = (a1_x >> 16) % size;
 			a1_x &= 0x0000FFFF;
 			a1_x |= (((newx + (newxrem == 0 ? 0 : 1)) * size) & 0xFFFF) << 16;
+		}//*/
+		if (a1_phrase_mode)			// v2
+		{
+			// Bump the pointer to the next phrase boundary
+			// Even though it works, this is crappy... Clean it up!
+			uint32 size = 64 / a1_psize;
+
+			// Crappy kludge... ('aligning' source to destination)
+			if (a2_phrase_mode && DSTA2)
+			{
+				uint32 extra = (a2_start >> 16) % size;
+				a1_x += extra << 16;
+			}
+
+			uint32 pixelSize = (size - 1) << 16;
+			a1_x = (a1_x + pixelSize) & ~pixelSize;
 		}
 
-		if (a2_phrase_mode)
+/*		if (a2_phrase_mode)			// v1
 		{
 			// Bump the pointer to the next phrase boundary
 			// Even though it works, this is crappy... Clean it up!
@@ -953,12 +989,29 @@ if (BCOMPEN)
 			uint32 newx = (a2_x >> 16) / size;
 			uint32 newxrem = (a2_x >> 16) % size;
 			a2_x &= 0x0000FFFF;
-			a2_x |= (((newx + (newxrem == 0 ? 0 : 1) /*+ extra*/) * size) & 0xFFFF) << 16;
+			a2_x |= (((newx + (newxrem == 0 ? 0 : 1)) * size) & 0xFFFF) << 16;
+		}//*/
+		if (a2_phrase_mode)			// v1
+		{
+			// Bump the pointer to the next phrase boundary
+			// Even though it works, this is crappy... Clean it up!
+			uint32 size = 64 / a2_psize;
+
+			// Crappy kludge... ('aligning' source to destination)
+			// Prolly should do this for A1 channel as well... [DONE]
+			if (a1_phrase_mode && !DSTA2)
+			{
+				uint32 extra = (a1_start >> 16) % size;
+				a2_x += extra << 16;
+			}
+
+			uint32 pixelSize = (size - 1) << 16;
+			a2_x = (a2_x + pixelSize) & ~pixelSize;
 		}
 
 		//Not entirely: This still mucks things up... !!! FIX !!!
 		//Should this go before or after the phrase mode mucking around?
-		a1_x += a1_step_x;
+/*		a1_x += a1_step_x;
 		a1_y += a1_step_y;
 		a2_x += a2_step_x;
 		a2_y += a2_step_y;//*/
@@ -973,6 +1026,14 @@ specialLog = false;
 
 void blitter_blit(uint32 cmd)
 {
+//Apparently this is doing *something*, just not sure exactly what...
+/*if (cmd == 0x41802E01)
+{
+	WriteLog("BLIT: Found our blit. Was: %08X ", cmd);
+	cmd = 0x01800E01;
+	WriteLog("Is: %08X\n", cmd);
+}//*/
+
 	uint32 pitchValue[4] = { 0, 1, 3, 2 };
 	colour_index = 0;
 	src = cmd & 0x07;
@@ -1381,7 +1442,7 @@ if (blit_start_log)
 	WriteLog("dst: %s%s%s ", (cmd & 0x0008 ? "DSTEN " : ""), (cmd & 0x0010 ? "DSTENZ " : ""), (cmd & 0x0020 ? "DSTWRZ" : ""));
 	WriteLog("misc: %s%s ", (cmd & 0x0040 ? "CLIP_A1 " : ""), (cmd & 0x0080 ? "???" : ""));
 	WriteLog("a1ctl: %s%s%s ", (cmd & 0x0100 ? "UPDA1F " : ""), (cmd & 0x0200 ? "UPDA1 " : ""), (cmd & 0x0400 ? "UPDA2" : ""));
-	WriteLog("mode: %s%s%s ", (cmd & 0x0800 ? "DSTA2 " : ""), (cmd & 0x1000 ? "GOURD " : ""), (cmd & 0x2000 ? "ZBUFF" : ""));
+	WriteLog("mode: %s%s%s ", (cmd & 0x0800 ? "DSTA2 " : ""), (cmd & 0x1000 ? "GOURD " : ""), (cmd & 0x2000 ? "GOURZ" : ""));
 	WriteLog("ity: %s%s%s%s ", (cmd & 0x4000 ? "TOPBEN " : ""), (cmd & 0x8000 ? "TOPNEN " : ""), (cmd & 0x00010000 ? "PATDSEL" : ""), (cmd & 0x00020000 ? "ADDDSEL" : ""));
 	WriteLog("z-op: %s%s%s ", (cmd & 0x00040000 ? "ZMODELT " : ""), (cmd & 0x00080000 ? "ZMODEEQ " : ""), (cmd & 0x00100000 ? "ZMODEGT" : ""));
 	WriteLog("op: %s ", opStr[(cmd >> 21) & 0x0F]);
@@ -1578,4 +1639,51 @@ doGPUDis = true;
 
 	BlitterWriteWord(offset, data >> 16, who);
 	BlitterWriteWord(offset+2, data & 0xFFFF, who);
+}
+
+void LogBlit(void)
+{
+	uint32 cmd = GET32(blitter_ram, 0x38);
+
+	WriteLog("Blit!\n");
+	WriteLog("  cmd      = %08X\n", cmd);
+	WriteLog("  a1_base  = %08X\n", a1_addr);
+	WriteLog("  a1_pitch = %d\n", a1_pitch);
+	WriteLog("  a1_psize = %d\n", a1_psize);
+	WriteLog("  a1_width = %d\n", a1_width);
+	WriteLog("  a1_xadd  = %f (phrase=%d)\n", (float)a1_xadd / 65536.0, a1_phrase_mode);
+	WriteLog("  a1_yadd  = %f\n", (float)a1_yadd / 65536.0);
+	WriteLog("  a1_xstep = %f\n", (float)a1_step_x / 65536.0);
+	WriteLog("  a1_ystep = %f\n", (float)a1_step_y / 65536.0);
+	WriteLog("  a1_x     = %f\n", (float)a1_x / 65536.0);
+	WriteLog("  a1_y     = %f\n", (float)a1_y / 65536.0);
+	WriteLog("  a1_zoffs = %i\n",a1_zoffs);
+
+	WriteLog("  a2_base  = %08X\n", a2_addr);
+	WriteLog("  a2_pitch = %d\n", a2_pitch);
+	WriteLog("  a2_psize = %d\n", a2_psize);
+	WriteLog("  a2_width = %d\n", a2_width);
+	WriteLog("  a2_xadd  = %f (phrase=%d)\n", (float)a2_xadd / 65536.0, a2_phrase_mode);
+	WriteLog("  a2_yadd  = %f\n", (float)a2_yadd / 65536.0);
+	WriteLog("  a2_xstep = %f\n", (float)a2_step_x / 65536.0);
+	WriteLog("  a2_ystep = %f\n", (float)a2_step_y / 65536.0);
+	WriteLog("  a2_x     = %f\n", (float)a2_x / 65536.0);
+	WriteLog("  a2_y     = %f\n", (float)a2_y / 65536.0);
+	WriteLog("  a2_mask_x= 0x%.4x\n",a2_mask_x);
+	WriteLog("  a2_mask_y= 0x%.4x\n",a2_mask_y);
+	WriteLog("  a2_zoffs = %i\n",a2_zoffs);
+
+	WriteLog("  count    = %d x %d\n", n_pixels, n_lines);
+
+	WriteLog("  COMMAND  = %08X\n", cmd);
+	WriteLog("  DSTEN    = %s\n", (DSTEN ? "1" : "0"));
+	WriteLog("  SRCEN    = %s\n", (SRCEN ? "1" : "0"));
+	WriteLog("  PATDSEL  = %s\n", (PATDSEL ? "1" : "0"));
+	WriteLog("  COLOR    = %08X\n", REG(PATTERNDATA));
+	WriteLog("  DCOMPEN  = %s\n", (DCOMPEN ? "1" : "0"));
+	WriteLog("  BCOMPEN  = %s\n", (BCOMPEN ? "1" : "0"));
+	WriteLog("  CMPDST   = %s\n", (CMPDST ? "1" : "0"));
+	WriteLog("  GOURZ    = %s\n", (GOURZ ? "1" : "0"));
+	WriteLog("  GOURD    = %s\n", (GOURD ? "1" : "0"));
+	WriteLog("  SRCSHADE = %s\n", (SRCSHADE ? "1" : "0"));
 }
