@@ -775,7 +775,7 @@ void ListBox::HandleMouseMove(uint32 x, uint32 y)
 		if (newThumbStart < 0)
 			newThumbStart = 0;
 
-		if (newThumbStart > sbHeight - thumb)
+		if ((uint32)newThumbStart > sbHeight - thumb)
 			newThumbStart = sbHeight - thumb;
 
 		windowPtr = (uint32)(((float)newThumbStart / (float)sbHeight) * (float)item.size());
@@ -794,8 +794,8 @@ void ListBox::HandleMouseButton(uint32 x, uint32 y, bool mouseDown)
 	}
 
 	// Check for a hit on the scrollbar...
-	if (x > (extents.x + extents.w) && x <= (extents.x + extents.w + 8)
-		&& y > (extents.y + 8) && y <= (extents.y + extents.h - 16))
+	if (x > (uint32)(extents.x + extents.w) && x <= (uint32)(extents.x + extents.w + 8)
+		&& y > (uint32)(extents.y + 8) && y <= (uint32)(extents.y + extents.h - 16))
 	{
 		if (mouseDown)
 		{
@@ -933,7 +933,9 @@ FileList::FileList(uint32 x, uint32 y, uint32 w, uint32 h): Window(x, y, w, h)
 		char * ext = strrchr(de->d_name, '.');
 
 		if (ext != NULL)
-			if (stricmp(ext, ".zip") == 0 || stricmp(ext, ".jag") == 0)
+			if (stricmp(ext, ".zip") == 0 || stricmp(ext, ".j64") == 0
+				|| stricmp(ext, ".abs") == 0 || stricmp(ext, ".jag") == 0
+				|| stricmp(ext, ".rom") == 0)
 				files->AddItem(string(de->d_name));
 	}
 
@@ -962,25 +964,26 @@ void FileList::Notify(Element * e)
 		strcat(filename, files->GetSelectedItem().c_str());
 
 //		uint32 romSize = JaguarLoadROM(jaguar_mainRom, filename);
-		JaguarLoadCart(jaguar_mainRom, filename);
+//		JaguarLoadCart(jaguar_mainRom, filename);
+		if (JaguarLoadFile(filename))
+		{
+			SDL_Event event;
+			event.type = SDL_USEREVENT, event.user.code = WINDOW_CLOSE;
+			SDL_PushEvent(&event);
 
-//		if (romSize == 0)
-//We need better error checking here... !!! FIX !!!
-//			WriteLog("VJ: Could not load ROM from file \"%s\"...", files->GetSelectedItem().c_str());
-//		else
-//		{
-//			jaguar_mainRom_crc32 = crc32_calcCheckSum(jaguar_mainRom, romSize);
-//			WriteLog("CRC: %08X\n", (unsigned int)jaguar_mainRom_crc32);
-//			eeprom_init();
+			event.type = SDL_USEREVENT, event.user.code = MENU_ITEM_CHOSEN;
+			event.user.data1 = (void *)ResetJaguar;
+	    	SDL_PushEvent(&event);
+		}
+		else
+		{
+			SDL_Event event;
+			event.type = SDL_USEREVENT, event.user.code = WINDOW_CLOSE;
+			SDL_PushEvent(&event);
 
-		SDL_Event event;
-		event.type = SDL_USEREVENT, event.user.code = WINDOW_CLOSE;
-		SDL_PushEvent(&event);
-
-		event.type = SDL_USEREVENT, event.user.code = MENU_ITEM_CHOSEN;
-		event.user.data1 = (void *)ResetJaguar;
-	    SDL_PushEvent(&event);
-//		}
+			// Handle the error, but don't run...
+			// Tell the user that we couldn't run their file for some reason... !!! FIX !!!
+		}
 	}
 	else
 		Window::Notify(e);
@@ -1353,6 +1356,7 @@ void DrawStringTrans(int16 * screen, uint32 x, uint32 y, uint16 color, uint8 tra
 //
 bool GUIMain(void)
 {
+// Need to set things up so that it loads and runs a file if given on the command line. !!! FIX !!!
 	extern int16 * backbuffer;
 	bool done = false;
 	SDL_Event event;
@@ -1887,6 +1891,8 @@ GUIMain();
 //
 uint32 JaguarLoadROM(uint8 * rom, char * path)
 {
+// We really should have some kind of sanity checking for the ROM size here to prevent
+// a buffer overflow... !!! FIX !!!
 	uint32 romSize = 0;
 
 	char * ext = strrchr(path, '.');
@@ -1942,61 +1948,105 @@ uint32 JaguarLoadROM(uint8 * rom, char * path)
 }
 
 //
-// Jaguar cartridge ROM loading
+// Jaguar file loading
 //
-void JaguarLoadCart(uint8 * mem, char * path)
+//void JaguarLoadCart(uint8 * mem, char * path)
+bool JaguarLoadFile(char * path)
 {
-	jaguarRomSize = JaguarLoadROM(mem, path);
+//	jaguarRomSize = JaguarLoadROM(mem, path);
+	jaguarRomSize = JaguarLoadROM(jaguar_mainRom, path);
 
-//	if (romSize == 0)
-//	{
-/*		char newPath[2048];
-		WriteLog("VJ: Trying GUI...\n");
-
-//This is not *nix friendly for some reason...
+/*//This is not *nix friendly for some reason...
 //		if (!UserSelectFile(path, newPath))
-		if (!UserSelectFile((strlen(path) == 0 ? (char *)"." : path), newPath))
-		{
-			WriteLog("VJ: Could not find valid ROM in directory \"%s\"...\nAborting!\n", path);
-			log_done();
-			exit(0);
-		}
+	if (!UserSelectFile((strlen(path) == 0 ? (char *)"." : path), newPath))
+	{
+		WriteLog("VJ: Could not find valid ROM in directory \"%s\"...\nAborting!\n", path);
+		log_done();
+		exit(0);
+	}*/
 
-		romSize = JaguarLoadROM(mem, newPath);
-*/
-		if (jaguarRomSize == 0)
-		{
+	if (jaguarRomSize == 0)
+	{
 //			WriteLog("VJ: Could not load ROM from file \"%s\"...\nAborting!\n", newPath);
-			WriteLog("VJ: Could not load ROM from file \"%s\"...\nAborting!\n", path);
-			log_done();
-			exit(0);
-		}
-//	}
+		WriteLog("GUI: Could not load ROM from file \"%s\"...\nAborting load!\n", path);
+// Need to do something else here, like throw up an error dialog instead of aborting. !!! FIX !!!
+//		log_done();
+//		exit(0);
+		return false;								// This is a start...
+	}
 
 	jaguar_mainRom_crc32 = crc32_calcCheckSum(jaguar_mainRom, jaguarRomSize);
 	WriteLog("CRC: %08X\n", (unsigned int)jaguar_mainRom_crc32);
 	eeprom_init();
 
 	jaguarRunAddress = 0x802000;
-//NOTE: The bytes 'JAGR' should also be at position $1C...
-//      Also, there's *always* a $601A header at position $00...
-	if (jaguar_mainRom[0] == 0x60 && jaguar_mainRom[1] == 0x1A)
+
+	char * ext = strrchr(path, '.');				// Get the file's extension for non-cartridge checking
+
+//NOTE: Should fix JaguarLoadROM() to replace .zip with what's *in* the zip (.abs, .j64, etc.)
+	if (stricmp(ext, ".rom") == 0)
 	{
-		uint32 loadAddress = GET32(jaguar_mainRom, 0x22), runAddress = GET32(jaguar_mainRom, 0x2A);
-//This is not always right! Especially when converted via bin2jag1!!!
-//We should have access to the length of the furshlumiger file that was loaded anyway!
-//Now, we do! ;-)
-//			uint32 progLength = GET32(jaguar_mainRom, 0x02);
-//jaguarRomSize
-//jaguarRunAddress
-//			WriteLog("Jaguar: Setting up PD ROM... Run address: %08X, length: %08X\n", runAddress, progLength);
-//			memcpy(jaguar_mainRam + loadAddress, jaguar_mainRom + 0x2E, progLength);
-		WriteLog("Jaguar: Setting up homebrew... Run address: %08X, length: %08X\n", runAddress, jaguarRomSize - 0x2E);
-		memcpy(jaguar_mainRam + loadAddress, jaguar_mainRom + 0x2E, jaguarRomSize - 0x2E);
-//		SET32(jaguar_mainRam, 4, runAddress);
-		jaguarRunAddress = runAddress;
+		// File extension ".ROM": Alpine image that loads/runs at $802000
+		WriteLog("GUI: Setting up homebrew (ROM)... Run address: 00802000, length: %08X\n", jaguarRomSize);
+
+		for(int i=jaguarRomSize-1; i>=0; i--)
+			jaguar_mainRom[0x2000 + i] = jaguar_mainRom[i];
+
+		memset(jaguar_mainRom, 0xFF, 0x2000);
+/*		memcpy(jaguar_mainRam, jaguar_mainRom, jaguarRomSize);
+		memset(jaguar_mainRom, 0xFF, 0x600000);
+		memcpy(jaguar_mainRom + 0x2000, jaguar_mainRam, jaguarRomSize);
+		memset(jaguar_mainRam, 0x00, 0x400000);*/
+
+/*
+handler 001 at $00E00008
+handler 002 at $00E008DE
+handler 003 at $00E008E2
+handler 004 at $00E008E6
+handler 005 at $00E008EA
+handler 006 at $00E008EE
+handler 007 at $00E008F2
+handler 008 at $00E0054A
+handler 009 at $00E008FA
+handler 010 at $00000000
+handler 011 at $00000000
+handler 012 at $00E008FE
+handler 013 at $00E00902
+handler 014 at $00E00906
+handler 015 at $00E0090A
+handler 016 at $00E0090E
+handler 017 at $00E00912
+handler 018 at $00E00916
+handler 019 at $00E0091A
+handler 020 at $00E0091E
+handler 021 at $00E00922
+handler 022 at $00E00926
+handler 023 at $00E0092A
+handler 024 at $00E0092E
+handler 025 at $00E0107A
+handler 026 at $00E0107A
+handler 027 at $00E0107A
+handler 028 at $00E008DA
+handler 029 at $00E0107A
+handler 030 at $00E0107A
+handler 031 at $00E0107A
+handler 032 at $00000000
+
+Let's try setting up the illegal instruction vector for a stubulated jaguar...
+*/
+/*		SET32(jaguar_mainRam, 0x08, 0x00E008DE);
+		SET32(jaguar_mainRam, 0x0C, 0x00E008E2);
+		SET32(jaguar_mainRam, 0x10, 0x00E008E6);	// <-- Should be here (it is)...
+		SET32(jaguar_mainRam, 0x14, 0x00E008EA);//*/
+
+		// Try setting the vector to say, $1000 and putting an instruction there that loops forever:
+		// This kludge works! Yeah!
+		SET32(jaguar_mainRam, 0x10, 0x00001000);
+		SET16(jaguar_mainRam, 0x1000, 0x60FE);		// Here: bra Here
 	}
-}
+	else if (stricmp(ext, ".abs") == 0)
+	{
+		// File extension ".ABS": Atari linker output file with header (w/o is useless to us here)
 
 /*
 ABS Format sleuthing (LBUGDEMO.ABS):
@@ -2044,7 +2094,80 @@ Starting Address for executable = 0x00802000
 Start of Text Segment = 0x00802000
 Start of Data Segment = 0x00803dd0
 */
+		if (jaguar_mainRom[0] == 0x60 && jaguar_mainRom[1] == 0x1B)
+		{
+			uint32 loadAddress = GET32(jaguar_mainRom, 0x16), //runAddress = GET32(jaguar_mainRom, 0x2A),
+				codeSize = GET32(jaguar_mainRom, 0x02) + GET32(jaguar_mainRom, 0x06);
+			WriteLog("GUI: Setting up homebrew (ABS-1)... Run address: %08X, length: %08X\n", loadAddress, codeSize);
 
+			if (loadAddress < 0x800000)
+				memcpy(jaguar_mainRam + loadAddress, jaguar_mainRom + 0x24, codeSize);
+			else
+			{
+				for(int i=codeSize-1; i>=0; i--)
+					jaguar_mainRom[(loadAddress - 0x800000) + i] = jaguar_mainRom[i + 0x24];
+/*				memcpy(jaguar_mainRam, jaguar_mainRom + 0x24, codeSize);
+				memset(jaguar_mainRom, 0xFF, 0x600000);
+				memcpy(jaguar_mainRom + (loadAddress - 0x800000), jaguar_mainRam, codeSize);
+				memset(jaguar_mainRam, 0x00, 0x400000);*/
+			}
+
+			jaguarRunAddress = loadAddress;
+		}
+		else if (jaguar_mainRom[0] == 0x01 && jaguar_mainRom[1] == 0x50)
+		{
+			uint32 loadAddress = GET32(jaguar_mainRom, 0x28), runAddress = GET32(jaguar_mainRom, 0x24),
+				codeSize = GET32(jaguar_mainRom, 0x18) + GET32(jaguar_mainRom, 0x1C);
+			WriteLog("GUI: Setting up homebrew (ABS-2)... Run address: %08X, length: %08X\n", runAddress, codeSize);
+
+			if (loadAddress < 0x800000)
+				memcpy(jaguar_mainRam + loadAddress, jaguar_mainRom + 0xA8, codeSize);
+			else
+			{
+				for(int i=codeSize-1; i>=0; i--)
+					jaguar_mainRom[(loadAddress - 0x800000) + i] = jaguar_mainRom[i + 0xA8];
+/*				memcpy(jaguar_mainRam, jaguar_mainRom + 0xA8, codeSize);
+				memset(jaguar_mainRom, 0xFF, 0x600000);
+				memcpy(jaguar_mainRom + (loadAddress - 0x800000), jaguar_mainRam, codeSize);
+				memset(jaguar_mainRam, 0x00, 0x400000);*/
+			}
+
+			jaguarRunAddress = runAddress;
+		}
+		else
+		{
+			WriteLog("GUI: Couldn't find correct ABS format: %02X %02X\n", jaguar_mainRom[0], jaguar_mainRom[1]);
+			return false;
+		}
+	}
+	else if (stricmp(ext, ".jag") == 0)
+	{
+		// File extension ".JAG": Atari server file with header
+//NOTE: The bytes 'JAGR' should also be at position $1C...
+//      Also, there's *always* a $601A header at position $00...
+		if (jaguar_mainRom[0] == 0x60 && jaguar_mainRom[1] == 0x1A)
+		{
+			uint32 loadAddress = GET32(jaguar_mainRom, 0x22), runAddress = GET32(jaguar_mainRom, 0x2A);
+//This is not always right! Especially when converted via bin2jag1!!!
+//We should have access to the length of the furshlumiger file that was loaded anyway!
+//Now, we do! ;-)
+//			uint32 progLength = GET32(jaguar_mainRom, 0x02);
+//jaguarRomSize
+//jaguarRunAddress
+//			WriteLog("Jaguar: Setting up PD ROM... Run address: %08X, length: %08X\n", runAddress, progLength);
+//			memcpy(jaguar_mainRam + loadAddress, jaguar_mainRom + 0x2E, progLength);
+			WriteLog("GUI: Setting up homebrew (JAG)... Run address: %08X, length: %08X\n", runAddress, jaguarRomSize - 0x2E);
+			memcpy(jaguar_mainRam + loadAddress, jaguar_mainRom + 0x2E, jaguarRomSize - 0x2E);
+//		SET32(jaguar_mainRam, 4, runAddress);
+			jaguarRunAddress = runAddress;
+		}
+		else
+			return false;
+	}
+	// .J64 (Jaguar cartridge ROM image) is implied by the FileList object...
+
+	return true;
+}
 
 //
 // Get the length of a (possibly) gzipped file
