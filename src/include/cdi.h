@@ -1,3 +1,7 @@
+//
+// CDI.H: Header file
+//
+
 #ifndef __CDI_H__
 #define __CDI_H__
 
@@ -5,9 +9,6 @@
 #include "types.h"
 #include <stdio.h>
 #include <stdlib.h>
-#ifndef __PORT__
-#include <io.h>
-#endif
 #include <fcntl.h>
 
 struct s_cdi_track
@@ -38,18 +39,22 @@ struct s_cdi_descriptor
 	s_cdi_session *sessions;
 };
 
-extern int				cdi_fp;
-extern uint32			cdi_load_address;
-extern uint32			cdi_code_length;
-extern s_cdi_descriptor	*cdi_descriptor;
-extern s_cdi_track		**cdi_tracks;
-extern uint32 			cdi_tracks_count;
+// Exported variables
 
-int cdi_open(char *path);
+extern int cdi_fp;
+extern uint32 cdi_load_address;
+extern uint32 cdi_code_length;
+extern s_cdi_descriptor	* cdi_descriptor;
+extern s_cdi_track ** cdi_tracks;
+extern uint32 cdi_tracks_count;
+
+// Exported functions
+
+int cdi_open(char * path);
 void cdi_close(int fp);
-s_cdi_descriptor *cdi_get_descriptor(int fp, FILE *stdfp);
-void cdi_dump_descriptor(FILE *fp,s_cdi_descriptor *cdi_descriptor);
-uint8 *cdi_extract_boot_code(int fp, s_cdi_descriptor *cdi_descriptor);
-void cdi_load_sector(uint32 sector, uint8 *buffer);
+s_cdi_descriptor * cdi_get_descriptor(int fp, FILE * stdfp);
+void cdi_dump_descriptor(FILE * fp,s_cdi_descriptor * cdi_descriptor);
+uint8 * cdi_extract_boot_code(int fp, s_cdi_descriptor * cdi_descriptor);
+void cdi_load_sector(uint32 sector, uint8 * buffer);
 
-#endif
+#endif	// __CDI_H__
