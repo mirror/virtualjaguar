@@ -90,6 +90,8 @@ void LoadVJSettings(void)
 	strcpy(vjs.ROMPath, sdlemu_getval_string("ROMs", "./"));
 	CheckForTrailingSlash(vjs.EEPROMPath);
 	CheckForTrailingSlash(vjs.ROMPath);
+
+	vjs.hardwareTypeAlpine = false;	// No external setting for this yet...
 }
 
 //

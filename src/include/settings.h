@@ -24,6 +24,7 @@ struct VJSettings
 	bool fullscreen;
 	bool useOpenGL;
 	uint32 glFilter;
+	bool hardwareTypeAlpine;
 
 	// Keybindings in order of U, D, L, R, C, B, A, Op, Pa, 0-9, #, *
 	uint16 p1KeyBindings[21];
@@ -34,7 +35,13 @@ struct VJSettings
 	char jagBootPath[MAX_PATH];
 	char CDBootPath[MAX_PATH];
 	char EEPROMPath[MAX_PATH];
+
+	// Internal global stuff
+//	uint32 ROMType;
 };
+
+// ROM Types
+//enum { RT_CARTRIDGE, RT_
 
 // Exported functions
 
