@@ -1,7 +1,7 @@
 //
 // Log handler
 //
-// by Cal2
+// Originally by David Raingeard (Cal2)
 // GCC/SDL port by Niels Wagenaar (Linux/WIN32) and Caz (BeOS)
 // Cleanups/new stuff by James L. Hammons
 //

@@ -1,7 +1,7 @@
 //
 // Virtual Jaguar Emulator
 //
-// Original codebase by Cal2
+// Original codebase by David Raingeard (Cal2)
 // GCC/SDL port by Niels Wagenaar (Linux/WIN32) and Caz (BeOS)
 // Cleanups/fixes/enhancements by James L. Hammons and Adam Green
 //
@@ -73,7 +73,7 @@ int main(int argc, char * argv[])
     int32 nFrame = 0;								// No. of Frame
 
 	printf("Virtual Jaguar GCC/SDL Portable Jaguar Emulator v1.0.7\n");
-	printf("Based upon Virtual Jaguar core v1.0.0 by Cal2 of Potato emulation.\n");
+	printf("Based upon Virtual Jaguar core v1.0.0 by David Raingeard.\n");
 	printf("Written by Niels Wagenaar (Linux/WIN32), Carwin Jones (BeOS),\n");
 	printf("James L. Hammons (WIN32) and Adam Green (MacOS)\n");
 	printf("Contact: http://sdlemu.ngemu.com/ | sdlemu@ngemu.com\n");
