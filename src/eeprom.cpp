@@ -12,6 +12,10 @@
 
 static uint16 eeprom_ram[64];
 
+//
+// Private function prototypes
+//
+
 void eeprom_set_di(uint32 state); 
 void eeprom_set_cs(uint32 state);
 uint32 eeprom_get_do(void);
@@ -47,7 +51,7 @@ uint16 jerry_ee_data_cnt = 16;
 uint16 jerry_writes_enabled = 0;
 uint16 jerry_ee_direct_jump = 0;
 FILE * jerry_ee_fp;
-extern char * jaguar_boot_dir;
+extern char jaguar_boot_dir[1024];
 
 
 void eeprom_init(void)

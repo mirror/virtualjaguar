@@ -3,7 +3,7 @@
 //
 // by cal2
 // GCC/SDL port by Niels Wagenaar (Linux/WIN32) and Caz (BeOS)
-// Cleanups by James L. Hammons
+// Cleanups/new stuff by James L. Hammons
 //
 
 #include "log.h"
@@ -13,8 +13,10 @@ FILE * log_stream = NULL;
 int log_init(char * path)
 {
 	log_stream = fopen(path, "wrt");
+
 	if (log_stream == NULL)
 		return 0;
+
 	return 1;
 }
 
@@ -26,4 +28,19 @@ FILE * log_get(void)
 void log_done(void)
 {
 	fclose(log_stream);
+}
+
+//
+// This logger is used mainly to ensure that text gets written to the log file
+// even if the program crashes. The performance hit is acceptable in this case!
+//
+
+void WriteLog(const char * text, ...)
+{
+	va_list arg;
+
+	va_start(arg, text);
+	vfprintf(log_stream, text, arg);
+	va_end(arg);
+	fflush(log_stream);					// Make sure that text is written!
 }

@@ -152,7 +152,7 @@ char *dsp_opcode_str[64]=
 static uint16	*mirror_table;
 static uint8	*dsp_ram_8;
 
-static uint32	dsp_pc;
+uint32 dsp_pc;
 static uint32	dsp_acc;
 static uint32	dsp_remain;
 static uint32	dsp_modulo;
@@ -160,7 +160,7 @@ static uint32	dsp_flags;
 static uint32	dsp_matrix_control;
 static uint32	dsp_pointer_to_matrix;
 static uint32	dsp_data_organization;
-static uint32	dsp_control;
+uint32 dsp_control;
 static uint32	dsp_div_control;
 static uint8	dsp_flag_z;
 static uint8	dsp_flag_n;
@@ -270,10 +270,10 @@ unsigned dsp_byte_read(unsigned int offset)
 		if (offset==0xF1CFE0)
 			return(0xff);
 	}
-	if ((offset>=dsp_work_ram_base)&&(offset<dsp_work_ram_base+0x2000))
-		return(dsp_ram_8[offset-dsp_work_ram_base]);
+	if ((offset>=DSP_WORK_RAM_BASE)&&(offset<DSP_WORK_RAM_BASE+0x2000))
+		return(dsp_ram_8[offset-DSP_WORK_RAM_BASE]);
 
-	if ((offset>=dsp_control_ram_base)&&(offset<dsp_control_ram_base+0x20))
+	if ((offset>=DSP_CONTROL_RAM_BASE)&&(offset<DSP_CONTROL_RAM_BASE+0x20))
 	{
 		uint32 data=dsp_long_read(offset&0xfffffffc);
 
@@ -338,13 +338,13 @@ unsigned dsp_word_read(unsigned int offset)
 		if (offset==0xF1B1C2) return(0);
 	}
 
-	if ((offset>=dsp_work_ram_base)&&(offset<dsp_work_ram_base+0x2000))
+	if ((offset>=DSP_WORK_RAM_BASE)&&(offset<DSP_WORK_RAM_BASE+0x2000))
 	{
-		offset-=dsp_work_ram_base;
+		offset-=DSP_WORK_RAM_BASE;
 		uint16 data=(((uint16)dsp_ram_8[offset])<<8)|((uint16)dsp_ram_8[offset+1]);
 		return(data);
 	}
-	if ((offset>=dsp_control_ram_base)&&(offset<dsp_control_ram_base+0x20))
+	if ((offset>=DSP_CONTROL_RAM_BASE)&&(offset<DSP_CONTROL_RAM_BASE+0x20))
 	{
 		uint32 data;
 
@@ -362,16 +362,16 @@ unsigned dsp_long_read(unsigned int offset)
 {
 	offset&=0xFFFFFFFC;
 
-	if ((offset>=dsp_work_ram_base)&&(offset<dsp_work_ram_base+0x2000))
+	if ((offset>=DSP_WORK_RAM_BASE)&&(offset<DSP_WORK_RAM_BASE+0x2000))
 	{
-		offset-=dsp_work_ram_base;
+		offset-=DSP_WORK_RAM_BASE;
 		uint32 data= (((uint32)dsp_ram_8[offset]  )<<24)|
 			         (((uint32)dsp_ram_8[offset+1])<<16)|
 					 (((uint32)dsp_ram_8[offset+2])<<8 )|
 					 ( (uint32)dsp_ram_8[offset+3]);
 		return(data);
 	}
-	if ((offset>=dsp_control_ram_base)&&(offset<dsp_control_ram_base+0x20))
+	if ((offset>=DSP_CONTROL_RAM_BASE)&&(offset<DSP_CONTROL_RAM_BASE+0x20))
 	{
 		offset&=0x1f;
 		switch (offset)
@@ -402,9 +402,9 @@ unsigned dsp_long_read(unsigned int offset)
 
 void dsp_byte_write(unsigned offset, unsigned data)
 {
-	if ((offset >= dsp_work_ram_base) && (offset < dsp_work_ram_base+0x2000))
+	if ((offset >= DSP_WORK_RAM_BASE) && (offset < DSP_WORK_RAM_BASE+0x2000))
 	{
-		offset -= dsp_work_ram_base;
+		offset -= DSP_WORK_RAM_BASE;
 		dsp_ram_8[offset] = data;
 		if (dsp_in_exec == 0)
 		{
@@ -414,7 +414,7 @@ void dsp_byte_write(unsigned offset, unsigned data)
 		}
 		return;
 	}
-	if ((offset >= dsp_control_ram_base) && (offset < dsp_control_ram_base+0x20))
+	if ((offset >= DSP_CONTROL_RAM_BASE) && (offset < DSP_CONTROL_RAM_BASE+0x20))
 	{
 		uint32 reg = offset & 0x1C;
 		int bytenum = offset & 0x03;
@@ -438,21 +438,21 @@ void dsp_word_write(unsigned offset, unsigned data)
 {
 	offset &= 0xFFFFFFFE;
 //	fprintf(log_get(),"dsp: writing %.4x at 0x%.8x\n",data,offset);
-	if ((offset >= dsp_work_ram_base) && (offset < dsp_work_ram_base+0x2000))
+	if ((offset >= DSP_WORK_RAM_BASE) && (offset < DSP_WORK_RAM_BASE+0x2000))
 	{
-		offset -= dsp_work_ram_base;
+		offset -= DSP_WORK_RAM_BASE;
 		dsp_ram_8[offset] = data >> 8;
 		dsp_ram_8[offset+1] = data & 0xFF;
 		if (dsp_in_exec == 0)
 		{
-//			fprintf(log_get(),"dsp: writing %.4x at 0x%.8x\n",data,offset+dsp_work_ram_base);
+//			fprintf(log_get(),"dsp: writing %.4x at 0x%.8x\n",data,offset+DSP_WORK_RAM_BASE);
 //			s68000releaseTimeslice();
 			m68k_end_timeslice();
 			gpu_releaseTimeslice();
 		}
 		return;
 	}
-	else if ((offset >= dsp_control_ram_base) && (offset < dsp_control_ram_base+0x20))
+	else if ((offset >= DSP_CONTROL_RAM_BASE) && (offset < DSP_CONTROL_RAM_BASE+0x20))
 	{
 		if ((offset & 0x1C) == 0x1C)
 		{
@@ -479,16 +479,16 @@ void dsp_long_write(unsigned offset, unsigned data)
 {
 	offset &= 0xFFFFFFFC;
 //	fprintf(log_get(),"dsp: writing %.8x at 0x%.8x\n",data,offset);
-	if ((offset >= dsp_work_ram_base) && (offset < dsp_work_ram_base+0x2000))
+	if ((offset >= DSP_WORK_RAM_BASE) && (offset < DSP_WORK_RAM_BASE+0x2000))
 	{
-		offset -= dsp_work_ram_base;
+		offset -= DSP_WORK_RAM_BASE;
 		dsp_ram_8[offset]  = data >> 24;
 		dsp_ram_8[offset+1] = (data>>16) & 0xFF;
 		dsp_ram_8[offset+2] = (data>>8) & 0xFF;
 		dsp_ram_8[offset+3] = data & 0xFF;
 		return;
 	}
-	else if ((offset >= dsp_control_ram_base) && (offset < dsp_control_ram_base+0x20))
+	else if ((offset >= DSP_CONTROL_RAM_BASE) && (offset < DSP_CONTROL_RAM_BASE+0x20))
 	{
 		offset&=0x1f;
 		switch (offset)
@@ -577,7 +577,7 @@ void dsp_long_write(unsigned offset, unsigned data)
 	jaguar_word_write(offset+2, data & 0xFFFF);
 }
 
-uint8 * jaguar_rom_load(char * path, uint32 * romSize);
+/*uint8 * jaguar_rom_load(char * path, uint32 * romSize);
 void dsp_load_bin_at(char * path, uint32 offset)
 {
 	uint32 romSize;
@@ -586,7 +586,7 @@ void dsp_load_bin_at(char * path, uint32 offset)
 	rom = jaguar_rom_load(path, &romSize);
 	for(uint32 i=0; i<romSize; i++)
 		jaguar_byte_write(offset+i, rom[i]);
-}
+}//*/
 
 static int go = 0;
 void dsp_update_register_banks(void)
@@ -702,7 +702,7 @@ void dsp_check_irqs(void)
 	// movei  #service_address,r30  ; pointer to ISR entry 
 	// jump  (r30)					; jump to ISR 
 	// nop
-	dsp_pc = dsp_work_ram_base;
+	dsp_pc = DSP_WORK_RAM_BASE;
 	dsp_pc += which * 0x10;
 	dsp_reg[30]=dsp_pc;
 }
@@ -720,10 +720,10 @@ void dsp_set_irq_line(int irqline, int state)
 
 void dsp_init(void)
 {
-	memory_malloc_secure((void **)&dsp_ram_8, 0x2000, "dsp work ram");
-	memory_malloc_secure((void **)&dsp_reg, 32*sizeof(int32), "dsp bank 0 regs");
-	memory_malloc_secure((void **)&dsp_alternate_reg, 32*sizeof(int32), "dsp bank 1 regs");
-	
+	memory_malloc_secure((void **)&dsp_ram_8, 0x2000, "DSP work RAM");
+	memory_malloc_secure((void **)&dsp_reg, 32*sizeof(int32), "DSP bank 0 regs");
+	memory_malloc_secure((void **)&dsp_alternate_reg, 32*sizeof(int32), "DSP bank 1 regs");
+
 	dsp_build_branch_condition_table();
 	dsp_reset();
 }
@@ -768,28 +768,27 @@ void dsp_reset(void)
 void dsp_done(void)
 {
 	int i, j;
-	fprintf(log_get(),"dsp: stopped at pc=0x%.8x dsp_modulo=0x%.8x(dsp %s running)\n",dsp_pc,dsp_modulo,dsp_running?"was":"wasn't");
-	fprintf(log_get(),"dsp: %sin interrupt handler\n",(dsp_flags & 0x8)?"":"not ");
+	fprintf(log_get(), "DSP: Stopped at PC=%08X dsp_modulo=%08X(dsp %s running)\n", dsp_pc, dsp_modulo, dsp_running ? "was" : "wasn't");
+	fprintf(log_get(), "DSP: %sin interrupt handler\n", (dsp_flags & 0x8) ? "" : "not ");
 	int bits, mask;
 
 	// get the active interrupt bits 
-	bits = (dsp_control >> 6) & 0x1f;
+	bits = (dsp_control >> 6) & 0x1F;
 	bits |= (dsp_control >> 10) & 0x20;
 
 	// get the interrupt mask 
-	mask = (dsp_flags >> 4) & 0x1f;
+	mask = (dsp_flags >> 4) & 0x1F;
 	mask |= (dsp_flags >> 11) & 0x20;
 
-	fprintf(log_get(),"dsp: bits=0x%.8x mask=0x%.8x\n",bits,mask);
-	fprintf(log_get(),"\nregisters bank 0\n");
-	for (int j=0;j<8;j++)
+	fprintf(log_get(), "DSP: bits=%08X mask=%08X\n", bits, mask);
+	fprintf(log_get(), "\nRegisters bank 0\n");
+	for(int j=0; j<8; j++)
 	{
-		fprintf(log_get(),"\tr%2i=0x%.8x r%2i=0x%.8x r%2i=0x%.8x r%2i=0x%.8x\n",
-						  (j<<2)+0,dsp_reg[(j<<2)+0],
-						  (j<<2)+1,dsp_reg[(j<<2)+1],
-						  (j<<2)+2,dsp_reg[(j<<2)+2],
-						  (j<<2)+3,dsp_reg[(j<<2)+3]);
-
+		fprintf(log_get(), "\tr%2i=0x%.8x r%2i=0x%.8x r%2i=0x%.8x r%2i=0x%.8x\n",
+						  (j << 2) + 0, dsp_reg[(j << 2) + 0],
+						  (j << 2) + 1, dsp_reg[(j << 2) + 1],
+						  (j << 2) + 2, dsp_reg[(j << 2) + 2],
+						  (j << 2) + 3, dsp_reg[(j << 2) + 3]);
 	}
 //	fprintf(log_get(),"registers bank 1\n");
 //	for (j=0;j<8;j++)
@@ -802,22 +801,22 @@ void dsp_done(void)
 //
 //	}
 	static char buffer[512];
-	j=dsp_work_ram_base;
-	for (int i=0;i<4096;i++)
+	j = DSP_WORK_RAM_BASE;
+//	for(int i=0; i<4096; i++)
+	while (j <= 0xF1BFFF)
 	{
-		uint32 oldj=j;
-		j+=dasmjag(JAGUAR_DSP,buffer,j);
-//		fprintf(log_get(),"\t0x%.8x: %s\n",oldj,buffer);
-	}
+		uint32 oldj = j;
+		j += dasmjag(JAGUAR_DSP, buffer, j);
+		fprintf(log_get(), "\t%08X: %s\n", oldj, buffer);
+	}//*/
 
-/*
 	fprintf(log_get(),"dsp opcodes use:\n");
 	for (i=0;i<64;i++)
 	{
 		if (dsp_opcode_use[i])
 			fprintf(log_get(),"\t%s %i\n",dsp_opcode_str[i],dsp_opcode_use[i]);
-	}
-*/
+	}//*/
+
 	memory_free(dsp_ram_8);
 }
 
@@ -1674,7 +1673,7 @@ static void dsp_opcode_pack(void)
 
 static void dsp_opcode_storeb(void)
 {
-	if ((Rm >= dsp_work_ram_base) && (Rm < (dsp_work_ram_base+0x2000)))
+	if ((Rm >= DSP_WORK_RAM_BASE) && (Rm < (DSP_WORK_RAM_BASE+0x2000)))
 		dsp_long_write(Rm,Rn&0xff);
 	else
 		jaguar_byte_write(Rm,Rn);
@@ -1682,7 +1681,7 @@ static void dsp_opcode_storeb(void)
 
 static void dsp_opcode_storew(void)
 {
-	if ((Rm >= dsp_work_ram_base) && (Rm < (dsp_work_ram_base+0x2000)))
+	if ((Rm >= DSP_WORK_RAM_BASE) && (Rm < (DSP_WORK_RAM_BASE+0x2000)))
 		dsp_long_write(Rm,Rn&0xffff);
 	else
 		jaguar_word_write(Rm,Rn);
@@ -1695,7 +1694,7 @@ static void dsp_opcode_store(void)
 
 static void dsp_opcode_loadb(void)
 {
-	if ((Rm >= dsp_work_ram_base) && (Rm < (dsp_work_ram_base+0x2000)))
+	if ((Rm >= DSP_WORK_RAM_BASE) && (Rm < (DSP_WORK_RAM_BASE+0x2000)))
 		Rn=dsp_long_read(Rm)&0xff;
 	else
 		Rn=jaguar_byte_read(Rm);
@@ -1703,7 +1702,7 @@ static void dsp_opcode_loadb(void)
 
 static void dsp_opcode_loadw(void)
 {
-	if ((Rm >= dsp_work_ram_base) && (Rm < (dsp_work_ram_base+0x2000)))
+	if ((Rm >= DSP_WORK_RAM_BASE) && (Rm < (DSP_WORK_RAM_BASE+0x2000)))
 		Rn=dsp_long_read(Rm)&0xffff;
 	else
 		Rn=jaguar_word_read(Rm);

@@ -73,11 +73,11 @@ void memory_malloc_secure(void ** new_ptr, UINT32 size, char * info)
 {
     void * ptr;
 
-    fprintf(log_get(), "memory: allocating %i bytes of memory for <%s>...", size, (info == NULL) ? "unknown" : info);
+    WriteLog("Memory: Allocating %i bytes of memory for <%s>...", size, (info == NULL) ? "unknown" : info);
     ptr = (void *)malloc(size);
     if (ptr == NULL)
     {
-		fprintf(log_get(), "failed\n");
+		WriteLog("Failed!\n");
 		log_done();
 		exit(0);
     }
@@ -86,7 +86,7 @@ void memory_malloc_secure(void ** new_ptr, UINT32 size, char * info)
     if (currentAllocatedMemory > maximumAllocatedMemory)
         maximumAllocatedMemory = currentAllocatedMemory;
     *new_ptr = ptr;
-	fprintf(log_get(), "ok\n");
+	WriteLog("OK\n");
 }
 
 void memory_memoryUsage(FILE * fp)
@@ -99,12 +99,12 @@ void memory_memoryUsage(FILE * fp)
     alias = alias->next;
     while (alias)
     {
-        fprintf(fp, "\t%16i bytes : <%s> (@ 0x%.8x)\n", alias->size, alias->info, alias->ptr);
+        fprintf(fp, "\t%16i bytes: <%s> (@ %08X)\n", (int)alias->size, alias->info, (unsigned int)alias->ptr);
         total += alias->size;
         alias = alias->next;
     }
-    fprintf(fp, "\n\t%16i bytes total(%i Mb)\n", total, total >> 20);
-    fprintf(fp, "\n\t%16i bytes memory peak(%i Mb)\n", maximumAllocatedMemory, maximumAllocatedMemory >> 20);
+    fprintf(fp, "\n\t%16i bytes total(%i Mb)\n", (int)total, (int)(total >> 20));
+    fprintf(fp, "\n\t%16i bytes memory peak(%i Mb)\n", (int)maximumAllocatedMemory, (int)(maximumAllocatedMemory >> 20));
 }
 
 void memory_done(void)

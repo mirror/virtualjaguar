@@ -58,12 +58,12 @@ beginning of this file.
 After obaining the Atari Jaguar (CD) boot ROM and several ROM's you can now
 use Virtual Jaguar using the following command :
 
-./jag_em romfile -switch
+./vj romfile -switch
 
-The context of ROMFILE is the filename of the UNCOMPRESSED Atari Jaguar ROM
-dump. You can also use switches. By just typing ./jag_em you get an overview
-of the options you can use. WIN32 users should look into the stdout.txt for
-that information.
+The context of ROMFILE is the filename of the an Atari Jaguar ROM dump (can be
+either compressed or uncompressed). You can also use switches. By just typing
+./vj you get an overview of the options you can use. WIN32 users should look
+into the stdout.txt for that information.
 
 If you succesfully start the emulator with the game you should see a window
 (or fullscreen) which shows the game. If the game doesn't comply to a CRC
@@ -74,9 +74,9 @@ check to the sources yourself (src/crc32.cpp).
 This emulator also emulates the Atari Jaguar Analog gamepads. By using the
 following keyboard or joystick settings you can (possibly) play the game :
 
-Atari Button A       : Z or joystick button 1
+Atari Button C       : Z or joystick button 3
 Atari Button B       : X or joystick button 2
-Atari Button C       : C or joystick button 3
+Atari Button A       : C or joystick button 1
 Atari Buttons 1 - 10 : Keypad 0 - 9 (0 = 10)
 Atari Start/Pause    : ENTER
 Atari Select         : TAB
@@ -84,6 +84,7 @@ Atari UP             : UP    or joystick UP
 Atari DOWN           : DOWN  or joystick DOWN
 Atari LEFT           : LEFT  or joystick LEFT
 Atari RIGHT          : RIGHT or joystick RIGHT
+Atari *, # are not mapped yet!
 
 With ESC you can easily stop Virtual Jaguar GCC/SDL which will get you back
 to you command prompt. If you want to change the key layout, simply hack the

@@ -43,7 +43,7 @@
 //	F00028            W   ----xxxx xxxxxxxx   VMODE - video mode
 //	                  W   ----xxx- --------      (PWIDTH1-8 - width of pixel in video clock cycles)
 //	                  W   -------x --------      (VARMOD - enable variable color resolution)
-//	                  W   -------- x-------      (BGEN - clear line buffere to BG color)
+//	                  W   -------- x-------      (BGEN - clear line buffer to BG color)
 //	                  W   -------- -x------      (CSYNC - enable composite sync on VSYNC)
 //	                  W   -------- --x-----      (BINC - local border color if INCEN)
 //	                  W   -------- ---x----      (INCEN - encrustation enable)
@@ -136,10 +136,114 @@
 //	F0211C            W   -------- -------x   G_DIVCTRL - divide unit control
 //	                  W   -------- -------x      (DIV_OFFSET - 1=16.16 divide, 0=32-bit divide)
 //	------------------------------------------------------------
+//	BLITTER REGISTERS
+//	------------------------------------------------------------
+//	F02200-F022FF   R/W   xxxxxxxx xxxxxxxx xxxxxxxx xxxxxxxx   Blitter registers
+//	F02200            W   xxxxxxxx xxxxxxxx xxxxxxxx xxxxxxxx   A1_BASE - A1 base register
+//	F02204            W   -------- ---xxxxx -xxxxxxx xxxxx-xx   A1_FLAGS - A1 flags register
+//	                  W   -------- ---x---- -------- --------      (YSIGNSUB - invert sign of Y delta)
+//	                  W   -------- ----x--- -------- --------      (XSIGNSUB - invert sign of X delta)
+//	                  W   -------- -----x-- -------- --------      (Y add control)
+//	                  W   -------- ------xx -------- --------      (X add control)
+//	                  W   -------- -------- -xxxxxx- --------      (width in 6-bit floating point)
+//	                  W   -------- -------- -------x xx------      (ZOFFS1-6 - Z data offset)
+//	                  W   -------- -------- -------- --xxx---      (PIXEL - pixel size)
+//	                  W   -------- -------- -------- ------xx      (PITCH1-4 - data phrase pitch)
+//	F02208            W   -xxxxxxx xxxxxxxx -xxxxxxx xxxxxxxx   A1_CLIP - A1 clipping size
+//	                  W   -xxxxxxx xxxxxxxx -------- --------      (height)
+//	                  W   -------- -------- -xxxxxxx xxxxxxxx      (width)
+//	F0220C          R/W   xxxxxxxx xxxxxxxx xxxxxxxx xxxxxxxx   A1_PIXEL - A1 pixel pointer
+//	                R/W   xxxxxxxx xxxxxxxx -------- --------      (Y pixel value)
+//	                R/W   -------- -------- xxxxxxxx xxxxxxxx      (X pixel value)
+//	F02210            W   xxxxxxxx xxxxxxxx xxxxxxxx xxxxxxxx   A1_STEP - A1 step value
+//	                  W   xxxxxxxx xxxxxxxx -------- --------      (Y step value)
+//	                  W   -------- -------- xxxxxxxx xxxxxxxx      (X step value)
+//	F02214            W   xxxxxxxx xxxxxxxx xxxxxxxx xxxxxxxx   A1_FSTEP - A1 step fraction value
+//	                  W   xxxxxxxx xxxxxxxx -------- --------      (Y step fraction value)
+//	                  W   -------- -------- xxxxxxxx xxxxxxxx      (X step fraction value)
+//	F02218          R/W   xxxxxxxx xxxxxxxx xxxxxxxx xxxxxxxx   A1_FPIXEL - A1 pixel pointer fraction
+//	                R/W   xxxxxxxx xxxxxxxx -------- --------      (Y pixel fraction value)
+//	                R/W   -------- -------- xxxxxxxx xxxxxxxx      (X pixel fraction value)
+//	F0221C            W   xxxxxxxx xxxxxxxx xxxxxxxx xxxxxxxx   A1_INC - A1 increment
+//	                  W   xxxxxxxx xxxxxxxx -------- --------      (Y increment)
+//	                  W   -------- -------- xxxxxxxx xxxxxxxx      (X increment)
+//	F02220            W   xxxxxxxx xxxxxxxx xxxxxxxx xxxxxxxx   A1_FINC - A1 increment fraction
+//	                  W   xxxxxxxx xxxxxxxx -------- --------      (Y increment fraction)
+//	                  W   -------- -------- xxxxxxxx xxxxxxxx      (X increment fraction)
+//	F02224            W   xxxxxxxx xxxxxxxx xxxxxxxx xxxxxxxx   A2_BASE - A2 base register
+//	F02228            W   -------- ---xxxxx -xxxxxxx xxxxx-xx   A2_FLAGS - A2 flags register
+//	                  W   -------- ---x---- -------- --------      (YSIGNSUB - invert sign of Y delta)
+//	                  W   -------- ----x--- -------- --------      (XSIGNSUB - invert sign of X delta)
+//	                  W   -------- -----x-- -------- --------      (Y add control)
+//	                  W   -------- ------xx -------- --------      (X add control)
+//	                  W   -------- -------- -xxxxxx- --------      (width in 6-bit floating point)
+//	                  W   -------- -------- -------x xx------      (ZOFFS1-6 - Z data offset)
+//	                  W   -------- -------- -------- --xxx---      (PIXEL - pixel size)
+//	                  W   -------- -------- -------- ------xx      (PITCH1-4 - data phrase pitch)
+//	F0222C            W   xxxxxxxx xxxxxxxx xxxxxxxx xxxxxxxx   A2_MASK - A2 window mask
+//	F02230          R/W   xxxxxxxx xxxxxxxx xxxxxxxx xxxxxxxx   A2_PIXEL - A2 pixel pointer
+//	                R/W   xxxxxxxx xxxxxxxx -------- --------      (Y pixel value)
+//	                R/W   -------- -------- xxxxxxxx xxxxxxxx      (X pixel value)
+//	F02234            W   xxxxxxxx xxxxxxxx xxxxxxxx xxxxxxxx   A2_STEP - A2 step value
+//	                  W   xxxxxxxx xxxxxxxx -------- --------      (Y step value)
+//	                  W   -------- -------- xxxxxxxx xxxxxxxx      (X step value)
+//	F02238            W   -xxxxxxx xxxxxxxx xxxxxxxx xxxxxxxx   B_CMD - command register
+//	                  W   -x------ -------- -------- --------      (SRCSHADE - modify source intensity)
+//	                  W   --x----- -------- -------- --------      (BUSHI - hi priority bus)
+//	                  W   ---x---- -------- -------- --------      (BKGWREN - writeback destination)
+//	                  W   ----x--- -------- -------- --------      (DCOMPEN - write inhibit from data comparator)
+//	                  W   -----x-- -------- -------- --------      (BCOMPEN - write inhibit from bit coparator)
+//	                  W   ------x- -------- -------- --------      (CMPDST - compare dest instead of src)
+//	                  W   -------x xxx----- -------- --------      (logical operation)
+//	                  W   -------- ---xxx-- -------- --------      (ZMODE - Z comparator mode)
+//	                  W   -------- ------x- -------- --------      (ADDDSEL - select sum of src & dst)
+//	                  W   -------- -------x -------- --------      (PATDSEL - select pattern data)
+//	                  W   -------- -------- x------- --------      (TOPNEN - enable carry into top intensity nibble)
+//	                  W   -------- -------- -x------ --------      (TOPBEN - enable carry into top intensity byte)
+//	                  W   -------- -------- --x----- --------      (ZBUFF - enable Z updates in inner loop)
+//	                  W   -------- -------- ---x---- --------      (GOURD - enable gouraud shading in inner loop)
+//	                  W   -------- -------- ----x--- --------      (DSTA2 - reverses A2/A1 roles)
+//	                  W   -------- -------- -----x-- --------      (UPDA2 - add A2 step to A2 in outer loop)
+//	                  W   -------- -------- ------x- --------      (UPDA1 - add A1 step to A1 in outer loop)
+//	                  W   -------- -------- -------x --------      (UPDA1F - add A1 fraction step to A1 in outer loop)
+//	                  W   -------- -------- -------- x-------      (diagnostic use)
+//	                  W   -------- -------- -------- -x------      (CLIP_A1 - clip A1 to window)
+//	                  W   -------- -------- -------- --x-----      (DSTWRZ - enable dest Z write in inner loop)
+//	                  W   -------- -------- -------- ---x----      (DSTENZ - enable dest Z read in inner loop)
+//	                  W   -------- -------- -------- ----x---      (DSTEN - enables dest data read in inner loop)
+//	                  W   -------- -------- -------- -----x--      (SRCENX - enable extra src read at start of inner)
+//	                  W   -------- -------- -------- ------x-      (SRCENZ - enables source Z read in inner loop)
+//	                  W   -------- -------- -------- -------x      (SRCEN - enables source data read in inner loop)
+//	F02238          R     xxxxxxxx xxxxxxxx xxxxxxxx xxxxxxxx   B_CMD - status register
+//	                R     xxxxxxxx xxxxxxxx -------- --------      (inner count)
+//	                R     -------- -------- xxxxxxxx xxxxxx--      (diagnostics)
+//	                R     -------- -------- -------- ------x-      (STOPPED - when stopped in collision detect)
+//	                R     -------- -------- -------- -------x      (IDLE - when idle)
+//	F0223C            W   xxxxxxxx xxxxxxxx xxxxxxxx xxxxxxxx   B_COUNT - counters register
+//	                  W   xxxxxxxx xxxxxxxx -------- --------      (outer loop count)
+//	                  W   -------- -------- xxxxxxxx xxxxxxxx      (inner loop count)
+//	F02240-F02247     W   xxxxxxxx xxxxxxxx xxxxxxxx xxxxxxxx   B_SRCD - source data register
+//	F02248-F0224F     W   xxxxxxxx xxxxxxxx xxxxxxxx xxxxxxxx   B_DSTD - destination data register
+//	F02250-F02257     W   xxxxxxxx xxxxxxxx xxxxxxxx xxxxxxxx   B_DSTZ - destination Z register
+//	F02258-F0225F     W   xxxxxxxx xxxxxxxx xxxxxxxx xxxxxxxx   B_SRCZ1 - source Z register 1
+//	F02260-F02267     W   xxxxxxxx xxxxxxxx xxxxxxxx xxxxxxxx   B_SRCZ2 - source Z register 2
+//	F02268-F0226F     W   xxxxxxxx xxxxxxxx xxxxxxxx xxxxxxxx   B_PATD - pattern data register
+//	F02270            W   xxxxxxxx xxxxxxxx xxxxxxxx xxxxxxxx   B_IINC - intensity increment
+//	F02274            W   xxxxxxxx xxxxxxxx xxxxxxxx xxxxxxxx   B_ZINC - Z increment
+//	F02278            W   -------- -------- -------- -----xxx   B_STOP - collision control
+//	                  W   -------- -------- -------- -----x--      (STOPEN - enable blitter collision stops)
+//	                  W   -------- -------- -------- ------x-      (ABORT - abort after stop)
+//	                  W   -------- -------- -------- -------x      (RESUME - resume after stop)
+//	F0227C            W   -------- xxxxxxxx xxxxxxxx xxxxxxxx   B_I3 - intensity 3
+//	F02280            W   -------- xxxxxxxx xxxxxxxx xxxxxxxx   B_I2 - intensity 2
+//	F02284            W   -------- xxxxxxxx xxxxxxxx xxxxxxxx   B_I1 - intensity 1
+//	F02288            W   -------- xxxxxxxx xxxxxxxx xxxxxxxx   B_I0 - intensity 0
+//	F0228C            W   xxxxxxxx xxxxxxxx xxxxxxxx xxxxxxxx   B_Z3 - Z3
+//	F02290            W   xxxxxxxx xxxxxxxx xxxxxxxx xxxxxxxx   B_Z2 - Z2
+//	F02294            W   xxxxxxxx xxxxxxxx xxxxxxxx xxxxxxxx   B_Z1 - Z1
+//	F02298            W   xxxxxxxx xxxxxxxx xxxxxxxx xxxxxxxx   B_Z0 - Z0
+//	------------------------------------------------------------
 
-#ifndef __PORT__
-#include <windows.h>
-#endif
 #include <SDL.h>
 #include "SDLptc.h"
 #include "tom.h"
@@ -147,59 +251,23 @@
 #include "objectp.h"
 #include "cry2rgb.h"
 
+// TOM registers (offset from $F00000)
 
-extern uint32 jaguar_mainRom_crc32;
-
-//This can be defined in the makefile as well...
-//#define TOM_DEBUG
-
-extern Console console;
-extern Surface * surface;
-
-// This makes sense IFF it's being used in an endian friendly way. Currently, it's not.
-//#define SWAP_32_ALL(A) ((SWAP_16(A>>16))|(SWAP_16(A<<16))) 
-//#define SWAP_32(A) ((A>>16)|(A<<16))
-//#define SWAP_16(A) ((A>>8)|(A<<8))
-// These are more endian friendly...
-#define SET16(addr, val)	tom_ram_8[addr] = ((val) & 0xFF00) >> 8, tom_ram_8[addr+1] = (val) & 0x00FF
-#define GET16(addr)			(tom_ram_8[addr] << 8) | tom_ram_8[addr+1]
-
-static uint8 * tom_ram_8;
-// This is just braindead and wrong!
-//static uint16 * tom_ram_16;
-//static uint32 * tom_ram_32;
-
-/*
-#define MEMCON1 tom_ram_16[0]
-#define MEMCON2 tom_ram_16[1]
-#define VMODE   tom_ram_16[0x28>>1]
-#define VBB		tom_ram_16[0x40>>1]
-#define VBE		tom_ram_16[0x42>>1]
-#define VDB		tom_ram_16[0x46>>1]
-#define VDE		tom_ram_16[0x48>>1]
-
-#define BG		tom_ram_16[0x58>>1]
-
-#define HBB		tom_ram_16[0x30>>1]
-#define HBE		tom_ram_16[0x32>>1]
-#define HDB		tom_ram_16[0x38>>1]
-#define HDE		tom_ram_16[0x3C>>1]
-
-#define HP		tom_ram_16[0x2E>>1]
-#define VP		tom_ram_16[0x3E>>1]
-#define VS		tom_ram_16[0x44>>1]
-
-#define BKGCOLOR tom_ram_16[0x58>>1]
-*/
 #define MEMCON1		0x00
 #define MEMCON2		0x02
+#define HC			0x04
 #define VMODE		0x28
-#define HP			0x2E
+#define   MODE		0x0006		// Line buffer to video generator mode
+#define   BGEN		0x0080		// Background enable (CRY & RGB16 only)
+#define   VARMOD	0x0100		// Mixed CRY/RGB16 mode
+#define   PWIDTH	0x0E00		// Pixel width in video clock cycles
+#define HP			0x2E		// Values range from 1 - 1024 (value written + 1)
 #define HBB			0x30
 #define HBE			0x32
-#define HDB			0x38
+#define HDB1		0x38
+#define HDB2		0x3A
 #define HDE			0x3C
-#define VP			0x3E
+#define VP			0x3E		// Value ranges from 1 - 2048 (value written + 1)
 #define VBB			0x40
 #define VBE			0x42
 #define VS			0x44
@@ -207,23 +275,36 @@ static uint8 * tom_ram_8;
 #define VDE			0x48
 #define BG			0x58
 
+//This can be defined in the makefile as well...
+//(It's easier to do it here...)
+//#define TOM_DEBUG
 
+extern uint32 jaguar_mainRom_crc32;
+extern Console console;
+extern Surface * surface;
+extern uint8 objectp_running;
+
+static uint8 * tom_ram_8;
 uint32 tom_width, tom_height, tom_real_internal_width;
-
 static uint32 tom_timer_prescaler;
 static uint32 tom_timer_divider;
 static int32 tom_timer_counter;
-
 uint32 tom_scanline;
 uint32 hblankWidthInPixels = 0;
+uint16 tom_puck_int_pending;
+uint16 tom_timer_int_pending;
+uint16 tom_object_int_pending;
+uint16 tom_gpu_int_pending;
+uint16 tom_video_int_pending;
+uint16 * tom_cry_rgb_mix_lut;
 
 static char * videoMode_to_str[8] =
-	{"16 bpp CRY", "24 bpp RGB", "16 bpp DIRECT", "16 bpp RGB",
-	"Mixed mode", "24 bpp RGB", "16 bpp DIRECT", "16 bpp RGB"};
-
-extern uint8 objectp_running;
+	{ "16 bpp CRY", "24 bpp RGB", "16 bpp DIRECT", "16 bpp RGB",
+	  "Mixed mode", "24 bpp RGB", "16 bpp DIRECT", "16 bpp RGB" };
 
 typedef void (render_xxx_scanline_fn)(int16 *);
+
+// Private function prototypes
 
 void tom_render_16bpp_cry_scanline(int16 * backbuffer);
 void tom_render_24bpp_scanline(int16 * backbuffer);
@@ -248,6 +329,7 @@ render_xxx_scanline_fn * scanline_render_normal[]=
 	tom_render_16bpp_direct_scanline,
 	tom_render_16bpp_rgb_scanline,
 };
+
 render_xxx_scanline_fn * scanline_render_stretch[]=
 {
 	tom_render_16bpp_cry_stretch_scanline,
@@ -259,35 +341,17 @@ render_xxx_scanline_fn * scanline_render_stretch[]=
 	tom_render_16bpp_direct_stretch_scanline,
 	tom_render_16bpp_rgb_stretch_scanline,
 };
+
 render_xxx_scanline_fn * scanline_render[8];
 
-uint16 tom_puck_int_pending;
-uint16 tom_timer_int_pending;
-uint16 tom_object_int_pending;
-uint16 tom_gpu_int_pending;
-uint16 tom_video_int_pending;
 
-uint16 * tom_cry_rgb_mix_lut;
-
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
 void tom_calc_cry_rgb_mix_lut(void)
 {
-	uint32 chrm, chrl, y;
-
-	memory_malloc_secure((void **)&tom_cry_rgb_mix_lut, 0x20000, "cry/rgb mixed mode lut");
+	memory_malloc_secure((void **)&tom_cry_rgb_mix_lut, 2 * 0x10000, "CRY/RGB mixed mode LUT");
 
 	for (uint32 i=0; i<0x10000; i++)
 	{
-		uint16 color=i;
+		uint16 color = i;
 
 		if (color & 0x01)
 		{
@@ -296,13 +360,12 @@ void tom_calc_cry_rgb_mix_lut(void)
 		}
 		else
 		{
-			chrm = (color & 0xF000) >> 12;    
-			chrl = (color & 0x0F00) >> 8;
-			y    = (color & 0x00FF);
-					
-			uint16 red   = ((((uint32)redcv[chrm][chrl]) * y) >> 11);
-			uint16 green = ((((uint32)greencv[chrm][chrl]) * y) >> 11);
-			uint16 blue  = ((((uint32)bluecv[chrm][chrl]) * y) >> 11);
+			uint32 chrm = (color & 0xF000) >> 12,
+				chrl = (color & 0x0F00) >> 8,
+				y = color & 0x00FF;
+			uint16 red = (((uint32)redcv[chrm][chrl]) * y) >> 11,
+				green = (((uint32)greencv[chrm][chrl]) * y) >> 11,
+				blue = (((uint32)bluecv[chrm][chrl]) * y) >> 11;
 			color = (red << 10) | (green << 5) | blue;
 		}
 		tom_cry_rgb_mix_lut[i] = color;
@@ -338,224 +401,130 @@ uint8 * tom_get_ram_pointer(void)
 {
 	return tom_ram_8;
 }
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
+
 uint8 tom_getVideoMode(void)
 {
-//	uint16 vmode = SWAP_16(VMODE);
-	uint16 vmode = GET16(VMODE);
-	return ((vmode >> 1) & 0x03) | ((vmode & 0x100) >> 6);
+	uint16 vmode = GET16(tom_ram_8, VMODE);
+	return ((vmode & VARMOD) >> 6) | ((vmode & MODE) >> 1);
 }
 
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
 uint16 tom_get_scanline(void)
 {
 	return tom_scanline;
 }
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
-uint16 tom_get_hdb(void)
+
+/*uint16 tom_get_hdb(void)
 {
-//	return SWAP_16(HDB);
-	return GET16(HDB);
-}
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
+	return GET16(tom_ram_8, HDB);
+}*/
+
 uint16 tom_get_vdb(void)
 {
-//	return SWAP_16(VBE);
-	return GET16(VBE);
+	return GET16(tom_ram_8, VBE);
 }
-//////////////////////////////////////////////////////////////////////////////
+
 //
-//////////////////////////////////////////////////////////////////////////////
+// 16 BPP CRY/RGB mixed mode rendering
 //
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
 void tom_render_16bpp_cry_rgb_mix_scanline(int16 * backbuffer)
 {
-	uint32 chrm, chrl, y;
-
 	uint16 width = tom_width;
-	uint8 * current_line_buffer=(uint8 *)&tom_ram_8[0x1800];
+	uint8 * current_line_buffer = (uint8 *)&tom_ram_8[0x1800];
 	
 	while (width)
 	{
-		uint16 color;
-		color = *current_line_buffer++;
-		color <<= 8;
+		uint16 color = (*current_line_buffer++) << 8;
 		color |= *current_line_buffer++;
 		*backbuffer++ = tom_cry_rgb_mix_lut[color];
 		width--;
 	}
 }
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
-void tom_render_16bpp_cry_scanline(int16 *backbuffer)
-{
-	uint32 chrm, chrl, y;
 
-	uint16 width=tom_width;
-	uint8 *current_line_buffer=(uint8*)&tom_ram_8[0x1800];
-	
+//
+// 16 BPP CRY mode rendering
+//
+void tom_render_16bpp_cry_scanline(int16 * backbuffer)
+{
+	uint16 width = tom_width;
+	uint8 * current_line_buffer = (uint8 *)&tom_ram_8[0x1800];
+
 	while (width)
 	{
-		uint16 color;
-		color=*current_line_buffer++;
-		color<<=8;
-		color|=*current_line_buffer++;
+		uint16 color = (*current_line_buffer++) << 8;
+		color |= *current_line_buffer++;
 		
-		chrm = (color & 0xF000) >> 12;    
-		chrl = (color & 0x0F00) >> 8;
-		y    = (color & 0x00FF);
+		uint32 chrm = (color & 0xF000) >> 12,
+			chrl = (color & 0x0F00) >> 8,
+			y = (color & 0x00FF);
 				
-		uint16 red   =	((((uint32)redcv[chrm][chrl])*y)>>11);
-		uint16 green =	((((uint32)greencv[chrm][chrl])*y)>>11);
-		uint16 blue  =	((((uint32)bluecv[chrm][chrl])*y)>>11);
+		uint16 red   = (((uint32)redcv[chrm][chrl]) * y) >> 11,
+			green = (((uint32)greencv[chrm][chrl]) * y) >> 11,
+			blue  = (((uint32)bluecv[chrm][chrl]) * y) >> 11;
 		
-		
-		*backbuffer++=(red<<10)|(green<<5)|blue;
+		*backbuffer++ = (red << 10) | (green << 5) | blue;
 		width--;
 	}
 }
-//////////////////////////////////////////////////////////////////////////////
+
 //
-//////////////////////////////////////////////////////////////////////////////
+// 24 BPP mode rendering
 //
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
-void tom_render_24bpp_scanline(int16 *backbuffer)
+void tom_render_24bpp_scanline(int16 * backbuffer)
 {
-	uint16 width=tom_width;
-	uint8 *current_line_buffer=(uint8*)&tom_ram_8[0x1800];
+	uint16 width = tom_width;
+	uint8 * current_line_buffer = (uint8 *)&tom_ram_8[0x1800];
 	
 	while (width)
 	{
-		uint16 green=*current_line_buffer++;
-		uint16 red=*current_line_buffer++;
-		uint16 nc=*current_line_buffer++;
-		uint16 blue=*current_line_buffer++;
-		red>>=3;
-		green>>=3;
-		blue>>=3;
-		*backbuffer++=(red<<10)|(green<<5)|blue;
+		uint16 green = (*current_line_buffer++) >> 3;
+		uint16 red = (*current_line_buffer++) >> 3;
+		current_line_buffer++;
+		uint16 blue = (*current_line_buffer++) >> 3;
+		*backbuffer++ = (red << 10) | (green << 5) | blue;
 		width--;
 	}
 }
-//////////////////////////////////////////////////////////////////////////////
+
 //
-//////////////////////////////////////////////////////////////////////////////
+// 16 BPP direct mode rendering
 //
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
-void tom_render_16bpp_direct_scanline(int16 *backbuffer)
+void tom_render_16bpp_direct_scanline(int16 * backbuffer)
 {
-	uint16 width=tom_width;
-	uint8 *current_line_buffer=(uint8*)&tom_ram_8[0x1800];
+	uint16 width = tom_width;
+	uint8 * current_line_buffer = (uint8 *)&tom_ram_8[0x1800];
 	
 	while (width)
 	{
-		uint16 color=*current_line_buffer++;
-		color<<=8;
-		color|=*current_line_buffer++;
-		color>>=1;
-		*backbuffer++=color;
+		uint16 color = (*current_line_buffer++) << 8;
+		color |= *current_line_buffer++;
+		*backbuffer++ = color >> 1;
 		width--;
 	}
 }
-//////////////////////////////////////////////////////////////////////////////
+
 //
-//////////////////////////////////////////////////////////////////////////////
+// 16 BPP RGB mode rendering
 //
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
-void tom_render_16bpp_rgb_scanline(int16 *backbuffer)
+void tom_render_16bpp_rgb_scanline(int16 * backbuffer)
 {
-	uint16 width=tom_width;
-	uint8 *current_line_buffer=(uint8*)&tom_ram_8[0x1800];
+	uint16 width = tom_width;
+	uint8 * current_line_buffer = (uint8 *)&tom_ram_8[0x1800];
 	
 	while (width)
 	{
-		uint16 color=*current_line_buffer++;
-		color<<=8;
-		color|=*current_line_buffer++;
-		color>>=1;
-		color=(color&0x007c00)|((color&0x00003e0)>>5)|((color&0x0000001f)<<5);
-		*backbuffer++=color;
+		uint16 color = (*current_line_buffer++) << 8;
+		color = (color | *current_line_buffer++) >> 1;
+		color = (color&0x7C00) | ((color&0x03E0) >> 5) | ((color&0x001F) << 5);
+		*backbuffer++ = color;
 		width--;
 	}
 }
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
+
+// This stuff may just go away by itself, especially if we do some
+// good old OpenGL goodness...
+
 void tom_render_16bpp_cry_rgb_mix_stretch_scanline(int16 *backbuffer)
 {
-	uint32 chrm, chrl, y;
-
 	uint16 width=tom_width;
 	uint8 *current_line_buffer=(uint8*)&tom_ram_8[0x1800];
 	
@@ -570,16 +539,7 @@ void tom_render_16bpp_cry_rgb_mix_stretch_scanline(int16 *backbuffer)
 		width--;
 	}
 }
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
+
 void tom_render_16bpp_cry_stretch_scanline(int16 *backbuffer)
 {
 	uint32 chrm, chrl, y;
@@ -623,16 +583,7 @@ void tom_render_16bpp_cry_stretch_scanline(int16 *backbuffer)
 		width--;
 	}
 }
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
+
 void tom_render_24bpp_stretch_scanline(int16 *backbuffer)
 {
 	uint16 width=tom_width;
@@ -642,7 +593,7 @@ void tom_render_24bpp_stretch_scanline(int16 *backbuffer)
 	{
 		uint16 green=*current_line_buffer++;
 		uint16 red=*current_line_buffer++;
-		uint16 nc=*current_line_buffer++;
+		/*uint16 nc=*/current_line_buffer++;
 		uint16 blue=*current_line_buffer++;
 		red>>=3;
 		green>>=3;
@@ -652,16 +603,7 @@ void tom_render_24bpp_stretch_scanline(int16 *backbuffer)
 		width--;
 	}
 }
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
+
 void tom_render_16bpp_direct_stretch_scanline(int16 *backbuffer)
 {
 	uint16 width=tom_width;
@@ -678,16 +620,7 @@ void tom_render_16bpp_direct_stretch_scanline(int16 *backbuffer)
 		width--;
 	}
 }
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
+
 void tom_render_16bpp_rgb_stretch_scanline(int16 *backbuffer)
 {
 	uint16 width=tom_width;
@@ -712,99 +645,80 @@ void tom_render_16bpp_rgb_stretch_scanline(int16 *backbuffer)
 		width--;
 	}
 }
-//////////////////////////////////////////////////////////////////////////////
+
 //
-//////////////////////////////////////////////////////////////////////////////
+// Process a single scanline
 //
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
-void tom_exec_scanline(int16 * backbuffer, int32 scanline, int8 render)
+void tom_exec_scanline(int16 * backbuffer, int32 scanline, bool render)
 {
-	UINT16 bg = GET16(BG);
 	tom_scanline = scanline;
 
-	jaguar_word_write(0xF00004, jaguar_word_read(0xF00004) + 1);
+	// Increment the horizontal count (why?)
+	SET16(tom_ram_8, HC, GET16(tom_ram_8, HC) + 1);
 
 	if (render)
 	{
 		uint8 * current_line_buffer = (uint8 *)&tom_ram_8[0x1800];
-		uint16 * current_line_buffer_16 = (uint16 *)current_line_buffer;
+		uint8 bgHI = tom_ram_8[BG], bgLO = tom_ram_8[BG+1];
 
-		for(int i=0; i<tom_real_internal_width; i++)
-			*current_line_buffer_16++ = bg;
+		// Clear line buffer with BG
+		if (GET16(tom_ram_8, VMODE) & BGEN) // && (CRY or RGB16)...
+			for(uint32 i=0; i<tom_real_internal_width; i++)
+				*current_line_buffer++ = bgHI, *current_line_buffer++ = bgLO;
 
-		op_process_list(backbuffer, scanline, render);
+//		op_process_list(backbuffer, scanline, render);
+		OPProcessList(scanline, render);
 		
-		(scanline_render[tom_getVideoMode()])(backbuffer);
+		scanline_render[tom_getVideoMode()](backbuffer);
 	}
 }
-//////////////////////////////////////////////////////////////////////////////
+
 //
-//////////////////////////////////////////////////////////////////////////////
+// TOM initialization
 //
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
 void tom_init(void)
 {
 	op_init();
 	blitter_init();
 	pcm_init();
-//	fprintf(log_get(),"tom_init()\n");
-	memory_malloc_secure((void **)&tom_ram_8, 0x4000, "tom ram");
-//	tom_ram_16 = (uint16 *)tom_ram_8;
-//	tom_ram_32 = (uint32 *)tom_ram_8;
+	memory_malloc_secure((void **)&tom_ram_8, 0x4000, "TOM RAM");
 	tom_reset();
+	// Setup the non-stretchy scanline rendering...
 	memcpy(scanline_render, scanline_render_normal, sizeof(scanline_render));
 	tom_calc_cry_rgb_mix_lut();
 }
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
+
+void tom_done(void)
+{
+	op_done();
+	pcm_done();
+	blitter_done();
+	WriteLog("TOM: Resolution %i x %i %s\n", tom_getVideoModeWidth(), tom_getVideoModeHeight(),
+		videoMode_to_str[tom_getVideoMode()]);
+//	WriteLog("\ntom: object processor:\n");
+//	WriteLog("tom: pointer to object list: 0x%.8x\n",op_get_list_pointer());
+//	WriteLog("tom: INT1=0x%.2x%.2x\n",tom_byte_read(0xf000e0),tom_byte_read(0xf000e1));
+	gpu_done();
+	dsp_done();
+	memory_free(tom_ram_8);
+}
+
 uint32 tom_getHBlankWidthInPixels(void)
 {
 	return hblankWidthInPixels;
 }
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
+
 uint32 tom_getVideoModeWidth(void)
 {
-	static uint16 onetime = 1;
+//	static uint16 onetime = 1;
 
-/*	uint16 vmode = SWAP_16(VMODE);
-	uint16 hdb = SWAP_16(HDB);
-	uint16 hde = SWAP_16(HDE);
-	uint16 hbb = SWAP_16(HBB);
-	uint16 hbe = SWAP_16(HBE);*/
-	uint16 vmode = GET16(VMODE);
-	uint16 hdb = GET16(HDB);
-	uint16 hde = GET16(HDE);
-	uint16 hbb = GET16(HBB);
-	uint16 hbe = GET16(HBE);
+	uint16 vmode = GET16(tom_ram_8, VMODE);
+	uint16 hdb1 = GET16(tom_ram_8, HDB1);
+//	uint16 hde = GET16(tom_ram_8, HDE);
+//	uint16 hbb = GET16(tom_ram_8, HBB);
+//	uint16 hbe = GET16(tom_ram_8, HBE);
 
-	int clock_cycles_per_pixel = ((vmode >> 9) & 0x07);
+	int clock_cycles_per_pixel = (vmode & PWIDTH) >> 9;
 
 	uint32 width = 640;
 	switch (clock_cycles_per_pixel)
@@ -817,108 +731,84 @@ uint32 tom_getVideoModeWidth(void)
 	case 5: width = 256; break;
 	case 6: width = 256; break;
 	case 7: width = 320; break;
-//	default: fprintf(log_get(),"%i \n",clock_cycles_per_pixel);
+//	default: WriteLog("%i \n",clock_cycles_per_pixel);
 	}
 	
-	if (jaguar_mainRom_crc32 == 0x3c7bfda8)
+/*	if (jaguar_mainRom_crc32 == 0x3c7bfda8)	// Kludge for what???
 	{
 		if (width == 320)
 			width += 80;
 		if (width == 448)
 			width -= 16;
-	}
-	if (hdb == 123)
+	}//*/
+
+	if (hdb1 == 123)
 		hblankWidthInPixels = 16;
 	else
 		hblankWidthInPixels = 0;
 
-//	fprintf(log_get(),"hdb=%i hbe=%i\n",hdb,hbe);
+//	WriteLog("hdb1=%i hbe=%i\n",hdb1,hbe);
 	return width;
 }
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
+
+// *** SPECULATION ***
+// It might work better to virtualize the height settings, i.e., set the vertical
+// height at 240 lines and clip using the VDB and VDE/VP registers...
+// Same with the width...
+
 uint32 tom_getVideoModeHeight(void)
 {
-/*	uint16 vmode = SWAP_16(VMODE);
-	uint16 vdb = SWAP_16(VDB);
-	uint16 vde = SWAP_16(VDE);
-	uint16 vbb = SWAP_16(VBB);
-	uint16 vbe = SWAP_16(VBE);*/
-	uint16 vmode = GET16(VMODE);
-	uint16 vdb = GET16(VDB);
-	uint16 vde = GET16(VDE);
-	uint16 vbb = GET16(VBB);
-	uint16 vbe = GET16(VBE);
+//	uint16 vmode = GET16(tom_ram_8, VMODE);
+//	uint16 vbe = GET16(tom_ram_8, VBE);
+//	uint16 vbb = GET16(tom_ram_8, VBB);
+	uint16 vdb = GET16(tom_ram_8, VDB);
+	uint16 vde = GET16(tom_ram_8, VDE);
+	uint16 vp = GET16(tom_ram_8, VP);
 	
-	if (vde == 65535)
-		vde = vbb;
-	
-	uint32 screen_height = (vde/*-vdb*/) >> 1;
-	return 227;//WAS:screen_height);
+/*	if (vde == 0xFFFF)
+		vde = vbb;//*/
+
+//	return 227;//WAS:(vde/*-vdb*/) >> 1;
+	// The video mode height probably works this way:
+	// VC counts from 0 to VP. VDB starts the OP. Either when
+	// VDE is reached or VP, the OP is stopped. Let's try it...
+	// Also note that we're conveniently ignoring interlaced display modes...!
+	return ((vde > vp ? vp : vde) - vdb) >> 1;
 }
-//////////////////////////////////////////////////////////////////////////////
+
 //
-//////////////////////////////////////////////////////////////////////////////
-//	
+// TOM reset code
+// NOTE: Should set up PAL values here when in PAL mode (use BIOS to find default values)
+//       for when user starts with -nobios -pal flags...
 //
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
 void tom_reset(void)
 {
-//	fprintf(log_get(),"tom_reset()\n");
 	op_reset();
 	blitter_reset();
 	pcm_reset();
 
 	memset(tom_ram_8, 0x00, 0x4000);
-//	tom_ram_8[MEMCON1] = 0x18, tom_ram_8[MEMCON1+1] = 0x61;
-	SET16(MEMCON1, 0x1861);
-//	tom_ram_8[MEMCON2] = 0x00, tom_ram_8[MEMCON2+1] = 0x00;
-	SET16(MEMCON2, 0x0000);
-//	tom_ram_8[VMODE] = 0x06, tom_ram_8[VMODE+1] = 0xC1;
-	SET16(VMODE, 0x06C1);
-//	tom_ram_8[VP] = (523 & 0xFF00) >> 8, tom_ram_8[VP+1] = 523 & 0x00FF; // 525-2
-	SET16(VP, 523);
-//	tom_ram_8[HP] = SWAP_16(844);
-	SET16(HP, 844);
-//	tom_ram_8[VS] = SWAP_16(523-6);
-	SET16(VS, 523 - 6);
-//	tom_ram_8[VBB] = SWAP_16(434);
-	SET16(VBB, 434);
-//	tom_ram_8[VBE] = SWAP_16(24);
-	SET16(VBE, 24);
-//	tom_ram_8[HBB] = SWAP_16(689+0x400);
-	SET16(HBB, 689 + 0x400);
-//	tom_ram_8[HBE] = SWAP_16(125);
-	SET16(HBE, 125);
+	SET16(tom_ram_8, MEMCON1, 0x1861);
+	SET16(tom_ram_8, MEMCON2, 0x0000);
+	SET16(tom_ram_8, VMODE, 0x06C1);
+	SET16(tom_ram_8, VP, 523);
+	SET16(tom_ram_8, HP, 844);
+	SET16(tom_ram_8, VS, 523 - 6);
+	SET16(tom_ram_8, VBB, 434);
+	SET16(tom_ram_8, VBE, 24);
+	SET16(tom_ram_8, HBB, 689 + 0x400);
+	SET16(tom_ram_8, HBE, 125);
 
-//	tom_ram_8[VDE] = SWAP_16(65535);
-	SET16(VDE, 65535);
-//	tom_ram_8[VDB] = SWAP_16(28);
-	SET16(VDB, 28);
-//	tom_ram_8[HDB] = SWAP_16(166);
-	SET16(HDB, 166);
-//	tom_ram_8[HDE] = SWAP_16(65535);
-	SET16(HDE, 65535);
+	SET16(tom_ram_8, VDE, 2047);//65535);
+	SET16(tom_ram_8, VDB, 28);
+	SET16(tom_ram_8, HDB1, 166);
+	SET16(tom_ram_8, HDE, 2047);//65535);
 
 	tom_width = tom_real_internal_width = 0;
 	tom_height = 0;
 	tom_scanline = 0;
-	
-//	hblankWidthInPixels = (tom_ram_8[HDB] << 8) | tom_ram_8[HDB+1];
-//	hblankWidthInPixels >>= 1;
-	hblankWidthInPixels = (GET16(HDB)) >> 1;
+
+	hblankWidthInPixels = GET16(tom_ram_8, HDB1) >> 1;
 
 	tom_puck_int_pending = 0;
 	tom_timer_int_pending = 0;
@@ -938,15 +828,19 @@ void tom_reset(void)
 
 unsigned tom_byte_read(unsigned int offset)
 {
+//???Is this needed???
+// It seems so. Perhaps it's the +$8000 offset being written to (32-bit interface)?
+// However, the 32-bit interface is WRITE ONLY, so that can't be it...
+// Also, the 68K CANNOT make use of the 32-bit interface, since its bus width is only 16-bits...
 	offset &= 0xFF3FFF;
 
 #ifdef TOM_DEBUG
-	fprintf(log_get(), "TOM: Reading byte at %06X\n", offset);
+	WriteLog("TOM: Reading byte at %06X\n", offset);
 #endif
 
-	if ((offset >= gpu_control_ram_base) && (offset < gpu_control_ram_base+0x20))
+	if ((offset >= GPU_CONTROL_RAM_BASE) && (offset < GPU_CONTROL_RAM_BASE+0x20))
 		return gpu_byte_read(offset);
-	else if ((offset >= gpu_work_ram_base) && (offset < gpu_work_ram_base+0x1000))
+	else if ((offset >= GPU_WORK_RAM_BASE) && (offset < GPU_WORK_RAM_BASE+0x1000))
 		return gpu_byte_read(offset);
 	else if ((offset >= 0xF00010) && (offset < 0xF00028))
 		return op_byte_read(offset);
@@ -970,23 +864,28 @@ unsigned tom_byte_read(unsigned int offset)
 
 unsigned tom_word_read(unsigned int offset)
 {
+//???Is this needed???
 	offset &= 0xFF3FFF;
 #ifdef TOM_DEBUG
-	fprintf(log_get(), "TOM: Reading word at %06X\n", offset);
+	WriteLog("TOM: Reading word at %06X\n", offset);
 #endif
 	if (offset == 0xF000E0)
 	{
 		uint16 data = (tom_puck_int_pending << 4) | (tom_timer_int_pending << 3)
 			| (tom_object_int_pending << 2) | (tom_gpu_int_pending << 1)
 			| (tom_video_int_pending << 0);
-		//fprintf(log_get(),"tom: interrupt status is 0x%.4x \n",data);
+		//WriteLog("tom: interrupt status is 0x%.4x \n",data);
 		return data;
 	}
-	else if (offset == 0xF00006)
+	else if (offset == 0xF00006)	// VC
+	// What if we're in interlaced mode?
+	// According to docs, in non-interlace mode VC is ALWAYS even...
+//		return (tom_scanline << 1);// + 1;
+//But it's causing Rayman to be fucked up... Why???
 		return (tom_scanline << 1) + 1;
-	else if ((offset >= gpu_control_ram_base) && (offset < gpu_control_ram_base+0x20))
+	else if ((offset >= GPU_CONTROL_RAM_BASE) && (offset < GPU_CONTROL_RAM_BASE+0x20))
 		return gpu_word_read(offset);
-	else if ((offset >= gpu_work_ram_base) && (offset < gpu_work_ram_base+0x1000))
+	else if ((offset >= GPU_WORK_RAM_BASE) && (offset < GPU_WORK_RAM_BASE+0x1000))
 		return gpu_word_read(offset);
 	else if ((offset >= 0xF00010) && (offset < 0xF00028))
 		return op_word_read(offset);
@@ -998,12 +897,6 @@ unsigned tom_word_read(unsigned int offset)
 		return tom_timer_divider;
 
 	offset &= 0x3FFF;
-
-//	uint16 data = tom_byte_read(offset);
-//	data <<= 8;
-//	data |= tom_byte_read(offset+1);
-
-//	return data;
 	return (tom_byte_read(offset) << 8) | tom_byte_read(offset+1);
 }
 
@@ -1013,18 +906,20 @@ unsigned tom_word_read(unsigned int offset)
 
 void tom_byte_write(unsigned offset, unsigned data)
 {
+//???Is this needed???
+// Perhaps on the writes--32-bit writes that is! And masked with FF7FFF...
 	offset &= 0xFF3FFF;
 
 #ifdef TOM_DEBUG
-	fprintf(log_get(), "TOM: Writing byte %02X at %06X\n", data, offset);
+	WriteLog("TOM: Writing byte %02X at %06X\n", data, offset);
 #endif
 
-	if ((offset >= gpu_control_ram_base) && (offset < gpu_control_ram_base+0x20))
+	if ((offset >= GPU_CONTROL_RAM_BASE) && (offset < GPU_CONTROL_RAM_BASE+0x20))
 	{
 		gpu_byte_write(offset, data);
 		return;
 	}
-	else if ((offset >= gpu_work_ram_base) && (offset < gpu_work_ram_base+0x1000))
+	else if ((offset >= GPU_WORK_RAM_BASE) && (offset < GPU_WORK_RAM_BASE+0x1000))
 	{
 		gpu_byte_write(offset, data);
 		return;
@@ -1063,6 +958,12 @@ void tom_byte_write(unsigned offset, unsigned data)
 		tom_reset_timer();
 		return;
 	}
+	else if (offset >= 0xF00400 && offset <= 0xF007FF)	// CLUT (A & B)
+	{
+		// Writing to one CLUT writes to the other
+		offset &= 0x5FF;		// Mask out $F00600 (restrict to $F00400-5FF)
+		tom_ram_8[offset] = data, tom_ram_8[offset + 0x200] = data;
+	}
 
 	tom_ram_8[offset & 0x3FFF] = data;
 }
@@ -1073,26 +974,27 @@ void tom_byte_write(unsigned offset, unsigned data)
 
 void tom_word_write(unsigned offset, unsigned data)
 {
+//???Is this needed???
 	offset &= 0xFF3FFF;
 
 #ifdef TOM_DEBUG
-	fprintf(log_get(), "TOM: Writing word %04X at %06X\n", data, offset);
+	WriteLog("TOM: Writing word %04X at %06X\n", data, offset);
 #endif
 
-	if ((offset >= gpu_control_ram_base) && (offset < gpu_control_ram_base+0x20))
+	if ((offset >= GPU_CONTROL_RAM_BASE) && (offset < GPU_CONTROL_RAM_BASE+0x20))
 	{
 		gpu_word_write(offset, data);
 		return;
 	}
-	else if ((offset >= gpu_work_ram_base) && (offset < gpu_work_ram_base+0x1000))
+	else if ((offset >= GPU_WORK_RAM_BASE) && (offset < GPU_WORK_RAM_BASE+0x1000))
 	{
 		gpu_word_write(offset, data);
 		return;
 	}
 	else if ((offset >= 0xF00000) && (offset < 0xF00002))
 	{
-		tom_byte_write(offset, (data>>8));
-		tom_byte_write(offset+1, (data&0xFF));
+		tom_byte_write(offset, data >> 8);
+		tom_byte_write(offset+1, data & 0xFF);
 	}
 	else if ((offset >= 0xF00010) && (offset < 0xF00028))
 	{
@@ -1124,35 +1026,59 @@ void tom_word_write(unsigned offset, unsigned data)
 		if (data & 0x1000)
 			tom_puck_int_pending = 0;
 	}
-	else if ((offset >= 0xF02200) && (offset < 0xF022A0))
+	else if ((offset >= 0xF02200) && (offset <= 0xF0229F))
 	{
 		blitter_word_write(offset, data);
 		return;
 	}
+	else if (offset >= 0xF00400 && offset <= 0xF007FE)	// CLUT (A & B)
+	{
+		// Writing to one CLUT writes to the other
+		offset &= 0x5FF;		// Mask out $F00600 (restrict to $F00400-5FF)
+// Watch out for unaligned writes here! (Not fixed yet)
+		SET16(tom_ram_8, offset, data), SET16(tom_ram_8, offset + 0x200, data);
+	}
 
 	offset &= 0x3FFF;
-	if (offset == 0x28)
+	if (offset == 0x28)			// VMODE (Why? Why not OBF?)
 		objectp_running = 1;
 
+	if (offset >= 0x30 && offset <= 0x4E)
+		data &= 0x07FF;			// These are (mostly) 11-bit registers
+	if (offset == 0x2E || offset == 0x36 || offset == 0x54)
+		data &= 0x03FF;			// These are all 10-bit registers
+
 	tom_byte_write(offset, data >> 8);
-	tom_byte_write(offset+1,  data & 0xFF);
+	tom_byte_write(offset+1, data & 0xFF);
 
 	// detect screen resolution changes
 	if ((offset >= 0x28) && (offset <= 0x4F))
 	{
-		int width, height;
-		tom_real_internal_width = width = tom_getVideoModeWidth();
-		height = tom_getVideoModeHeight();
+if (offset == VDB)
+	WriteLog("TOM: Vertical Display Begin written: %04X\n", data);
+if (offset == VDE)
+	WriteLog("TOM: Vertical Display End written: %04X\n", data);
+if (offset == VP)
+	WriteLog("TOM: Vertical Period written: %04X (%sinterlaced)\n", data, (data & 0x01 ? "non-" : ""));
+if (offset == HDB1)
+	WriteLog("TOM: Horizontal Display Begin 1 written: %04X\n", data);
+if (offset == HDE)
+	WriteLog("TOM: Horizontal Display End written: %04X\n", data);
+if (offset == HP)
+	WriteLog("TOM: Horizontal Period written: %04X\n", data);
+if (offset == VMODE)
+	WriteLog("TOM: Video Mode written: %04X\n", data);
+
+		uint32 width = tom_getVideoModeWidth(), height = tom_getVideoModeHeight();
+		tom_real_internal_width = width;
+
 		if (width == 640)
 		{
 			memcpy(scanline_render, scanline_render_stretch, sizeof(scanline_render));
 			width = 320;
 		}
 		else
-		{
 			memcpy(scanline_render, scanline_render_normal, sizeof(scanline_render));
-		}
-
 		
 		if ((width != tom_width) || (height != tom_height))
 		{
@@ -1161,12 +1087,11 @@ void tom_word_write(unsigned offset, unsigned data)
 			static char window_title[256];
 			delete surface;
 			
-			tom_width = width;
-			tom_height = height;
+			tom_width = width, tom_height = height;
 			Format format(16, 0x007C00, 0x00003E0, 0x0000001F);
 			surface = new Surface(tom_width, tom_height, format);
 			console.close();
-			sprintf(window_title, "Virtual Jaguar (%ix%i)", tom_width, tom_height);
+			sprintf(window_title, "Virtual Jaguar (%i x %i)", (int)tom_width, (int)tom_height);
 			console.open(window_title, width, tom_height, format);
 
 			ws_audio_init();
@@ -1196,7 +1121,7 @@ void tom_reset_timer(void)
 		tom_timer_counter = 0;
 	else
 		tom_timer_counter = (1 + tom_timer_prescaler) * (1 + tom_timer_divider);
-//	fprintf(log_get(),"tom: reseting timer to 0x%.8x (%i)\n",tom_timer_counter,tom_timer_counter);
+//	WriteLog("tom: reseting timer to 0x%.8x (%i)\n",tom_timer_counter,tom_timer_counter);
 }
 
 void tom_pit_exec(uint32 cycles)
@@ -1210,30 +1135,9 @@ void tom_pit_exec(uint32 cycles)
 			tom_set_pending_timer_int();
 			gpu_set_irq_line(2, 1);
 			if ((tom_irq_enabled(IRQ_TIMER)) && (jaguar_interrupt_handler_is_valid(64)))
-			{
-//				s68000interrupt(7, 64);
-//				s68000flushInterrupts();
 				m68k_set_irq(7);				// Cause a 68000 NMI...
-			}
+
 			tom_reset_timer();
 		}
 	}
-}
-
-void tom_done(void)
-{
-	fprintf(log_get(),"TOM: done() ...START\n");
-	op_done();
-	pcm_done();
-//This is killing the log for some reason, even though it doesn't do much of anything...
-//	blitter_done();
-	fprintf(log_get(), "TOM: resolution %i x %i %s\n", tom_getVideoModeWidth(), tom_getVideoModeHeight(),
-		videoMode_to_str[tom_getVideoMode()]);
-//	fprintf(log_get(),"\ntom: object processor:\n");
-//	fprintf(log_get(),"tom: pointer to object list: 0x%.8x\n",op_get_list_pointer());
-//	fprintf(log_get(),"tom: INT1=0x%.2x%.2x\n",tom_byte_read(0xf000e0),tom_byte_read(0xf000e1));
-	gpu_done();
-	dsp_done();
-	memory_free(tom_ram_8);
-	fprintf(log_get(),"TOM: done() ...END\n");
 }

@@ -1,21 +1,14 @@
-//////////////////////////////////////////////////////////////////////////////
 //
-//////////////////////////////////////////////////////////////////////////////
+// GPU.H: Header file
 //
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
 
 #ifndef __GPU_H__
 #define __GPU_H__
 
 #include "jaguar.h"
 
-#define gpu_control_ram_base    0x00f02100
-#define gpu_work_ram_base		0x00f03000
+#define GPU_CONTROL_RAM_BASE    0x00F02100
+#define GPU_WORK_RAM_BASE		0x00F03000
 
 void gpu_init(void);
 void gpu_reset(void);
@@ -35,4 +28,4 @@ void gpu_releaseTimeslice(void);
 void gpu_reset_stats(void);
 uint32 gpu_read_pc(void);
 
-#endif
+#endif	// #ifndef __GPU_H__

@@ -1,21 +1,12 @@
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
+// DSP.H
 
 #ifndef __DSP_H__
 #define __DSP_H__
 
 #include "jaguar.h"
 
-#define dsp_control_ram_base    0x00f1a100
-#define dsp_work_ram_base		0x00f1b000
+#define DSP_CONTROL_RAM_BASE    0x00F1A100
+#define DSP_WORK_RAM_BASE		0x00F1B000
 
 void dsp_init(void);
 void dsp_reset(void);
@@ -33,4 +24,4 @@ void dsp_long_write(unsigned  offset, unsigned  data);
 void dsp_check_if_i2s_interrupt_needed(void);
 void dsp_releaseTimeslice(void);
 
-#endif
+#endif	// #ifndef __DSP_H__

@@ -10,17 +10,10 @@
 #define __SDLPTC_H__
 
 #include "SDL.h"
-#ifdef __PORT__
 #include <string.h>
 #include <stdlib.h>
-#endif	// #ifdef __PORT__
-
 #include "types.h"
 
-#ifndef __PORT__
-#define randomize()	srand(time(NULL))
-#define random(max)	(rand() % (max))
-#endif	// #ifndef __PORT__
 
 class Error
 {
@@ -256,4 +249,4 @@ class Console: public Surface
 		int nJoystick;
 };
 
-#endif	// #ifndef __SDLPTC_H__
+#endif	// __SDLPTC_H__

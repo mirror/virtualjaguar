@@ -3,20 +3,19 @@ LD = gcc
 NASM = nasm
 
 CFLAGS  = -Wall -O3 -D__PORT__ -D__GCCWIN32__ -Dstricmp="strcasecmp" \
-			-fomit-frame-pointer `sdl-config --cflags` -DLOG_UNMAPPED_MEMORY_ACCESSES
-#			-fomit-frame-pointer `sdl-config --cflags`
+			-fomit-frame-pointer `sdl-config --cflags`
+#			-fomit-frame-pointer `sdl-config --cflags` -DLOG_UNMAPPED_MEMORY_ACCESSES
 #			-fomit-frame-pointer `sdl-config --cflags` -DTOM_DEBUG
 
 LDFLAGS = $(CFLAGS)
 
-TARGET = jag_em
+TARGET = vj
 
 OBJS = \
 	obj/version.o \
 	obj/pcm.o \
 	obj/objectp.o \
 	obj/memory.o \
-	obj/m68kdasmAG.o \
 	obj/log.o \
 	obj/jerry.o \
 	obj/jaguar.o \
@@ -32,12 +31,17 @@ OBJS = \
 	obj/anajoy.o \
 	obj/tom.o \
 	obj/joystick.o \
-	obj/Jagem.o \
 	obj/gpu.o \
 	obj/dsp.o \
-	obj/m68kcpu.o obj/m68kops.o obj/m68kopac.o obj/m68kopdm.o obj/m68kopnz.o
+	obj/blitter2.o \
+	obj/vj.o \
+	obj/unzip.o \
+	obj/m68kcpu.o obj/m68kops.o obj/m68kopac.o obj/m68kopdm.o obj/m68kopnz.o \
+	obj/m68kdasm.o
+#	obj/m68kdasmAG.o \
+#	obj/gpu2.o \
 
-LIBS = `sdl-config --libs` -lstdc++
+LIBS = `sdl-config --libs` -lstdc++ -lz
 
 INCS = -I. -Isrc -Isrc/include `sdl-config --cflags`
 
@@ -47,7 +51,7 @@ all: obj $(TARGET)
 
 clean:
 	rm -rf obj
-	rm -f jag_em.exe
+	rm -f vj.exe
 
 obj:
 	mkdir obj
@@ -61,9 +65,9 @@ obj/%.o: src/%.c
 obj/%.o: src/%.cpp
 	$(THECC) -c $< -o $@
 
-jag_em: $(OBJS) 
+vj: $(OBJS) 
 	$(LD) $(LDFLAGS) -o $@ $(OBJS) $(LIBS)
-	upx -9 jag_em.exe
+#	upx -9 vj.exe
 
 #
 # Musashi specific stuffola
@@ -83,6 +87,9 @@ obj/m68kopdm.o: obj/m68kmake.exe obj/m68kops.h obj/m68kopdm.c src/m68k.h src/m68
 
 obj/m68kopnz.o: obj/m68kmake.exe obj/m68kops.h obj/m68kopnz.c src/m68k.h src/m68kconf.h
 	$(CC) $(CFLAGS) -Isrc -c obj/m68kopnz.c -o obj/m68kopnz.o
+
+obj/m68kdasm.o: src/m68kdasm.c src/m68k.h src/m68kconf.h
+	$(CC) $(CFLAGS) -Isrc -c src/m68kdasm.c -o obj/m68kdasm.o
 
 obj/m68kops.h: obj/m68kmake.exe
 	obj/m68kmake obj src/m68k_in.c

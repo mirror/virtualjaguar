@@ -1,11 +1,11 @@
-#include "include/jaguar.h"
+#include "jaguar.h"
 
 #define ROPCODE(a) jaguar_word_read(a)
 
 uint8 convert_zero[32] =
 { 32,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31 };
 
-char *condition[32] =
+char * condition[32] =
 {
 	"",
 	"nz,",
@@ -15,6 +15,7 @@ char *condition[32] =
 	"nc nz,",
 	"nc z,",
 	"???,",
+
 	"c,",
 	"c nz,",
 	"c z,",
@@ -32,6 +33,7 @@ char *condition[32] =
 	"nn nz,",
 	"nn z,",
 	"???,",
+
 	"n,",
 	"n nz,",
 	"n z,",
@@ -44,17 +46,19 @@ char *condition[32] =
 	
 
 
-char *signed_16bit(INT16 val)
+char * signed_16bit(INT16 val)
 {
 	static char temp[10];
+
 	if (val < 0)
-		sprintf(temp, "-$%x", -val);
+		sprintf(temp, "-$%X", -val);
 	else
-		sprintf(temp, "$%x", val);
+		sprintf(temp, "$%X", val);
+
 	return temp;
 }
 
-unsigned dasmjag(int dsp_type, char *buffer, unsigned pc)
+unsigned dasmjag(int dsp_type, char * buffer, unsigned pc)
 {
 	int op = ROPCODE(pc);
 	int reg1 = (op >> 5) & 31;
@@ -64,22 +68,22 @@ unsigned dasmjag(int dsp_type, char *buffer, unsigned pc)
 	pc += 2;
 	switch (op >> 10)
 	{
-		case 0:		sprintf(buffer, "+add     r%d,r%d", reg1, reg2);					break;
-		case 1:		sprintf(buffer, "+addc    r%d,r%d", reg1, reg2);					break;
-		case 2:		sprintf(buffer, "+addq    $%x,r%d", convert_zero[reg1], reg2);	break;
+		case 0:		sprintf(buffer, "add     r%d,r%d", reg1, reg2);					break;
+		case 1:		sprintf(buffer, "addc    r%d,r%d", reg1, reg2);					break;
+		case 2:		sprintf(buffer, "addq    $%x,r%d", convert_zero[reg1], reg2);	break;
 		case 3:		sprintf(buffer, "addqt   $%x,r%d", convert_zero[reg1], reg2);	break;
-		case 4:		sprintf(buffer, "+sub     r%d,r%d", reg1, reg2);					break;
-		case 5:		sprintf(buffer, "+subc    r%d,r%d", reg1, reg2);					break;
-		case 6:		sprintf(buffer, "+subq    $%x,r%d", convert_zero[reg1], reg2);	break;
+		case 4:		sprintf(buffer, "sub     r%d,r%d", reg1, reg2);					break;
+		case 5:		sprintf(buffer, "subc    r%d,r%d", reg1, reg2);					break;
+		case 6:		sprintf(buffer, "subq    $%x,r%d", convert_zero[reg1], reg2);	break;
 		case 7:		sprintf(buffer, "subqt   $%x,r%d", convert_zero[reg1], reg2);	break;
-		case 8:		sprintf(buffer, "+neg     r%d", reg2);							break;
-		case 9:		sprintf(buffer, "+and     r%d,r%d", reg1, reg2);					break;
-		case 10:	sprintf(buffer, "+or      r%d,r%d", reg1, reg2);					break;
-		case 11:	sprintf(buffer, "+xor     r%d,r%d", reg1, reg2);					break;
-		case 12:	sprintf(buffer, "+not     r%d", reg2);							break;
-		case 13:	sprintf(buffer, "+btst    $%x,r%d", reg1, reg2);					break;
-		case 14:	sprintf(buffer, "+bset    $%x,r%d", reg1, reg2);					break;
-		case 15:	sprintf(buffer, "+bclr    $%x,r%d", reg1, reg2);					break;
+		case 8:		sprintf(buffer, "neg     r%d", reg2);							break;
+		case 9:		sprintf(buffer, "and     r%d,r%d", reg1, reg2);					break;
+		case 10:	sprintf(buffer, "or      r%d,r%d", reg1, reg2);					break;
+		case 11:	sprintf(buffer, "xor     r%d,r%d", reg1, reg2);					break;
+		case 12:	sprintf(buffer, "not     r%d", reg2);							break;
+		case 13:	sprintf(buffer, "btst    $%x,r%d", reg1, reg2);					break;
+		case 14:	sprintf(buffer, "bset    $%x,r%d", reg1, reg2);					break;
+		case 15:	sprintf(buffer, "bclr    $%x,r%d", reg1, reg2);					break;
 		case 16:	sprintf(buffer, "mult    r%d,r%d", reg1, reg2);					break;
 		case 17:	sprintf(buffer, "imult   r%d,r%d", reg1, reg2);					break;
 		case 18:	sprintf(buffer, "imultn  r%d,r%d", reg1, reg2);					break;
@@ -88,14 +92,14 @@ unsigned dasmjag(int dsp_type, char *buffer, unsigned pc)
 		case 21:	sprintf(buffer, "div     r%d,r%d", reg1, reg2);					break;
 		case 22:	sprintf(buffer, "abs     r%d", reg2);							break;
 		case 23:	sprintf(buffer, "sh      r%d,r%d", reg1, reg2);					break;
-		case 24:	sprintf(buffer, "+shlq    $%x,r%d", 32 - convert_zero[reg1], reg2);	break;
-		case 25:	sprintf(buffer, "+shrq    $%x,r%d", convert_zero[reg1], reg2);	break;
+		case 24:	sprintf(buffer, "shlq    $%x,r%d", 32 - convert_zero[reg1], reg2);	break;
+		case 25:	sprintf(buffer, "shrq    $%x,r%d", convert_zero[reg1], reg2);	break;
 		case 26:	sprintf(buffer, "sha     r%d,r%d", reg1, reg2);					break;
 		case 27:	sprintf(buffer, "sharq   $%x,r%d", convert_zero[reg1], reg2);	break;
-		case 28:	sprintf(buffer, "+ror     r%d,r%d", reg1, reg2);					break;
+		case 28:	sprintf(buffer, "ror     r%d,r%d", reg1, reg2);					break;
 		case 29:	sprintf(buffer, "rorq    $%x,r%d", convert_zero[reg1], reg2);	break;
-		case 30:	sprintf(buffer, "+cmp     r%d,r%d", reg1, reg2);					break;
-		case 31:	sprintf(buffer, "+cmpq    %s,r%d", signed_16bit((INT16)(reg1 << 11) >> 11), reg2);break;
+		case 30:	sprintf(buffer, "cmp     r%d,r%d", reg1, reg2);					break;
+		case 31:	sprintf(buffer, "cmpq    %s,r%d", signed_16bit((INT16)(reg1 << 11) >> 11), reg2);break;
 		case 32:	if (dsp_type == JAGUAR_GPU)
 					sprintf(buffer, "sat8    r%d", reg2);
 					else
@@ -155,6 +159,7 @@ unsigned dasmjag(int dsp_type, char *buffer, unsigned pc)
 					sprintf(buffer, "addqmod $%x,r%d", convert_zero[reg1], reg2);
 					break;
 	}
-	sprintf(buffer,"%s (0x%.4x)",buffer,op);
+	sprintf(buffer,"%s (%04X)", buffer, op);
+
 	return size;
 }

@@ -1,15 +1,68 @@
+Virtual Jaguar v1.0.4 GCC/SDL - source only release
+---------------------------------------------------
+
+* Lots of bugfixes. [Shamus]
+* Jaguar BIOS now works properly and is used by default. BIOS failure was
+  due to a bug in the GPU (specifically in the SUBC and ADDC opcodes). To
+  override this behavior, use the -nobios switch. [Shamus]
+* Rewrote the OP code--mostly because it was pissing me off. ;-) Not
+  to mention that it was almost completely unmaintainable in its former
+  state and was just plain wrong in its implementation in many places.
+  Because of this, some RMW effects that were missing from AvP are present
+  now and leftover crud in scaled bitmaps in Rayman is gone now. ;-) [Shamus]
+* ZIP support! Now there is no longer any need to unzip ROMs (although if
+  you prefer to waste HD space, VJ will gladly accomodate you). The code to
+  support this is a pretty ugly hack, but it works and there are other fish
+  to fry at the moment. Also, ZLIB is now required to compile VJ. [Shamus]
+* Support for PD ROMs. Currently the only one that works at all is JagMania,
+  though as the hardware emulation gets better more PD ROMs will begin to
+  work. [Shamus]
+* Preliminary support for PAL Jaguar emulation. Default is NTSC. To use it,
+  use the -pal switch. [Shamus]
+* Support for DSP activation. The DSP is now *off* by default, since it
+  doesn't work properly yet. Use the -dspon switch to force the DSP on.
+  [Shamus]
+* Removed all hacks that were written to support a specific ROM from the OP
+  and GPU code (much more remains to be removed). Since the CRCs that were
+  calculated to support these hacks were done on byte swapped ROMs, they
+  weren't working anyway. Besides which, a hack means that you don't
+  understand the hardware properly and/or don't know how to write the code to
+  properly emulate the hardware. ;-) [Shamus]
+* Renamed the executable from the ridiculously named jag_em to the more
+  sensibly named vj. Note that the Jag_em.cpp file has also been changed to
+  reflect this name change. [Shamus]
+* Removed Aaron Giles 68K dissasembler in favor of the one included with the
+  Musashi core. It's there, why not use it? ;-) [Shamus]
+* Reordered the order of A, B, and C buttons to more accurately reflect their
+  respective positions on a real Jaguar controller. Also fixed a small bug that
+  kept the number pad from reporting the right numbers to the emulator. :-)
+  [Shamus]
+* Started to remove the !__PORT__ defintions from the source code. Since this
+  is supposed to be a portable emulator, we won't be using any MS specific
+  code anyway. [Shamus]
+* Fixed some problems with the blitter when doing clipping and bit expansion.
+  Also fixed (reintroduced?) a bug that existed in the real blitter HW (the
+  YADD1 bit in A2--fixes Tempest 2000). [Shamus]
+* Probably a bunch of other stuff that I've forgotten about. ;-) [Shamus]
+
+NOTE: Tested only on WIN32 platform! ;-)
+
+
 Virtual Jaguar v1.0.3 GCC/SDL - source only release
-------------------------------------------------------
+---------------------------------------------------
 
 * Converted GNU assembly in the GPU core to C code -- Rayman and
-  Alien vs Predator work again. :-)
+  Alien vs Predator work again. :-) [Shamus]
 * Removed closed source Starscream and replaced it with the open source
-  Musashi core. Because of this, VJ runs a little faster now. :-)
-* Various cleanups to the source files (still lots of work to do!)
+  Musashi core. Because of this, VJ runs a little faster now. :-) [Shamus]
+* Various cleanups to the source files (still lots of work to do!) [Shamus]
 
 NOTE: Tested only on WIN32 platform!
 
+
 1.0.1 - 1.0.2 - Unreleased, mostly for testing/finding bugs
+-----------------------------------------------------------
+
 
 Virtual Jaguar v1.0.0 GCC/SDL - initial source release
 ------------------------------------------------------
@@ -23,5 +76,6 @@ Virtual Jaguar v1.0.0 GCC/SDL - initial source release
 
 Source only release. Tested on BeOS, Linux, FreeBSD and WIN32.
 SOUND emulation was NOT done. Need help with this one :)
+
 
 SDLEMU (Niels Wagenaar & Caz) - http://sdlemu.ngemu.com

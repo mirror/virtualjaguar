@@ -60,8 +60,8 @@ void pcm_updateOne(int channel, int16 * data, uint32 length)
 
 void pcm_init(void)
 {
-	memory_malloc_secure((void **)&pcm_left, buffer_modulo * sizeof(int16), "Left dac buffer");
-	memory_malloc_secure((void **)&pcm_right, buffer_modulo * sizeof(int16), "Right dac buffer");
+	memory_malloc_secure((void **)&pcm_left, buffer_modulo * sizeof(int16), "Left DAC buffer");
+	memory_malloc_secure((void **)&pcm_right, buffer_modulo * sizeof(int16), "Right DAC buffer");
 	pcm_reset();
 #ifdef PCM_DUMP
 	fp_left = fopen("leftdac.raw", "wb");

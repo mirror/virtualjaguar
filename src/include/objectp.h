@@ -11,10 +11,13 @@ void op_word_write(uint32, uint16);
 uint8 op_byte_read(uint32);
 uint16 op_word_read(uint32);
 uint32 op_get_list_pointer(void);
-void op_process_list(int16 *backbuffer, int scanline, int render);
+void op_process_list(int16 * backbuffer, int scanline, bool render);
 void op_set_status_register(uint32 data);
 uint32 op_get_status_register(void);
 void op_set_current_object(uint64 object);
 
+// Replacement functions
 
-#endif
+void OPProcessList(int scanline, bool render);
+
+#endif	// __OBJECTP_H__

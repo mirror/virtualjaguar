@@ -147,11 +147,7 @@
 //#define JERRY_DEBUG
 
 static uint8 * jerry_ram_8;
-//static uint16 *jerry_ram_16;
-//static uint8 * jerry_wave_rom;
 
-
-//#define JERRY_CONFIG jerry_ram_16[0x4002>>1]
 #define JERRY_CONFIG	0x4002
 
 uint8 analog_x, analog_y;
@@ -177,7 +173,7 @@ void jerry_i2s_exec(uint32 cycles)
 		uint32 jerry_i2s_int_freq = (26591000 / 64) / (jerry_i2s_interrupt_divide + 1);
 		jerry_i2s_interrupt_cycles_per_scanline = 13300000 / jerry_i2s_int_freq;
 		jerry_i2s_interrupt_timer = jerry_i2s_interrupt_cycles_per_scanline;
-		//fprintf(log_get(),"jerry: i2s interrupt rate set to %i hz (every %i cpu clock cycles) jerry_i2s_interrupt_divide=%i\n",jerry_i2s_int_freq,jerry_i2s_interrupt_cycles_per_scanline,jerry_i2s_interrupt_divide);
+		//WriteLog("jerry: i2s interrupt rate set to %i hz (every %i cpu clock cycles) jerry_i2s_interrupt_divide=%i\n",jerry_i2s_int_freq,jerry_i2s_interrupt_cycles_per_scanline,jerry_i2s_interrupt_divide);
 		pcm_set_sample_rate(jerry_i2s_int_freq);
 	}
 	jerry_i2s_interrupt_timer -= cycles;
@@ -186,14 +182,14 @@ void jerry_i2s_exec(uint32 cycles)
 	{
 		// i2s interrupt
 		dsp_check_if_i2s_interrupt_needed();
-		//fprintf(log_get(),"jerry_i2s_interrupt_timer=%i, generating an i2s interrupt\n",jerry_i2s_interrupt_timer);
+		//WriteLog("jerry_i2s_interrupt_timer=%i, generating an i2s interrupt\n",jerry_i2s_interrupt_timer);
 		jerry_i2s_interrupt_timer += jerry_i2s_interrupt_cycles_per_scanline;
 	}
 }
 
 void jerry_reset_i2s_timer(void)
 {
-	//fprintf(log_get(),"i2s: reseting\n");
+	//WriteLog("i2s: reseting\n");
 	jerry_i2s_interrupt_divide = 8;
 	jerry_i2s_interrupt_timer = -1;
 }
@@ -206,7 +202,7 @@ void jerry_reset_timer_1(void)
 		jerry_timer_1_counter = (1 + jerry_timer_1_prescaler) * (1 + jerry_timer_1_divider);
 
 //	if (jerry_timer_1_counter)
-//		fprintf(log_get(),"jerry: reseting timer 1 to 0x%.8x (%i)\n",jerry_timer_1_counter,jerry_timer_1_counter);
+//		WriteLog("jerry: reseting timer 1 to 0x%.8x (%i)\n",jerry_timer_1_counter,jerry_timer_1_counter);
 }
 
 void jerry_reset_timer_2(void)
@@ -220,7 +216,7 @@ void jerry_reset_timer_2(void)
 		jerry_timer_2_counter = ((1 + jerry_timer_2_prescaler) * (1 + jerry_timer_2_divider));
 
 //	if (jerry_timer_2_counter)
-//		fprintf(log_get(),"jerry: reseting timer 2 to 0x%.8x (%i)\n",jerry_timer_2_counter,jerry_timer_2_counter);
+//		WriteLog("jerry: reseting timer 2 to 0x%.8x (%i)\n",jerry_timer_2_counter,jerry_timer_2_counter);
 }
 
 void jerry_pit_exec(uint32 cycles)
@@ -244,54 +240,31 @@ void jerry_pit_exec(uint32 cycles)
 	}
 }
 
-void jerry_wave_rom_init(void)
-{
-//	memory_malloc_secure((void **)&jerry_wave_rom, 0x1000, "jerry wave rom");
-//	uint32 * jaguar_wave_rom_32 = (uint32 *)jerry_wave_rom;
-
-	// use real wave table dump
-// JLH: Looks like this WT dump is in the wrong endian (For the Jaguar, that is)...
-//	memcpy(jerry_wave_rom, wave_table, 0x1000);
-
-	// reverse byte ordering
-// JLH: Actually, this does nothing...
-/*	for(int i=0; i<0x400; i++)
-	{
-		uint32 data = jaguar_wave_rom_32[i];
-		data = ((data & 0xFF000000) >> 24) | ((data & 0x0000FF00) << 8)
-			| ((data & 0x00FF0000) >> 8) | ((data & 0x000000FF) << 24);
-	}*/
-// Why the need for an extra buffer to hold it, when it already exists in the form of wave_table???
-// Also, there was a memory leak, since it was never deallocated... (jerry_wave_rom)
-	
-	// Copy it to DSP RAM
-//WAS:	memcpy(&jerry_ram_8[0xD000], jerry_wave_rom, 0x1000);
-	memcpy(&jerry_ram_8[0xD000], wave_table, 0x1000);
-}
-
 void jerry_init(void)
 {
-	//fprintf(log_get(),"jerry_init()\n");
 	clock_init();
 	anajoy_init();
 	joystick_init();
-	eeprom_init();
-	memory_malloc_secure((void **)&jerry_ram_8, 0x10000, "jerry ram");
-//	jerry_ram_16 = (uint16 *)jerry_ram_8;
-	jerry_wave_rom_init();
+//This should be handled with the cart initialization...
+//	eeprom_init();
+	memory_malloc_secure((void **)&jerry_ram_8, 0x10000, "JERRY RAM/ROM");
+	memcpy(&jerry_ram_8[0xD000], wave_table, 0x1000);
+
+/*for(int i=0; i<0x1000; i++)
+	WriteLog("WT byte, JERRY byte: %02X, %02X\n", wave_table[i], jerry_ram_8[0xD000+i]);//*/
 }
 
 void jerry_reset(void)
 {
-	//fprintf(log_get(),"jerry_reset()\n");
+	//WriteLog("jerry_reset()\n");
 	clock_reset();
 	anajoy_reset();
 	joystick_reset();
 	eeprom_reset();
 	jerry_reset_i2s_timer();
 
-	memset(jerry_ram_8, 0x00, 0x10000);
-	jerry_ram_8[JERRY_CONFIG+1] |= 0x10; // NTSC (bit 4)
+	memset(jerry_ram_8, 0x00, 0xD000);		// Don't clear out the Wavetable ROM...!
+	jerry_ram_8[JERRY_CONFIG+1] |= 0x10;	// NTSC (bit 4)
 	jerry_timer_1_prescaler = 0xFFFF;
 	jerry_timer_2_prescaler = 0xFFFF;
 	jerry_timer_1_divider = 0xFFFF;
@@ -303,7 +276,7 @@ void jerry_reset(void)
 
 void jerry_done(void)
 {
-	//fprintf(log_get(),"jerry_done()\n");
+	//WriteLog("jerry_done()\n");
 	memory_free(jerry_ram_8);
 	clock_done();
 	anajoy_done();
@@ -318,13 +291,13 @@ void jerry_done(void)
 unsigned jerry_byte_read(unsigned int offset)
 {
 #ifdef JERRY_DEBUG
-	fprintf(log_get(),"jerry: reading byte at 0x%.6x\n",offset);
+	WriteLog("JERRY: Reading byte at %06X\n", offset);
 #endif
-	if ((offset >= dsp_control_ram_base) && (offset < dsp_control_ram_base+0x20))
+	if ((offset >= DSP_CONTROL_RAM_BASE) && (offset < DSP_CONTROL_RAM_BASE+0x20))
 		return dsp_byte_read(offset);
-	else if ((offset >= dsp_work_ram_base) && (offset < dsp_work_ram_base+0x2000))
+	else if ((offset >= DSP_WORK_RAM_BASE) && (offset < DSP_WORK_RAM_BASE+0x2000))
 		return dsp_byte_read(offset);
-	else if ((offset >= 0xF10000) && (offset <= 0xF10007))
+	else if (offset >= 0xF10000 && offset <= 0xF10007)
 	{
 		switch(offset & 0x07)
 		{
@@ -346,15 +319,15 @@ unsigned jerry_byte_read(unsigned int offset)
 			return jerry_timer_2_divider & 0xFF;
 		}
 	}
-	else if ((offset >= 0xF10010) && (offset <= 0xf10015))
+	else if (offset >= 0xF10010 && offset <= 0xf10015)
 		return clock_byte_read(offset);
-	else if ((offset >= 0xF17C00) && (offset <= 0xF17C01))
+	else if (offset >= 0xF17C00 && offset <= 0xF17C01)
 		return anajoy_byte_read(offset);
-	else if ((offset >= 0xF14000) && (offset <= 0xF14003))
+	else if (offset >= 0xF14000 && offset <= 0xF14003)
 	{
 		return joystick_byte_read(offset) | eeprom_byte_read(offset);
 	}
-	else if ((offset >= 0xF14000) && (offset <= 0xF1A0FF))
+	else if (offset >= 0xF14000 && offset <= 0xF1A0FF)
 		return eeprom_byte_read(offset);
 	
 	return jerry_ram_8[offset & 0xFFFF];
@@ -367,12 +340,12 @@ unsigned jerry_byte_read(unsigned int offset)
 unsigned jerry_word_read(unsigned int offset)
 {
 #ifdef JERRY_DEBUG
-	fprintf(log_get(),"jerry: reading word at 0x%.6x\n",offset);
+	WriteLog("JERRY: Reading word at %06X\n", offset);
 #endif
 
-	if ((offset >= dsp_control_ram_base) && (offset < dsp_control_ram_base+0x20))
+	if ((offset >= DSP_CONTROL_RAM_BASE) && (offset < DSP_CONTROL_RAM_BASE+0x20))
 		return dsp_word_read(offset);
-	else if ((offset >= dsp_work_ram_base) && (offset < dsp_work_ram_base+0x2000))
+	else if ((offset >= DSP_WORK_RAM_BASE) && (offset < DSP_WORK_RAM_BASE+0x2000))
 		return dsp_word_read(offset);
 	else if ((offset >= 0xF10000) && (offset <= 0xF10007))
 	{
@@ -397,7 +370,7 @@ unsigned jerry_word_read(unsigned int offset)
 		return anajoy_word_read(offset);
 	else if (offset == 0xF14000)
 	{
-		//fprintf(log_get(),"reading 0x%.4x from 0xf14000\n");
+		//WriteLog("reading 0x%.4x from 0xf14000\n");
 		return (joystick_word_read(offset) & 0xFFFE) | eeprom_word_read(offset);
 	}
 	else if ((offset >= 0xF14002) && (offset < 0xF14003))
@@ -410,10 +383,10 @@ unsigned jerry_word_read(unsigned int offset)
 	if (offset==0x4002)
 		return(0xffff);*/
 
-/*	uint16 data = jerry_ram_8[offset+0];
-	data <<= 8;
-	data |= jerry_ram_8[offset+1];
-	return data;*/
+/*if (offset >= 0xF1D000)
+	WriteLog("JERRY: Reading word at %08X [%04X]...\n", offset, ((uint16)jerry_ram_8[(offset+0)&0xFFFF] << 8) | jerry_ram_8[(offset+1)&0xFFFF]);//*/
+
+	offset &= 0xFFFF;				// Prevent crashing...!
 	return ((uint16)jerry_ram_8[offset+0] << 8) | jerry_ram_8[offset+1];
 }
 
@@ -424,21 +397,21 @@ unsigned jerry_word_read(unsigned int offset)
 void jerry_byte_write(unsigned offset, unsigned data)
 {
 #ifdef JERRY_DEBUG
-	fprintf(log_get(),"jerry: writing byte %.2x at 0x%.6x\n",data,offset);
+	WriteLog("jerry: writing byte %.2x at 0x%.6x\n",data,offset);
 #endif
-	if ((offset >= dsp_control_ram_base) && (offset < dsp_control_ram_base+0x20))
+	if ((offset >= DSP_CONTROL_RAM_BASE) && (offset < DSP_CONTROL_RAM_BASE+0x20))
 	{
 		dsp_byte_write(offset, data);
 		return;
 	}
-	else if ((offset >= dsp_work_ram_base) && (offset < dsp_work_ram_base+0x2000))
+	else if ((offset >= DSP_WORK_RAM_BASE) && (offset < DSP_WORK_RAM_BASE+0x2000))
 	{
 		dsp_byte_write(offset, data);
 		return;
 	}
 	else if ((offset >= 0xF1A152) && (offset <= 0xF1A153))
 	{
-//		fprintf(log_get(),"i2s: writing 0x%.2x to SCLK\n",data);
+//		WriteLog("i2s: writing 0x%.2x to SCLK\n",data);
 		if ((offset & 0x03) == 2)
 			jerry_i2s_interrupt_divide = (jerry_i2s_interrupt_divide & 0x00FF) | ((uint32)data << 8);
 		else
@@ -488,6 +461,10 @@ void jerry_byte_write(unsigned offset, unsigned data)
 		return;
 	}
 
+//Need to protect write attempts to Wavetable ROM (F1D000-FFF)
+	if (offset >= 0xF1D000 && offset <= 0xF1DFFF)
+		return;
+
 	jerry_ram_8[offset & 0xFFFF] = data;
 }
 
@@ -498,22 +475,22 @@ void jerry_byte_write(unsigned offset, unsigned data)
 void jerry_word_write(unsigned offset, unsigned data)
 {
 #ifdef JERRY_DEBUG
-	fprintf(log_get(), "JERRY: Writing word %04X at %06X\n", data, offset);
+	WriteLog( "JERRY: Writing word %04X at %06X\n", data, offset);
 #endif
 
-	if ((offset >= dsp_control_ram_base) && (offset < dsp_control_ram_base+0x20))
+	if ((offset >= DSP_CONTROL_RAM_BASE) && (offset < DSP_CONTROL_RAM_BASE+0x20))
 	{
 		dsp_word_write(offset, data);
 		return;
 	}
-	else if ((offset >= dsp_work_ram_base) && (offset < dsp_work_ram_base+0x2000))
+	else if ((offset >= DSP_WORK_RAM_BASE) && (offset < DSP_WORK_RAM_BASE+0x2000))
 	{
 		dsp_word_write(offset, data);
 		return;
 	}
 	else if (offset == 0xF1A152)
 	{
-//		fprintf(log_get(),"i2s: writing 0x%.4x to SCLK\n",data);
+//		WriteLog("i2s: writing 0x%.4x to SCLK\n",data);
 		jerry_i2s_interrupt_divide = data & 0xFF;
 		jerry_i2s_interrupt_timer = -1;
 		jerry_i2s_exec(0);
@@ -567,6 +544,10 @@ void jerry_word_write(unsigned offset, unsigned data)
 		eeprom_word_write(offset, data);
 		return;
 	}
+
+//Need to protect write attempts to Wavetable ROM (F1D000-FFF)
+	if (offset >= 0xF1D000 && offset <= 0xF1DFFF)
+		return;
 
 	jerry_ram_8[(offset+0) & 0xFFFF] = (data >> 8) & 0xFF;
 	jerry_ram_8[(offset+1) & 0xFFFF] = data & 0xFF;
