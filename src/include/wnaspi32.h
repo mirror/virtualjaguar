@@ -17,9 +17,7 @@
 #ifndef __WNASPI32_H__
 #define __WNASPI32_H__
 
-/*
-** Make sure structures are packed and undecorated.
-*/
+// Make sure structures are packed and undecorated.
 
 #ifdef __BORLANDC__
 #pragma option -a1
@@ -28,6 +26,10 @@
 #ifdef _MSC_VER
 #pragma pack(1)
 #endif //__MSC_VER
+
+#ifdef __GCCWIN32__
+#pragma pack(1)
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -85,7 +87,7 @@ extern "C" {
 #define SS_NO_ASPI                  0xE3        // No ASPI managers resident
 #define SS_FAILED_INIT              0xE4        // ASPI for windows failed init
 #define SS_ASPI_IS_BUSY             0xE5        // No resources available to execute cmd
-#define SS_BUFFER_TO_BIG            0xE6        // Buffer size to big to handle!
+#define SS_BUFFER_TOO_BIG           0xE6        // Buffer size too big to handle!
 #define SS_MISMATCHED_COMPONENTS    0xE7        // The DLLs/EXEs of ASPI don't version check
 #define SS_NO_ADAPTERS              0xE8        // No host adapters to manage
 #define SS_INSUFFICIENT_RESOURCES   0xE9        // Couldn't allocate resources needed to init
@@ -306,9 +308,7 @@ extern BOOL TranslateASPI32Address( PDWORD, PDWORD );
 
 #endif
 
-/*
-** Restore compiler default packing and close off the C declarations.
-*/
+// Restore compiler default packing and close off the C declarations.
 
 #ifdef __BORLANDC__
 #pragma option -a.
@@ -317,6 +317,10 @@ extern BOOL TranslateASPI32Address( PDWORD, PDWORD );
 #ifdef _MSC_VER
 #pragma pack()
 #endif //_MSC_VER
+
+#ifdef __GCCWIN32__
+#pragma pack()
+#endif
 
 #ifdef __cplusplus
 }
