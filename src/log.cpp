@@ -1,14 +1,18 @@
 //
 // Log handler
 //
-// by cal2
+// by Cal2
 // GCC/SDL port by Niels Wagenaar (Linux/WIN32) and Caz (BeOS)
 // Cleanups/new stuff by James L. Hammons
 //
 
+#include "types.h"
 #include "log.h"
 
-FILE * log_stream = NULL;
+#define MAX_LOG_SIZE		10000000				// Maximum size of log file (10 MB)
+
+static FILE * log_stream = NULL;
+static uint32 logSize = 0;
 
 int log_init(char * path)
 {
@@ -39,7 +43,15 @@ void WriteLog(const char * text, ...)
 	va_list arg;
 
 	va_start(arg, text);
-	vfprintf(log_stream, text, arg);
+	logSize += vfprintf(log_stream, text, arg);
+
+	if (logSize > MAX_LOG_SIZE)
+	{
+		fflush(log_stream);
+		fclose(log_stream);
+		exit(1);
+	}
+
 	va_end(arg);
 	fflush(log_stream);					// Make sure that text is written!
 }
