@@ -217,5 +217,5 @@ uint8 CDIntfGetTrackInfo(uint32 track, uint32 offset)
 {
 	WriteLog("CDINTF: GetTrackInfo unimplemented!\n");
 	return 0xFF;
-
+}
 #endif
