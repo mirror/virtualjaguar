@@ -27,7 +27,8 @@ void dsp_releaseTimeslice(void);
 
 void DSPExecP(int32 cycles);
 void DSPExecP2(int32 cycles);
-void DSPExecP3(int32 cycles);
+//void DSPExecP3(int32 cycles);
+void DSPExecComp(int32 cycles);
 
 // DSP interrupt numbers (in $F1A100, bits 4-8 & 16)
 

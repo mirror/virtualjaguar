@@ -40,10 +40,6 @@ extern int effect_start2, effect_start3, effect_start4, effect_start5, effect_st
 char * whoName[9] =
 	{ "Unknown", "Jaguar", "DSP", "GPU", "TOM", "JERRY", "M68K", "Blitter", "OP" };
 
-// These values are overridden by command line switches...
-
-//extern bool dsp_enabled;
-//extern bool jaguar_use_bios;						// Default is now to USE the BIOS
 uint32 jaguar_active_memory_dumps = 0;
 
 uint32 jaguar_mainRom_crc32;
@@ -51,11 +47,15 @@ uint32 jaguar_mainRom_crc32;
 /*static*/ uint8 * jaguar_mainRam = NULL;
 /*static*/ uint8 * jaguar_bootRom = NULL;
 /*static*/ uint8 * jaguar_mainRom = NULL;
+
 #ifdef CPU_DEBUG_MEMORY
 uint8 writeMemMax[0x400000], writeMemMin[0x400000];
 uint8 readMem[0x400000];
 uint32 returnAddr[4000], raPtr = 0xFFFFFFFF;
 #endif
+
+uint32 pcQueue[0x400];
+uint32 pcQPtr = 0;
 
 //
 // Callback function to detect illegal instructions
@@ -65,6 +65,34 @@ uint32 returnAddr[4000], raPtr = 0xFFFFFFFF;
 void M68KInstructionHook(void)
 {
 	uint32 m68kPC = m68k_get_reg(NULL, M68K_REG_PC);
+
+// For tracebacks...
+// Ideally, we'd save all the registers as well...
+	pcQueue[pcQPtr++] = m68kPC;
+	pcQPtr &= 0x3FF;
+
+	if (m68kPC & 0x01)		// Oops! We're fetching an odd address!
+	{
+		WriteLog("M68K: Attempted to execute from an odd adress!\n\nBacktrace:\n\n");
+
+		static char buffer[2048];
+		for(int i=0; i<0x400; i++)
+		{
+			m68k_disassemble(buffer, pcQueue[(pcQPtr + i) & 0x3FF], M68K_CPU_TYPE_68000);
+			WriteLog("\t%08X: %s\n", pcQueue[(pcQPtr + i) & 0x3FF], buffer);
+		}
+		WriteLog("\n");
+
+		uint32 topOfStack = m68k_get_reg(NULL, M68K_REG_A7);
+		WriteLog("M68K: Top of stack: %08X. Stack trace:\n", JaguarReadLong(topOfStack));
+		for(int i=0; i<10; i++)
+			WriteLog("%06X: %08X\n", topOfStack - (i * 4), JaguarReadLong(topOfStack - (i * 4)));
+		WriteLog("Jaguar: VBL interrupt is %s\n", ((tom_irq_enabled(IRQ_VBLANK)) && (jaguar_interrupt_handler_is_valid(64))) ? "enabled" : "disabled");
+		M68K_show_context();
+		log_done();
+		exit(0);
+	}
+
 /*	if (m68kPC >= 0x807EC4 && m68kPC <= 0x807EDB)
 	{
 		static char buffer[2048];
@@ -642,6 +670,13 @@ uint32 JaguarReadLong(uint32 offset, uint32 who/*=UNKNOWN*/)
 // We really should re-do this so that it does *real* 32-bit access... !!! FIX !!!
 void JaguarWriteLong(uint32 offset, uint32 data, uint32 who/*=UNKNOWN*/)
 {
+/*	extern bool doDSPDis;
+	if (offset < 0x400 && !doDSPDis)
+	{
+		WriteLog("JLW: Write to %08X by %s... Starting DSP log!\n\n", offset, whoName[who]);
+		doDSPDis = true;
+	}//*/
+
 	JaguarWriteWord(offset, data >> 16, who);
 	JaguarWriteWord(offset+2, data & 0xFFFF, who);
 }
@@ -867,9 +902,9 @@ if (effect_start)
 		gpu_exec(RISCCyclesPerScanline);
 
 		if (vjs.DSPEnabled)
-//			DSPExec(RISCCyclesPerScanline);
-// Do pipelined DSP execution (3 stage)...
-			DSPExecP2(RISCCyclesPerScanline);
+//			DSPExec(RISCCyclesPerScanline);			// Ordinary non-pipelined DSP
+			DSPExecP2(RISCCyclesPerScanline);		// Pipelined DSP execution (3 stage)...
+//			DSPExecComp(RISCCyclesPerScanline);		// Comparison core
 
 		TOMExecScanline(i, render);
 	}
