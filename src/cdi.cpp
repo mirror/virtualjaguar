@@ -46,12 +46,6 @@ void cdi_close(int fp)
 }
 
 
-/*long tell(int fd)
-{
-	return lseek(fd, 0LL, SEEK_CUR);
-}*/
-
-
 s_cdi_descriptor * cdi_get_descriptor(int fp, FILE * stdfp)
 {
 	s_cdi_descriptor * descriptor;
@@ -66,7 +60,6 @@ s_cdi_descriptor * cdi_get_descriptor(int fp, FILE * stdfp)
 		return 0;
 
 	lseek(fp, 0, SEEK_END);
-//Why???	descriptor->length=tell(fp);
 	descriptor->length = lseek(fp, 0LL, SEEK_CUR);
 
 	if (descriptor->length < 8)
