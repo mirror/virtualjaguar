@@ -10,6 +10,8 @@
 #include "jaguar.h"
 #include "dac.h"
 
+//#define DEBUG_DAC
+
 #define BUFFER_SIZE		0x8000						// Make the DAC buffers 32K x 16 bits
 
 // Jaguar memory locations
@@ -175,8 +177,10 @@ void DACWriteWord(uint32 offset, uint16 data)
 //			DACBuffer[LeftFIFOTailPtr] = data ^ 0x8000;
 			SDL_UnlockAudio();
 		}
+#ifdef DEBUG_DAC
 		else
 			WriteLog("DAC: Ran into FIFO's left tail pointer!\n");
+#endif
 	}
 	else if (offset == RTXD + 2)
 	{
@@ -189,8 +193,10 @@ void DACWriteWord(uint32 offset, uint16 data)
 //			DACBuffer[RightFIFOTailPtr] = data ^ 0x8000;
 			SDL_UnlockAudio();
 		}
+#ifdef DEBUG_DAC
 		else
 			WriteLog("DAC: Ran into FIFO's right tail pointer!\n");
+#endif
 	}
 	else if (offset == SCLK + 2)					// Sample rate
 	{
@@ -199,7 +205,7 @@ void DACWriteWord(uint32 offset, uint16 data)
 		{
 			SCLKFrequencyDivider = (uint8)data;
 //Of course a better way would be to query the hardware to find the upper limit...
-			if (data > 7)	// Anything less is too high!
+			if (data > 7)	// Anything less than 8 is too high!
 			{
 				SDL_CloseAudio();
 				desired.freq = GetCalculatedFrequency();// SDL will do conversion on the fly, if it can't get the exact rate. Nice!
