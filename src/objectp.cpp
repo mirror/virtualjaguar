@@ -669,6 +669,7 @@ void OPProcessFixedBitmap(int scanline, uint64 p0, uint64 p1, bool render)
 //  provide the most significant bits of the palette address."
 	uint8 index = (p1 >> 37) & 0xFE;				// CLUT index offset (upper pix, 1-4 bpp)
 	uint32 pitch = (p1 >> 15) & 0x07;				// Phrase pitch
+	pitch <<= 3;									// Optimization: Multiply pitch by 8
 
 //	int16 scanlineWidth = tom_getVideoModeWidth();
 	uint8 * tom_ram_8 = tom_get_ram_pointer();
@@ -683,9 +684,9 @@ void OPProcessFixedBitmap(int scanline, uint64 p0, uint64 p1, bool render)
 // Is it OK to have a 0 for the data width??? (i.e., undocumented?)
 // Seems to be... Seems that dwidth *can* be zero (i.e., reuse same line) as well.
 // Pitch == 0 is OK too...
-//	if (!render || op_pointer == 0 || dwidth == 0 || ptr == 0 || pitch == 0)
+//	if (!render || op_pointer == 0 || ptr == 0 || pitch == 0)
 //I'm not convinced that we need to concern ourselves with data & op_pointer here either!
-	if (!render || iwidth == 0) // || data == 0 || op_pointer == 0)
+	if (!render || iwidth == 0)
 		return;
 
 //#define OP_DEBUG_BMP
@@ -763,6 +764,7 @@ if (depth > 5)
 	WriteLog("We're about to encounter a divide by zero error!\n");
 	// NOTE: We're just using endPos to figure out how much, if any, to clip by.
 	// ALSO: There may be another case where we start out of bounds and end out of bounds...!
+	// !!! FIX !!!
 	if (startPos < 0)			// Case #1: Begin out, end in, L to R
 		clippedWidth = 0 - startPos,
 		dataClippedWidth = phraseClippedWidth = clippedWidth / phraseWidthToPixels[depth],
@@ -788,12 +790,14 @@ if (depth > 5)
 	// Also, if we're clipping the phrase we need to make sure we're in the correct part of
 	// the pixel data.
 //	data += phraseClippedWidth * (pitch << 3);
-	data += dataClippedWidth * (pitch << 3);
+	data += dataClippedWidth * pitch;
 
 	// NOTE: When the bitmap is in REFLECT mode, the XPOS marks the *right* side of the
 	//       bitmap! This makes clipping & etc. MUCH, much easier...!
 //	uint32 lbufAddress = 0x1800 + (!in24BPPMode ? leftMargin * 2 : leftMargin * 4);
-	uint32 lbufAddress = 0x1800 + (!in24BPPMode ? startPos * 2 : startPos * 4);
+//Why does this work right when multiplying startPos by 2 (instead of 4) for 24 BPP mode?
+//Is this a bug in the OP?
+	uint32 lbufAddress = 0x1800 + (!in24BPPMode ? startPos * 2 : startPos * 2);
 	uint8 * currentLineBuffer = &tom_ram_8[lbufAddress];
 
 	// Render.
@@ -802,6 +806,7 @@ if (depth > 5)
 // If we *were* in 24 BPP mode, how would you convert CRY to RGB24? Seems to me
 // that if you're in CRY mode then you wouldn't be able to use 24 BPP bitmaps
 // anyway.
+// This seems to be the case (at least according to the Midsummer docs)...!
 
 	if (depth == 0)									// 1 BPP
 	{
@@ -811,7 +816,7 @@ if (depth > 5)
 		// Fetch 1st phrase...
 		uint64 pixels = ((uint64)JaguarReadLong(data, OP) << 32) | JaguarReadLong(data + 4, OP);
 //Note that firstPix should only be honored *if* we start with the 1st phrase of the bitmap
-//i.e., we didn't clip on the margin...
+//i.e., we didn't clip on the margin... !!! FIX !!!
 		pixels <<= firstPix;						// Skip first N pixels (N=firstPix)...
 		int i = firstPix;							// Start counter at right spot...
 
@@ -842,7 +847,7 @@ if (depth > 5)
 			}
 			i = 0;
 			// Fetch next phrase...
-			data += pitch << 3;						// Multiply pitch * 8 (optimize: precompute this value)
+			data += pitch;
 			pixels = ((uint64)JaguarReadLong(data, OP) << 32) | JaguarReadLong(data + 4, OP);
 		}
 	}
@@ -858,7 +863,7 @@ if (firstPix)
 		{
 			// Fetch phrase...
 			uint64 pixels = ((uint64)JaguarReadLong(data, OP) << 32) | JaguarReadLong(data + 4, OP);
-			data += pitch << 3;						// Multiply pitch * 8 (optimize: precompute this value)
+			data += pitch;
 
 			for(int i=0; i<32; i++)
 			{
@@ -898,7 +903,7 @@ if (firstPix)
 		{
 			// Fetch phrase...
 			uint64 pixels = ((uint64)JaguarReadLong(data, OP) << 32) | JaguarReadLong(data + 4, OP);
-			data += pitch << 3;						// Multiply pitch * 8 (optimize: precompute this value)
+			data += pitch;
 
 			for(int i=0; i<16; i++)
 			{
@@ -937,7 +942,7 @@ if (firstPix)
 		{
 			// Fetch phrase...
 			uint64 pixels = ((uint64)JaguarReadLong(data, OP) << 32) | JaguarReadLong(data + 4, OP);
-			data += pitch << 3;						// Multiply pitch * 8 (optimize: precompute this value)
+			data += pitch;
 
 			for(int i=0; i<8; i++)
 			{
@@ -976,7 +981,7 @@ if (firstPix)
 		{
 			// Fetch phrase...
 			uint64 pixels = ((uint64)JaguarReadLong(data, OP) << 32) | JaguarReadLong(data + 4, OP);
-			data += pitch << 3;						// Multiply pitch * 8 (optimize: precompute this value)
+			data += pitch;
 
 			for(int i=0; i<4; i++)
 			{
@@ -1013,24 +1018,21 @@ if (firstPix)
 if (firstPix)
 	WriteLog("OP: Fixed bitmap @ 24 BPP requesting FIRSTPIX! (fp=%u)\n", firstPix);
 		// Not sure, but I think RMW only works with 16 BPP and below, and only in CRY mode...
-		// The LSB is OPFLAG_REFLECT, so sign extend it and or 4 into it.
+		// The LSB of flags is OPFLAG_REFLECT, so sign extend it and OR 4 into it.
 		int32 lbufDelta = ((int8)((flags << 7) & 0xFF) >> 4) | 0x04;
 
 		while (iwidth--)
 		{
 			// Fetch phrase...
 			uint64 pixels = ((uint64)JaguarReadLong(data, OP) << 32) | JaguarReadLong(data + 4, OP);
-			data += pitch << 3;						// Multiply pitch * 8 (optimize: precompute this value)
+			data += pitch;
 
 			for(int i=0; i<2; i++)
 			{
+				// We don't use a 32-bit var here because of endian issues...!
 				uint8 bits3 = pixels >> 56, bits2 = pixels >> 48,
 					bits1 = pixels >> 40, bits0 = pixels >> 32;
-// Seems to me that both of these are in the same endian, so we could cast it as
-// uint16 * and do straight across copies (what about 24 bpp? Treat it differently...)
-// This only works for the palettized modes (1 - 8 BPP), since we actually have to
-// copy data from memory in 16 BPP mode (or does it? Isn't this the same as the CLUT case?)
-// No, it isn't because we read the memory in an endian safe way--it *won't* work...
+
 				if (flagTRANS && (bits3 | bits2 | bits1 | bits0) == 0)
 					;	// Do nothing...
 				else
@@ -1063,7 +1065,7 @@ void OPProcessScaledBitmap(int scanline, uint64 p0, uint64 p1, uint64 p2, bool r
 	uint32 firstPix = (p1 >> 49) & 0x3F;
 //This is WEIRD! I'm sure I saw Atari Karts request 8 BPP FIRSTPIX! What happened???
 if (firstPix)
-	WriteLog("OP: FIRSTPIX != 0!\n");
+	WriteLog("OP: FIRSTPIX != 0! (Scaled BM)\n");
 //#endif
 // We can ignore the RELEASE (high order) bit for now--probably forever...!
 //	uint8 flags = (p1 >> 45) & 0x0F;	// REFLECT, RMW, TRANS, RELEASE
@@ -1154,6 +1156,7 @@ if (firstPix)
 
 	// NOTE: We're just using endPos to figure out how much, if any, to clip by.
 	// ALSO: There may be another case where we start out of bounds and end out of bounds...!
+	// !!! FIX !!!
 
 //There's a problem here with scaledPhrasePixels in that it can be forced to zero when
 //the scaling factor is small. So fix it already! !!! FIX !!!
@@ -1211,7 +1214,8 @@ if (op_start_log && startPos == 13)
 	// NOTE: When the bitmap is in REFLECT mode, the XPOS marks the *right* side of the
 	//       bitmap! This makes clipping & etc. MUCH, much easier...!
 //	uint32 lbufAddress = 0x1800 + (!in24BPPMode ? leftMargin * 2 : leftMargin * 4);
-	uint32 lbufAddress = 0x1800 + (!in24BPPMode ? startPos * 2 : startPos * 4);
+//	uint32 lbufAddress = 0x1800 + (!in24BPPMode ? startPos * 2 : startPos * 4);
+	uint32 lbufAddress = 0x1800 + (!in24BPPMode ? startPos * 2 : startPos * 2);
 	uint8 * currentLineBuffer = &tom_ram_8[lbufAddress];
 
 	// Render.
@@ -1220,6 +1224,7 @@ if (op_start_log && startPos == 13)
 // If we *were* in 24 BPP mode, how would you convert CRY to RGB24? Seems to me
 // that if you're in CRY mode then you wouldn't be able to use 24 BPP bitmaps
 // anyway.
+// This seems to be the case (at least according to the Midsummer docs)...!
 
 	if (depth == 0)									// 1 BPP
 	{
@@ -1499,11 +1504,7 @@ if (firstPix != 0)
 			{
 				uint8 bits3 = pixels >> 56, bits2 = pixels >> 48,
 					bits1 = pixels >> 40, bits0 = pixels >> 32;
-// Seems to me that both of these are in the same endian, so we could cast it as
-// uint16 * and do straight across copies (what about 24 bpp? Treat it differently...)
-// This only works for the palettized modes (1 - 8 BPP), since we actually have to
-// copy data from memory in 16 BPP mode (or does it? Isn't this the same as the CLUT case?)
-// No, it isn't because we read the memory in an endian safe way--it *won't* work...
+
 				if (flagTRANS && (bits3 | bits2 | bits1 | bits0) == 0)
 					;	// Do nothing...
 				else
