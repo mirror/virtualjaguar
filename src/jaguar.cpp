@@ -10,6 +10,7 @@
 
 #include "jaguar.h"
 #include "video.h"
+#include "settings.h"
 //#include "m68kdasmAG.h"
 
 #define CPU_DEBUG
@@ -27,7 +28,7 @@ void M68K_show_context(void);
 
 // External variables
 
-extern bool hardwareTypeNTSC;						// Set to false for PAL
+//extern bool hardwareTypeNTSC;						// Set to false for PAL
 #ifdef CPU_DEBUG_MEMORY
 extern bool startMemLog;							// Set by "e" key
 extern int effect_start;
@@ -41,8 +42,8 @@ char * whoName[9] =
 
 // These values are overridden by command line switches...
 
-extern bool dsp_enabled;
-extern bool jaguar_use_bios;						// Default is now to USE the BIOS
+//extern bool dsp_enabled;
+//extern bool jaguar_use_bios;						// Default is now to USE the BIOS
 uint32 jaguar_active_memory_dumps = 0;
 
 uint32 jaguar_mainRom_crc32;
@@ -597,13 +598,14 @@ void JaguarWriteByte(uint32 offset, uint8 data, uint32 who/*=UNKNOWN*/)
 void JaguarWriteWord(uint32 offset, uint16 data, uint32 who/*=UNKNOWN*/)
 {
 //TEMP--Mirror of F03000? Yes, but only 32-bit CPUs can do it (i.e., NOT the 68K!)
-// PLUS, you would handle this in the GPU/DSP WroteLong code! Not here!
+// PLUS, you would handle this in the GPU/DSP WriteLong code! Not here!
 	offset &= 0xFFFFFF;
 
 	if (offset <= 0x3FFFFE)
 	{
-if (offset == 0x670C)
-	WriteLog("Jaguar: %s writing to location $670C...\n", whoName[who]);
+//This MUST be done by the 68K!
+/*if (offset == 0x670C)
+	WriteLog("Jaguar: %s writing to location $670C...\n", whoName[who]);*/
 
 		jaguar_mainRam[(offset+0) & 0x3FFFFF] = (data>>8) & 0xFF;
 		jaguar_mainRam[(offset+1) & 0x3FFFFF] = data & 0xFF;
@@ -660,6 +662,7 @@ void jaguar_init(void)
 	memset(jaguar_mainRam, 0x00, 0x400000);
 //	memset(jaguar_mainRom, 0xFF, 0x200000);	// & set it to all Fs...
 //	memset(jaguar_mainRom, 0x00, 0x200000);	// & set it to all 0s...
+//NOTE: This *doesn't* fix FlipOut...
 	memset(jaguar_mainRom, 0x01, 0x600000);	// & set it to all 01s...
 
 //	cd_bios_boot("C:\\ftp\\jaguar\\cd\\Brain Dead 13.cdi");
@@ -774,7 +777,7 @@ void jaguar_done(void)
 
 void jaguar_reset(void)
 {
-	if (jaguar_use_bios)
+	if (vjs.useJaguarBIOS)
 		memcpy(jaguar_mainRam, jaguar_bootRom, 8);
 	else
 	{
@@ -812,21 +815,22 @@ void JaguarExecute(int16 * backbuffer, bool render)
 {
 	uint16 vp = TOMReadWord(0xF0003E) + 1;//Hmm. This is a WO register. Will work? Looks like. But wrong behavior!
 	uint16 vi = TOMReadWord(0xF0004E);//Another WO register...
-	uint16 vdb = TOMReadWord(0xF00046);
+//	uint16 vdb = TOMReadWord(0xF00046);
 //Note: This is the *definite* end of the display, though VDE *might* be less than this...
 //	uint16 vbb = TOMReadWord(0xF00040);
 //It seems that they mean it when they say that VDE is the end of object processing.
 //However, we need to be able to tell the OP (or TOM) that we've reached the end of the
 //buffer and not to write any more pixels... !!! FIX !!!
-	uint16 vde = TOMReadWord(0xF00048);
+//	uint16 vde = TOMReadWord(0xF00048);
 
-	uint16 refreshRate = (hardwareTypeNTSC ? 60 : 50);
+	uint16 refreshRate = (vjs.hardwareTypeNTSC ? 60 : 50);
 	// Should these be hardwired or read from VP? Yes, from VP!
 	uint32 M68KCyclesPerScanline
-		= (hardwareTypeNTSC ? M68K_CLOCK_RATE_NTSC : M68K_CLOCK_RATE_PAL) / (vp * refreshRate);
+		= (vjs.hardwareTypeNTSC ? M68K_CLOCK_RATE_NTSC : M68K_CLOCK_RATE_PAL) / (vp * refreshRate);
 	uint32 RISCCyclesPerScanline
-		= (hardwareTypeNTSC ? RISC_CLOCK_RATE_NTSC : RISC_CLOCK_RATE_PAL) / (vp * refreshRate);
+		= (vjs.hardwareTypeNTSC ? RISC_CLOCK_RATE_NTSC : RISC_CLOCK_RATE_PAL) / (vp * refreshRate);
 
+	TOMResetBackbuffer(backbuffer);
 /*extern int effect_start;
 if (effect_start)
 {
@@ -857,22 +861,17 @@ if (effect_start)
 		m68k_execute(M68KCyclesPerScanline);
 		// No CD handling... !!! FIX !!!
 		cd_bios_exec(i);	// NOTE: Ignores parameter...
-		tom_pit_exec(RISCCyclesPerScanline);
+		TOMExecPIT(RISCCyclesPerScanline);
 		jerry_pit_exec(RISCCyclesPerScanline);
 		jerry_i2s_exec(RISCCyclesPerScanline);
 		gpu_exec(RISCCyclesPerScanline);
-		if (dsp_enabled)
-			DSPExec(RISCCyclesPerScanline);
 
-//Interlacing is still not handled correctly here... !!! FIX !!!
-		if (i >= vdb && i < vde)//vbb)
-		{
-			if (!(i & 0x01))						// Execute OP only on even lines (non-interlaced only!)
-			{
-				tom_exec_scanline(backbuffer, i/2, render);	// i/2 is a kludge...
-				backbuffer += GetSDLScreenPitch() / 2;	// Convert bytes to words...
-			}
-		}
+		if (vjs.DSPEnabled)
+//			DSPExec(RISCCyclesPerScanline);
+// Do pipelined DSP execution...
+			DSPExecP3(RISCCyclesPerScanline);
+
+		TOMExecScanline(i, render);
 	}
 }
 
