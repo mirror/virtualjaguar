@@ -26,6 +26,7 @@ struct VJSettings
 	bool useOpenGL;
 	uint32 glFilter;
 	bool hardwareTypeAlpine;
+	uint32 frameSkip;
 
 	// Keybindings in order of U, D, L, R, C, B, A, Op, Pa, 0-9, #, *
 	uint16 p1KeyBindings[21];

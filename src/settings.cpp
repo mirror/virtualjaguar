@@ -35,9 +35,10 @@ void LoadVJSettings(void)
 	vjs.useJoystick = sdlemu_getval_bool("useJoystick", false);
 	vjs.joyport = sdlemu_getval_int("joyport", 0);
 	vjs.hardwareTypeNTSC = sdlemu_getval_bool("hardwareTypeNTSC", true);
+	vjs.frameSkip = sdlemu_getval_int("frameSkip", 0);
 	vjs.useJaguarBIOS = sdlemu_getval_bool("useJaguarBIOS", false);
 	vjs.DSPEnabled = sdlemu_getval_bool("DSPEnabled", false);
-	vjs.usePipelinedDSP = sdlemu_getval_bool("usePipelinedDSP", true);
+	vjs.usePipelinedDSP = sdlemu_getval_bool("usePipelinedDSP", false);
 	vjs.fullscreen = sdlemu_getval_bool("fullscreen", false);
 	vjs.useOpenGL = sdlemu_getval_bool("useOpenGL", true);
 	vjs.glFilter = sdlemu_getval_int("glFilterType", 0);
