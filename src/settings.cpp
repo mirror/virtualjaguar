@@ -7,7 +7,6 @@
 #include <stdlib.h>
 #include <string>
 #include "SDL.h"
-#include "types.h"
 #include "sdlemu_config.h"
 #include "log.h"
 #include "settings.h"
@@ -27,7 +26,11 @@ void CheckForTrailingSlash(char * path);
 //
 void LoadVJSettings(void)
 {
-	sdlemu_init_config("vj.cfg");
+	if (sdlemu_init_config("./vj.cfg") == 0			// CWD
+		&& sdlemu_init_config("~/vj.cfg") == 0		// Home
+		&& sdlemu_init_config("~/.vj/vj.cfg") == 0	// Home under .vj directory
+		&& sdlemu_init_config("vj.cfg") == 0)		// Somewhere in the path
+		WriteLog("Settings: Couldn't find VJ configuration file. Using defaults...\n");
 
 	vjs.useJoystick = sdlemu_getval_bool("useJoystick", false);
 	vjs.joyport = sdlemu_getval_int("joyport", 0);
@@ -84,10 +87,10 @@ void LoadVJSettings(void)
 	vjs.p2KeyBindings[19] = sdlemu_getval_int("p2k_pound", SDLK_KP_DIVIDE);
 	vjs.p2KeyBindings[20] = sdlemu_getval_int("p2k_star", SDLK_KP_MULTIPLY);
 
-	strcpy(vjs.jagBootPath, sdlemu_getval_string("JagBootROM", "./bios/jagboot.rom"));
-	strcpy(vjs.CDBootPath, sdlemu_getval_string("CDBootROM", "./bios/jagcd.rom"));
-	strcpy(vjs.EEPROMPath, sdlemu_getval_string("EEPROMs", "./eeproms/"));
-	strcpy(vjs.ROMPath, sdlemu_getval_string("ROMs", "./"));
+	strcpy(vjs.jagBootPath, sdlemu_getval_string("JagBootROM", "./BIOS/jagboot.rom"));
+	strcpy(vjs.CDBootPath, sdlemu_getval_string("CDBootROM", "./BIOS/jagcd.rom"));
+	strcpy(vjs.EEPROMPath, sdlemu_getval_string("EEPROMs", "./EEPROMs"));
+	strcpy(vjs.ROMPath, sdlemu_getval_string("ROMs", "./ROMs"));
 	CheckForTrailingSlash(vjs.EEPROMPath);
 	CheckForTrailingSlash(vjs.ROMPath);
 
