@@ -5,6 +5,9 @@
 # script called "compile". The unified makefile should make life a little
 # easier for the maintainers. :-)
 #
+# To the Gentoo ebuild maintainers: If something is silly in the compile script
+# and/or makefile, why don't you enlighten us poor schmucks as to what's wrong? ;-)
+#
 
 CC         = gcc
 LD         = gcc
@@ -25,7 +28,6 @@ INCS = -I. -Isrc -Isrc/include -I/usr/local/include -I/usr/include
 THECC = $(CC) $(CFLAGS) $(INCS)
 
 OBJS = \
-	obj/anajoy.o \
 	obj/blitter.o \
 	obj/cdrom.o \
 	obj/cdintf.o \
@@ -54,6 +56,7 @@ OBJS = \
 	obj/video.o \
 	obj/vj.o \
 	$(ICON)
+#	obj/anajoy.o 
 #	obj/cdbios.o 
 #	obj/cdi.o 
 
@@ -83,9 +86,20 @@ $(TARGET): $(OBJS)
 #	strip --strip-all vj$(EXESUFFIX)
 #	upx -9 vj$(EXESUFFIX)
 
+# Dependencies
+
+obj/dac.o:       src/include/settings.h
+obj/eeprom.o:    src/include/settings.h
+obj/gui.o:       src/include/settings.h
+obj/jaguar.o:    src/include/settings.h
+obj/joystick.o:  src/include/settings.h
+obj/tom.o:       src/include/settings.h
+obj/video.o:     src/include/settings.h
+obj/vj.o:        src/include/settings.h
+
 # Other stuff that has unusual dependencies
 
-obj/gui.o: src/gui.cpp src/include/gui.h src/include/font1.h
+obj/gui.o: src/gui.cpp src/include/gui.h src/include/font1.h src/include/font14pt.h src/include/guielements.h
 obj/cdintf.o: src/cdintf.cpp src/cdintf_win32.cpp src/cdintf_osx.cpp src/cdintf_linux.cpp src/include/cdintf.h
 
 #
