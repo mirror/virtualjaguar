@@ -6,35 +6,26 @@
 #ifndef __TYPES_H__
 #define __TYPES_H__
 
-#include <string.h>	// Why???
-
-//typedef unsigned char	BYTE;
-//typedef unsigned short	WORD;
-//typedef unsigned long	DWORD;
-//#ifdef __GCCUNIX__
-//typedef long long		__int64;		// Could probably remove this crap with some judicious pruning
-//#endif
-
 // This is only good on certain intel 32-bit platforms...
 // You may need to tweak to suit your specific platform.
 
-typedef unsigned char		UINT8;
-typedef signed char			INT8;
-typedef unsigned short		UINT16;
-typedef signed short		INT16;
-typedef unsigned long		UINT32;
-typedef signed long			INT32;
-typedef unsigned long long	UINT64;
-typedef signed long long	INT64;
+typedef unsigned char		uint8;
+typedef signed char			int8;
+typedef unsigned short		uint16;
+typedef signed short		int16;
+typedef unsigned			uint32;
+typedef signed				int32;
+typedef unsigned long long	uint64;
+typedef signed long long	int64;
 
-typedef UINT8	uint8;
-typedef INT8	int8;
-typedef UINT16	uint16;
-typedef INT16	int16;
-typedef UINT32	uint32;
-typedef INT32	int32;
-typedef UINT64	uint64;
-typedef INT64	int64;
+typedef uint8	UINT8;
+typedef int8	INT8;
+typedef uint16	UINT16;
+typedef int16	INT16;
+typedef uint32	UINT32;
+typedef int32	INT32;
+typedef uint64	UINT64;
+typedef int64	INT64;
 
 // Read/write tracing enumeration
 
