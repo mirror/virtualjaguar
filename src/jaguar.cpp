@@ -188,7 +188,111 @@ if (m68kPC == 0x802058) start = true;
 		for(int i=M68K_REG_A0; i<=M68K_REG_A7; i++)
 			WriteLog("\tA%i = %08X\n", i-M68K_REG_A0, m68k_get_reg(NULL, (m68k_register_t)i));
 	}*/
+//Looks like the DSP is supposed to return $12345678 when it finishes its validation routine...
+// !!! Investigate !!!
+/*extern bool doDSPDis;
+	static bool disgo = false;
+	if (m68kPC == 0x50222)
+	{
+		// CD BIOS hacking
+//		WriteLog("M68K: About to stuff $12345678 into $F1B000 (=%08X)...\n", DSPReadLong(0xF1B000, M68K));
+//		DSPWriteLong(0xF1B000, 0x12345678, M68K);
+//		disgo = true;
+	}
+	if (m68kPC == 0x5000)
+//		doDSPDis = true;
+		disgo = true;
+	if (disgo)
+	{
+		static char buffer[2048];
+		m68k_disassemble(buffer, m68kPC, M68K_CPU_TYPE_68000);
+		WriteLog("%08X: %s", m68kPC, buffer);
+		WriteLog("\t\tA0=%08X, A1=%08X, D0=%08X, D1=%08X, D2=%08X\n",
+			m68k_get_reg(NULL, M68K_REG_A0), m68k_get_reg(NULL, M68K_REG_A1),
+			m68k_get_reg(NULL, M68K_REG_D0), m68k_get_reg(NULL, M68K_REG_D1), m68k_get_reg(NULL, M68K_REG_D2));
+	}//*/
+	if (m68kPC == 0x82E1A)
+	{
+		static char buffer[2048];
+		m68k_disassemble(buffer, m68kPC, M68K_CPU_TYPE_68000);
+		WriteLog("--> [Routine start] %08X: %s", m68kPC, buffer);
+		WriteLog("\t\tA0=%08X, A1=%08X, D0=%08X(cmd), D1=%08X(# bytes), D2=%08X\n",
+			m68k_get_reg(NULL, M68K_REG_A0), m68k_get_reg(NULL, M68K_REG_A1),
+			m68k_get_reg(NULL, M68K_REG_D0), m68k_get_reg(NULL, M68K_REG_D1), m68k_get_reg(NULL, M68K_REG_D2));
+	}//*/
+	if (m68kPC == 0x82E58)
+		WriteLog("--> [Routine end]\n");
+	if (m68kPC == 0x80004)
+	{
+		WriteLog("--> [Calling BusWrite2] D2: %08X\n", m68k_get_reg(NULL, M68K_REG_D2));
+//		m68k_set_reg(M68K_REG_D2, 0x12345678);
+	}//*/
+/*
+CD_init::	-> $3000
+BIOS_VER::	-> $3004
+CD_mode::	-> $3006
+CD_ack::	-> $300C
+CD_jeri::	-> $3012
+CD_spin::	-> $3018
+CD_stop::	-> $301E
+CD_mute::	-> $3024
+CD_umute::	-> $302A
+CD_paus::	-> $3030
+CD_upaus::	-> $3036
+CD_read::	-> $303C
+CD_uread::	-> $3042
+CD_setup::	-> $3048
+CD_ptr::	-> $304E
+CD_osamp::	-> $3054
+CD_getoc::	-> $305A
+CD_initm::	-> $3060
+CD_initf::	-> $3066
+CD_switch::	-> $306C
+*/
+	if (m68kPC == 0x3000)
+		WriteLog("M68K: CD_init\n");
+	else if (m68kPC == 0x3006 + (6 * 0))
+		WriteLog("M68K: CD_mode\n");
+	else if (m68kPC == 0x3006 + (6 * 1))
+		WriteLog("M68K: CD_ack\n");
+	else if (m68kPC == 0x3006 + (6 * 2))
+		WriteLog("M68K: CD_jeri\n");
+	else if (m68kPC == 0x3006 + (6 * 3))
+		WriteLog("M68K: CD_spin\n");
+	else if (m68kPC == 0x3006 + (6 * 4))
+		WriteLog("M68K: CD_stop\n");
+	else if (m68kPC == 0x3006 + (6 * 5))
+		WriteLog("M68K: CD_mute\n");
+	else if (m68kPC == 0x3006 + (6 * 6))
+		WriteLog("M68K: CD_umute\n");
+	else if (m68kPC == 0x3006 + (6 * 7))
+		WriteLog("M68K: CD_paus\n");
+	else if (m68kPC == 0x3006 + (6 * 8))
+		WriteLog("M68K: CD_upaus\n");
+	else if (m68kPC == 0x3006 + (6 * 9))
+		WriteLog("M68K: CD_read\n");
+	else if (m68kPC == 0x3006 + (6 * 10))
+		WriteLog("M68K: CD_uread\n");
+	else if (m68kPC == 0x3006 + (6 * 11))
+		WriteLog("M68K: CD_setup\n");
+	else if (m68kPC == 0x3006 + (6 * 12))
+		WriteLog("M68K: CD_ptr\n");
+	else if (m68kPC == 0x3006 + (6 * 13))
+		WriteLog("M68K: CD_osamp\n");
+	else if (m68kPC == 0x3006 + (6 * 14))
+		WriteLog("M68K: CD_getoc\n");
+	else if (m68kPC == 0x3006 + (6 * 15))
+		WriteLog("M68K: CD_initm\n");
+	else if (m68kPC == 0x3006 + (6 * 16))
+		WriteLog("M68K: CD_initf\n");
+	else if (m68kPC == 0x3006 + (6 * 17))
+		WriteLog("M68K: CD_switch\n");
 
+	if (m68kPC >= 0x3000 && m68kPC <= 0x306C)
+		WriteLog("\t\tA0=%08X, A1=%08X, D0=%08X, D1=%08X, D2=%08X\n",
+			m68k_get_reg(NULL, M68K_REG_A0), m68k_get_reg(NULL, M68K_REG_A1),
+			m68k_get_reg(NULL, M68K_REG_D0), m68k_get_reg(NULL, M68K_REG_D1), m68k_get_reg(NULL, M68K_REG_D2));
+//*/
 #ifdef ABORT_ON_ILLEGAL_INSTRUCTIONS
 	if (!m68k_is_valid_instruction(m68k_read_memory_16(m68kPC), M68K_CPU_TYPE_68000))
 	{
@@ -256,6 +360,10 @@ unsigned int m68k_read_memory_8(unsigned int address)
 	}
 #endif
 //WriteLog("[RM8] Addr: %08X\n", address);
+//; So, it seems that it stores the returned DWORD at $51136 and $FB074.
+/*	if (address == 0x51136 || address == 0x51138 || address == 0xFB074 || address == 0xFB076
+		|| address == 0x1AF05E)
+		WriteLog("[RM8  PC=%08X] Addr: %08X, val: %02X\n", m68k_get_reg(NULL, M68K_REG_PC), address, jaguar_mainRam[address]);//*/
 	unsigned int retVal = 0;
 
 	if ((address >= 0x000000) && (address <= 0x3FFFFF))
@@ -274,6 +382,10 @@ unsigned int m68k_read_memory_8(unsigned int address)
 	else
 		retVal = jaguar_unknown_readbyte(address, M68K);
 
+//if (address >= 0x2800 && address <= 0x281F)
+//	WriteLog("M68K: Read byte $%02X at $%08X [PC=%08X]\n", retVal, address, m68k_get_reg(NULL, M68K_REG_PC));
+//if (address >= 0x8B5E4 && address <= 0x8B5E4 + 16)
+//	WriteLog("M68K: Read byte $%02X at $%08X [PC=%08X]\n", retVal, address, m68k_get_reg(NULL, M68K_REG_PC));
     return retVal;
 }
 
@@ -338,10 +450,15 @@ unsigned int m68k_read_memory_16(unsigned int address)
 	for(int i=0; i<10000; i++)
 		WriteLog("[M68K] About to run GPU! (Addr:%08X, data:%04X)\n", address, TOMReadWord(address));
 }//*/
+//; So, it seems that it stores the returned DWORD at $51136 and $FB074.
+/*	if (address == 0x51136 || address == 0x51138 || address == 0xFB074 || address == 0xFB076
+		|| address == 0x1AF05E)
+		WriteLog("[RM16  PC=%08X] Addr: %08X, val: %04X\n", m68k_get_reg(NULL, M68K_REG_PC), address, GET16(jaguar_mainRam, address));//*/
     unsigned int retVal = 0;
 
 	if ((address >= 0x000000) && (address <= 0x3FFFFE))
-		retVal = (jaguar_mainRam[address] << 8) | jaguar_mainRam[address+1];
+//		retVal = (jaguar_mainRam[address] << 8) | jaguar_mainRam[address+1];
+		retVal = GET16(jaguar_mainRam, address);
 //	else if ((address >= 0x800000) && (address <= 0xDFFFFE))
 	else if ((address >= 0x800000) && (address <= 0xDFFEFE))
 		retVal = (jaguar_mainRom[address - 0x800000] << 8) | jaguar_mainRom[address - 0x800000 + 1];
@@ -356,11 +473,23 @@ unsigned int m68k_read_memory_16(unsigned int address)
 	else
 		retVal = jaguar_unknown_readword(address, M68K);
 
+//if (address >= 0xF1B000 && address <= 0xF1CFFF)
+//	WriteLog("M68K: Read word $%04X at $%08X [PC=%08X]\n", retVal, address, m68k_get_reg(NULL, M68K_REG_PC));
+//if (address >= 0x2800 && address <= 0x281F)
+//	WriteLog("M68K: Read word $%04X at $%08X [PC=%08X]\n", retVal, address, m68k_get_reg(NULL, M68K_REG_PC));
+//$8B3AE -> Transferred from $F1C010
+//$8B5E4 -> Only +1 read at $808AA
+//if (address >= 0x8B5E4 && address <= 0x8B5E4 + 16)
+//	WriteLog("M68K: Read word $%04X at $%08X [PC=%08X]\n", retVal, address, m68k_get_reg(NULL, M68K_REG_PC));
     return retVal;
 }
 
 unsigned int m68k_read_memory_32(unsigned int address)
 {
+//; So, it seems that it stores the returned DWORD at $51136 and $FB074.
+/*	if (address == 0x51136 || address == 0xFB074 || address == 0x1AF05E)
+		WriteLog("[RM32  PC=%08X] Addr: %08X, val: %08X\n", m68k_get_reg(NULL, M68K_REG_PC), address, (m68k_read_memory_16(address) << 16) | m68k_read_memory_16(address + 2));//*/
+
 //WriteLog("--> [RM32]\n");
     return (m68k_read_memory_16(address) << 16) | m68k_read_memory_16(address + 2);
 }
@@ -439,6 +568,9 @@ if (address == 0xF02110)
 /*if (effect_start)
 	if (address >= 0x18FA70 && address < (0x18FA70 + 8000))
 		WriteLog("M68K: Word %04X written at %08X by 68K\n", value, address);//*/
+/*	if (address == 0x51136 || address == 0x51138 || address == 0xFB074 || address == 0xFB076
+		|| address == 0x1AF05E)
+		WriteLog("[WM16  PC=%08X] Addr: %08X, val: %04X\n", m68k_get_reg(NULL, M68K_REG_PC), address, value);//*/
 
 	if ((address >= 0x000000) && (address <= 0x3FFFFE))
 	{
@@ -475,6 +607,9 @@ void m68k_write_memory_32(unsigned int address, unsigned int value)
 if (address == 0xF03214 && value == 0x88E30047)
 //	start = true;
 	doGPUDis = true;//*/
+/*	if (address == 0x51136 || address == 0xFB074)
+		WriteLog("[WM32  PC=%08X] Addr: %08X, val: %02X\n", m68k_get_reg(NULL, M68K_REG_PC), address, value);//*/
+
 	m68k_write_memory_16(address, value >> 16);
 	m68k_write_memory_16(address + 2, value & 0xFFFF);
 }
@@ -738,6 +873,8 @@ if (offset == 0x0102)//64*4)
 /*if (effect_start)
 	if (offset >= 0x18FA70 && offset < (0x18FA70 + 8000))
 		WriteLog("JWW: Word %04X written at %08X by %s\n", data, offset, whoName[who]);//*/
+/*if (offset >= 0x2C00 && offset <= 0x2CFF)
+	WriteLog("Jaguar: Word %04X written to TOC+%02X by %s\n", data, offset-0x2C00, whoName[who]);//*/
 
 	offset &= 0xFFFFFF;
 
@@ -900,31 +1037,34 @@ void jaguar_init(void)
 	memset(jaguar_mainRom, 0x01, 0x600000);	// & set it to all 01s...
 //	memset(jaguar_mainRom, 0xFF, 0x600000);	// & set it to all Fs...
 
-WriteLog("Jaguar: m68k_set_cpu_type...");
 	m68k_set_cpu_type(M68K_CPU_TYPE_68000);
-WriteLog("OK\nJaguar: gpu_init...");
 	gpu_init();
-WriteLog("OK\nJaguar: DSPInit...");
 	DSPInit();
-WriteLog("OK\nJaguar: tom_init...");
 	tom_init();
-WriteLog("OK\nJaguar: jerry_init...");
 	jerry_init();
-WriteLog("OK\nJaguar: cdrom_init...");
-	cdrom_init();
-WriteLog("OK\n");
+	CDROMInit();
+}
+
+void jaguar_reset(void)
+{
+	if (vjs.useJaguarBIOS)
+		memcpy(jaguar_mainRam, jaguar_bootRom, 8);
+	else
+		SET32(jaguar_mainRam, 4, jaguarRunAddress);
+
+//	WriteLog("jaguar_reset():\n");
+	tom_reset();
+	jerry_reset();
+	gpu_reset();
+	DSPReset();
+	CDROMReset();
+    m68k_pulse_reset();								// Reset the 68000
+	WriteLog("Jaguar: 68K reset. PC=%06X SP=%08X\n", m68k_get_reg(NULL, M68K_REG_PC), m68k_get_reg(NULL, M68K_REG_A7));
 }
 
 void jaguar_done(void)
 {
 #ifdef CPU_DEBUG_MEMORY
-/*	WriteLog("\n\nM68000 disassembly at $8D0D44 (collision routine!)...\n");
-	jaguar_dasm(0x8D0D44, 5000);
-	WriteLog("\n");//*/
-/*	WriteLog("\n\nM68000 disassembly at $806300 (look @ $806410)...\n");
-	jaguar_dasm(0x806300, 5000);
-	WriteLog("\n");//*/
-
 /*	WriteLog("\nJaguar: Memory Usage Stats (return addresses)\n\n");
 
 	for(uint32 i=0; i<=raPtr; i++)
@@ -991,6 +1131,9 @@ void jaguar_done(void)
 /*	WriteLog("\n\nM68000 disassembly at $90006C...\n");
 	jaguar_dasm(0x90006C, 500);
 	WriteLog("\n");//*/
+/*	WriteLog("\n\nM68000 disassembly at $1AC000...\n");
+	jaguar_dasm(0x1AC000, 6000);
+	WriteLog("\n");//*/
 
 //	WriteLog("Jaguar: CD BIOS version %04X\n", JaguarReadWord(0x3004));
 	WriteLog("Jaguar: Interrupt enable = %02X\n", TOMReadByte(0xF000E1) & 0x1F);
@@ -998,8 +1141,7 @@ void jaguar_done(void)
 	M68K_show_context();
 //#endif
 
-//	cd_bios_done();
-	cdrom_done();
+	CDROMDone();
 	gpu_done();
 	DSPDone();
 	tom_done();
@@ -1011,49 +1153,6 @@ void jaguar_done(void)
 	memory_free(jaguar_CDBootROM);
 }
 
-void jaguar_reset(void)
-{
-	if (vjs.useJaguarBIOS)
-		memcpy(jaguar_mainRam, jaguar_bootRom, 8);
-	else
-	{
-// Should also make a run address global as well, for when we reset the jag (PD mainly)
-/*		SET32(jaguar_mainRam, 4, 0x00802000);
-		// Handle PD stuff...
-		// This should definitely go elsewhere (like in the cart load section)!
-//NOTE: The bytes 'JAGR' should also be at position $1C...
-		if (jaguar_mainRom[0] == 0x60 && jaguar_mainRom[1] == 0x1A)
-		{
-			uint32 loadAddress = GET32(jaguar_mainRom, 0x22), runAddress = GET32(jaguar_mainRom, 0x2A);
-//This is not always right! Especially when converted via bin2jag1!!!
-//We should have access to the length of the furshlumiger file that was loaded anyway!
-//Now, we do! ;-)
-//			uint32 progLength = GET32(jaguar_mainRom, 0x02);
-//jaguarRomSize
-//jaguarRunAddress
-//			WriteLog("Jaguar: Setting up PD ROM... Run address: %08X, length: %08X\n", runAddress, progLength);
-//			memcpy(jaguar_mainRam + loadAddress, jaguar_mainRom + 0x2E, progLength);
-			WriteLog("Jaguar: Setting up PD ROM... Run address: %08X, length: %08X\n", runAddress, jaguarRomSize - 0x2E);
-			memcpy(jaguar_mainRam + loadAddress, jaguar_mainRom + 0x2E, jaguarRomSize - 0x2E);
-			SET32(jaguar_mainRam, 4, runAddress);
-		}//*/
-		SET32(jaguar_mainRam, 4, jaguarRunAddress);
-	}
-
-//	WriteLog("jaguar_reset():\n");
-//#ifdef SOUND_OUTPUT
-//	ws_audio_reset();
-//#endif
-//	cd_bios_reset();
-	tom_reset();
-	jerry_reset();
-	gpu_reset();
-	DSPReset();
-	cdrom_reset();
-    m68k_pulse_reset();                         // Reset the 68000
-	WriteLog("\t68K PC=%06X SP=%08X\n", m68k_get_reg(NULL, M68K_REG_PC), m68k_get_reg(NULL, M68K_REG_A7));
-}
-
 //
 // Main Jaguar execution loop (1 frame)
 //
@@ -1061,6 +1160,8 @@ void JaguarExecute(int16 * backbuffer, bool render)
 {
 	uint16 vp = TOMReadWord(0xF0003E) + 1;//Hmm. This is a WO register. Will work? Looks like. But wrong behavior!
 	uint16 vi = TOMReadWord(0xF0004E);//Another WO register...
+//Using WO registers is OK, since we're the ones controlling access--there's nothing wrong here! ;-)
+
 //	uint16 vdb = TOMReadWord(0xF00046);
 //Note: This is the *definite* end of the display, though VDE *might* be less than this...
 //	uint16 vbb = TOMReadWord(0xF00040);
@@ -1079,14 +1180,12 @@ void JaguarExecute(int16 * backbuffer, bool render)
 	TOMResetBackbuffer(backbuffer);
 /*extern int effect_start;
 if (effect_start)
-{
-	WriteLog("JagExe: VP=%u, VI=%u, CPU CPS=%u, GPU CPS=%u\n", vp, vi, M68KCyclesPerScanline, RISCCyclesPerScanline);
-}//*/
+	WriteLog("JagExe: VP=%u, VI=%u, CPU CPS=%u, GPU CPS=%u\n", vp, vi, M68KCyclesPerScanline, RISCCyclesPerScanline);//*/
 
 //extern int start_logging;
 	for(uint16 i=0; i<vp; i++)
 	{
-		// Increment the horizontal count (why? RNG?)
+		// Increment the horizontal count (why? RNG? Besides which, this is *NOT* cycle accurate!)
 		TOMWriteWord(0xF00004, (TOMReadWord(0xF00004) + 1) & 0x7FF);
 
 		TOMWriteWord(0xF00006, i);					// Write the VC
@@ -1095,28 +1194,17 @@ if (effect_start)
 //Not sure if this is correct...
 //Seems to be, kinda. According to the JTRM, this should only fire on odd lines in non-interlace mode...
 //Which means that it normally wouldn't go when it's zero.
-		if (i == vi && i > 0)						// Time for Vertical Interrupt?
+		if (i == vi && i > 0 && tom_irq_enabled(IRQ_VBLANK))	// Time for Vertical Interrupt?
 		{
-			if (tom_irq_enabled(IRQ_VBLANK))// && jaguar_interrupt_handler_is_valid(64))
-			{
-				// We don't have to worry about autovectors & whatnot because the Jaguar
-				// tells you through its HW registers who sent the interrupt...
-				tom_set_pending_video_int();
-				m68k_set_irq(7);
-			}
+			// We don't have to worry about autovectors & whatnot because the Jaguar
+			// tells you through its HW registers who sent the interrupt...
+			tom_set_pending_video_int();
+			m68k_set_irq(7);
 		}
 
-//		uint32 invalid_instruction_address = s68000exec(M68KCyclesPerScanline);
-//		if (invalid_instruction_address != 0x80000000)
-//			cd_bios_process(invalid_instruction_address);
 //if (start_logging)
 //	WriteLog("About to execute M68K (%u)...\n", i);
 		m68k_execute(M68KCyclesPerScanline);
-		// No CD handling... !!! FIX !!!
-		//This isn't the right to go about it anyway.
-//if (start_logging)
-//	WriteLog("About to execute CD BIOS (%u)...\n", i);
-//		cd_bios_exec(i);	// NOTE: Ignores parameter...
 //if (start_logging)
 //	WriteLog("About to execute TOM's PIT (%u)...\n", i);
 		TOMExecPIT(RISCCyclesPerScanline);
@@ -1126,16 +1214,19 @@ if (effect_start)
 //if (start_logging)
 //	WriteLog("About to execute JERRY's SSI (%u)...\n", i);
 		jerry_i2s_exec(RISCCyclesPerScanline);
+		BUTCHExec(RISCCyclesPerScanline);
 //if (start_logging)
 //	WriteLog("About to execute GPU (%u)...\n", i);
 		gpu_exec(RISCCyclesPerScanline);
 
 		if (vjs.DSPEnabled)
+		{
 			if (vjs.usePipelinedDSP)
 				DSPExecP2(RISCCyclesPerScanline);	// Pipelined DSP execution (3 stage)...
 			else
 				DSPExec(RISCCyclesPerScanline);		// Ordinary non-pipelined DSP
 //			DSPExecComp(RISCCyclesPerScanline);		// Comparison core
+		}
 
 //if (start_logging)
 //	WriteLog("About to execute OP (%u)...\n", i);
