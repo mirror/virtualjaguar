@@ -1,6 +1,11 @@
 Virtual Jaguar v1.0.7 GCC/SDL
 -----------------------------
 
+* Various fixes to make for smoother compilation on MacOS. [Adam Green]
+* Fixes to filetype parsing. VJ now properly recognizes .abs, .jag, .rom,
+  and .j64 files--be sure to check the README for the gory details! [Shamus]
+* Added a kludge to allow homebrew demos to run without a Stubulator ROM and
+  without crashing the emulator. [Shamus]
 * Fixed a blitter intensity addition problem. This fixes the title in Hover
   Strike and the road/shadows in Checkered Flag. [Shamus]
 * Partially fixed a problem with the SUBC opcode in the RISC processors. This

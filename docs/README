@@ -20,8 +20,8 @@ images. You may only use the ROM images if you own the cartridges itself. The
 use of Commercial ROMs without owning the original cartridge is illegal in
 most countries and could result in fines and/or legal actions.
 
-This software is released under the GPL license. For more information I direct
-you to the GPL.TXT. You may hack/change the code anyway you like. You may not
+This software is released under the GPL. For more information I direct you to
+the GPL.TXT. You may hack/change the code anyway you like. You may not
 commercially sell this software. If you make changes, release the source code
 to the public and send the changes you made to the original authors. 
 
@@ -69,7 +69,7 @@ The fourth type, the .bin file, is simply a Jaguar executable with no header.
 Since these files contain no information about where they load and execute,
 Virtual Jaguar does not support this file type. Go bug the author to release
 either a file with headers or a file in Alpine ROM format. Virtual Jaguar is
-not omniscient! ;-)
+not omniscient! ;)
 
 There is a fifth type of file that is supported by Virtual Jaguar, the .j64
 file, which is simply a 1, 2, or 4 Meg dump of a Jaguar cartridge ROM which
@@ -82,7 +82,7 @@ loads at $800000 in the Jaguar memory space.
 Virtual Jaguar is software dedicated to emulating the Atari Jaguar hardware on
 a standard PC. The software was originally developed by David Raingeard of
 Potato Emulation [http://potato.emu-france.com] and was released under the GPL
-license on 25 June 2003. 
+on 25 June 2003. 
 
 Virtual Jaguar GCC/SDL is not only a port of the MS Visual C++/SDL sourcecode
 but has also been extended and rewritten so that we can enjoy Atari Jaguar
@@ -154,6 +154,20 @@ to change the key layout, simply edit the vj.cfg file and change the keys. :)
 NOTE: There are quite a few keys mapped to debugging functions at present. You
 have been warned!
 
+-------------------
+- A note on sound -
+-------------------
+
+By default, the Virtual Jaguar's DSP is turned off, since it doesn't work very
+well at present (it requires a lot of horsepower to sound decent at this
+point!). In order to hear any sound at all, you have to either edit the vj.cfg
+file and change the appropriate line or set the DSP on in the GUI (found under
+Settings|Misc). One word of caution: Use the old DSP core instead of the new
+pipelined version for now--the new pipelined DSP core has not yet been
+optimized and runs quite slow at present! Once the DSP issues have been ironed
+out, it will be turned on by default and you won't have to deal with it
+anymore. ;)
+
 -----------
 - Finally -
 -----------
@@ -165,7 +179,7 @@ More information about this project (releases/WIP) can be found at the official
 Virtual Jaguar website [http://www.icculus.org/virtualjaguar] and on the SDLEMU
 website [http://sdlemu.ngemu.com].
 
-I hope you enjoy the emulator and will use it wisely! 
+We hope you enjoy the emulator and will use it wisely! 
 
 Special thanks go to guys over at ngemu.com and #ngemu (EFNET). Thanks also to
 David Raingeard of Potato Emulation who originally developed this emulator and
