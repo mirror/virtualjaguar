@@ -41,14 +41,14 @@ bool specialLog = false;
 #define INTENSITYINC	((UINT32)0x70)
 #define ZINC			((UINT32)0x74)
 #define COLLISIONCTRL	((UINT32)0x78)
-#define PHRASEINT3		((UINT32)0x7C)
-#define PHRASEINT2		((UINT32)0x80)
-#define PHRASEINT1		((UINT32)0x84)
-#define PHRASEINT0		((UINT32)0x88)
-#define PHRASEZ3		((UINT32)0x8C)
-#define PHRASEZ2		((UINT32)0x90)
-#define PHRASEZ1		((UINT32)0x94)
-#define PHRASEZ0		((UINT32)0x98)
+#define PHRASEINT0		((UINT32)0x7C)
+#define PHRASEINT1		((UINT32)0x80)
+#define PHRASEINT2		((UINT32)0x84)
+#define PHRASEINT3		((UINT32)0x88)
+#define PHRASEZ0		((UINT32)0x8C)
+#define PHRASEZ1		((UINT32)0x90)
+#define PHRASEZ2		((UINT32)0x94)
+#define PHRASEZ3		((UINT32)0x98)
 
 // Blitter command bits
 
@@ -244,7 +244,7 @@ static uint8 blitter_ram[0x100];
 // as a floating point bit pattern being followed by a number of zeroes. So, e.g., 001101 translates to
 // 1.01 (the "1." being implied) x (2 ^ 3) or 1010 -> 10 in base 10 (i.e., 1.01 with the decimal place
 // being shifted to the right 3 places).
-static uint32 blitter_scanline_width[48] = 
+/*static uint32 blitter_scanline_width[48] = 
 {             
      0,    0,    0,    0,					// Note: This would really translate to 1, 1, 1, 1
      2,    0,    0,    0,
@@ -258,7 +258,7 @@ static uint32 blitter_scanline_width[48] =
    512,  640,  768,  896,
   1024, 1280, 1536, 1792,
   2048, 2560, 3072, 3584
-};
+};//*/
 
 //static uint8 * tom_ram_8;
 //static uint8 * paletteRam;
@@ -459,6 +459,15 @@ Blit! (000B8250 <- 0012C3A0) count: 16 x 1, A1/2_FLAGS: 00014420/00012000 [cmd: 
 				// compute the write data and store
 				if (!inhibit)
 				{			
+// Houston, we have a problem...
+// Look here, at PATDSEL and GOURD. If both are active (as they are on the BIOS intro), then there's
+// a conflict! E.g.:
+//Blit! (00100000 <- 000095D0) count: 3 x 1, A1/2_FLAGS: 00014220/00004020 [cmd: 00011008]
+// CMD -> src:  dst: DSTEN  misc:  a1ctl:  mode: GOURD  ity: PATDSEL z-op:  op: LFU_CLEAR ctrl: 
+//  A1 -> pitch: 1 phrases, depth: 16bpp, z-off: 0, width: 320 (21), addctl: XADDPIX YADD0 XSIGNADD YSIGNADD
+//  A2 -> pitch: 1 phrases, depth: 16bpp, z-off: 0, width: 256 (20), addctl: XADDPHR YADD0 XSIGNADD YSIGNADD
+//        A1 x/y: 90/171, A2 x/y: 808/0 Pattern: 776D770077007700
+
 					if (PATDSEL)
 					{
 						// use pattern data for write data
@@ -483,6 +492,7 @@ Blit! (000B8250 <- 0012C3A0) count: 16 x 1, A1/2_FLAGS: 00014420/00012000 [cmd: 
 						if (LFU_A) 	 writedata |= srcdata  & dstdata;
 					}
 
+//Although, this looks like it's OK... (even if it is shitty!)
 					if (GOURD) 
 						writedata = ((gd_c[colour_index]) << 8) | (gd_i[colour_index] >> 16);
 
@@ -672,6 +682,7 @@ Blit! (000B8250 <- 0012C3A0) count: 16 x 1, A1/2_FLAGS: 00014420/00012000 [cmd: 
 }//*/
 					// write to the destination
 					WRITE_PIXEL(a2, REG(A2_FLAGS), writedata);
+
 					if (DSTWRZ)
 						WRITE_ZDATA(a2, REG(A2_FLAGS), srczdata);
 				}
@@ -689,11 +700,25 @@ Blit! (000B8250 <- 0012C3A0) count: 16 x 1, A1/2_FLAGS: 00014420/00012000 [cmd: 
 			if (GOURD || SRCSHADE)
 			{
 				gd_i[colour_index] += gd_ia;
+//Hmm, this doesn't seem to do anything...
+//But it is correct according to the JTRM...!
+if ((int32)gd_i[colour_index] < 0)
+	gd_i[colour_index] = 0;
+if (gd_i[colour_index] > 0x00FFFFFF)
+	gd_i[colour_index] = 0x00FFFFFF;//*/
+
 				gd_c[colour_index] += gd_ca;
+if ((int32)gd_c[colour_index] < 0)
+	gd_c[colour_index] = 0;
+if (gd_c[colour_index] > 0x000000FF)
+	gd_c[colour_index] = 0x000000FF;//*/
 			}
+
 			if (GOURD || SRCSHADE || GOURZ)
 			{
 				if (a1_phrase_mode)
+//This screws things up WORSE (for the BIOS opening screen)
+//				if (a1_phrase_mode || a2_phrase_mode)
 					colour_index = (colour_index + 1) & 0x03;
 			}
 		}
@@ -942,45 +967,61 @@ WriteLog("BLIT: Asked to use invalid bit combo (XADDINC) for A2...\n");
 	a2_psize = 1 << ((REG(A2_FLAGS) >> 3) & 0x07);
 	a1_psize = 1 << ((REG(A1_FLAGS) >> 3) & 0x07);
 
-	// zbuffering
+	// Z-buffering
 	if (GOURZ)
 	{
-		zadd = JaguarReadLong(0xF02274, BLITTER);
+//		zadd = JaguarReadLong(0xF02274, BLITTER);
+		zadd = REG(ZINC);
 
-		for(int v=0; v<4; v++) 
-			z_i[v] = (int32)JaguarReadLong(0xF0228C + (v << 2), BLITTER);
+		for(int v=0; v<4; v++)
+//			z_i[v] = (int32)JaguarReadLong(0xF0228C + (v << 2), BLITTER);
+			z_i[v] = REG(PHRASEZ0 + v*4);
 	}
+
+	// Gouraud shading
 	if (GOURD || GOURZ || SRCSHADE)
 	{
-		// gouraud shading
-		gouraud_add = JaguarReadLong(0xF02270, BLITTER);
-		
-		gd_c[0]	= JaguarReadByte(0xF02268, BLITTER);
+/*		gd_c[0]	= JaguarReadByte(0xF02268, BLITTER);
 		gd_i[0]	= JaguarReadByte(0xF02269, BLITTER);
 		gd_i[0] <<= 16;
-		gd_i[0] |= JaguarReadWord(0xF02240, BLITTER);
+		gd_i[0] |= JaguarReadWord(0xF02240, BLITTER);//*/
+		gd_c[0] = blitter_ram[PATTERNDATA + 0];
+		gd_i[0]	= ((uint32)blitter_ram[PATTERNDATA + 1] << 16)
+			| ((uint32)blitter_ram[SRCDATA + 0] << 8) | blitter_ram[SRCDATA + 1];
 
-		gd_c[1]	= JaguarReadByte(0xF0226A, BLITTER);
+/*		gd_c[1]	= JaguarReadByte(0xF0226A, BLITTER);
 		gd_i[1]	= JaguarReadByte(0xF0226B, BLITTER);
 		gd_i[1] <<= 16;
-		gd_i[1] |= JaguarReadWord(0xF02242, BLITTER);
+		gd_i[1] |= JaguarReadWord(0xF02242, BLITTER);//*/
+		gd_c[1] = blitter_ram[PATTERNDATA + 2];
+		gd_i[1]	= ((uint32)blitter_ram[PATTERNDATA + 3] << 16)
+			| ((uint32)blitter_ram[SRCDATA + 2] << 8) | blitter_ram[SRCDATA + 3];
 
-		gd_c[2]	= JaguarReadByte(0xF0226C, BLITTER);
+/*		gd_c[2]	= JaguarReadByte(0xF0226C, BLITTER);
 		gd_i[2]	= JaguarReadByte(0xF0226D, BLITTER);
 		gd_i[2] <<= 16;
-		gd_i[2] |= JaguarReadWord(0xF02244, BLITTER);
+		gd_i[2] |= JaguarReadWord(0xF02244, BLITTER);//*/
+		gd_c[2] = blitter_ram[PATTERNDATA + 4];
+		gd_i[2]	= ((uint32)blitter_ram[PATTERNDATA + 5] << 16)
+			| ((uint32)blitter_ram[SRCDATA + 4] << 8) | blitter_ram[SRCDATA + 5];
 
-		gd_c[3]	= JaguarReadByte(0xF0226E, BLITTER);
+/*		gd_c[3]	= JaguarReadByte(0xF0226E, BLITTER);
 		gd_i[3]	= JaguarReadByte(0xF0226F, BLITTER);
 		gd_i[3] <<= 16; 
-		gd_i[3] |= JaguarReadWord(0xF02246, BLITTER);
+		gd_i[3] |= JaguarReadWord(0xF02246, BLITTER);//*/
+		gd_c[3] = blitter_ram[PATTERNDATA + 6];
+		gd_i[3]	= ((uint32)blitter_ram[PATTERNDATA + 7] << 16)
+			| ((uint32)blitter_ram[SRCDATA + 6] << 8) | blitter_ram[SRCDATA + 7];
 
-		gd_ia = gouraud_add & 0xFFFFFF;
-		if (gd_ia & 0x800000)
+//		gouraud_add = JaguarReadLong(0xF02270, BLITTER);
+		gouraud_add = REG(INTENSITYINC);
+		
+		gd_ia = gouraud_add & 0x00FFFFFF;
+		if (gd_ia & 0x00800000)
 			gd_ia = 0xFF000000 | gd_ia;
 
-		gd_ca = (gouraud_add>>24) & 0xFF;
-		if (gd_ca & 0x80)
+		gd_ca = (gouraud_add >> 24) & 0xFF;
+		if (gd_ca & 0x00000080)
 			gd_ca = 0xFFFFFF00 | gd_ca;
 	}
 
@@ -996,70 +1037,6 @@ WriteLog("BLIT: Asked to use invalid bit combo (XADDINC) for A2...\n");
 
 		if (a2_step_x < 0)
 			a2_step_x = (-n_pixels) * 65536;;
-	}
-	else
-	// fix for wolfenstein 3d
-	if (jaguar_mainRom_crc32==0x3966698f)
-	{
-		if (n_pixels==24)
-		{
-			if ((a1_step_x / 65536)==-28)
-			{
-				a1_step_x=-24*65536; // au lieu de -28
-				a2_step_x=  0*65536; // au lieu de -8
-			}
-		}
-	} 
-	else
-	// fix for Tempest 2000
-	if (jaguar_mainRom_crc32==0x32816d44)
-	{
-
-		if ((n_lines!=1)&&((n_pixels==288)||(n_pixels==384)))
-		{
-			WriteLog("Blit!\n");
-			WriteLog("  cmd      = 0x%.8x\n",cmd);
-			WriteLog("  a1_base  = %08X\n", a1_addr);
-			WriteLog("  a1_pitch = %d\n", a1_pitch);
-			WriteLog("  a1_psize = %d\n", a1_psize);
-			WriteLog("  a1_width = %d\n", a1_width);
-			WriteLog("  a1_xadd  = %f (phrase=%d)\n", (float)a1_xadd / 65536.0, a1_phrase_mode);
-			WriteLog("  a1_yadd  = %f\n", (float)a1_yadd / 65536.0);
-			WriteLog("  a1_xstep = %f\n", (float)a1_step_x / 65536.0);
-			WriteLog("  a1_ystep = %f\n", (float)a1_step_y / 65536.0);
-			WriteLog("  a1_x     = %f\n", (float)a1_x / 65536.0);
-			WriteLog("  a1_y     = %f\n", (float)a1_y / 65536.0);
-			WriteLog("  a1_zoffs = %i\n",a1_zoffs);
-
-			WriteLog("  a2_base  = %08X\n", a2_addr);
-			WriteLog("  a2_pitch = %d\n", a2_pitch);
-			WriteLog("  a2_psize = %d\n", a2_psize);
-			WriteLog("  a2_width = %d\n", a2_width);
-			WriteLog("  a2_xadd  = %f (phrase=%d)\n", (float)a2_xadd / 65536.0, a2_phrase_mode);
-			WriteLog("  a2_yadd  = %f\n", (float)a2_yadd / 65536.0);
-			WriteLog("  a2_xstep = %f\n", (float)a2_step_x / 65536.0);
-			WriteLog("  a2_ystep = %f\n", (float)a2_step_y / 65536.0);
-			WriteLog("  a2_x     = %f\n", (float)a2_x / 65536.0);
-			WriteLog("  a2_y     = %f\n", (float)a2_y / 65536.0);
-			WriteLog("  a2_mask_x= 0x%.4x\n",a2_mask_x);
-			WriteLog("  a2_mask_y= 0x%.4x\n",a2_mask_y);
-			WriteLog("  a2_zoffs = %i\n",a2_zoffs);
-
-			WriteLog("  count    = %d x %d\n", n_pixels, n_lines);
-
-			WriteLog("  command  = %08X\n", cmd);
-			WriteLog("  dsten    = %i\n",DSTEN);
-			WriteLog("  srcen    = %i\n",SRCEN);
-			WriteLog("  patdsel  = %i\n",PATDSEL);
-			WriteLog("  color    = 0x%.8x\n",REG(PATTERNDATA));
-			WriteLog("  dcompen  = %i\n",DCOMPEN);
-			WriteLog("  bcompen  = %i\n",BCOMPEN);
-			WriteLog("  cmpdst   = %i\n",CMPDST);
-			WriteLog("  GOURZ    = %i\n",GOURZ);
-			WriteLog("  GOURD    = %i\n",GOURD);
-			WriteLog("  SRCSHADE = %i\n",SRCSHADE);
-			WriteLog("  DSTDATA  = 0x%.8x%.8x\n",REG(DSTDATA),REG(DSTDATA+4));
-		}	
 	}//*/
 
 #ifdef LOG_BLITS
@@ -1209,16 +1186,16 @@ Blit! (00110000 <- 0010B2A8) count: 12 x 12, A1/2_FLAGS: 000042E2/00000020 [cmd:
 
 */
 extern int blit_start_log;
-extern int op_start_log;
+//extern int op_start_log;
 if (blit_start_log)
 {
 	char * ctrlStr[4] = { "XADDPHR\0", "XADDPIX\0", "XADD0\0", "XADDINC\0" };
 	char * bppStr[8] = { "1bpp\0", "2bpp\0", "4bpp\0", "8bpp\0", "16bpp\0", "32bpp\0", "???\0", "!!!\0" };
 	char * opStr[16] = { "LFU_CLEAR", "LFU_NSAND", "LFU_NSAD", "LFU_NOTS", "LFU_SAND", "LFU_NOTD", "LFU_N_SXORD", "LFU_NSORND",
 		"LFU_SAD", "LFU_XOR", "LFU_D", "LFU_NSORD", "LFU_REPLACE", "LFU_SORND", "LFU_SORD", "LFU_ONE" };
-	uint32 src = cmd & 0x07, dst = (cmd >> 3) & 0x07, misc = (cmd >> 6) & 0x03,
-		a1ctl = (cmd >> 8) & 0x07, mode = (cmd >> 11) & 0x07, ity = (cmd >> 14) & 0x0F,
-		zop = (cmd >> 18) & 0x07, op = (cmd >> 21) & 0x0F, ctrl = (cmd >> 25) & 0x3F;
+	uint32 /*src = cmd & 0x07, dst = (cmd >> 3) & 0x07, misc = (cmd >> 6) & 0x03,
+		a1ctl = (cmd >> 8) & 0x07,*/ mode = (cmd >> 11) & 0x07/*, ity = (cmd >> 14) & 0x0F,
+		zop = (cmd >> 18) & 0x07, op = (cmd >> 21) & 0x0F, ctrl = (cmd >> 25) & 0x3F*/;
 	UINT32 a1f = REG(A1_FLAGS), a2f = REG(A2_FLAGS);
 	uint32 p1 = a1f & 0x07, p2 = a2f & 0x07,
 		d1 = (a1f >> 3) & 0x07, d2 = (a2f >> 3) & 0x07,
@@ -1248,7 +1225,7 @@ if (blit_start_log)
 
 	WriteLog("  A1 -> pitch: %d phrases, depth: %s, z-off: %d, width: %d (%02X), addctl: %s %s %s %s\n", 1 << p1, bppStr[d1], zo1, iw1, w1, ctrlStr[ac1&0x03], (ac1&0x04 ? "YADD1" : "YADD0"), (ac1&0x08 ? "XSIGNSUB" : "XSIGNADD"), (ac1&0x10 ? "YSIGNSUB" : "YSIGNADD"));
 	WriteLog("  A2 -> pitch: %d phrases, depth: %s, z-off: %d, width: %d (%02X), addctl: %s %s %s %s\n", 1 << p2, bppStr[d2], zo2, iw2, w2, ctrlStr[ac2&0x03], (ac2&0x04 ? "YADD1" : "YADD0"), (ac2&0x08 ? "XSIGNSUB" : "XSIGNADD"), (ac2&0x10 ? "YSIGNSUB" : "YSIGNADD"));
-	WriteLog("        A1 x/y: %d/%d, A2 x/y: %d/%d\n", a1_x >> 16, a1_y >> 16, a2_x >> 16, a2_y >> 16);
+	WriteLog("        A1 x/y: %d/%d, A2 x/y: %d/%d Pattern: %08X%08X\n", a1_x >> 16, a1_y >> 16, a2_x >> 16, a2_y >> 16, REG(PATTERNDATA), REG(PATTERNDATA + 4));
 //	blit_start_log = 0;
 //	op_start_log = 1;
 }
@@ -1301,8 +1278,10 @@ uint8 BlitterReadByte(uint32 offset, uint32 who/*=UNKNOWN*/)
 
 //Attempted fix for AvP:
 	if (offset >= 0x04 && offset <= 0x07)
-		return (offset > 0x05 ? blitter_ram[PIXLINECOUNTER + offset - 0x04] : 0x00);
+//		return (offset > 0x05 ? blitter_ram[PIXLINECOUNTER + offset - 0x04] : 0x00);
 //		return 0x00;	// WO register! What does it expect to see here???
+//This is it. I wonder if it just ignores the lower three bits?
+		return blitter_ram[A1_PIXEL + offset - 0x04];
 
 	return blitter_ram[offset];
 }
@@ -1326,32 +1305,53 @@ void BlitterWriteByte(uint32 offset, uint8 data, uint32 who/*=UNKNOWN*/)
 	offset &= 0xFF;
 
 //	if ((offset >= 0x7C) && (offset <= 0x9B))
-	if ((offset >= 0x7C) && (offset <= 0x8B))
+	// This handles writes to INTENSITY0-3 by also writing them to their proper places in
+	// PATTERNDATA & SOURCEDATA (should do the same for the Z registers! !!! FIX !!! [DONE])
+	if ((offset >= 0x7C) && (offset <= 0x9B))//8B))
 	{
 		switch (offset)
 		{
+		// INTENSITY registers 0-3
 		case 0x7C: break;
-		case 0x7D: blitter_ram[0x69] = data; break;
-		case 0x7E: blitter_ram[0x40] = data; break;
-		case 0x7F: blitter_ram[0x41] = data; break;
+		case 0x7D: blitter_ram[PATTERNDATA + 1] = data; break;
+		case 0x7E: blitter_ram[SRCDATA + 0] = data; break;
+		case 0x7F: blitter_ram[SRCDATA + 1] = data; break;
 
 		case 0x80: break;
-		case 0x81: blitter_ram[0x6B] = data; break;
-		case 0x82: blitter_ram[0x42] = data; break;
-		case 0x83: blitter_ram[0x43] = data; break;
+		case 0x81: blitter_ram[PATTERNDATA + 3] = data; break;
+		case 0x82: blitter_ram[SRCDATA + 2] = data; break;
+		case 0x83: blitter_ram[SRCDATA + 3] = data; break;
 		
 		case 0x84: break;
-		case 0x85: blitter_ram[0x6D] = data; break;
-		case 0x86: blitter_ram[0x44] = data; break;
-		case 0x87: blitter_ram[0x45] = data; break;
+		case 0x85: blitter_ram[PATTERNDATA + 5] = data; break;
+		case 0x86: blitter_ram[SRCDATA + 4] = data; break;
+		case 0x87: blitter_ram[SRCDATA + 5] = data; break;
 		
 		case 0x88: break;
-		case 0x89: blitter_ram[0x6F] = data; break;
-//Mistyped?
-//		case 0x9A: blitter_ram[0x46] = data; break;
-//		case 0x9B: blitter_ram[0x47] = data; break;
-		case 0x8A: blitter_ram[0x46] = data; break;
-		case 0x8B: blitter_ram[0x47] = data; break;
+		case 0x89: blitter_ram[PATTERNDATA + 7] = data; break;
+		case 0x8A: blitter_ram[SRCDATA + 6] = data; break;
+		case 0x8B: blitter_ram[SRCDATA + 7] = data; break;
+
+		// Z registers 0-3
+		case 0x8C: blitter_ram[SRCZINT + 0] = data; break;
+		case 0x8D: blitter_ram[SRCZINT + 1] = data; break;
+		case 0x8E: blitter_ram[SRCZFRAC + 0] = data; break;
+		case 0x8F: blitter_ram[SRCZFRAC + 1] = data; break;
+
+		case 0x90: blitter_ram[SRCZINT + 2] = data; break;
+		case 0x91: blitter_ram[SRCZINT + 3] = data; break;
+		case 0x92: blitter_ram[SRCZFRAC + 2] = data; break;
+		case 0x93: blitter_ram[SRCZFRAC + 3] = data; break;
+		
+		case 0x94: blitter_ram[SRCZINT + 4] = data; break;
+		case 0x95: blitter_ram[SRCZINT + 5] = data; break;
+		case 0x96: blitter_ram[SRCZFRAC + 4] = data; break;
+		case 0x97: blitter_ram[SRCZFRAC + 5] = data; break;
+		
+		case 0x98: blitter_ram[SRCZINT + 6] = data; break;
+		case 0x99: blitter_ram[SRCZINT + 7] = data; break;
+		case 0x9A: blitter_ram[SRCZFRAC + 6] = data; break;
+		case 0x9B: blitter_ram[SRCZFRAC + 7] = data; break;
 		}
 	}
 
@@ -1381,7 +1381,16 @@ doGPUDis = true;
 	if ((offset & 0xFF) == 0x3A)
 	// I.e., the second write of 32-bit value--not convinced this is the best way to do this!
 	// But then again, according to the Jaguar docs, this is correct...!
+{
+/*extern int blit_start_log;
+extern bool doGPUDis;
+if (blit_start_log)
+{
+	WriteLog("BLIT: Blitter started by %s...\n", whoName[who]);
+	doGPUDis = true;
+}//*/
 		blitter_blit(GET32(blitter_ram, 0x38));
+}
 }
 //F02278,9,A,B
 
