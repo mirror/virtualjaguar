@@ -1,7 +1,7 @@
 //
 // DSP core
 //
-// Original source by David Raingeard
+// Originally by David Raingeard
 // GCC/SDL port by Niels Wagenaar (Linux/WIN32) and Caz (BeOS)
 // Extensive cleanups/rewrites by James L. Hammons
 //
@@ -782,6 +782,29 @@ SET32(ram2, offset, data);
 #ifdef DSP_DEBUG_IRQ
 			}
 #endif//*/
+#if 0
+			if (/*4-8, 16*/data & 0x101F0)
+				WriteLog("DSP: %s is enabling interrupts %s%s%s%s%s%s\n", whoName[who],
+					(data & 0x010 ? "CPU " : ""), (data & 0x020 ? "I2S " : ""),
+					(data & 0x040 ? "TIMER0 " : ""), (data & 0x080 ? "TIMER1 " : ""),
+					(data & 0x100 ? "EXT0 " : ""), (data & 0x10000 ? "EXT1" : ""));
+/*if (data & 0x00020) // CD BIOS DSP code...
+{
+//001AC1BA: movea.l #$1AC200, A0
+//001AC1C0: move.l  #$1AC68C, D0
+	char buffer[512];
+
+	WriteLog("\n---[DSP code at 00F1B97C]---------------------------\n");
+	uint32 j = 0xF1B97C;//0x1AC200;
+	while (j <= 0xF1BE08)//0x1AC68C)
+	{
+		uint32 oldj = j;
+		j += dasmjag(JAGUAR_DSP, buffer, j);
+//		WriteLog("\t%08X: %s\n", oldj+0xD6F77C, buffer);
+		WriteLog("\t%08X: %s\n", oldj, buffer);
+	}
+}//*/
+#endif
 			break;
 		}
 		case 0x04:
@@ -809,9 +832,9 @@ if (who != DSP)
 			break;
 		case 0x14:
 		{	
-#ifdef DSP_DEBUG
+//#ifdef DSP_DEBUG
 WriteLog("Write to DSP CTRL by %s: %08X\n", whoName[who], data);
-#endif
+//#endif
 			bool wasRunning = DSP_RUNNING;
 //			uint32 dsp_was_running = DSP_RUNNING;
 			// Check for DSP -> CPU interrupt
@@ -1193,6 +1216,11 @@ DSPHandleIRQsNP();
 #endif
 //!!!!!!!!
 	}
+
+	// Not sure if this is correct behavior, but according to JTRM,
+	// the IRQ output of JERRY is fed to this IRQ in the GPU...
+// Not sure this is right--DSP interrupts seem to be different from the JERRY interrupts!
+//	GPUSetIRQLine(GPUIRQ_DSP, ASSERT_LINE);
 }
 
 void DSPInit(void)
@@ -1285,7 +1313,7 @@ void DSPDone(void)
 	WriteLog("\nRegisters bank 0\n");
 	for(int j=0; j<8; j++)
 	{
-		WriteLog("\tr%2i=0x%.8x r%2i=0x%.8x r%2i=0x%.8x r%2i=0x%.8x\n",
+		WriteLog("\tR%02i=%08X R%02i=%08X R%02i=%08X R%02i=%08X\n",
 						  (j << 2) + 0, dsp_reg_bank_0[(j << 2) + 0],
 						  (j << 2) + 1, dsp_reg_bank_0[(j << 2) + 1],
 						  (j << 2) + 2, dsp_reg_bank_0[(j << 2) + 2],
@@ -1294,7 +1322,7 @@ void DSPDone(void)
 	WriteLog("\nRegisters bank 1\n");
 	for (j=0; j<8; j++)
 	{
-		WriteLog("\tr%2i=0x%.8x r%2i=0x%.8x r%2i=0x%.8x r%2i=0x%.8x\n",
+		WriteLog("\tR%02i=%08X R%02i=%08X R%02i=%08X R%02i=%08X\n",
 						  (j << 2) + 0, dsp_reg_bank_1[(j << 2) + 0],
 						  (j << 2) + 1, dsp_reg_bank_1[(j << 2) + 1],
 						  (j << 2) + 2, dsp_reg_bank_1[(j << 2) + 2],
@@ -1878,13 +1906,13 @@ static void dsp_opcode_not(void)
 {
 #ifdef DSP_DIS_NOT
 	if (doDSPDis)
-		WriteLog("%06X: NOT    R%02u, R%02u [NCZ:%u%u%u, R%02u=%08X, R%02u=%08X] -> ", dsp_pc-2, IMM_1, IMM_2, dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_1, RM, IMM_2, RN);
+		WriteLog("%06X: NOT    R%02u [NCZ:%u%u%u, R%02u=%08X] -> ", dsp_pc-2, IMM_2, dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_2, RN);
 #endif
 	RN = ~RN;
 	SET_ZN(RN);
 #ifdef DSP_DIS_NOT
 	if (doDSPDis)
-		WriteLog("[NCZ:%u%u%u, R%02u=%08X, R%02u=%08X]\n", dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_1, RM, IMM_2, RN);
+		WriteLog("[NCZ:%u%u%u, R%02u=%08X]\n", dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_2, RN);
 #endif
 }
 
@@ -4172,13 +4200,13 @@ static void DSP_not(void)
 {
 #ifdef DSP_DIS_NOT
 	if (doDSPDis)
-		WriteLog("%06X: NOT    R%02u, R%02u [NCZ:%u%u%u, R%02u=%08X, R%02u=%08X] -> ", DSP_PPC, PIMM1, PIMM2, dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM1, PRM, PIMM2, PRN);
+		WriteLog("%06X: NOT    R%02u [NCZ:%u%u%u, R%02u=%08X] -> ", DSP_PPC, PIMM2, dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM2, PRN);
 #endif
 	PRES = ~PRN;
 	SET_ZN(PRES);
 #ifdef DSP_DIS_NOT
 	if (doDSPDis)
-		WriteLog("[NCZ:%u%u%u, R%02u=%08X, R%02u=%08X]\n", dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM1, PRM, PIMM2, PRES);
+		WriteLog("[NCZ:%u%u%u, R%02u=%08X]\n", dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM2, PRES);
 #endif
 }
 
