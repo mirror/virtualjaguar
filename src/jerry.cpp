@@ -289,7 +289,7 @@ void JERRYExecPIT(uint32 cycles)
 
 void jerry_init(void)
 {
-	clock_init();
+//	clock_init();
 	anajoy_init();
 	joystick_init();
 	DACInit();
@@ -301,7 +301,7 @@ void jerry_init(void)
 
 void jerry_reset(void)
 {
-	clock_reset();
+//	clock_reset();
 	anajoy_reset();
 	joystick_reset();
 	eeprom_reset();
@@ -321,7 +321,7 @@ void jerry_done(void)
 {
 	WriteLog("JERRY: M68K Interrupt control ($F10020) = %04X\n", GET16(jerry_ram_8, 0x20));
 	memory_free(jerry_ram_8);
-	clock_done();
+//	clock_done();
 	anajoy_done();
 	joystick_done();
 	DACDone();
@@ -399,8 +399,8 @@ uint8 JERRYReadByte(uint32 offset, uint32 who/*=UNKNOWN*/)
 			return counter2Lo & 0xFF;
 		}
 	}
-	else if (offset >= 0xF10010 && offset <= 0xF10015)
-		return clock_byte_read(offset);
+//	else if (offset >= 0xF10010 && offset <= 0xF10015)
+//		return clock_byte_read(offset);
 	else if (offset >= 0xF17C00 && offset <= 0xF17C01)
 		return anajoy_byte_read(offset);
 	else if (offset >= 0xF14000 && offset <= 0xF14003)
@@ -460,8 +460,8 @@ uint16 JERRYReadWord(uint32 offset, uint32 who/*=UNKNOWN*/)
 		}
 		// Unaligned word reads???
 	}
-	else if ((offset >= 0xF10010) && (offset <= 0xF10015))
-		return clock_word_read(offset);
+//	else if ((offset >= 0xF10010) && (offset <= 0xF10015))
+//		return clock_word_read(offset);
 	else if (offset == 0xF10020)
 		return jerryIntPending;
 	else if ((offset >= 0xF17C00) && (offset <= 0xF17C01))
@@ -555,11 +555,11 @@ void JERRYWriteByte(uint32 offset, uint8 data, uint32 who/*=UNKNOWN*/)
 		}
 		return;
 	}
-	else if ((offset >= 0xF10010) && (offset <= 0xF10015))
+/*	else if ((offset >= 0xF10010) && (offset <= 0xF10015))
 	{
 		clock_byte_write(offset, data);
 		return;
-	}
+	}//*/
 	// JERRY -> 68K interrupt enables/latches (need to be handled!)
 	else if (offset >= 0xF10020 && offset <= 0xF10023)
 	{
@@ -648,11 +648,11 @@ void JERRYWriteWord(uint32 offset, uint16 data, uint32 who/*=UNKNOWN*/)
 		// Need to handle (unaligned) cases???
 		return;
 	}
-	else if (offset >= 0xF10010 && offset < 0xF10016)
+/*	else if (offset >= 0xF10010 && offset < 0xF10016)
 	{
 		clock_word_write(offset, data);
 		return;
-	}
+	}//*/
 	// JERRY -> 68K interrupt enables/latches (need to be handled!)
 	else if (offset >= 0xF10020 && offset <= 0xF10022)
 	{
