@@ -917,10 +917,10 @@ uint32 tom_getVideoModeWidth(void)
 	// To make it easier to make a quasi-fixed display size, we restrict the viewing
 	// area to an arbitrary range of the Horizontal Count.
 	uint16 pwidth = ((GET16(tom_ram_8, VMODE) & PWIDTH) >> 9) + 1;
-//	return (RIGHT_VISIBLE_HC - LEFT_VISIBLE_HC) / pwidth;
+	return (RIGHT_VISIBLE_HC - LEFT_VISIBLE_HC) / pwidth;
 //Temporary, for testing Doom...
-	return (RIGHT_VISIBLE_HC - LEFT_VISIBLE_HC) / (pwidth == 8 ? 4 : pwidth);
-//	return (RIGHT_VISIBLE_HC - LEFT_VISIBLE_HC) / (pwidth == 4 ? 8 : pwidth);
+//	return (RIGHT_VISIBLE_HC - LEFT_VISIBLE_HC) / (pwidth == 8 ? 4 : pwidth);
+////	return (RIGHT_VISIBLE_HC - LEFT_VISIBLE_HC) / (pwidth == 4 ? 8 : pwidth);
 
 // More speculating...
 // According to the JTRM, the number of potential pixels across is given by the
