@@ -902,8 +902,10 @@ if (effect_start)
 		gpu_exec(RISCCyclesPerScanline);
 
 		if (vjs.DSPEnabled)
-//			DSPExec(RISCCyclesPerScanline);			// Ordinary non-pipelined DSP
-			DSPExecP2(RISCCyclesPerScanline);		// Pipelined DSP execution (3 stage)...
+			if (vjs.usePipelinedDSP)
+				DSPExecP2(RISCCyclesPerScanline);	// Pipelined DSP execution (3 stage)...
+			else
+				DSPExec(RISCCyclesPerScanline);		// Ordinary non-pipelined DSP
 //			DSPExecComp(RISCCyclesPerScanline);		// Comparison core
 
 		TOMExecScanline(i, render);
