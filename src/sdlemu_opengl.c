@@ -1,6 +1,6 @@
 /*
  * SDLEMU library - Free sdl related functions library
- * Copyrigh(c) 1999-2002 sdlemu development crew
+ * Copyrigh(c) 1999-2004 sdlemu development crew
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -17,11 +17,25 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
  
-/*
+/*  SDLEMU_OPENGL.C
+    SDLEMU related sources for using OpenGL with SDL.
+    By Niels Wagenaar | http://sdlemu.ngemu.com | shalafi@xs4all.nl
+    
     Version 1.0.001 - 4-10-2004
     
-    - Added support for 16, 24 and 32 bit textures * new *;
-    - Added support for 16, 24 and 32 bit texture rendering *new*;
+    - Added support for 16, 24 and 32 bit textures;
+    - Added support for 16, 24 and 32 bit texture rendering;
+
+    Version 1.0.002 - 6-10-2004
+
+    - Cleaned up a lot of code and removed non functional and absolete code;
+    - Removed sdlemu_resize_texture function because of double code;
+    - Removed the texture creation from the sdlemu_init_opengl;
+    - Added sdlemu_create_texture function to replace the sdlemu_resize_texture function
+      and the texture creation in sdlemu_init_opengl;
+    - Added the usage of OPENGL_16BPP_CORRECT_RGBA for activating the correct 16bpp RGBA masks;
+    - Added the usage of WANT_OPENGL_ALPHA for using ALPHA blending with 32bpp textures;
+    - Added automatic and override texture bpp depth setting (based upon the src surface);
 
 */
 
@@ -43,24 +57,14 @@ static inline int power_of_two(int input)
 	return value;
 }
 
-void sdlemu_init_opengl(SDL_Surface * src, int texturetype, float size, int filter, int src_bpp)
+void sdlemu_init_opengl(SDL_Surface * src, SDL_Surface * dst, int texturetype, int filter, int src_bpp)
 {
-	int w, h;
-	Uint32 rmask, gmask, bmask, amask;
 
-	// We allow the developer to set its own texture bpp. But if the value is NULL or
-	// not equal to 16, 24 or 32, we make the texturebpp the same as the BPP from src.
-	if ( (src_bpp != NULL) && ( (src_bpp == 16) || (src_bpp == 24) || (src_bpp == 32) ) )
-       texturebpp = src_bpp;
-    else
-       texturebpp = src->format->BitsPerPixel;
-	
 	printf("\nOpenGL driver information :\n");
 	printf("\n");
 	printf("Vendor:             %s\n", glGetString(GL_VENDOR));
 	printf("Renderer:           %s\n", glGetString(GL_RENDERER));
 	printf("Version:            %s\n", glGetString(GL_VERSION));
-	printf("OpenGL Texture BPP: %d\n", texturebpp);
 	printf("OpenGL drawmethod: ");
 
 	switch (texturetype)
@@ -75,174 +79,44 @@ void sdlemu_init_opengl(SDL_Surface * src, int texturetype, float size, int filt
 
 	glFilter = filter;
 
-	// Texture width/height should be power of 2
-	// So, find the largest power of two that will contain both the width and height
-	// w = power_of_two(src->w);
-	// h = power_of_two(src->h);
-	w = 512;
-	h = 512;
-
-	switch ( texturebpp )
-	{
-    case 16:
-    #if SDL_BYTEORDER == SDL_BIG_ENDIAN
-	
-//         rmask = 0xff000000;
-//         gmask = 0x00ff0000;
-//         bmask = 0x0000ff00;
-//         amask = 0x00000000;
-
-        rmask = 0x0000;
-		gmask = 0x0000;
-		bmask = 0x0000;
-		amask = 0x0000;
-
-	#else
-
-//	    rmask = 0x000000ff;
-//	    gmask = 0x0000ff00;
-//	    bmask = 0x00ff0000;
-//	    amask = 0x00000000;
-
-      rmask = 0x0000;
-      gmask = 0x0000;
-      bmask = 0x0000;
-      amask = 0x0000;
-
-    #endif
-        
-        break;
-    case 24:
-    #if SDL_BYTEORDER == SDL_BIG_ENDIAN
-	    rmask = 0x00ff0000;
-		gmask = 0x0000ff00;
-		bmask = 0x000000ff;
-		amask = 0x00000000;
-	#else
-	    rmask = 0x000000ff;
-	    gmask = 0x0000ff00;
-	    bmask = 0x00ff0000;
-	    amask = 0x00000000;
-    #endif
-       break;
-    case 32: 
-    default:
-    #if SDL_BYTEORDER == SDL_BIG_ENDIAN
-	    rmask = 0xff000000;
-		gmask = 0x00ff0000;
-		bmask = 0x0000ff00;
-		amask = 0x000000ff;
-	#else
-	    rmask = 0x000000ff;
-	    gmask = 0x0000ff00;
-	    bmask = 0x00ff0000;
-	    amask = 0xff000000;
-    #endif
-        break;
-    }    
-
-	// create texture surface
-	texture = SDL_CreateRGBSurface(SDL_SWSURFACE, w, h, texturebpp, rmask, gmask, bmask, amask);
-/*	
-    #if SDL_BYTEORDER == SDL_LIL_ENDIAN 
-		0x000000FF, 0x0000FF00, 0x00FF0000, 0xFF000000);
-	#else
-		0xFF000000, 0x00FF0000, 0x0000FF00, 0x000000FF);
-	#endif
-*/
-
-	// setup 2D gl environment
-	//glPushAttrib(GL_ENABLE_BIT);
-	//glDisable(GL_DEPTH_TEST);
-	//glDisable(GL_CULL_FACE);
-	//glEnable(GL_TEXTURE_2D);
-
-	glDisable(GL_FOG);
-	glDisable(GL_LIGHTING);
-	glDisable(GL_CULL_FACE);
-	glDisable(GL_DEPTH_TEST);
-	glDisable(GL_BLEND);
-	glDisable(GL_NORMALIZE);
-	glDisable(GL_ALPHA_TEST);
-	glEnable(GL_TEXTURE_2D);
-	glBlendFunc (GL_SRC_ALPHA, GL_ONE);
-
-	glViewport(0, 0, src->w * size, src->h * size);
-
-	glMatrixMode(GL_PROJECTION);
-	glPushMatrix();
-	glLoadIdentity();
-
-	glOrtho(0.0, (GLdouble)(src->w * size), (GLdouble)(src->h * size), 0.0, 0.0, 1.0);
-	glMatrixMode(GL_MODELVIEW);
-	glPushMatrix();
-	glLoadIdentity();
-
-	// texture coordinates
-	texcoord[0] = 0.0f;
-	texcoord[1] = 0.0f;
-	texcoord[2] = (GLfloat)(src->w) / texture->w;
-	texcoord[3] = (GLfloat)(src->h) / texture->h;
-
-	// create an RGBA texture for the texture surface
-	glGenTextures(1, &texid);
-	glBindTexture(GL_TEXTURE_2D, texid);
-	
-	if (glFilter)
-	{
-       printf("OpenGL filters: enabled\n");
-	   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	}
-	else
-	{
-       printf("OpenGL filters: disabled\n");
-	   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    }
-    
-    switch ( texturebpp )
-    {
-    case 16:
-	    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB5, texture->w, texture->h, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
-        break;
-    case 24:
-	    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, texture->w, texture->h, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
-        break;
-    case 32:
-    default:
-	    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, texture->w, texture->h, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
-        break;        
-    }    
+	// Let us create the texture information :
+	sdlemu_create_texture( src, dst, filter , src_bpp);
 
 }
 
 void sdlemu_draw_texture(SDL_Surface * dst, SDL_Surface * src, int texturetype)
 {
-	//SDL_Rect rect = { 0, 0, src->w, src->h };
+/*
+    This is needed when we want to render OpenGL textures with the Alpha mask set.
+    Be warned! This only works with the bpp of texture en *src set to 32.
+*/
+#ifdef WANT_OPENGL_ALPHA
+	Uint32 saved_flags;                
+	Uint8  saved_alpha;                
 
-	// convert color-indexed surface to RGB texture
-	//SDL_BlitSurface(src, &rect, texture, &rect);
-	//glFlush();
-	
+	/* Save the alpha blending attributes */
+	saved_flags = src->flags&(SDL_SRCALPHA|SDL_RLEACCELOK);
+	saved_alpha = src->format->alpha;
+	if ( (saved_flags & SDL_SRCALPHA) == SDL_SRCALPHA ) {
+		SDL_SetAlpha(src, 0, 0);
+	}
+
+	// Blit the src display to the texture.
 	SDL_BlitSurface(src, NULL, texture, NULL);
 
-//	printf("Rmask - src : %d\n", src->format->Rmask);
-//	printf("Gmask - src : %d\n", src->format->Gmask);
-//	printf("Bmask - src : %d\n", src->format->Bmask);
-//	printf("Amask - src : %d\n", src->format->Amask);
-
-//	printf("Rmask - texture : %d\n", texture->format->Rmask);
-//	printf("Gmask - texture : %d\n", texture->format->Gmask);
-//	printf("Bmask - texture : %d\n", texture->format->Bmask);
-//	printf("Amask - texture : %d\n", texture->format->Amask);
+	/* Restore the alpha blending attributes */
+	if ( (saved_flags & SDL_SRCALPHA) == SDL_SRCALPHA ) {
+		SDL_SetAlpha(src, saved_flags, saved_alpha);
+	}
+#else
+	SDL_BlitSurface(src, NULL, texture, NULL);
+#endif
 
 	// Texturemap complete texture to surface so we have free scaling 
 	// and antialiasing
     switch ( texturebpp )
     {
     case 16:
-        // GL_UNSIGNED_SHORT_5_6_5
         glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, texture->w, texture->h,
 		        GL_RGB, GL_UNSIGNED_SHORT_5_6_5, texture->pixels);
         break;
@@ -257,6 +131,7 @@ void sdlemu_draw_texture(SDL_Surface * dst, SDL_Surface * src, int texturetype)
         break;
     }     
 	
+	// Render the texture to the screen using OpenGL!
 	switch (texturetype)
 	{
 	case 1:
@@ -292,80 +167,86 @@ void sdlemu_close_opengl(void)
 		SDL_FreeSurface(texture);
 }
 
-
-//
-// Resize the texture
-// This should honor the glFilter flag that is passed in to the initialization code,
-// but, at the moment, it doesn't...
-// Now it does...!
-//
-void sdlemu_resize_texture(SDL_Surface * src, SDL_Surface * dst, int filter, int src_bpp)
+void sdlemu_create_texture(SDL_Surface * src, SDL_Surface * dst, int filter, int src_bpp)
 {
-	// Texture width/height should be power of 2
+    // Local variables.
+	int w , h;                         // w and h contain the width and height of the OpenGL texture.
+	Uint32 rmask, gmask, bmask, amask; // Needed for creating RGBA masks.
+	int bpp;
+	
+	// Delete old texture (if allocated). Usefull when there is a screen resize.
+	if (texture)
+		SDL_FreeSurface(texture);
+ 
+    // Texture width/height should be power of 2 of the SDL_Surface *src when using OpenGL.
 	// So, find the largest power of two that will contain both the width and height
-	//int w = power_of_two(src->w), h = power_of_two(src->h);
-	int w = 512, h = 512;
-	Uint32 rmask, gmask, bmask, amask;
+    w = power_of_two(src->w);
+    h = power_of_two(src->h);
+	
+	printf("OpenGL - Texture size : %d x %d\n", w, h);
+	
+	// Setting bpp based upon src_bpp.
+	bpp = src_bpp;
 	
 	// We allow the developer to set its own texture bpp. But if the value is NULL or
 	// not equal to 16, 24 or 32, we make the texturebpp the same as the BPP from src.
-	if ( (src_bpp != NULL) && ( (src_bpp == 16) || (src_bpp == 24) || (src_bpp == 32) ) )
-       texturebpp = src_bpp;
+	if ( (bpp != NULL) && ( (bpp == 16) || (bpp == 24) || (bpp == 32) ) )
+       texturebpp = bpp;
     else
        texturebpp = src->format->BitsPerPixel;
-	
-	// Delete old texture (if allocated)
-	if (texture)
-		SDL_FreeSurface(texture);
+    
+    printf("OpenGL - Texture depth : %d bpp\n", texturebpp);
 
-	// create texture surface
-	//NOTE: Seems the byte order here *is* important! (Perhaps only for 32 BPP?)
-	//
-	// NOTE : Nope! Not any more. We can now producte textures based upon 16, 24 or 32 bpp.
+	// Now were are going to create a SDL_Surface named texture. This will be our surface
+	// which will function as a buffer between the SDL_Surface *src and SDL_Surface *dst.
+	// This buffer is needed because we need to convert the SDL_Surface *src to an OpenGL
+	// texture with a depth of 16, 24 or 32 bpp, before we can blit the pixels to *dst
+	// using OpenGL.
+	// 
+	// NOTE: Seems the byte order here *is* important!
 	switch ( texturebpp )
 	{
-    case 16:
-    #if SDL_BYTEORDER == SDL_BIG_ENDIAN
+    case 16: // *src has depth of 16 bpp
 
-//	    rmask = 0xff000000;
-//		gmask = 0x00ff0000;
-//		bmask = 0x0000ff00;
-//		amask = 0x00000000;
+/*
+        According to information on the SDL mailinglist and on internet, the following
+        rgba masks should be the ones to use. But somehow the screen gets f*cked up and
+        the RGB colours are incorrect (at least in Virtual Jaguar/SDL). 
+        
+        Compile with -DOPENGL_16BPP_CORRECT_RGBA to use this RGBA values.
+*/        
+        
+#ifdef OPENGL_16BPP_CORRECT_RGBA     
+       
+        rmask = 0x7c00;
+    	gmask = 0x03e0;
+    	bmask = 0x001f;
+    	amask = 0x0000;
+    	
+#else
 
         rmask = 0x0000;
 		gmask = 0x0000;
 		bmask = 0x0000;
 		amask = 0x0000;
 		
-	#else
-
-//	    rmask = 0x000000ff;
-//	    gmask = 0x0000ff00;
-//	    bmask = 0x00ff0000;
-//	    amask = 0x00000000;
-
-        rmask = 0x0000;
-		gmask = 0x0000;
-		bmask = 0x0000;
-		amask = 0x0000;
-
-    #endif
+#endif
         break;
-    case 24:
+    case 24: // *src has depth of 24 bpp
     #if SDL_BYTEORDER == SDL_BIG_ENDIAN
 	    rmask = 0x00ff0000;
 		gmask = 0x0000ff00;
 		bmask = 0x000000ff;
-		amask = 0x00000000;
+		amask = 0x00000000; // IMPORTANT! 24 bpp doesn't use Alpha (at least in our case).
 	#else
 	    rmask = 0x000000ff;
 	    gmask = 0x0000ff00;
 	    bmask = 0x00ff0000;
-	    amask = 0x00000000;
+	    amask = 0x00000000; // IMPORTANT! 24 bpp doesn't use Alpha (at least in our case).
     #endif
        break;
-    case 32: 
-    default:
+    case 32: //*src has depth of 32 bpp
+    default: //which is also the default.
     #if SDL_BYTEORDER == SDL_BIG_ENDIAN
 	    rmask = 0xff000000;
 		gmask = 0x00ff0000;
@@ -380,31 +261,10 @@ void sdlemu_resize_texture(SDL_Surface * src, SDL_Surface * dst, int filter, int
         break;
     }    
 
-	// create texture surface
+	// Creating SDL_Surface texture based upon the above settings.
 	texture = SDL_CreateRGBSurface(SDL_SWSURFACE, w, h, texturebpp, rmask, gmask, bmask, amask);
-/*	
-    #if SDL_BYTEORDER == SDL_LIL_ENDIAN 
-		0x000000FF, 0x0000FF00, 0x00FF0000, 0xFF000000);
-	#else
-		0xFF000000, 0x00FF0000, 0x0000FF00, 0x000000FF);
-	#endif
-*/
 	
- 
-/* 
-    texture = SDL_CreateRGBSurface(SDL_SWSURFACE, w, h, 32,
-	#if SDL_BYTEORDER == SDL_LIL_ENDIAN 
-		0x000000FF, 0x0000FF00, 0x00FF0000, 0xFF000000);
-	#else
-		0xFF000000, 0x00FF0000, 0x0000FF00, 0x000000FF);
-	#endif
-*/
-	// setup 2D gl environment
-	//glPushAttrib(GL_ENABLE_BIT);
-	//glDisable(GL_DEPTH_TEST);
-	//glDisable(GL_CULL_FACE);
-	//glEnable(GL_TEXTURE_2D);
-
+	// Setting up OpenGL
 	glDisable(GL_FOG);
 	glDisable(GL_LIGHTING);
 	glDisable(GL_CULL_FACE);
@@ -415,53 +275,64 @@ void sdlemu_resize_texture(SDL_Surface * src, SDL_Surface * dst, int filter, int
 	glEnable(GL_TEXTURE_2D);
 	glBlendFunc (GL_SRC_ALPHA, GL_ONE);
 
+	// Definately needed for screen resolution larger then the *src.
+	// This way we can have automatic scaling fucntionality.
 	glViewport(0, 0, dst->w, dst->h);
-
 	glMatrixMode(GL_PROJECTION);
 	glPushMatrix();
 	glLoadIdentity();
-
 	glOrtho(0.0, (GLdouble)dst->w, (GLdouble)dst->h, 0.0, 0.0, 1.0);
 	glMatrixMode(GL_MODELVIEW);
 	glPushMatrix();
 	glLoadIdentity();
 
-	// texture coordinates
-	texcoord[0] = 0.0f, texcoord[1] = 0.0f,
-	texcoord[2] = (GLfloat)(src->w) / texture->w,
+	// Setting up the texture coordinates.
+	texcoord[0] = 0.0f;
+    texcoord[1] = 0.0f;
+	texcoord[2] = (GLfloat)(src->w) / texture->w;
 	texcoord[3] = (GLfloat)(src->h) / texture->h;
 
-	// create an RGBA texture for the texture surface
+	// create a RGB(A) texture for the texture surface
 	glGenTextures(1, &texid);
 	glBindTexture(GL_TEXTURE_2D, texid);
 	
-//	if (glFilter)
+    // Srtting up the OpenGL Filters. These filters are important when we/you
+    // want to scale the texture. 
 	if (filter)
 	{
+       // Textures are rendered in best quality. 
        printf("OpenGL filters: enabled\n");
 	   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	}
 	else
 	{
+       // Textures are rendered in normal quality.
        printf("OpenGL filters: disabled\n");
 	   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     }
 
+    // Genereate the texture using the above information.
     switch ( texturebpp )
     {
     case 16:
+        // Normal 16bpp depth based textures consist out of GL_RGB5 and doesn't have support for Alpha channels.
 	    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB5, texture->w, texture->h, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
         break;
     case 24:
+        // The 24bpp depth based textures consist out of GL_RGB8 and doesn't have support for Alpha channels.
+        //
+        // IMPORTANT : If you don't use Alpha. Use textures with a depth of 16bpp.
+        //             If you use Alpha. Use textures with a depth of 32bpp.
+        //             24bpp textures are SLOW and avoid them at all costst!        
 	    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, texture->w, texture->h, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
         break;
     case 32:
     default:
+        // The 32bpp depth based textures consist out of GL_RGBA8 and has support for Alpha channels.
 	    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, texture->w, texture->h, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
         break;        
     }    
 
-	//glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, texture->w, texture->h, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
-}
+}    
