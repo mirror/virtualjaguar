@@ -48,7 +48,7 @@ void string_tokenize_variable()
 	for(p = vec.begin(); p != vec.end(); p++) {
 		string::size_type lastPos = (*p).LineName().find_first_not_of(delim, 0);
 		string::size_type pos     = (*p).LineName().find_first_of(delim, lastPos);
-		
+
 		if(string::npos != pos && string::npos != lastPos) {
 			string s = (*p).LineName().substr(lastPos, pos - lastPos);
 			(*p).add_token_variable(s);
@@ -59,12 +59,12 @@ void string_tokenize_variable()
 void string_tokenize_value()
 {
 	list<token_list>::iterator p;
-	const string delim = " =\n\t";
-	
+	const string delim = " =\n\t\r";		// "\r" needed for Win32 compatibility...
+
 	for(p = vec.begin(); p != vec.end(); p++) {
 		string::size_type lastPos = (*p).LineName().find_first_of(delim, 0);
 		string::size_type pos     = (*p).LineName().find_first_not_of(delim, lastPos);
-		
+
 		if(string::npos != pos && string::npos != lastPos) {
 			string s = (*p).LineName().substr(pos);
 			(*p).add_token_value(s);
@@ -84,11 +84,11 @@ int sdlemu_init_config(const char *filename)
 	char *s = new char[len];
 	fread(s, 1, len, f);
 	string str(s);
-	
-	const string delim = "\n";
+
+	const string delim = "\n\r";		// "\r" needed for Win32 compatibility...
 	string::size_type lastPos = str.find_first_not_of(delim, 0);
 	string::size_type pos     = str.find_first_of(delim, lastPos);
-	
+
 	while (string::npos != pos || string::npos != lastPos) {
 		string string = str.substr(lastPos, pos - lastPos);
 		if(string[0] == '#')
