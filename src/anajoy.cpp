@@ -5,6 +5,9 @@
 // GCC/SDL port by Niels Wagenaar (Linux/WIN32) and Caz (BeOS)
 // Cleanups by James L. Hammons
 //
+// Is it even necessary anymore to have this? According to the JTRM, these ports
+// aren't even wired up in later models and I can't think of one game that used
+// them. Maybe it's time to retire this?
 
 #include "jaguar.h"
 
