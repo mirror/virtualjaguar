@@ -41,9 +41,9 @@ OBJS = \
 #	obj/m68kdasmAG.o \
 #	obj/gpu2.o \
 
-LIBS = `sdl-config --libs` -lstdc++ -lz
+LIBS = -L/usr/local/lib `sdl-config --libs` -lstdc++ -lz
 
-INCS = -I. -Isrc -Isrc/include `sdl-config --cflags`
+INCS = -I. -Isrc -Isrc/include -I/usr/local/include `sdl-config --cflags`
 
 THECC = $(CC) $(CFLAGS) $(INCS)
 
