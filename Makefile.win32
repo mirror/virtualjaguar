@@ -12,34 +12,35 @@ LDFLAGS = $(CFLAGS)
 TARGET = vj
 
 OBJS = \
-	obj/version.o \
-	obj/pcm.o \
-	obj/objectp.o \
-	obj/memory.o \
-	obj/log.o \
-	obj/jerry.o \
-	obj/jaguar.o \
-	obj/jagdasm.o \
-	obj/eeprom.o \
-	obj/dsound_dummy.o \
-	obj/crc32.o \
-	obj/clock.o \
-	obj/cdrom.o \
-	obj/cdi.o \
-	obj/cdbios.o \
-	obj/blitter.o \
 	obj/anajoy.o \
-	obj/tom.o \
-	obj/joystick.o \
-	obj/gpu.o \
-	obj/dsp.o \
+	obj/blitter.o \
 	obj/blitter2.o \
-	obj/vj.o \
-	obj/unzip.o \
+	obj/cdbios.o \
+	obj/cdi.o \
+	obj/cdrom.o \
+	obj/clock.o \
+	obj/crc32.o \
+	obj/dac.o \
+	obj/dsp.o \
+	obj/eeprom.o \
+	obj/gpu.o \
+	obj/gui.o \
+	obj/jagdasm.o \
+	obj/jaguar.o \
+	obj/jerry.o \
+	obj/joystick.o \
+	obj/log.o \
 	obj/m68kcpu.o obj/m68kops.o obj/m68kopac.o obj/m68kopdm.o obj/m68kopnz.o \
-	obj/m68kdasm.o
+	obj/m68kdasm.o \
+	obj/memory.o \
+	obj/objectp.o \
+	obj/tom.o \
+	obj/unzip.o \
+	obj/version.o \
+	obj/vj.o
 #	obj/m68kdasmAG.o \
 #	obj/gpu2.o \
+#	obj/dsound_dummy.o \
 
 LIBS = `sdl-config --libs` -lstdc++ -lz
 
