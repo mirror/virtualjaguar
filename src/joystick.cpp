@@ -12,7 +12,7 @@
 //#endif
 #include <time.h>
 #include <SDL.h>
-#include "SDLptc.h"
+//#include "SDLptc.h"
 #include "jaguar.h"
 
 void main_screen_switch(void);
@@ -34,7 +34,6 @@ void main_screen_switch(void);
 #define BUTTON_6		14
 #define BUTTON_3		15
 
-
 #define BUTTON_A		16
 #define BUTTON_B		17
 #define BUTTON_C		18
@@ -55,6 +54,38 @@ bool iLeft, iRight, iToggle = false;
 bool keyHeld1 = false, keyHeld2 = false, keyHeld3 = false;
 int objectPtr = 0;
 
+
+void main_screen_switch(void)
+{
+	extern SDL_Surface * mainSurface;
+	extern Uint32 mainSurfaceFlags;
+	extern bool fullscreen;
+
+	fullscreen = !fullscreen;
+	mainSurfaceFlags &= ~SDL_FULLSCREEN;
+	if (fullscreen)
+		mainSurfaceFlags |= SDL_FULLSCREEN;
+
+//???Should we do this???
+//	SDL_FreeSurface(mainSurface);
+	mainSurface = SDL_SetVideoMode(tom_width, tom_height, 16, mainSurfaceFlags);
+
+	if (mainSurface == NULL)
+	{
+		WriteLog("Joystick: SDL is unable to set the video mode: %s\n", SDL_GetError());
+		exit(1);
+	}
+
+	SDL_WM_SetCaption("Virtual Jaguar", "Virtual Jaguar");
+/*	if (fullscreen)
+		console.option("fullscreen output");
+	else
+		console.option("windowed output");*/
+
+//	console.close();
+//	console.open("Virtual Jaguar", tom_width, tom_height, format);
+}
+
 void joystick_init(void)
 {
 	joystick_reset();
@@ -62,8 +93,10 @@ void joystick_init(void)
 
 void joystick_exec(void)
 {
+	extern SDL_Joystick * joystick;
+	extern bool useJoystick;
 	uint8 * keystate = SDL_GetKeyState(NULL);
-	extern Console console;
+//	extern Console console;
   	
 	memset(joypad_0_buttons, 0, 21);
 	memset(joypad_1_buttons, 0, 21);
@@ -72,7 +105,7 @@ void joystick_exec(void)
 	blit_start_log = 0;
 	iLeft = iRight = false;
 
-	if ((keystate[SDLK_LALT]) & (keystate[SDLK_RETURN]))
+	if ((keystate[SDLK_LALT] || keystate[SDLK_RALT]) & keystate[SDLK_RETURN])
 		main_screen_switch();
 
 	/* Added/Changed by SDLEMU (http://sdlemu.ngemu.com) */
@@ -147,10 +180,13 @@ void joystick_exec(void)
     /* Added/Changed by SDLEMU (http://sdlemu.ngemu.com */
     /* Joystick support                                 */
     
-    if (console.JoyEnabled() == 1)
+//    if (console.JoyEnabled() == 1)
+    if (useJoystick)
     {
-		int16 x = SDL_JoystickGetAxis(console.joystick, 0),
-			y = SDL_JoystickGetAxis(console.joystick, 1);
+//		int16 x = SDL_JoystickGetAxis(console.joystick, 0),
+//			y = SDL_JoystickGetAxis(console.joystick, 1);
+		int16 x = SDL_JoystickGetAxis(joystick, 0),
+			y = SDL_JoystickGetAxis(joystick, 1);
 	
 		if (x > 16384)
 			joypad_0_buttons[BUTTON_R] = 0x01;
@@ -161,11 +197,14 @@ void joystick_exec(void)
 		if (y < -16384)
 			joypad_0_buttons[BUTTON_U] = 0x01;
 	
-		if (SDL_JoystickGetButton(console.joystick, 0) == SDL_PRESSED)
+//		if (SDL_JoystickGetButton(console.joystick, 0) == SDL_PRESSED)
+		if (SDL_JoystickGetButton(joystick, 0) == SDL_PRESSED)
 			joypad_0_buttons[BUTTON_A] = 0x01;
-		if (SDL_JoystickGetButton(console.joystick, 1) == SDL_PRESSED)
+//		if (SDL_JoystickGetButton(console.joystick, 1) == SDL_PRESSED)
+		if (SDL_JoystickGetButton(joystick, 1) == SDL_PRESSED)
 			joypad_0_buttons[BUTTON_B] = 0x01;
-		if (SDL_JoystickGetButton(console.joystick, 2) == SDL_PRESSED)
+//		if (SDL_JoystickGetButton(console.joystick, 2) == SDL_PRESSED)
+		if (SDL_JoystickGetButton(joystick, 2) == SDL_PRESSED)
 			joypad_0_buttons[BUTTON_C] = 0x01;
 	}
 	

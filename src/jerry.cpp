@@ -160,24 +160,32 @@ static int32 jerry_timer_1_counter;
 static int32 jerry_timer_2_counter;
 
 static uint32 jerry_i2s_interrupt_divide = 8;
-static int32  jerry_i2s_interrupt_timer = -1;
-static int32  jerry_i2s_interrupt_cycles_per_scanline = 0;
+static int32 jerry_i2s_interrupt_timer = -1;
+static int32 jerry_i2s_interrupt_cycles_per_scanline = 0;
 
 
 void jerry_i2s_exec(uint32 cycles)
 {	
+	// Why is it called this? Instead of SCLK?
 	jerry_i2s_interrupt_divide &= 0xFF;
 
 	if (jerry_i2s_interrupt_timer == -1)
 	{
 		uint32 jerry_i2s_int_freq = (26591000 / 64) / (jerry_i2s_interrupt_divide + 1);
+//Note: The formula is system_clock_freq / (2 * (N + 1)), and to get 16 bits each of
+//      left & right channel, ...
+// 
+//WriteLog("SCLK: Setting serial clock freqency to %u Hz...\n", jerry_i2s_int_freq);
+//WriteLog("SCLK: Real serial clock freqency would be %u Hz (N=%u)...\n", 26590906 / (2 * (jerry_i2s_interrupt_divide + 1)), jerry_i2s_interrupt_divide);
+//WTF is this???
 		jerry_i2s_interrupt_cycles_per_scanline = 13300000 / jerry_i2s_int_freq;
 		jerry_i2s_interrupt_timer = jerry_i2s_interrupt_cycles_per_scanline;
 		//WriteLog("jerry: i2s interrupt rate set to %i hz (every %i cpu clock cycles) jerry_i2s_interrupt_divide=%i\n",jerry_i2s_int_freq,jerry_i2s_interrupt_cycles_per_scanline,jerry_i2s_interrupt_divide);
-		pcm_set_sample_rate(jerry_i2s_int_freq);
+//No need, we write it directly		pcm_set_sample_rate(jerry_i2s_int_freq);
 	}
 	jerry_i2s_interrupt_timer -= cycles;
 	// note : commented since the sound doesn't work properly else
+// !!! FIX !!!
 	if (1)//jerry_i2s_interrupt_timer<=0)
 	{
 		// i2s interrupt
@@ -245,13 +253,11 @@ void jerry_init(void)
 	clock_init();
 	anajoy_init();
 	joystick_init();
+	DACInit();
 //This should be handled with the cart initialization...
 //	eeprom_init();
 	memory_malloc_secure((void **)&jerry_ram_8, 0x10000, "JERRY RAM/ROM");
 	memcpy(&jerry_ram_8[0xD000], wave_table, 0x1000);
-
-/*for(int i=0; i<0x1000; i++)
-	WriteLog("WT byte, JERRY byte: %02X, %02X\n", wave_table[i], jerry_ram_8[0xD000+i]);//*/
 }
 
 void jerry_reset(void)
@@ -262,6 +268,7 @@ void jerry_reset(void)
 	joystick_reset();
 	eeprom_reset();
 	jerry_reset_i2s_timer();
+	DACReset();
 
 	memset(jerry_ram_8, 0x00, 0xD000);		// Don't clear out the Wavetable ROM...!
 	jerry_ram_8[JERRY_CONFIG+1] |= 0x10;	// NTSC (bit 4)
@@ -271,7 +278,6 @@ void jerry_reset(void)
 	jerry_timer_2_divider = 0xFFFF;
 	jerry_timer_1_counter = 0;
 	jerry_timer_2_counter = 0;
-
 }
 
 void jerry_done(void)
@@ -281,13 +287,13 @@ void jerry_done(void)
 	clock_done();
 	anajoy_done();
 	joystick_done();
+	DACDone();
 	eeprom_done();
 }
 
 //
 // JERRY byte access (read)
 //
-
 unsigned jerry_byte_read(unsigned int offset)
 {
 #ifdef JERRY_DEBUG
@@ -336,7 +342,6 @@ unsigned jerry_byte_read(unsigned int offset)
 //
 // JERRY word access (read)
 //
-
 unsigned jerry_word_read(unsigned int offset)
 {
 #ifdef JERRY_DEBUG
@@ -393,7 +398,6 @@ unsigned jerry_word_read(unsigned int offset)
 //
 // JERRY byte access (write)
 //
-
 void jerry_byte_write(unsigned offset, unsigned data)
 {
 #ifdef JERRY_DEBUG
@@ -409,6 +413,7 @@ void jerry_byte_write(unsigned offset, unsigned data)
 		dsp_byte_write(offset, data);
 		return;
 	}
+	// SCLK ($F1A150--8 bits wide)
 	else if ((offset >= 0xF1A152) && (offset <= 0xF1A153))
 	{
 //		WriteLog("i2s: writing 0x%.2x to SCLK\n",data);
@@ -471,7 +476,6 @@ void jerry_byte_write(unsigned offset, unsigned data)
 //
 // JERRY word access (write)
 //
-
 void jerry_word_write(unsigned offset, unsigned data)
 {
 #ifdef JERRY_DEBUG
@@ -488,7 +492,7 @@ void jerry_word_write(unsigned offset, unsigned data)
 		dsp_word_write(offset, data);
 		return;
 	}
-	else if (offset == 0xF1A152)
+	else if (offset == 0xF1A152)					// Bottom half of SCLK ($F1A150)
 	{
 //		WriteLog("i2s: writing 0x%.4x to SCLK\n",data);
 		jerry_i2s_interrupt_divide = data & 0xFF;
@@ -518,9 +522,10 @@ void jerry_word_write(unsigned offset, unsigned data)
 		// Need to handle (unaligned) cases???
 		return;
 	}
-	else if ((offset >= 0xF1A148) && (offset < 0xF1A150)) 
+	// LTXD/RTXD/SCLK/SMODE $F1A148/4C/50/54 (really 16-bit registers...)
+	else if (offset >= 0xF1A148 && offset <= 0xF1A156)
 	{ 
-		pcm_word_write(offset - 0xF1A148, data); 
+		DACWriteWord(offset, data);
 		return; 
 	}
 	else if ((offset >= 0xF10010) && (offset < 0xF10016))
@@ -530,6 +535,7 @@ void jerry_word_write(unsigned offset, unsigned data)
 	}
 	else if ((offset >= 0xF17C00) && (offset < 0xF17C02))
 	{
+//I think this was removed from the Jaguar. If so, then we don't need this...!
 		anajoy_word_write(offset, data);
 		return;
 	}

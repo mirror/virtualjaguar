@@ -245,7 +245,7 @@
 //	------------------------------------------------------------
 
 #include <SDL.h>
-#include "SDLptc.h"
+//#include "SDLptc.h"
 #include "tom.h"
 #include "gpu.h"
 #include "objectp.h"
@@ -278,12 +278,12 @@
 #define BG			0x58
 
 //This can be defined in the makefile as well...
-//(It's easier to do it here...)
+//(It's easier to do it here, though...)
 //#define TOM_DEBUG
 
 extern uint32 jaguar_mainRom_crc32;
-extern Console console;
-extern Surface * surface;
+//extern Console console;
+//extern Surface * surface;
 extern uint8 objectp_running;
 
 static uint8 * tom_ram_8;
@@ -679,7 +679,9 @@ void tom_exec_scanline(int16 * backbuffer, int32 scanline, bool render)
 
 uint32 TOMGetSDLScreenPitch(void)
 {
-	return surface->pitch();
+	extern SDL_Surface * surface;
+
+	return surface->pitch;
 }
 
 //
@@ -689,7 +691,7 @@ void tom_init(void)
 {
 	op_init();
 	blitter_init();
-	pcm_init();
+//This should be done by JERRY!	pcm_init();
 	memory_malloc_secure((void **)&tom_ram_8, 0x4000, "TOM RAM");
 	tom_reset();
 	// Setup the non-stretchy scanline rendering...
@@ -700,7 +702,7 @@ void tom_init(void)
 void tom_done(void)
 {
 	op_done();
-	pcm_done();
+//This should be done by JERRY!	pcm_done();
 	blitter_done();
 	WriteLog("TOM: Resolution %i x %i %s\n", tom_getVideoModeWidth(), tom_getVideoModeHeight(),
 		videoMode_to_str[tom_getVideoMode()]);
@@ -802,7 +804,7 @@ void tom_reset(void)
 
 	op_reset();
 	blitter_reset();
-	pcm_reset();
+//This should be done by JERRY!		pcm_reset();
 
 	memset(tom_ram_8, 0x00, 0x4000);
 
@@ -1146,20 +1148,42 @@ if (offset == VMODE)
 		
 		if ((width != tom_width) || (height != tom_height))
 		{
-			ws_audio_done();
+			extern SDL_Surface * surface, * mainSurface;
+			extern Uint32 mainSurfaceFlags;
+//			ws_audio_done();
 		
 			static char window_title[256];
-			delete surface;
+//			delete surface;
 			
 			tom_width = width, tom_height = height;
-			Format format(16, 0x007C00, 0x00003E0, 0x0000001F);
-			surface = new Surface(tom_width, tom_height, format);
-			console.close();
-			sprintf(window_title, "Virtual Jaguar (%i x %i)", (int)tom_width, (int)tom_height);
-			console.open(window_title, width, tom_height, format);
+//			Format format(16, 0x007C00, 0x00003E0, 0x0000001F);
+//			surface = new Surface(tom_width, tom_height, format);
+			SDL_FreeSurface(surface);
+			surface = SDL_CreateRGBSurface(SDL_SWSURFACE, tom_width, tom_height,
+				16, 0x7C00, 0x03E0, 0x001F, 0);
+			if (surface == NULL)
+			{
+				WriteLog("TOM: Could not create primary SDL surface: %s", SDL_GetError());
+				exit(1);
+			}
 
-			ws_audio_init();
-			ws_audio_reset();
+			sprintf(window_title, "Virtual Jaguar (%i x %i)", (int)tom_width, (int)tom_height);
+//			console.close();
+//			console.open(window_title, width, tom_height, format);
+//???Should we do this???
+//	SDL_FreeSurface(mainSurface);
+			mainSurface = SDL_SetVideoMode(tom_width, tom_height, 16, mainSurfaceFlags);
+
+			if (mainSurface == NULL)
+			{
+				WriteLog("Joystick: SDL is unable to set the video mode: %s\n", SDL_GetError());
+				exit(1);
+			}
+
+			SDL_WM_SetCaption(window_title, window_title);
+
+//			ws_audio_init();
+//			ws_audio_reset();
 		}
 	}
 }

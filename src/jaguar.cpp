@@ -565,21 +565,16 @@ void jaguar_init(void)
 //	cd_bios_boot("C:\\ftp\\jaguar\\cd\\primalrage.cdi");
 //	cd_bios_boot("C:\\ftp\\jaguar\\cd\\Dragons Lair.cdi");
 
-//                           NTSC       PAL
-// GPU/DSP/video clock rate  26.590906  26.593900
-// 68000 clock rate          13.295453  13.296950
-// (clock rates in MHz)
-
 	// Should these be hardwired or read from VP?
 	jaguar_screen_scanlines = (hardwareTypeNTSC ? 524 : 624);
 //Should the divisor be 50 for PAL??? Let's try it!
-	m68k_cycles_per_scanline = (hardwareTypeNTSC ? 13295453 : 13296950) / (jaguar_screen_scanlines * (hardwareTypeNTSC ? 60 : 50));
+	m68k_cycles_per_scanline = (hardwareTypeNTSC ? M68K_CLOCK_RATE_NTSC : M68K_CLOCK_RATE_PAL) / (jaguar_screen_scanlines * (hardwareTypeNTSC ? 60 : 50));
 	gpu_cycles_per_scanline = dsp_cycles_per_scanline
-		= (hardwareTypeNTSC ? 26590906 : 26593900) / (jaguar_screen_scanlines * (hardwareTypeNTSC ? 60 : 50));
+		= (hardwareTypeNTSC ? RISC_CLOCK_RATE_NTSC : RISC_CLOCK_RATE_PAL) / (jaguar_screen_scanlines * (hardwareTypeNTSC ? 60 : 50));
 
-#ifdef SOUND_OUTPUT
-	ws_audio_init();
-#endif
+//#ifdef SOUND_OUTPUT
+//	ws_audio_init();
+//#endif
 
 	m68k_set_cpu_type(M68K_CPU_TYPE_68000);
 	gpu_init();
@@ -619,9 +614,9 @@ void jaguar_done(void)
 	WriteLog("Jaguar: VBL interrupt is %s\n", ((tom_irq_enabled(IRQ_VBLANK)) && (jaguar_interrupt_handler_is_valid(64))) ? "enabled" : "disabled");
 	M68K_show_context();
 //#endif
-#ifdef SOUND_OUTPUT
-	ws_audio_done();
-#endif
+//#ifdef SOUND_OUTPUT
+//	ws_audio_done();
+//#endif
 	cd_bios_done();
 	cdrom_done();
 	tom_done();
@@ -651,9 +646,9 @@ void jaguar_reset(void)
 	}
 
 //	WriteLog("jaguar_reset():\n");
-#ifdef SOUND_OUTPUT
-	ws_audio_reset();
-#endif
+//#ifdef SOUND_OUTPUT
+//	ws_audio_reset();
+//#endif
 	cd_bios_reset();
 	tom_reset();
 	jerry_reset();
@@ -721,9 +716,9 @@ void jaguar_exec(int16 * backbuffer, bool render)
 			dsp_exec(dsp_cycles_per_scanline);
 		backbuffer += tom_width;
 	}
-#ifdef SOUND_OUTPUT
-	system_sound_update();
-#endif
+//#ifdef SOUND_OUTPUT
+//	system_sound_update();
+//#endif
 }
 
 //
@@ -791,9 +786,9 @@ if (effect_start)
 		}
 	}
 
-#ifdef SOUND_OUTPUT
-	system_sound_update();
-#endif
+//#ifdef SOUND_OUTPUT
+//	system_sound_update();
+//#endif
 }
 
 // Temp debugging stuff
