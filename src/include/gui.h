@@ -15,9 +15,9 @@ extern "C" {
 
 void InitGUI(void);
 void GUIDone(void);
-//void DrawString(int16 * screen, uint32 x, uint32 y, bool invert, const char * text, ...);
-//bool GUIMain(void);
 bool GUIMain(char *);
+
+// Not sure why these are in *this* file, but here they are... :-/
 
 uint32 JaguarLoadROM(uint8 * rom, char * path);
 bool JaguarLoadFile(char * path);
