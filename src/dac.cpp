@@ -1,13 +1,13 @@
 //
 // DAC (really, Synchronous Serial Interface) Handler
 //
-// Original by Cal2
+// Originally by David Raingeard
 // GCC/SDL port by Niels Wagenaar (Linux/WIN32) and Caz (BeOS)
 // Rewritten by James L. Hammons
 //
 
-//#include <SDL.h>
 #include "SDL.h"
+#include "m68k.h"
 #include "jaguar.h"
 #include "settings.h"
 #include "dac.h"
@@ -20,8 +20,14 @@
 
 #define LTXD			0xF1A148
 #define RTXD			0xF1A14C
+#define LRXD			0xF1A148
+#define RRXD			0xF1A14C
 #define SCLK			0xF1A150
 #define SMODE			0xF1A154
+
+// Global variables
+
+uint16 lrxd, rrxd;									// I2S ports (into Jaguar)
 
 // Local variables
 
@@ -154,14 +160,14 @@ int GetCalculatedFrequency(void)
 //
 // LTXD/RTXD/SCLK/SMODE ($F1A148/4C/50/54)
 //
-void DACWriteByte(uint32 offset, uint8 data)
+void DACWriteByte(uint32 offset, uint8 data, uint32 who/*= UNKNOWN*/)
 {
-	WriteLog("DAC: Writing %02X at %08X\n", data, offset);
+	WriteLog("DAC: %s writing BYTE %02X at %08X\n", whoName[who], data, offset);
 	if (offset == SCLK + 3)
 		DACWriteWord(offset - 3, (uint16)data);
 }
 
-void DACWriteWord(uint32 offset, uint16 data)
+void DACWriteWord(uint32 offset, uint16 data, uint32 who/*= UNKNOWN*/)
 {
 	if (offset == LTXD + 2)
 	{
@@ -235,24 +241,40 @@ if (spin == 0x10000000)
 	else if (offset == SMODE + 2)
 	{
 		serialMode = data;
-		WriteLog("DAC: Writing to SMODE. Bits: %s%s%s%s%s%s\n",
+		WriteLog("DAC: %s writing to SMODE. Bits: %s%s%s%s%s%s [68K PC=%08X]\n", whoName[who],
 			(data & 0x01 ? "INTERNAL " : ""), (data & 0x02 ? "MODE " : ""),
 			(data & 0x04 ? "WSEN " : ""), (data & 0x08 ? "RISING " : ""),
-			(data & 0x10 ? "FALLING " : ""), (data & 0x20 ? "EVERYWORD" : ""));
+			(data & 0x10 ? "FALLING " : ""), (data & 0x20 ? "EVERYWORD" : ""),
+			m68k_get_reg(NULL, M68K_REG_PC));
 	}
 }
 
 //
 // LRXD/RRXD/SSTAT ($F1A148/4C/50)
 //
-uint8 DACReadByte(uint32 offset)
+uint8 DACReadByte(uint32 offset, uint32 who/*= UNKNOWN*/)
 {
-//	WriteLog("DAC: Reading byte from %08X\n", offset);
+//	WriteLog("DAC: %s reading byte from %08X\n", whoName[who], offset);
 	return 0xFF;
 }
 
-uint16 DACReadWord(uint32 offset)
+//static uint16 fakeWord = 0;
+uint16 DACReadWord(uint32 offset, uint32 who/*= UNKNOWN*/)
 {
-//	WriteLog("DAC: Reading word from %08X\n", offset);
-	return 0xFFFF;
+//	WriteLog("DAC: %s reading word from %08X\n", whoName[who], offset);
+//	return 0xFFFF;
+//	WriteLog("DAC: %s reading WORD %04X from %08X\n", whoName[who], fakeWord, offset);
+//	return fakeWord++;
+//NOTE: This only works if a bunch of things are set in BUTCH which we currently don't
+//      check for. !!! FIX !!!
+// Partially fixed: We check for I2SCNTRL in the JERRY I2S routine...
+//	return GetWordFromButchSSI(offset, who);
+	if (offset == LRXD || offset == RRXD)
+		return 0x0000;
+	else if (offset == LRXD + 2)
+		return lrxd;
+	else if (offset == RRXD + 2)
+		return rrxd;
+
+	return 0xFFFF;	// May need SSTAT as well... (but may be a Jaguar II only feature)		
 }
