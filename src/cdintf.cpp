@@ -9,33 +9,20 @@
 
 #include "cdintf.h"									// Every OS has to implement these
 
-/*#ifdef __GCCWIN32__
-#include "cdintf_win32.cpp"
-#endif
-
-#ifdef __GCCUNIX__
-#ifdef _OSX_
-
-#include "cdintf_osx.cpp"
-
-#else
-#include "cdintf_linux.cpp"
-
-#endif
-#endif//*/
+// OS dependent implementations
 
 #if defined(__GCCWIN32__)
 
 #include "cdintf_win32.cpp"
 
 #elif defined(__GCCUNIX__)
-#if defined(_OSX_)
+	#if defined(_OSX_)
 
 #include "cdintf_osx.cpp"
 
-#else
+	#else
 
 #include "cdintf_linux.cpp"
 
-#endif
+	#endif
 #endif
