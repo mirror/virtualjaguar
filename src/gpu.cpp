@@ -223,7 +223,8 @@ static void gpu_opcode_store_r15_ri(void);
 static void gpu_opcode_sat24(void);
 static void gpu_opcode_pack(void);
 
-uint8 gpu_opcode_cycles[64] = 
+// This is wrong, since it doesn't take pipeline effects into account. !!! FIX !!!
+/*uint8 gpu_opcode_cycles[64] = 
 {
 	3,  3,  3,  3,  3,  3,  3,  3,
 	3,  3,  3,  3,  3,  3,  3,  3,
@@ -233,6 +234,21 @@ uint8 gpu_opcode_cycles[64] =
 	5,  4,  5,  6,  6,  1,  1,  1,
 	1,  2,  2,  2,  1,  1,  9,  3,
 	3,  1,  6,  6,  2,  2,  3,  3
+};//*/
+//Here's a QnD kludge...
+//This is wrong, wrong, WRONG, but it seems to work for the time being...
+//(That is, it fixes Flip Out which relies on GPU timing rather than semaphores. Bad developers! Bad!)
+//What's needed here is a way to take pipeline effects into account (including pipeline stalls!)...
+uint8 gpu_opcode_cycles[64] = 
+{
+	1,  1,  1,  1,  1,  1,  1,  1,
+	1,  1,  1,  1,  1,  1,  1,  1,
+	1,  1,  1,  1,  1,  9,  1,  1,
+	1,  1,  1,  1,  1,  1,  1,  1,
+	1,  1,  1,  1,  1,  1,  1,  2,
+	2,  2,  2,  3,  3,  1,  1,  1,
+	1,  1,  1,  1,  1,  1,  4,  1,
+	1,  1,  3,  3,  1,  1,  1,  1
 };
 
 void (*gpu_opcode[64])()= 
@@ -557,6 +573,10 @@ void GPUWriteWord(uint32 offset, uint16 data, uint32 who/*=UNKNOWN*/)
 		gpu_ram_8[(offset+1) & 0xFFF] = data & 0xFF;//*/
 /*		offset &= 0xFFF;
 		SET16(gpu_ram_8, offset, data);//*/
+
+/*if (offset >= 0xF03214 && offset < 0xF0321F)
+	WriteLog("GPU: Writing WORD (%04X) to GPU RAM (%08X)...\n", data, offset);//*/
+
 
 //This is the same stupid worthless code that was in the DSP!!! AARRRGGGGHHHHH!!!!!!
 /*		if (!gpu_in_exec)
@@ -1465,14 +1485,25 @@ static void gpu_opcode_subc(void)
 	UINT32 res = RN - RM - gpu_flag_c;
 	UINT32 borrow = gpu_flag_c;
 //	SET_ZNC_SUB(RN, RM, res); //???BUG??? YES!!!
-	SET_ZNC_SUB(RN - borrow, RM, res);
+//No matter how you do it, there is a problem. With below, it's 0-0 with carry,
+//and the one below it it's FFFFFFFF - FFFFFFFF with carry... !!! FIX !!!
+//	SET_ZNC_SUB(RN - borrow, RM, res);
+	SET_ZNC_SUB(RN, RM + borrow, res);
 	RN = res;
 #ifdef GPU_DIS_SUBC
 	if (doGPUDis)
 		WriteLog("[NCZ:%u%u%u, R%02u=%08X, R%02u=%08X]\n", gpu_flag_n, gpu_flag_c, gpu_flag_z, IMM_1, RM, IMM_2, RN);
 #endif
 }
+/*
+N = 5, M = 3, 3 - 5 = -2, C = 1... Or, in our case:
+N = 0, M = 1, 0 - 1 = -1, C = 0!
 
+#define SET_C_SUB(a,b)		(gpu_flag_c = ((UINT32)(b) > (UINT32)(a)))
+#define SET_ZN(r)			SET_N(r); SET_Z(r)
+#define SET_ZNC_ADD(a,b,r)	SET_N(r); SET_Z(r); SET_C_ADD(a,b)
+#define SET_ZNC_SUB(a,b,r)	SET_N(r); SET_Z(r); SET_C_SUB(a,b)
+*/
 static void gpu_opcode_subq(void)
 {
 #ifdef GPU_DIS_SUBQ
