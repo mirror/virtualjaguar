@@ -20,8 +20,9 @@ CC         = gcc
 LD         = gcc
 TARGET     = vj
 
-CFLAGS = -Wall -Wno-switch -Wno-non-virtual-dtor -O3 -D$(SYSTYPE) -Dstricmp="strcasecmp" \
+CFLAGS = -Wall -Wno-switch -Wno-non-virtual-dtor -O2 -D$(SYSTYPE) -Dstricmp="strcasecmp" \
 		-fomit-frame-pointer `sdl-config --cflags`
+#		-fomit-frame-pointer `sdl-config --cflags` -g
 #		-fomit-frame-pointer `sdl-config --cflags` -DLOG_UNMAPPED_MEMORY_ACCESSES
 
 LDFLAGS = $(CFLAGS)
@@ -81,7 +82,7 @@ obj/%.o: src/%.cpp
 
 vj: $(OBJS)
 	$(LD) $(LDFLAGS) -o $@ $(OBJS) $(LIBS)
-	strip --strip-all vj$(EXESUFFIX)
+#	strip --strip-all vj$(EXESUFFIX)
 #	upx -9 vj$(EXESUFFIX)
 
 # Other stuff that has unusual dependencies
