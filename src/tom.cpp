@@ -284,20 +284,27 @@
 //NOTE: These arbitrary cutoffs are NOT taken into account for PAL jaguar screens. !!! FIX !!!
 
 // Arbitrary video cutoff values (i.e., first/last visible spots on a TV, in HC ticks)
-/*#define LEFT_VISIBLE_HC		208
-#define RIGHT_VISIBLE_HC	1528//*/
-#define LEFT_VISIBLE_HC		208
-#define RIGHT_VISIBLE_HC	1488
+/*#define LEFT_VISIBLE_HC			208
+#define RIGHT_VISIBLE_HC		1528//*/
+#define LEFT_VISIBLE_HC			208
+#define RIGHT_VISIBLE_HC		1488
 //#define TOP_VISIBLE_VC		25
-//#define BOTTOM_VISIBLE_VC	503
-#define TOP_VISIBLE_VC		31
-#define BOTTOM_VISIBLE_VC	511
+//#define BOTTOM_VISIBLE_VC		503
+#define TOP_VISIBLE_VC			31
+#define BOTTOM_VISIBLE_VC		511
+
+//Are these PAL horizontals correct?
+//They seem to be for the most part, but there are some games that seem to be
+//shifted over to the right from this "window".
+#define LEFT_VISIBLE_HC_PAL		208
+#define RIGHT_VISIBLE_HC_PAL	1488
+#define TOP_VISIBLE_VC_PAL		67
+#define BOTTOM_VISIBLE_VC_PAL	579
 
 //This can be defined in the makefile as well...
 //(It's easier to do it here, though...)
 //#define TOM_DEBUG
 
-extern uint32 jaguar_mainRom_crc32;
 extern uint8 objectp_running;
 
 static uint8 * tom_ram_8;
@@ -358,6 +365,81 @@ render_xxx_scanline_fn * scanline_render_stretch[]=
 
 render_xxx_scanline_fn * scanline_render[8];
 
+
+// Screen info for various games [PAL]...
+/*
+BIOS
+TOM: Horizontal Period written by M68K: 850 (+1*2 = 1702)
+TOM: Horizontal Blank Begin written by M68K: 1711
+TOM: Horizontal Blank End written by M68K: 158
+TOM: Horizontal Display End written by M68K: 1696
+TOM: Horizontal Display Begin 1 written by M68K: 166
+TOM: Vertical Period written by M68K: 623 (non-interlaced)
+TOM: Vertical Blank End written by M68K: 34
+TOM: Vertical Display Begin written by M68K: 46
+TOM: Vertical Display End written by M68K: 526
+TOM: Vertical Blank Begin written by M68K: 600
+TOM: Vertical Sync written by M68K: 618
+TOM: Horizontal Display End written by M68K: 1665
+TOM: Horizontal Display Begin 1 written by M68K: 203
+TOM: Vertical Display Begin written by M68K: 38
+TOM: Vertical Display End written by M68K: 518
+TOM: Video Mode written by M68K: 06C1. PWIDTH = 4, MODE = 16 BPP CRY, flags: BGEN (VC = 151)
+TOM: Horizontal Display End written by M68K: 1713
+TOM: Horizontal Display Begin 1 written by M68K: 157
+TOM: Vertical Display Begin written by M68K: 35
+TOM: Vertical Display End written by M68K: 2047
+Horizontal range: 157 - 1713 (width: 1557 / 4 = 389.25, / 5 = 315.4)
+
+Asteroid
+TOM: Horizontal Period written by M68K: 845 (+1*2 = 1692)
+TOM: Horizontal Blank Begin written by M68K: 1700
+TOM: Horizontal Blank End written by M68K: 122
+TOM: Horizontal Display End written by M68K: 1600
+TOM: Horizontal Display Begin 1 written by M68K: 268
+TOM: Vertical Period written by M68K: 523 (non-interlaced)
+TOM: Vertical Blank End written by M68K: 40
+TOM: Vertical Display Begin written by M68K: 44
+TOM: Vertical Display End written by M68K: 492
+TOM: Vertical Blank Begin written by M68K: 532
+TOM: Vertical Sync written by M68K: 513
+TOM: Video Mode written by M68K: 04C7. PWIDTH = 3, MODE = 16 BPP RGB, flags: BGEN (VC = 461)
+
+Rayman
+TOM: Horizontal Display End written by M68K: 1713
+TOM: Horizontal Display Begin 1 written by M68K: 157
+TOM: Vertical Display Begin written by M68K: 35
+TOM: Vertical Display End written by M68K: 2047
+TOM: Video Mode written by M68K: 06C7. PWIDTH = 4, MODE = 16 BPP RGB, flags: BGEN (VC = 89)
+TOM: Horizontal Display Begin 1 written by M68K: 208
+TOM: Horizontal Display End written by M68K: 1662
+TOM: Vertical Display Begin written by M68K: 100
+TOM: Vertical Display End written by M68K: 2047
+TOM: Video Mode written by M68K: 07C7. PWIDTH = 4, MODE = 16 BPP RGB, flags: BGEN VARMOD (VC = 205)
+Horizontal range: 208 - 1662 (width: 1455 / 4 = 363.5)
+
+Alien vs Predator
+TOM: Vertical Display Begin written by M68K: 96
+TOM: Vertical Display End written by M68K: 2047
+TOM: Horizontal Display Begin 1 written by M68K: 239
+TOM: Horizontal Display End written by M68K: 1692
+TOM: Video Mode written by M68K: 06C1. PWIDTH = 4, MODE = 16 BPP CRY, flags: BGEN (VC = 378)
+TOM: Vertical Display Begin written by M68K: 44
+TOM: Vertical Display End written by M68K: 2047
+TOM: Horizontal Display Begin 1 written by M68K: 239
+TOM: Horizontal Display End written by M68K: 1692
+TOM: Video Mode written by M68K: 06C7. PWIDTH = 4, MODE = 16 BPP RGB, flags: BGEN (VC = 559)
+TOM: Vertical Display Begin written by M68K: 84
+TOM: Vertical Display End written by M68K: 2047
+TOM: Horizontal Display Begin 1 written by M68K: 239
+TOM: Horizontal Display End written by M68K: 1692
+TOM: Vertical Display Begin written by M68K: 44
+TOM: Vertical Display End written by M68K: 2047
+TOM: Horizontal Display Begin 1 written by M68K: 239
+TOM: Horizontal Display End written by M68K: 1692
+Horizontal range: 239 - 1692 (width: 1454 / 4 = 363.5)
+
+*/
 
 // Screen info for various games [NTSC]...
 /*
@@ -536,11 +618,15 @@ void tom_render_16bpp_cry_rgb_mix_scanline(int16 * backbuffer)
 	//New stuff--restrict our drawing...
 	uint8 pwidth = ((GET16(tom_ram_8, VMODE) & PWIDTH) >> 9) + 1;
 	//NOTE: May have to check HDB2 as well!
-	int16 startPos = GET16(tom_ram_8, HDB1) - LEFT_VISIBLE_HC;	// Get start position in HC ticks
+	// Get start position in HC ticks
+	int16 startPos = GET16(tom_ram_8, HDB1) - (vjs.hardwareTypeNTSC ? LEFT_VISIBLE_HC : LEFT_VISIBLE_HC_PAL);
 	startPos /= pwidth;
 	if (startPos < 0)
 		current_line_buffer += 2 * -startPos;
 	else
+//This case doesn't properly handle the "start on the right side of virtual screen" case
+//Dunno why--looks Ok...
+//What *is* for sure wrong is that it doesn't copy the linebuffer's BG pixels...
 		backbuffer += 2 * startPos, width -= startPos;
 
 	while (width)
@@ -563,7 +649,7 @@ void tom_render_16bpp_cry_scanline(int16 * backbuffer)
 	//New stuff--restrict our drawing...
 	uint8 pwidth = ((GET16(tom_ram_8, VMODE) & PWIDTH) >> 9) + 1;
 	//NOTE: May have to check HDB2 as well!
-	int16 startPos = GET16(tom_ram_8, HDB1) - LEFT_VISIBLE_HC;	// Get start position in HC ticks
+	int16 startPos = GET16(tom_ram_8, HDB1) - (vjs.hardwareTypeNTSC ? LEFT_VISIBLE_HC : LEFT_VISIBLE_HC_PAL);// Get start position in HC ticks
 	startPos /= pwidth;
 	if (startPos < 0)
 		current_line_buffer += 2 * -startPos;
@@ -599,7 +685,7 @@ void tom_render_24bpp_scanline(int16 * backbuffer)
 	//New stuff--restrict our drawing...
 	uint8 pwidth = ((GET16(tom_ram_8, VMODE) & PWIDTH) >> 9) + 1;
 	//NOTE: May have to check HDB2 as well!
-	int16 startPos = GET16(tom_ram_8, HDB1) - LEFT_VISIBLE_HC;	// Get start position in HC ticks
+	int16 startPos = GET16(tom_ram_8, HDB1) - (vjs.hardwareTypeNTSC ? LEFT_VISIBLE_HC : LEFT_VISIBLE_HC_PAL);	// Get start position in HC ticks
 	startPos /= pwidth;
 	if (startPos < 0)
 		current_line_buffer += 4 * -startPos;
@@ -649,7 +735,7 @@ void tom_render_16bpp_rgb_scanline(int16 * backbuffer)
 	//New stuff--restrict our drawing...
 	uint8 pwidth = ((GET16(tom_ram_8, VMODE) & PWIDTH) >> 9) + 1;
 	//NOTE: May have to check HDB2 as well!
-	int16 startPos = GET16(tom_ram_8, HDB1) - LEFT_VISIBLE_HC;	// Get start position in HC ticks
+	int16 startPos = GET16(tom_ram_8, HDB1) - (vjs.hardwareTypeNTSC ? LEFT_VISIBLE_HC : LEFT_VISIBLE_HC_PAL);	// Get start position in HC ticks
 	startPos /= pwidth;
 	if (startPos < 0)
 		current_line_buffer += 2 * -startPos;
@@ -826,8 +912,11 @@ void TOMExecScanline(uint16 scanline, bool render)
 	else
 		inActiveDisplayArea = false;
 
+//Try to take PAL into account...
+uint16 topVisible = (vjs.hardwareTypeNTSC ? TOP_VISIBLE_VC : TOP_VISIBLE_VC_PAL),
+	bottomVisible = (vjs.hardwareTypeNTSC ? BOTTOM_VISIBLE_VC : BOTTOM_VISIBLE_VC_PAL);
 	// Here's our virtualized scanline code...
-	if (scanline >= TOP_VISIBLE_VC && scanline < BOTTOM_VISIBLE_VC)
+	if (scanline >= topVisible && scanline < bottomVisible)
 	{
 		if (inActiveDisplayArea)
 			scanline_render[tom_getVideoMode()](TOMBackbuffer);
@@ -919,7 +1008,7 @@ uint32 tom_getVideoModeWidth(void)
 	// To make it easier to make a quasi-fixed display size, we restrict the viewing
 	// area to an arbitrary range of the Horizontal Count.
 	uint16 pwidth = ((GET16(tom_ram_8, VMODE) & PWIDTH) >> 9) + 1;
-	return (RIGHT_VISIBLE_HC - LEFT_VISIBLE_HC) / pwidth;
+	return (vjs.hardwareTypeNTSC ? RIGHT_VISIBLE_HC - LEFT_VISIBLE_HC : RIGHT_VISIBLE_HC_PAL - LEFT_VISIBLE_HC_PAL) / pwidth;
 //Temporary, for testing Doom...
 //	return (RIGHT_VISIBLE_HC - LEFT_VISIBLE_HC) / (pwidth == 8 ? 4 : pwidth);
 ////	return (RIGHT_VISIBLE_HC - LEFT_VISIBLE_HC) / (pwidth == 4 ? 8 : pwidth);
@@ -1033,7 +1122,7 @@ void tom_reset(void)
 	tom_gpu_int_pending = 0;
 	tom_video_int_pending = 0;
 
-	tom_timer_prescaler = 0;
+	tom_timer_prescaler = 0;						// TOM PIT is disabled
 	tom_timer_divider = 0;
 	tom_timer_counter = 0;
 	memcpy(scanline_render, scanline_render_normal, sizeof(scanline_render));
@@ -1341,30 +1430,31 @@ int tom_irq_enabled(int irq)
 
 void TOMResetPIT(void)
 {
-	if (!tom_timer_prescaler || !tom_timer_divider)
-		tom_timer_counter = 0;
-	else
-//Probably should *add* this amount to the counter to retain cycle accuracy! !!! FIX !!!
-//Also, why +1???
-		tom_timer_counter = (1 + tom_timer_prescaler) * (1 + tom_timer_divider);
+//Probably should *add* this amount to the counter to retain cycle accuracy! !!! FIX !!! [DONE]
+//Also, why +1??? 'Cause that's what it says in the JTRM...!
+//There is a small problem with this approach: If both the prescaler and the divider are equal
+//to $FFFF then the counter won't be large enough to handle it. !!! FIX !!!
+	if (tom_timer_prescaler)
+		tom_timer_counter += (1 + tom_timer_prescaler) * (1 + tom_timer_divider);
 //	WriteLog("tom: reseting timer to 0x%.8x (%i)\n",tom_timer_counter,tom_timer_counter);
 }
 
 //
 // TOM Programmable Interrupt Timer handler
+// NOTE: TOM's PIT is only enabled if the prescaler is != 0
 //
 void TOMExecPIT(uint32 cycles)
 {
-	if (tom_timer_counter > 0)
+	if (tom_timer_prescaler)
 	{
 		tom_timer_counter -= cycles;
 
 		if (tom_timer_counter <= 0)
 		{
 			tom_set_pending_timer_int();
-			GPUSetIRQLine(GPUIRQ_TIMER, ASSERT_LINE);
-			if (tom_irq_enabled(IRQ_TIMER) && jaguar_interrupt_handler_is_valid(64))
-				m68k_set_irq(7);				// Cause a 68000 NMI...
+			GPUSetIRQLine(GPUIRQ_TIMER, ASSERT_LINE);	// GPUSetIRQLine does the 'IRQ enabled' checking
+			if (tom_irq_enabled(IRQ_TIMER))//get rid of this crap -> && jaguar_interrupt_handler_is_valid(64))
+				m68k_set_irq(7);					// Cause a 68000 NMI...
 
 			TOMResetPIT();
 		}
