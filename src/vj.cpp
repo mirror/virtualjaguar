@@ -119,7 +119,7 @@ int main(int argc, char * argv[])
 		if (!strcmp(argv[i], "-nobios"))
 			vjs.useJaguarBIOS = false;
 
-		if (!strcmp(argv[i], "-dspon"))
+		if (!strcmp(argv[i], "-dsp"))
 			vjs.DSPEnabled = true;
 
 		if (!strcmp(argv[i], "-pal"))
@@ -139,7 +139,7 @@ int main(int argc, char * argv[])
 			printf("  -joyport   0-3  : Select desired joystick port              \n");
 			printf("  -bios           : Boot cart using Jaguar BIOS ROM           \n");
 			printf("  -nobios         : Boot cart without using Jaguar BIOS ROM   \n");
-			printf("  -dspon          : Force VJ to use the DSP                   \n");
+			printf("  -dsp            : Force VJ to use the DSP                   \n");
 			printf("  -pal            : Force VJ to PAL mode (default is NTSC)    \n");
 			printf("  -nogl           : Use old non-OpenGL rendering              \n");
 			printf("\nInvoking Virtual Jagaur with no ROM file will cause it to boot up\n");
