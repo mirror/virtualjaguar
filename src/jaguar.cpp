@@ -48,8 +48,9 @@ uint32 jaguar_active_memory_dumps = 0;
 uint32 jaguar_mainRom_crc32, jaguarRomSize, jaguarRunAddress;
 
 /*static*/ uint8 * jaguar_mainRam = NULL;
-/*static*/ uint8 * jaguar_bootRom = NULL;
 /*static*/ uint8 * jaguar_mainRom = NULL;
+/*static*/ uint8 * jaguar_bootRom = NULL;
+/*static*/ uint8 * jaguar_CDBootROM = NULL;
 
 #ifdef CPU_DEBUG_MEMORY
 uint8 writeMemMax[0x400000], writeMemMin[0x400000];
@@ -63,8 +64,9 @@ uint32 pcQPtr = 0;
 //
 // Callback function to detect illegal instructions
 //
-//void GPUDumpDisassembly(void);
-//void GPUDumpRegisters(void);
+void GPUDumpDisassembly(void);
+void GPUDumpRegisters(void);
+	static bool start = false;
 void M68KInstructionHook(void)
 {
 	uint32 m68kPC = m68k_get_reg(NULL, M68K_REG_PC);
@@ -138,9 +140,43 @@ void M68KInstructionHook(void)
 		}
 	}//*/
 
+//Flip Out! debugging...
+//805F46, 806486
+/*
+00805FDC: movea.l #$9c6f8, A0 		D0=00100010, A0=00100000
+00805FE2: move.w  #$10, (A0)+ 		D0=00100010, A0=0009C6F8
+00805FE6: cmpa.l  #$c96f8, A0 		D0=00100010, A0=0009C6FA
+00805FEC: bne     805fe2 		D0=00100010, A0=0009C6FA
+
+0080603A: move.l  #$11ed7c, $100.w 		D0=61700080, A0=000C96F8, D1=00000000, A1=000040D8
+
+0012314C: move.l  (A0)+, (A1)+ 		D0=61700080, A0=00124174, D1=00000000, A1=00F03FFC
+0012314E: cmpa.l  #$f04000, A1 		D0=61700080, A0=00124178, D1=00000000, A1=00F04000
+00123154: blt     12314c 		D0=61700080, A0=00124178, D1=00000000, A1=00F04000
+00123156: move.l  #$0, $f035d0.l 		D0=61700080, A0=00124178, D1=00000000, A1=00F04000
+00123160: move.l  #$f03000, $f02110.l 		D0=61700080, A0=00124178, D1=00000000, A1=00F04000
+0012316A: move.l  #$1, $f02114.l 		D0=61700080, A0=00124178, D1=00000000, A1=00F04000
+00123174: rts 		D0=61700080, A0=00124178, D1=00000000, A1=00F04000
+*/
 /*	static char buffer[2048];
+//if (m68kPC > 0x805F48) start = true;
+//if (m68kPC > 0x806486) start = true;
+//if (m68kPC == 0x805FEE) start = true;
+//if (m68kPC == 0x80600C)// start = true;
+if (m68kPC == 0x802058) start = true;
+//{
+//	GPUDumpRegisters();
+//	GPUDumpDisassembly();
+//
+//	M68K_show_context();
+//	log_done();
+//	exit(0);
+//}
+	if (start)
+	{
 	m68k_disassemble(buffer, m68kPC, M68K_CPU_TYPE_68000);
-	WriteLog("%08X: %s \t\tD0=%08X, A0=%08X\n", m68kPC, buffer, m68k_get_reg(NULL, M68K_REG_D0), m68k_get_reg(NULL, M68K_REG_A0));//*/
+	WriteLog("%08X: %s \t\tD0=%08X, A0=%08X, D1=%08X, A1=%08X\n", m68kPC, buffer, m68k_get_reg(NULL, M68K_REG_D0), m68k_get_reg(NULL, M68K_REG_A0), m68k_get_reg(NULL, M68K_REG_D1), m68k_get_reg(NULL, M68K_REG_A1));
+	}//*/
 
 /*	if (m68kPC == 0x803F16)
 	{
@@ -224,7 +260,8 @@ unsigned int m68k_read_memory_8(unsigned int address)
 
 	if ((address >= 0x000000) && (address <= 0x3FFFFF))
 		retVal = jaguar_mainRam[address];
-	else if ((address >= 0x800000) && (address <= 0xDFFFFF))
+//	else if ((address >= 0x800000) && (address <= 0xDFFFFF))
+	else if ((address >= 0x800000) && (address <= 0xDFFEFF))
 		retVal = jaguar_mainRom[address - 0x800000];
 	else if ((address >= 0xE00000) && (address <= 0xE3FFFF))
 		retVal = jaguar_bootRom[address - 0xE00000];
@@ -305,7 +342,8 @@ unsigned int m68k_read_memory_16(unsigned int address)
 
 	if ((address >= 0x000000) && (address <= 0x3FFFFE))
 		retVal = (jaguar_mainRam[address] << 8) | jaguar_mainRam[address+1];
-	else if ((address >= 0x800000) && (address <= 0xDFFFFE))
+//	else if ((address >= 0x800000) && (address <= 0xDFFFFE))
+	else if ((address >= 0x800000) && (address <= 0xDFFEFE))
 		retVal = (jaguar_mainRom[address - 0x800000] << 8) | jaguar_mainRom[address - 0x800000 + 1];
 	else if ((address >= 0xE00000) && (address <= 0xE3FFFE))
 		retVal = (jaguar_bootRom[address - 0xE00000] << 8) | jaguar_bootRom[address - 0xE00000 + 1];
@@ -344,6 +382,10 @@ void m68k_write_memory_8(unsigned int address, unsigned int value)
 //if ((address >= 0x1FF020 && address <= 0x1FF03F) || (address >= 0x1FF820 && address <= 0x1FF83F))
 //	WriteLog("M68K: Writing %02X at %08X\n", value, address);
 //WriteLog("[WM8  PC=%08X] Addr: %08X, val: %02X\n", m68k_get_reg(NULL, M68K_REG_PC), address, value);
+/*if (effect_start)
+	if (address >= 0x18FA70 && address < (0x18FA70 + 8000))
+		WriteLog("M68K: Byte %02X written at %08X by 68K\n", value, address);//*/
+
 	if ((address >= 0x000000) && (address <= 0x3FFFFF))
 		jaguar_mainRam[address] = value;
 	else if ((address >= 0xDFFF00) && (address <= 0xDFFFFF))
@@ -392,6 +434,12 @@ if (address == 0xF02110)
 //if (address >= 0xF03B00 && address <= 0xF03DFF)
 //	WriteLog("M68K: Writing %04X to %08X...\n", value, address);
 
+/*if (address == 0x0100)//64*4)
+	WriteLog("M68K: Wrote word to VI vector value %04X...\n", value);//*/
+/*if (effect_start)
+	if (address >= 0x18FA70 && address < (0x18FA70 + 8000))
+		WriteLog("M68K: Word %04X written at %08X by 68K\n", value, address);//*/
+
 	if ((address >= 0x000000) && (address <= 0x3FFFFE))
 	{
 /*		jaguar_mainRam[address] = value >> 8;
@@ -418,6 +466,15 @@ if (address == 0xF02110)
 void m68k_write_memory_32(unsigned int address, unsigned int value)
 {
 //WriteLog("--> [WM32]\n");
+/*if (address == 0x0100)//64*4)
+	WriteLog("M68K: Wrote dword to VI vector value %08X...\n", value);//*/
+/*if (address >= 0xF03214 && address < 0xF0321F)
+	WriteLog("M68K: Writing DWORD (%08X) to GPU RAM (%08X)...\n", value, address);//*/
+//M68K: Writing DWORD (88E30047) to GPU RAM (00F03214)...
+/*extern bool doGPUDis;
+if (address == 0xF03214 && value == 0x88E30047)
+//	start = true;
+	doGPUDis = true;//*/
 	m68k_write_memory_16(address, value >> 16);
 	m68k_write_memory_16(address + 2, value & 0xFFFF);
 }
@@ -450,6 +507,9 @@ void M68K_show_context(void)
 //	jaguar_dasm(s68000readPC()-0x1000,0x20000);
 	jaguar_dasm(m68k_get_reg(NULL, M68K_REG_PC) - 0x80, 0x200);
 //	jaguar_dasm(0x5000, 0x14414);
+
+//	WriteLog("\n.......[Cart start]...........\n\n");
+//	jaguar_dasm(0x192000, 0x1000);//0x200);
 
 	WriteLog("..................\n");
 
@@ -635,6 +695,11 @@ uint16 JaguarReadWord(uint32 offset, uint32 who/*=UNKNOWN*/)
 
 void JaguarWriteByte(uint32 offset, uint8 data, uint32 who/*=UNKNOWN*/)
 {
+//Need to check for writes in the range of $18FA70 + 8000...
+/*if (effect_start)
+	if (offset >= 0x18FA70 && offset < (0x18FA70 + 8000))
+		WriteLog("JWB: Byte %02X written at %08X by %s\n", data, offset, whoName[who]);//*/
+
 	offset &= 0xFFFFFF;
 	if (offset < 0x400000)
 	{
@@ -660,19 +725,111 @@ void JaguarWriteByte(uint32 offset, uint8 data, uint32 who/*=UNKNOWN*/)
 	jaguar_unknown_writebyte(offset, data, who);
 }
 
+uint32 starCount;
 void JaguarWriteWord(uint32 offset, uint16 data, uint32 who/*=UNKNOWN*/)
 {
+/*if (offset == 0x0100)//64*4)
+	WriteLog("M68K: %s wrote word to VI vector value %04X...\n", whoName[who], data);
+if (offset == 0x0102)//64*4)
+	WriteLog("M68K: %s wrote word to VI vector+2 value %04X...\n", whoName[who], data);//*/
 //TEMP--Mirror of F03000? Yes, but only 32-bit CPUs can do it (i.e., NOT the 68K!)
 // PLUS, you would handle this in the GPU/DSP WriteLong code! Not here!
+//Need to check for writes in the range of $18FA70 + 8000...
+/*if (effect_start)
+	if (offset >= 0x18FA70 && offset < (0x18FA70 + 8000))
+		WriteLog("JWW: Word %04X written at %08X by %s\n", data, offset, whoName[who]);//*/
+
 	offset &= 0xFFFFFF;
 
 	if (offset <= 0x3FFFFE)
 	{
+/*
+GPU Table (CD BIOS)
+
+1A 69 F0 ($0000) -> Starfield
+1A 73 C8 ($0001) -> Final clearing blit & bitmap blit?
+1A 79 F0 ($0002)
+1A 88 C0 ($0003)
+1A 8F E8 ($0004) -> "Jaguar" small color logo?
+1A 95 20 ($0005)
+1A 9F 08 ($0006)
+1A A1 38 ($0007)
+1A AB 38 ($0008)
+1A B3 C8 ($0009)
+1A B9 C0 ($000A)
+*/
+
 //This MUST be done by the 68K!
 /*if (offset == 0x670C)
 	WriteLog("Jaguar: %s writing to location $670C...\n", whoName[who]);*/
 
-		jaguar_mainRam[(offset+0) & 0x3FFFFF] = (data>>8) & 0xFF;
+/*extern bool doGPUDis;
+//if ((offset == 0x100000 + 75522) && who == GPU)	// 76,226 -> 75522
+if ((offset == 0x100000 + 128470) && who == GPU)	// 107,167 -> 128470 (384 x 250 screen size 16BPP)
+//if ((offset >= 0x100000 && offset <= 0x12C087) && who == GPU)
+	doGPUDis = true;//*/
+/*if (offset == 0x100000 + 128470) // 107,167 -> 128470 (384 x 250 screen size 16BPP)
+	WriteLog("JWW: Writing value %04X at %08X by %s...\n", data, offset, whoName[who]);
+if ((data & 0xFF00) != 0x7700)
+	WriteLog("JWW: Writing value %04X at %08X by %s...\n", data, offset, whoName[who]);//*/
+/*if ((offset >= 0x100000 && offset <= 0x147FFF) && who == GPU)
+	return;//*/
+/*if ((data & 0xFF00) != 0x7700 && who == GPU)
+	WriteLog("JWW: Writing value %04X at %08X by %s...\n", data, offset, whoName[who]);//*/
+/*if ((offset >= 0x100000 + 0x48000 && offset <= 0x12C087 + 0x48000) && who == GPU)
+	return;//*/
+/*extern bool doGPUDis;
+if (offset == 0x120216 && who == GPU)
+	doGPUDis = true;//*/
+/*extern uint32 gpu_pc;
+if (who == GPU && (gpu_pc == 0xF03604 || gpu_pc == 0xF03638))
+{
+	uint32 base = offset - (offset > 0x148000 ? 0x148000 : 0x100000);
+	uint32 y = base / 0x300;
+	uint32 x = (base - (y * 0x300)) / 2;
+	WriteLog("JWW: Writing starfield star %04X at %08X (%u/%u) [%s]\n", data, offset, x, y, (gpu_pc == 0xF03604 ? "s" : "L"));
+}//*/
+/*
+JWW: Writing starfield star 775E at 0011F650 (555984/1447)
+*/
+//if (offset == (0x001E17F8 + 0x34))
+/*if (who == GPU && offset == (0x001E17F8 + 0x34))
+	data = 0xFE3C;//*/
+//	WriteLog("JWW: Write at %08X written to by %s.\n", 0x001E17F8 + 0x34, whoName[who]);//*/
+/*extern uint32 gpu_pc;
+if (who == GPU && (gpu_pc == 0xF03604 || gpu_pc == 0xF03638))
+{
+	extern int objectPtr;
+//	if (offset > 0x148000)
+//		return;
+	starCount++;
+	if (starCount > objectPtr)
+		return;
+
+//	if (starCount == 1)
+//		WriteLog("--> Drawing 1st star...\n");
+//
+//	uint32 base = offset - (offset > 0x148000 ? 0x148000 : 0x100000);
+//	uint32 y = base / 0x300;
+//	uint32 x = (base - (y * 0x300)) / 2;
+//	WriteLog("JWW: Writing starfield star %04X at %08X (%u/%u) [%s]\n", data, offset, x, y, (gpu_pc == 0xF03604 ? "s" : "L"));
+
+//A star of interest...
+//-->JWW: Writing starfield star 77C9 at 0011D31A (269/155) [s]
+//1st trail +3(x), -1(y) -> 272, 154 -> 0011D020
+//JWW: Blitter writing echo 77B3 at 0011D022...
+}//*/
+//extern bool doGPUDis;
+/*if (offset == 0x11D022 + 0x48000 || offset == 0x11D022)// && who == GPU)
+{
+//	doGPUDis = true;
+	WriteLog("JWW: %s writing echo %04X at %08X...\n", whoName[who], data, offset);
+//	LogBlit();
+}
+if (offset == 0x11D31A + 0x48000 || offset == 0x11D31A)
+	WriteLog("JWW: %s writing star %04X at %08X...\n", whoName[who], data, offset);//*/
+
+		jaguar_mainRam[(offset+0) & 0x3FFFFF] = data >> 8;
 		jaguar_mainRam[(offset+1) & 0x3FFFFF] = data & 0xFF;
 		return;
 	}
@@ -713,6 +870,8 @@ void JaguarWriteLong(uint32 offset, uint32 data, uint32 who/*=UNKNOWN*/)
 		WriteLog("JLW: Write to %08X by %s... Starting DSP log!\n\n", offset, whoName[who]);
 		doDSPDis = true;
 	}//*/
+/*if (offset == 0x0100)//64*4)
+	WriteLog("M68K: %s wrote dword to VI vector value %08X...\n", whoName[who], data);//*/
 
 	JaguarWriteWord(offset, data >> 16, who);
 	JaguarWriteWord(offset+2, data & 0xFFFF, who);
@@ -729,27 +888,31 @@ void jaguar_init(void)
 	memset(writeMemMax, 0x00, 0x400000);
 #endif
 	memory_malloc_secure((void **)&jaguar_mainRam, 0x400000, "Jaguar 68K CPU RAM");
-	memory_malloc_secure((void **)&jaguar_bootRom, 0x040000, "Jaguar 68K CPU BIOS ROM");
 	memory_malloc_secure((void **)&jaguar_mainRom, 0x600000, "Jaguar 68K CPU ROM");
+	memory_malloc_secure((void **)&jaguar_bootRom, 0x040000, "Jaguar 68K CPU BIOS ROM"); // Only uses half of this!
+	memory_malloc_secure((void **)&jaguar_CDBootROM, 0x040000, "Jaguar 68K CPU CD BIOS ROM");
 	memset(jaguar_mainRam, 0x00, 0x400000);
 //	memset(jaguar_mainRom, 0xFF, 0x200000);	// & set it to all Fs...
 //	memset(jaguar_mainRom, 0x00, 0x200000);	// & set it to all 0s...
 //NOTE: This *doesn't* fix FlipOut...
+//Or does it? Hmm...
+//Seems to want $01010101... Dunno why. Investigate!
 	memset(jaguar_mainRom, 0x01, 0x600000);	// & set it to all 01s...
+//	memset(jaguar_mainRom, 0xFF, 0x600000);	// & set it to all Fs...
 
-//	cd_bios_boot("C:\\ftp\\jaguar\\cd\\Brain Dead 13.cdi");
-//	cd_bios_boot("C:\\ftp\\jaguar\\cd\\baldies.cdi");
-//	cd_bios_boot("C:\\ftp\\jaguar\\cd\\mystdemo.cdi");
-//	cd_bios_boot("C:\\ftp\\jaguar\\cd\\battlemorph.cdi");
-//	cd_bios_boot("C:\\ftp\\jaguar\\cd\\primalrage.cdi");
-//	cd_bios_boot("C:\\ftp\\jaguar\\cd\\Dragons Lair.cdi");
-
+WriteLog("Jaguar: m68k_set_cpu_type...");
 	m68k_set_cpu_type(M68K_CPU_TYPE_68000);
+WriteLog("OK\nJaguar: gpu_init...");
 	gpu_init();
+WriteLog("OK\nJaguar: DSPInit...");
 	DSPInit();
+WriteLog("OK\nJaguar: tom_init...");
 	tom_init();
+WriteLog("OK\nJaguar: jerry_init...");
 	jerry_init();
+WriteLog("OK\nJaguar: cdrom_init...");
 	cdrom_init();
+WriteLog("OK\n");
 }
 
 void jaguar_done(void)
@@ -835,7 +998,7 @@ void jaguar_done(void)
 	M68K_show_context();
 //#endif
 
-	cd_bios_done();
+//	cd_bios_done();
 	cdrom_done();
 	gpu_done();
 	DSPDone();
@@ -843,8 +1006,9 @@ void jaguar_done(void)
 	jerry_done();
 
 	memory_free(jaguar_mainRom);
-	memory_free(jaguar_bootRom);
 	memory_free(jaguar_mainRam);
+	memory_free(jaguar_bootRom);
+	memory_free(jaguar_CDBootROM);
 }
 
 void jaguar_reset(void)
@@ -880,7 +1044,7 @@ void jaguar_reset(void)
 //#ifdef SOUND_OUTPUT
 //	ws_audio_reset();
 //#endif
-	cd_bios_reset();
+//	cd_bios_reset();
 	tom_reset();
 	jerry_reset();
 	gpu_reset();
@@ -916,7 +1080,7 @@ void JaguarExecute(int16 * backbuffer, bool render)
 /*extern int effect_start;
 if (effect_start)
 {
-	WriteLog("JagExe: VP=%u, VI=%u, VDB=%u, VBB=%u CPU CPS=%u, GPU CPS=%u\n", vp, vi, vdb, vbb, M68KCyclesPerScanline, RISCCyclesPerScanline);
+	WriteLog("JagExe: VP=%u, VI=%u, CPU CPS=%u, GPU CPS=%u\n", vp, vi, M68KCyclesPerScanline, RISCCyclesPerScanline);
 }//*/
 
 //extern int start_logging;
@@ -949,15 +1113,16 @@ if (effect_start)
 //	WriteLog("About to execute M68K (%u)...\n", i);
 		m68k_execute(M68KCyclesPerScanline);
 		// No CD handling... !!! FIX !!!
+		//This isn't the right to go about it anyway.
 //if (start_logging)
 //	WriteLog("About to execute CD BIOS (%u)...\n", i);
-		cd_bios_exec(i);	// NOTE: Ignores parameter...
+//		cd_bios_exec(i);	// NOTE: Ignores parameter...
 //if (start_logging)
 //	WriteLog("About to execute TOM's PIT (%u)...\n", i);
 		TOMExecPIT(RISCCyclesPerScanline);
 //if (start_logging)
 //	WriteLog("About to execute JERRY's PIT (%u)...\n", i);
-		jerry_pit_exec(RISCCyclesPerScanline);
+		JERRYExecPIT(RISCCyclesPerScanline);
 //if (start_logging)
 //	WriteLog("About to execute JERRY's SSI (%u)...\n", i);
 		jerry_i2s_exec(RISCCyclesPerScanline);
