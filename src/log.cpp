@@ -6,6 +6,8 @@
 // Cleanups/new stuff by James L. Hammons
 //
 
+#include <stdlib.h>
+#include <stdarg.h>
 #include "types.h"
 #include "log.h"
 
