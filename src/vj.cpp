@@ -27,7 +27,6 @@
 
 // Private function prototypes
 
-//void InitSDL(void);
 uint32 JaguarLoadROM(uint8 *, char *);
 void JaguarLoadCart(uint8 *, char *);
 int gzfilelength(gzFile gd);
@@ -40,12 +39,13 @@ extern uint8 * jaguar_mainRom;
 
 // Various paths
 
-static char * jaguar_bootRom_path = "./bios/jagboot.rom";
+//static char * jaguar_bootRom_path = "./bios/jagboot.rom";
 //static char  *jaguar_bootRom_path="c:/jaguarEmu/newload.img";
 //static char  *jaguar_bootRom_path="./bios/JagOS.bin";
-char * jaguar_eeproms_path = "./eeproms/";
-char jaguar_boot_dir[1024];
+//char * jaguar_eeproms_path = "./eeproms/";
+//char jaguar_boot_dir[MAX_PATH];
 
+//These should go into video.cpp...
 SDL_Surface * surface, * mainSurface;
 int16 * backbuffer = NULL;
 SDL_Joystick * joystick;
@@ -61,7 +61,7 @@ char messageBuffer[200];
 // The main emulator loop (what else?)
 //
 //Maybe we should move the video stuff to TOM? Makes more sense to put it there...
-//Actually, it would probably be better served in VIDEO.CPP... !!! FIX !!!
+//Actually, it would probably be better served in VIDEO.CPP... !!! FIX !!! [DONE]
 uint32 totalFrames;//temp, so we can grab this from elsewhere...
 int main(int argc, char * argv[])
 {
@@ -79,19 +79,18 @@ int main(int argc, char * argv[])
 
 	bool haveCart = false;							// Assume there is no cartridge...!
 
+	log_init("vj.log");
 	LoadVJSettings();								// Get config file settings...
 
 	// Check the switches... ;-)
-	// NOTE: Command line switches can override any config file settings.
+	// NOTE: Command line switches can override any config file settings, thus the
+	//       proliferation of the noXXX switches. ;-)
 
 	for(int i=1; i<argc || argv[i]!=NULL; i++)
 	{
 		// This would be the most likely place to do the cart loading...
 		if (argv[i][0] != '-')
 			haveCart = true;						// It looks like we have a cartridge!
-
-		if (!strcmp(argv[i], "-fullscreen")) 
-			vjs.fullscreen = true;
 
 		if (!strcmp(argv[i], "-joystick")) 
 			vjs.useJoystick = true;
@@ -122,34 +121,52 @@ int main(int argc, char * argv[])
 		if (!strcmp(argv[i], "-dsp"))
 			vjs.DSPEnabled = true;
 
-		if (!strcmp(argv[i], "-pal"))
-			vjs.hardwareTypeNTSC = false;
+		if (!strcmp(argv[i], "-nodsp"))
+			vjs.DSPEnabled = false;
+
+		if (!strcmp(argv[i], "-gl"))
+			vjs.useOpenGL = true;
 
 		if (!strcmp(argv[i], "-nogl"))
 			vjs.useOpenGL = false;
+
+		if (!strcmp(argv[i], "-fullscreen")) 
+			vjs.fullscreen = true;
+
+		if (!strcmp(argv[i], "-window")) 
+			vjs.fullscreen = false;
+
+		if (!strcmp(argv[i], "-pal"))
+			vjs.hardwareTypeNTSC = false;
+
+		if (!strcmp(argv[i], "-ntsc"))
+			vjs.hardwareTypeNTSC = true;
 
 		if (!strcmp(argv[i], "-help") || !strcmp(argv[i], "-?"))
 		{
 		    printf("Usage: \n\n");
 			printf("vj [romfile] [switches]\n");
 			printf("  -? or -help     : Display usage and switches                \n");
-			printf("  -fullscreen     : Enable fullscreen mode (default: windowed)\n");
 			printf("  -frameskip 1-10 : Enable frameskip 1 - 10 (default: none)   \n");
 			printf("  -joystick       : Enable joystick/gamepad                   \n");
-			printf("  -joyport   0-3  : Select desired joystick port              \n");
+			printf("  -joyport 0-3    : Select desired joystick port              \n");
 			printf("  -bios           : Boot cart using Jaguar BIOS ROM           \n");
 			printf("  -nobios         : Boot cart without using Jaguar BIOS ROM   \n");
 			printf("  -dsp            : Force VJ to use the DSP                   \n");
-			printf("  -pal            : Force VJ to PAL mode (default is NTSC)    \n");
+			printf("  -nodsp          : Force VJ to run without the DSP           \n");
+			printf("  -gl             : Use OpenGL rendering                      \n");
 			printf("  -nogl           : Use old non-OpenGL rendering              \n");
+			printf("  -fullscreen     : Enable fullscreen mode (default: windowed)\n");
+			printf("  -window         : Enable windowed mode                      \n");
+			printf("  -pal            : Force VJ to PAL mode (default: NTSC)      \n");
+			printf("  -ntsc           : Force VJ to NTSC mode                     \n");
 			printf("\nInvoking Virtual Jagaur with no ROM file will cause it to boot up\n");
 			printf("with the Jaguar BIOS.\n");
  			return 1;
 		}
     }
 
-	getcwd(jaguar_boot_dir, 1024);
-	log_init("vj.log");
+//	getcwd(jaguar_boot_dir, 1024);
 	memory_init();
 	version_init();
 	version_display(log_get());
@@ -157,21 +174,23 @@ int main(int argc, char * argv[])
 
 	// Get the BIOS ROM
 	if (vjs.useJaguarBIOS)
-		JaguarLoadROM(jaguar_bootRom, jaguar_bootRom_path);
+		JaguarLoadROM(jaguar_bootRom, vjs.jagBootPath);
 
 	SET32(jaguar_mainRam, 0, 0x00200000);			// Set top of stack...
 
 	// Set up the backbuffer
 //To be safe, this should be 1280 * 625 * 2...
-	backbuffer = (int16 *)malloc(845 * 525 * sizeof(int16));
-	memset(backbuffer, 0x22, VIRTUAL_SCREEN_WIDTH * VIRTUAL_SCREEN_HEIGHT * sizeof(int16));
+//	backbuffer = (int16 *)malloc(845 * 525 * sizeof(int16));
+	backbuffer = (int16 *)malloc(1280 * 625 * sizeof(int16));
+	memset(backbuffer, 0x44, VIRTUAL_SCREEN_WIDTH * VIRTUAL_SCREEN_HEIGHT * sizeof(int16));
 
 	InitVideo();
 	InitGUI();
 
 	// Get the cartridge ROM (if passed in)
 	// Now with crunchy GUI goodness!
-	JaguarLoadCart(jaguar_mainRom, (haveCart ? argv[1] : (char *)""));
+//	JaguarLoadCart(jaguar_mainRom, (haveCart ? argv[1] : (char *)""));
+	JaguarLoadCart(jaguar_mainRom, (haveCart ? argv[1] : vjs.ROMPath));
 
 	jaguar_reset();
 	
@@ -322,7 +341,7 @@ void JaguarLoadCart(uint8 * mem, char * path)
 
 //This is not *nix friendly for some reason...
 //		if (!UserSelectFile(path, newPath))
-		if (!UserSelectFile((path == "" ? (char *)"." : path), newPath))
+		if (!UserSelectFile((strlen(path) == 0 ? (char *)"." : path), newPath))
 		{
 			WriteLog("VJ: Could not find valid ROM in directory \"%s\"...\nAborting!\n", path);
 			log_done();
