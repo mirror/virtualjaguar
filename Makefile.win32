@@ -1,8 +1,9 @@
-CC = gcc
-LD = gcc 
-NASM = nasm
+CC        = gcc
+LD        = gcc
+SYSTYPE   = __GCCWIN32__
+EXESUFFIX = .exe
 
-CFLAGS  = -Wall -Wno-switch -O3 -D__PORT__ -D__GCCWIN32__ -Dstricmp="strcasecmp" \
+CFLAGS  = -Wall -Wno-switch -O3 -D$(SYSTYPE) -Dstricmp="strcasecmp" \
 			-fomit-frame-pointer `sdl-config --cflags`
 #			-fomit-frame-pointer `sdl-config --cflags` -DLOG_UNMAPPED_MEMORY_ACCESSES
 #			-fomit-frame-pointer `sdl-config --cflags` -DTOM_DEBUG
@@ -39,8 +40,6 @@ OBJS = \
 	obj/vj.o
 #	obj/m68kdasmAG.o \
 #	obj/gpu2.o \
-#	obj/dsound_dummy.o \
-#	obj/blitter2.o \
 
 LIBS = `sdl-config --libs` -lstdc++ -lz
 
@@ -52,13 +51,10 @@ all: obj $(TARGET)
 
 clean:
 	rm -rf obj
-	rm -f vj.exe
+	rm -f ./vj$(EXESUFFIX)
 
 obj:
 	mkdir obj
-
-obj/%.o: src/%.asm
-	$(NASM) -f win32 -o $@ $<
 
 obj/%.o: src/%.c
 	$(THECC) -c $< -o $@
@@ -66,9 +62,9 @@ obj/%.o: src/%.c
 obj/%.o: src/%.cpp
 	$(THECC) -c $< -o $@
 
-vj: $(OBJS) 
+vj: $(OBJS)
 	$(LD) $(LDFLAGS) -o $@ $(OBJS) $(LIBS)
-#	upx -9 vj.exe
+#	upx -9 vj$(EXESUFFIX)
 
 # Other stuff that has unusual dependencies
 
@@ -97,8 +93,8 @@ obj/m68kopnz.o: obj/m68kmake.exe obj/m68kops.h obj/m68kopnz.c src/m68k.h src/m68
 obj/m68kdasm.o: src/m68kdasm.c src/m68k.h src/m68kconf.h
 	$(CC) $(CFLAGS) -Isrc -c src/m68kdasm.c -o obj/m68kdasm.o
 
-obj/m68kops.h: obj/m68kmake.exe
+obj/m68kops.h: obj/m68kmake$(EXESUFFIX)
 	obj/m68kmake obj src/m68k_in.c
 
-obj/m68kmake.exe: src/m68kmake.c src/m68k_in.c
-	$(CC) $(WARNINGS) src/m68kmake.c -o obj/m68kmake.exe
+obj/m68kmake$(EXESUFFIX): src/m68kmake.c src/m68k_in.c
+	$(CC) $(WARNINGS) src/m68kmake.c -o obj/m68kmake$(EXESUFFIX)
