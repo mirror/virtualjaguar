@@ -10,6 +10,7 @@
 #include <SDL.h>
 #include "jaguar.h"
 #include "video.h"
+#include "settings.h"
 
 #define BUTTON_U		0
 #define BUTTON_D		1
@@ -33,10 +34,6 @@
 #define BUTTON_C		18
 #define BUTTON_OPTION	19
 #define BUTTON_PAUSE	20
-
-// Private function prototypes
-
-//void main_screen_switch(void);
 
 // Global vars
 
@@ -66,8 +63,7 @@ void joystick_init(void)
 
 void joystick_exec(void)
 {
-	extern SDL_Joystick * joystick;
-	extern bool useJoystick;
+//	extern bool useJoystick;
 	uint8 * keystate = SDL_GetKeyState(NULL);
   	
 	memset(joypad_0_buttons, 0, 21);
@@ -81,19 +77,57 @@ void joystick_exec(void)
 	if ((keystate[SDLK_LALT] || keystate[SDLK_RALT]) & keystate[SDLK_RETURN])
 		ToggleFullscreen();
 
-	/* Added/Changed by SDLEMU (http://sdlemu.ngemu.com) */
+	// Keybindings in order of U, D, L, R, C, B, A, Op, Pa, 0-9, #, *
+//	vjs.p1KeyBindings[0] = sdlemu_getval_int("p1k_up", SDLK_UP);
 
-	if (keystate[SDLK_UP])		joypad_0_buttons[BUTTON_U] = 0x01;
-	if (keystate[SDLK_DOWN])	joypad_0_buttons[BUTTON_D] = 0x01;
-	if (keystate[SDLK_LEFT])	joypad_0_buttons[BUTTON_L] = 0x01;
-	if (keystate[SDLK_RIGHT])	joypad_0_buttons[BUTTON_R] = 0x01;
+	if (keystate[vjs.p1KeyBindings[0]])
+		joypad_0_buttons[BUTTON_U] = 0x01;
+	if (keystate[vjs.p1KeyBindings[1]])
+		joypad_0_buttons[BUTTON_D] = 0x01;
+	if (keystate[vjs.p1KeyBindings[2]])
+		joypad_0_buttons[BUTTON_L] = 0x01;
+	if (keystate[vjs.p1KeyBindings[3]])
+		joypad_0_buttons[BUTTON_R] = 0x01;
 	// The buttons are labelled C,B,A on the controller (going from left to right)
-	if (keystate[SDLK_z])		joypad_0_buttons[BUTTON_C] = 0x01;
-	if (keystate[SDLK_x])		joypad_0_buttons[BUTTON_B] = 0x01;
-	if (keystate[SDLK_c])		joypad_0_buttons[BUTTON_A] = 0x01;
+	if (keystate[vjs.p1KeyBindings[4]])
+		joypad_0_buttons[BUTTON_C] = 0x01;
+	if (keystate[vjs.p1KeyBindings[5]])
+		joypad_0_buttons[BUTTON_B] = 0x01;
+	if (keystate[vjs.p1KeyBindings[6]])
+		joypad_0_buttons[BUTTON_A] = 0x01;
 //I may yet move these to O and P...
-	if (keystate[SDLK_QUOTE])	joypad_0_buttons[BUTTON_OPTION] = 0x01;
-	if (keystate[SDLK_RETURN])	joypad_0_buttons[BUTTON_PAUSE] = 0x01;
+	if (keystate[vjs.p1KeyBindings[7]])
+		joypad_0_buttons[BUTTON_OPTION] = 0x01;
+	if (keystate[vjs.p1KeyBindings[8]])
+		joypad_0_buttons[BUTTON_PAUSE] = 0x01;
+
+	if (keystate[vjs.p1KeyBindings[9]])
+		joypad_0_buttons[BUTTON_0] = 0x01;
+	if (keystate[vjs.p1KeyBindings[10]])
+		joypad_0_buttons[BUTTON_1] = 0x01;
+	if (keystate[vjs.p1KeyBindings[11]])
+		joypad_0_buttons[BUTTON_2] = 0x01;
+	if (keystate[vjs.p1KeyBindings[12]])
+		joypad_0_buttons[BUTTON_3] = 0x01;
+	if (keystate[vjs.p1KeyBindings[13]])
+		joypad_0_buttons[BUTTON_4] = 0x01;
+	if (keystate[vjs.p1KeyBindings[14]])
+		joypad_0_buttons[BUTTON_5] = 0x01;
+	if (keystate[vjs.p1KeyBindings[15]])
+		joypad_0_buttons[BUTTON_6] = 0x01;
+	if (keystate[vjs.p1KeyBindings[16]])
+		joypad_0_buttons[BUTTON_7] = 0x01;
+	if (keystate[vjs.p1KeyBindings[17]])
+		joypad_0_buttons[BUTTON_8] = 0x01;
+	if (keystate[vjs.p1KeyBindings[18]])
+		joypad_0_buttons[BUTTON_9] = 0x01;
+	if (keystate[vjs.p1KeyBindings[19]])
+		joypad_0_buttons[BUTTON_s] = 0x01;
+	if (keystate[vjs.p1KeyBindings[20]])
+		joypad_0_buttons[BUTTON_d] = 0x01;
+
+    if (keystate[SDLK_ESCAPE])
+    	finished = true;
 
 	if (keystate[SDLK_TAB])
 	{
@@ -162,25 +196,11 @@ void joystick_exec(void)
 	if (keystate[SDLK_r])
 		WriteLog("\n--------> MARK!\n\n");
 
-	if (keystate[SDLK_KP0])		joypad_0_buttons[BUTTON_0] = 0x01;
-	if (keystate[SDLK_KP1])		joypad_0_buttons[BUTTON_1] = 0x01;
-	if (keystate[SDLK_KP2])		joypad_0_buttons[BUTTON_2] = 0x01;
-	if (keystate[SDLK_KP3])		joypad_0_buttons[BUTTON_3] = 0x01;
-	if (keystate[SDLK_KP4])		joypad_0_buttons[BUTTON_4] = 0x01;
-	if (keystate[SDLK_KP5])		joypad_0_buttons[BUTTON_5] = 0x01;
-	if (keystate[SDLK_KP6])		joypad_0_buttons[BUTTON_6] = 0x01;
-	if (keystate[SDLK_KP7])		joypad_0_buttons[BUTTON_7] = 0x01;
-	if (keystate[SDLK_KP8])		joypad_0_buttons[BUTTON_8] = 0x01;
-	if (keystate[SDLK_KP9])		joypad_0_buttons[BUTTON_9] = 0x01;
+	// Joystick support [nwagenaar]
 
-    if (keystate[SDLK_ESCAPE])
-    	finished = true;
-
-    /* Added/Changed by SDLEMU (http://sdlemu.ngemu.com */
-    /* Joystick support                                 */
-    
-    if (useJoystick)
+    if (vjs.useJoystick)
     {
+		extern SDL_Joystick * joystick;
 		int16 x = SDL_JoystickGetAxis(joystick, 0),
 			y = SDL_JoystickGetAxis(joystick, 1);
 	
@@ -201,9 +221,8 @@ void joystick_exec(void)
 			joypad_0_buttons[BUTTON_C] = 0x01;
 	}
 	
-	/* ADDED by SDLEMU (http://sdlemu.ngemu.com */
-	/* Needed to make sure that the events queue is empty */
-    SDL_PumpEvents();            
+	// Needed to ensure that the events queue is empty [nwagenaar]
+    SDL_PumpEvents();
 }
 
 void joystick_reset(void)
@@ -219,7 +238,7 @@ void joystick_done(void)
 
 uint8 joystick_byte_read(uint32 offset)
 {
-	extern bool hardwareTypeNTSC;
+//	extern bool hardwareTypeNTSC;
 	offset &= 0x03;
 
 	if (offset == 0)
@@ -260,7 +279,7 @@ uint8 joystick_byte_read(uint32 offset)
 	}
 	else if (offset == 3)
 	{
-		uint8 data = 0x2F | (hardwareTypeNTSC ? 0x10 : 0x00);
+		uint8 data = 0x2F | (vjs.hardwareTypeNTSC ? 0x10 : 0x00);
 		int pad0Index = joystick_ram[1] & 0x0F;
 //unused		int pad1Index = (joystick_ram[1] >> 4) & 0x0F;
 		
