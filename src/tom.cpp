@@ -359,7 +359,7 @@ render_xxx_scanline_fn * scanline_render_stretch[]=
 render_xxx_scanline_fn * scanline_render[8];
 
 
-// Screen info for various games...
+// Screen info for various games [NTSC]...
 /*
 Doom
 TOM: Horizontal Display End written by M68K: 1727
@@ -970,8 +970,9 @@ uint32 tom_getVideoModeHeight(void)
 //	return (vbb - vbe) >> 1;	// Again, doesn't take interlacing into account...
 // This of course doesn't take interlacing into account. But I haven't seen any
 // Jaguar software that takes advantage of it either...
-//Also, doesn't reflect PAL Jaguar either... !!! FIX !!!
-	return 240;										// Set virtual screen height to 240 lines...
+//Also, doesn't reflect PAL Jaguar either... !!! FIX !!! [DONE]
+//	return 240;										// Set virtual screen height to 240 lines...
+	return (vjs.hardwareTypeNTSC ? 240 : 256);
 }
 
 //
@@ -980,8 +981,6 @@ uint32 tom_getVideoModeHeight(void)
 //
 void tom_reset(void)
 {
-//	extern bool hardwareTypeNTSC;
-
 	op_reset();
 	blitter_reset();
 //This should be done by JERRY!		pcm_reset();

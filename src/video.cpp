@@ -58,9 +58,9 @@ bool InitVideo(void)
 		mainSurfaceFlags |= SDL_FULLSCREEN;
 
 	if (!vjs.useOpenGL)
-		mainSurface = SDL_SetVideoMode(VIRTUAL_SCREEN_WIDTH, VIRTUAL_SCREEN_HEIGHT, 16, mainSurfaceFlags);
+		mainSurface = SDL_SetVideoMode(VIRTUAL_SCREEN_WIDTH, VIRTUAL_SCREEN_HEIGHT_NTSC, 16, mainSurfaceFlags);
 	else
-		mainSurface = SDL_SetVideoMode(VIRTUAL_SCREEN_WIDTH * 2, VIRTUAL_SCREEN_HEIGHT * 2, 16, mainSurfaceFlags);
+		mainSurface = SDL_SetVideoMode(VIRTUAL_SCREEN_WIDTH * 2, VIRTUAL_SCREEN_HEIGHT_NTSC * 2, 16, mainSurfaceFlags);
 
 	if (mainSurface == NULL)
 	{
@@ -71,7 +71,7 @@ bool InitVideo(void)
 	SDL_WM_SetCaption("Virtual Jaguar", "Virtual Jaguar");
 
 	// Create the primary SDL display (16 BPP, 5/5/5 RGB format)
-	surface = SDL_CreateRGBSurface(SDL_SWSURFACE, VIRTUAL_SCREEN_WIDTH, VIRTUAL_SCREEN_HEIGHT,
+	surface = SDL_CreateRGBSurface(SDL_SWSURFACE, VIRTUAL_SCREEN_WIDTH, VIRTUAL_SCREEN_HEIGHT_NTSC,
 		16, 0x7C00, 0x03E0, 0x001F, 0);
 
 	if (surface == NULL)
@@ -82,6 +82,7 @@ bool InitVideo(void)
 
 	if (vjs.useOpenGL)
 //Should make another setting here, for either linear or nearest (instead of just picking one)
+//And we have! ;-)
 		sdlemu_init_opengl(surface, 1/*method*/, 2/*size*/, vjs.glFilter/*texture type (linear, nearest)*/);
 
 	// Initialize Joystick support under SDL
@@ -108,7 +109,7 @@ bool InitVideo(void)
 //To be safe, this should be 1280 * 625 * 2...
 //	backbuffer = (int16 *)malloc(845 * 525 * sizeof(int16));
 	backbuffer = (int16 *)malloc(1280 * 625 * sizeof(int16));
-	memset(backbuffer, 0x44, VIRTUAL_SCREEN_WIDTH * VIRTUAL_SCREEN_HEIGHT * sizeof(int16));
+	memset(backbuffer, 0x44, VIRTUAL_SCREEN_WIDTH * VIRTUAL_SCREEN_HEIGHT_NTSC * sizeof(int16));
 
 	return true;
 }
