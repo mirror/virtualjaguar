@@ -385,16 +385,20 @@ class ListBox: public Element
 		string GetSelectedItem(void);
 
 	protected:
+		bool thumbClicked;
 		uint32 windowPtr, cursor, limit;
 		uint32 charWidth, charHeight;				// Box width/height in characters
 		Element * elementToTell;
 		Button upArrow, downArrow, upArrow2;
 		vector<string> item;
+
+	private:
+		uint32 yRelativePoint;
 };
 
 ListBox::ListBox(uint32 x, uint32 y, uint32 w, uint32 h): Element(x, y, w, h),
-	windowPtr(0), cursor(0), limit(0), charWidth((w / 8) - 1), charHeight(h / 8),
-	elementToTell(NULL), upArrow(w - 8, 0, upArrowBox),
+	thumbClicked(false), windowPtr(0), cursor(0), limit(0), charWidth((w / 8) - 1),
+	charHeight(h / 8), elementToTell(NULL), upArrow(w - 8, 0, upArrowBox),
 	downArrow(w - 8, h - 8, downArrowBox), upArrow2(w - 8, h - 16, upArrowBox)
 {
 	upArrow.SetNotificationElement(this);
@@ -483,6 +487,26 @@ void ListBox::HandleMouseMove(uint32 x, uint32 y)
 	upArrow.HandleMouseMove(x - extents.x, y - extents.y);
 	downArrow.HandleMouseMove(x - extents.x, y - extents.y);
 	upArrow2.HandleMouseMove(x - extents.x, y - extents.y);
+
+	if (thumbClicked)
+	{
+		uint32 sbHeight = extents.h - 24,
+			thumb = (uint32)(((float)limit / (float)item.size()) * (float)sbHeight),
+			thumbStart = (uint32)(((float)windowPtr / (float)item.size()) * (float)sbHeight);
+
+//yRelativePoint is the spot on the thumb where we clicked...
+//		int32 thumbDelta = y - yRelativePoint;
+		int32 newThumbStart = y - yRelativePoint;
+
+		if (newThumbStart < 0)
+			newThumbStart = 0;
+
+		if (newThumbStart > sbHeight - thumb)
+			newThumbStart = sbHeight - thumb;
+
+		windowPtr = (uint32)(((float)newThumbStart / (float)sbHeight) * (float)item.size());
+//Check for cursor bounds as well... Or do we need to???
+	}
 }
 
 void ListBox::HandleMouseButton(uint32 x, uint32 y, bool mouseDown)
@@ -492,6 +516,25 @@ void ListBox::HandleMouseButton(uint32 x, uint32 y, bool mouseDown)
 		// Why do we have to do this??? (- extents.y?)
 		// I guess it's because only the Window class has offsetting implemented...
 		cursor = (y - extents.y) / 8;
+	}
+
+	// Check for a hit on the scrollbar...
+	if (x > (extents.x + extents.w) && x <= (extents.x + extents.w + 8)
+		&& y > (extents.y + 8) && y <= (extents.y + extents.h - 16))
+	{
+		if (mouseDown)
+		{
+// This shiaut should be calculated in AddItem(), not here... (or in Draw() for that matter)
+			uint32 sbHeight = extents.h - 24,
+				thumb = (uint32)(((float)limit / (float)item.size()) * (float)sbHeight),
+				thumbStart = (uint32)(((float)windowPtr / (float)item.size()) * (float)sbHeight);
+
+			// Did we hit the thumb?
+			if (y >= (extents.y + 8 + thumbStart) && y < (extents.y + 8 + thumbStart + thumb))
+				thumbClicked = true, yRelativePoint = y - thumbStart;
+		}
+		else
+			thumbClicked = false;
 	}
 
 	upArrow.HandleMouseButton(x - extents.x, y - extents.y, mouseDown);
@@ -524,9 +567,9 @@ void ListBox::Draw(uint32 offsetX/*= 0*/, uint32 offsetY/*= 0*/)
 		for(uint32 x=extents.x+offsetX+extents.w; x<extents.x+offsetX+extents.w+8; x++)
 		{
 			if (y >= thumbStart + (extents.y+offsetY+8) && y < thumbStart + thumb + (extents.y+offsetY+8))
-				screenBuffer[x + (y * pitch)] = 0xFFFF;
+				screenBuffer[x + (y * pitch)] = (thumbClicked ? 0x458E : 0xFFFF);
 			else
-				screenBuffer[x + (y * pitch)] = 0x0000;
+				screenBuffer[x + (y * pitch)] = 0x0200;
 		}
 	}
 }
@@ -562,6 +605,7 @@ void ListBox::AddItem(string s)
 //WriteLog("ListBox: Adding item [%s], limit = %u...\n", s.c_str(), limit);
 
 	//Do this *every* time?
+	//What other choice is there? :-p
 	sort(item.begin(), item.end());
 }
 
@@ -961,7 +1005,7 @@ void DrawStringOpaque(int16 * screen, uint32 x, uint32 y, uint16 color1, uint16 
 }
 
 //
-// Draw text at the given x/y coordinates. Can invert text as well.
+// Draw text at the given x/y coordinates with transparency (0 is fully opaque, 32 is fully transparent).
 //
 void DrawStringTrans(int16 * screen, uint32 x, uint32 y, uint16 color, uint8 trans, const char * text, ...)
 {
@@ -1032,7 +1076,7 @@ bool GUIMain(void)
 	Menu mainMenu;
 	MenuItems mi;
 	mi.title = "File";
-	mi.item.push_back(NameAction("Load...", LoadROM));
+	mi.item.push_back(NameAction("Load...", LoadROM, SDLK_l));
 	mi.item.push_back(NameAction("Reset", ResetJaguar));
 	mi.item.push_back(NameAction("Run", RunEmu, SDLK_ESCAPE));
 	mi.item.push_back(NameAction(""));
@@ -1273,7 +1317,7 @@ Window * About(void)
 	window->AddElement(new Text(8, 8, "Virtual Jaguar 1.0.7"));
 	window->AddElement(new Text(8, 24, "Coders:"));
 	window->AddElement(new Text(16, 32, "Niels Wagenaar (nwagenaar)"));
-	window->AddElement(new Text(16, 40, "Caz"));
+	window->AddElement(new Text(16, 40, "Carwin Jones (Caz)"));
 	window->AddElement(new Text(16, 48, "James L. Hammons (shamus)"));
 	window->AddElement(new Text(16, 56, "Adam Green"));
 
