@@ -28,10 +28,14 @@ using namespace std;								// For STL stuff
 
 class Window;										// Forward declaration...
 
-void DrawTransparentBitmap(int16 * screen, uint32 x, uint32 y, uint16 * bitmap, uint8 * alpha = NULL);
-void DrawStringTrans(int16 * screen, uint32 x, uint32 y, uint16 color, uint8 opacity, const char * text, ...);
-void DrawStringOpaque(int16 * screen, uint32 x, uint32 y, uint16 color1, uint16 color2, const char * text, ...);
-void DrawString(int16 * screen, uint32 x, uint32 y, bool invert, const char * text, ...);
+//void DrawTransparentBitmap(int16 * screen, uint32 x, uint32 y, uint16 * bitmap, uint8 * alpha = NULL);
+//void DrawStringTrans(int16 * screen, uint32 x, uint32 y, uint16 color, uint8 opacity, const char * text, ...);
+//void DrawStringOpaque(int16 * screen, uint32 x, uint32 y, uint16 color1, uint16 color2, const char * text, ...);
+//void DrawString(int16 * screen, uint32 x, uint32 y, bool invert, const char * text, ...);
+void DrawTransparentBitmap(uint32 * screen, uint32 x, uint32 y, uint32 * bitmap, uint8 * alpha = NULL);
+void DrawStringTrans(uint32 * screen, uint32 x, uint32 y, uint32 color, uint8 opacity, const char * text, ...);
+void DrawStringOpaque(uint32 * screen, uint32 x, uint32 y, uint32 color1, uint32 color2, const char * text, ...);
+void DrawString(uint32 * screen, uint32 x, uint32 y, bool invert, const char * text, ...);
 Window * LoadROM(void);
 Window * ResetJaguar(void);
 Window * ResetJaguarCD(void);
@@ -55,11 +59,22 @@ extern bool CDBIOSLoaded;
 
 bool exitGUI = false;								// GUI (emulator) done variable
 int mouseX, mouseY;
-uint16 background[1280 * 256];						// GUI background buffer
+//uint16 background[1280 * 256];						// GUI background buffer
+uint32 background[1280 * 256];						// GUI background buffer
 
-uint16 mousePic[] = {
+//NOTE: 32-bit pixels are in the format of ABGR...
+uint32 mousePic[] = {
 	6, 8,
 
+	0xFF00FF00,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,		// +
+	0xFF00C600,0xFF00FF00,0x00000000,0x00000000,0x00000000,0x00000000,		// @+
+	0xFF00C600,0xFF00FF00,0xFF00FF00,0x00000000,0x00000000,0x00000000,		// @++
+	0xFF00C600,0xFF00C600,0xFF00FF00,0xFF00FF00,0x00000000,0x00000000,		// @@++
+	0xFF00C600,0xFF00C600,0xFF00FF00,0xFF00FF00,0xFF00FF00,0x00000000,		// @@+++
+	0xFF00C600,0xFF00C600,0xFF00C600,0xFF00FF00,0xFF00FF00,0xFF00FF00,		// @@@+++
+	0xFF00C600,0xFF00C600,0xFF00C600,0x00000000,0x00000000,0x00000000,		// @@@
+	0xFF00C600,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000		// @
+/*
 	0x03E0,0x0000,0x0000,0x0000,0x0000,0x0000,		// +
 	0x0300,0x03E0,0x0000,0x0000,0x0000,0x0000,		// @+
 	0x0300,0x03E0,0x03E0,0x0000,0x0000,0x0000,		// @++
@@ -68,6 +83,7 @@ uint16 mousePic[] = {
 	0x0300,0x0300,0x0300,0x03E0,0x03E0,0x03E0,		// @@@+++
 	0x0300,0x0300,0x0300,0x0000,0x0000,0x0000,		// @@@
 	0x0300,0x0000,0x0000,0x0000,0x0000,0x0000		// @
+*/
 /*
 	0xFFFF,0x0000,0x0000,0x0000,0x0000,0x0000,		// +
 	0xE318,0xFFFF,0x0000,0x0000,0x0000,0x0000,		// @+
@@ -83,11 +99,21 @@ uint16 mousePic[] = {
 // 1 100 00 10 000 1 0000 -> C210
 // 1 110 00 11 000 1 1000 -> E318
 // 0 000 00 11 111 0 0000 -> 03E0
-// 0 000 00 11 000 0 0000 -> 0300
+// 0 000 00 11 000 0 0000 -> 0300 -> FF00C600
 
-uint16 closeBox[] = {
+uint32 closeBox[] = {
 	7, 7,
 
+//4B5E -> 010010 11010 11110 -> 0100 1001 1101 0110 1111 0111 -> 49 D6 F7
+//0217 -> 000000 10000 10111 -> 0000 0000 1000 0100 1011 1101 -> 00 84 BD
+	0x00000000,0xFFF7D649,0xFFF7D649,0xFFF7D649,0xFFF7D649,0xFFF7D649,0x00000000,		//  +++++
+	0xFFF7D649,0xFFFFFFFF,0x00000000,0x00000000,0x00000000,0xFFFFFFFF,0xFFBD8400,		// +@   @.
+	0xFFF7D649,0x00000000,0xFFFFFFFF,0x00000000,0xFFFFFFFF,0x00000000,0xFFBD8400,		// + @ @ .
+	0xFFF7D649,0x00000000,0x00000000,0xFFFFFFFF,0x00000000,0x00000000,0xFFBD8400,		// +  @  .
+	0xFFF7D649,0x00000000,0xFFFFFFFF,0x00000000,0xFFFFFFFF,0x00000000,0xFFBD8400,		// + @ @ .
+	0xFFF7D649,0xFFFFFFFF,0x00000000,0x00000000,0x00000000,0xFFFFFFFF,0xFFBD8400,		// +@   @.
+	0x00000000,0xFFBD8400,0xFFBD8400,0xFFBD8400,0xFFBD8400,0xFFBD8400,0x00000000		//  .....
+/*
 	0x0000,0x4B5E,0x4B5E,0x4B5E,0x4B5E,0x4B5E,0x0000,		//  +++++
 	0x4B5E,0xFFFF,0x0000,0x0000,0x0000,0xFFFF,0x0217,		// +@   @.
 	0x4B5E,0x0000,0xFFFF,0x0000,0xFFFF,0x0000,0x0217,		// + @ @ .
@@ -95,45 +121,46 @@ uint16 closeBox[] = {
 	0x4B5E,0x0000,0xFFFF,0x0000,0xFFFF,0x0000,0x0217,		// + @ @ .
 	0x4B5E,0xFFFF,0x0000,0x0000,0x0000,0xFFFF,0x0217,		// +@   @.
 	0x0000,0x0217,0x0217,0x0217,0x0217,0x0217,0x0000		//  .....
+*/
 };
 
-uint16 upArrowBox[] = {
+uint32 upArrowBox[] = {
 	8, 8,
 
-	0x4B5E,0x4B5E,0x4B5E,0x4B5E,0x4B5E,0x4B5E,0x4B5E,0x4B5E,		// ++++++++
-	0x4B5E,0x0000,0x0000,0xFFFF,0xFFFF,0x0000,0x0000,0x0217,		// +  @@  .
-	0x4B5E,0x0000,0xFFFF,0xFFFF,0xFFFF,0xFFFF,0x0000,0x0217,		// + @@@@ .
-	0x4B5E,0xFFFF,0xFFFF,0xFFFF,0xFFFF,0xFFFF,0xFFFF,0x0217,		// +@@@@@@.
-	0x4B5E,0x0000,0x0000,0xFFFF,0xFFFF,0x0000,0x0000,0x0217,		// +  @@  .
-	0x4B5E,0x0000,0x0000,0xFFFF,0xFFFF,0x0000,0x0000,0x0217,		// +  @@  .
-	0x4B5E,0x0000,0x0000,0xFFFF,0xFFFF,0x0000,0x0000,0x0217,		// +  @@  .
-	0x0217,0x0217,0x0217,0x0217,0x0217,0x0217,0x0217,0x0217			// ........
+	0xFFF7D649,0xFFF7D649,0xFFF7D649,0xFFF7D649,0xFFF7D649,0xFFF7D649,0xFFF7D649,0xFFF7D649,		// ++++++++
+	0xFFF7D649,0x00000000,0x00000000,0xFFFFFFFF,0xFFFFFFFF,0x00000000,0x00000000,0xFFBD8400,		// +  @@  .
+	0xFFF7D649,0x00000000,0xFFFFFFFF,0xFFFFFFFF,0xFFFFFFFF,0xFFFFFFFF,0x00000000,0xFFBD8400,		// + @@@@ .
+	0xFFF7D649,0xFFFFFFFF,0xFFFFFFFF,0xFFFFFFFF,0xFFFFFFFF,0xFFFFFFFF,0xFFFFFFFF,0xFFBD8400,		// +@@@@@@.
+	0xFFF7D649,0x00000000,0x00000000,0xFFFFFFFF,0xFFFFFFFF,0x00000000,0x00000000,0xFFBD8400,		// +  @@  .
+	0xFFF7D649,0x00000000,0x00000000,0xFFFFFFFF,0xFFFFFFFF,0x00000000,0x00000000,0xFFBD8400,		// +  @@  .
+	0xFFF7D649,0x00000000,0x00000000,0xFFFFFFFF,0xFFFFFFFF,0x00000000,0x00000000,0xFFBD8400,		// +  @@  .
+	0xFFBD8400,0xFFBD8400,0xFFBD8400,0xFFBD8400,0xFFBD8400,0xFFBD8400,0xFFBD8400,0xFFBD8400			// ........
 };
 
-uint16 downArrowBox[] = {
+uint32 downArrowBox[] = {
 	8, 8,
 
-	0x4B5E,0x4B5E,0x4B5E,0x4B5E,0x4B5E,0x4B5E,0x4B5E,0x4B5E,		// ++++++++
-	0x4B5E,0x0000,0x0000,0xFFFF,0xFFFF,0x0000,0x0000,0x0217,		// +  @@  .
-	0x4B5E,0x0000,0x0000,0xFFFF,0xFFFF,0x0000,0x0000,0x0217,		// +  @@  .
-	0x4B5E,0x0000,0x0000,0xFFFF,0xFFFF,0x0000,0x0000,0x0217,		// +  @@  .
-	0x4B5E,0xFFFF,0xFFFF,0xFFFF,0xFFFF,0xFFFF,0xFFFF,0x0217,		// +@@@@@@.
-	0x4B5E,0x0000,0xFFFF,0xFFFF,0xFFFF,0xFFFF,0x0000,0x0217,		// + @@@@ .
-	0x4B5E,0x0000,0x0000,0xFFFF,0xFFFF,0x0000,0x0000,0x0217,		// +  @@  .
-	0x0217,0x0217,0x0217,0x0217,0x0217,0x0217,0x0217,0x0217			// ........
+	0xFFF7D649,0xFFF7D649,0xFFF7D649,0xFFF7D649,0xFFF7D649,0xFFF7D649,0xFFF7D649,0xFFF7D649,		// ++++++++
+	0xFFF7D649,0x00000000,0x00000000,0xFFFFFFFF,0xFFFFFFFF,0x00000000,0x00000000,0xFFBD8400,		// +  @@  .
+	0xFFF7D649,0x00000000,0x00000000,0xFFFFFFFF,0xFFFFFFFF,0x00000000,0x00000000,0xFFBD8400,		// +  @@  .
+	0xFFF7D649,0x00000000,0x00000000,0xFFFFFFFF,0xFFFFFFFF,0x00000000,0x00000000,0xFFBD8400,		// +  @@  .
+	0xFFF7D649,0xFFFFFFFF,0xFFFFFFFF,0xFFFFFFFF,0xFFFFFFFF,0xFFFFFFFF,0xFFFFFFFF,0xFFBD8400,		// +@@@@@@.
+	0xFFF7D649,0x00000000,0xFFFFFFFF,0xFFFFFFFF,0xFFFFFFFF,0xFFFFFFFF,0x00000000,0xFFBD8400,		// + @@@@ .
+	0xFFF7D649,0x00000000,0x00000000,0xFFFFFFFF,0xFFFFFFFF,0x00000000,0x00000000,0xFFBD8400,		// +  @@  .
+	0xFFBD8400,0xFFBD8400,0xFFBD8400,0xFFBD8400,0xFFBD8400,0xFFBD8400,0xFFBD8400,0xFFBD8400			// ........
 };
 
-uint16 pushButtonUp[] = {
+uint32 pushButtonUp[] = {
 	8, 8,
 
-	0x0000, 0x0C63, 0x394A, 0x494A, 0x4108, 0x2CC6, 0x0421, 0x0000, 
-	0x0C63, 0x518C, 0x48E7, 0x48C6, 0x48A5, 0x48A5, 0x3CE7, 0x0421, 
-	0x3D4A, 0x48E7, 0x48C6, 0x48C6, 0x44A5, 0x48A5, 0x48A5, 0x2CC6, 
-	0x494A, 0x48C6, 0x48C6, 0x44A5, 0x44A5, 0x44A5, 0x48A5, 0x40E7, 
-	0x4529, 0x48A5, 0x44A5, 0x44A5, 0x44A5, 0x44A5, 0x4CA5, 0x40E7, 
-	0x2CC6, 0x48A5, 0x48A5, 0x44A5, 0x44A5, 0x48A5, 0x4CA5, 0x2CC6, 
-	0x0421, 0x3CE7, 0x48A5, 0x48A5, 0x4CA5, 0x4CA5, 0x44E7, 0x0421, 
-	0x0000, 0x0421, 0x28C6, 0x40E7, 0x40E7, 0x2CC6, 0x0421, 0x0000
+	0x00000000, 0xFF1B1B1B, 0xFF545477, 0xFF525292, 0xFF474787, 0xFF363659, 0xFF0F0F0F, 0x00000000,
+	0xFF1B1B1C, 0xFF6666A7, 0xFF393995, 0xFF343492, 0xFF2F2F90, 0xFF2C2C90, 0xFF3B3B7E, 0xFF0F0F0F,
+	0xFF555578, 0xFF3A3A95, 0xFF353594, 0xFF303091, 0xFF2D2D8F, 0xFF2B2B90, 0xFF2A2A92, 0xFF333358,
+	0xFF545493, 0xFF343492, 0xFF303092, 0xFF2D2D8B, 0xFF2B2B8A, 0xFF2A2A8D, 0xFF292994, 0xFF3D3D83,
+	0xFF484889, 0xFF2F2F90, 0xFF2D2D8F, 0xFF2B2B8A, 0xFF2A2A89, 0xFF29298E, 0xFF292998, 0xFF3D3D84,
+	0xFF37375A, 0xFF2C2C90, 0xFF2B2B90, 0xFF2A2A8D, 0xFF29298E, 0xFF292995, 0xFF29299D, 0xFF34345B,
+	0xFF0E0E0E, 0xFF3E3E7F, 0xFF2A2A92, 0xFF292994, 0xFF292998, 0xFF29299D, 0xFF3C3C88, 0xFF0E0E0E,
+	0x00000000, 0xFF0D0D0D, 0xFF343456, 0xFF3D3D80, 0xFF3D3D82, 0xFF333358, 0xFF0D0D0D, 0x00000000
 };
 
 uint8 pbuAlpha[] = {
@@ -147,17 +174,17 @@ uint8 pbuAlpha[] = {
 	0xFF, 0xF2, 0xC0, 0xAD, 0xAD, 0xC0, 0xF2, 0xFF
 };
 
-uint16 pushButtonDown[] = {
+uint32 pushButtonDown[] = {
 	8, 8,
 
-	0x0000, 0x0C63, 0x4A31, 0x5631, 0x4DCE, 0x2D4A, 0x0421, 0x0000, 
-	0x0C63, 0x6AF7, 0x714A, 0x7908, 0x7908, 0x6908, 0x418C, 0x0421, 
-	0x4A31, 0x714A, 0x7508, 0x6CE7, 0x6CE7, 0x74E7, 0x68E7, 0x2929, 
-	0x5A31, 0x7908, 0x6CE7, 0x6CE7, 0x6CE7, 0x6CE7, 0x78E7, 0x3D6B, 
-	0x4DCE, 0x7908, 0x6CE7, 0x6CE7, 0x6CE7, 0x6CE7, 0x78E7, 0x416B, 
-	0x2D4A, 0x6D08, 0x74E7, 0x6CE7, 0x6CE7, 0x74E7, 0x6CE7, 0x2929, 
-	0x0842, 0x418C, 0x6CE7, 0x78E7, 0x78E7, 0x6CE7, 0x416B, 0x0842, 
-	0x0000, 0x0842, 0x2929, 0x416B, 0x416B, 0x2929, 0x0842, 0x0000
+	0x00000000, 0xFF1B1B1B, 0xFF8B8B90, 0xFF8C8CAF, 0xFF767699, 0xFF56565B, 0xFF0F0F0F, 0x00000000,
+	0xFF1B1B1B, 0xFFB8B8D6, 0xFF5555E4, 0xFF4444F2, 0xFF4040F1, 0xFF4141D5, 0xFF626282, 0xFF0F0F0F,
+	0xFF8C8C91, 0xFF5555E4, 0xFF4444EF, 0xFF3E3EDC, 0xFF3B3BDB, 0xFF3D3DEC, 0xFF3E3ED4, 0xFF4B4B51,
+	0xFF8D8DB1, 0xFF4444F2, 0xFF3E3EDC, 0xFF3E3EDD, 0xFF3C3CDC, 0xFF3939D9, 0xFF3C3CF3, 0xFF59597E,
+	0xFF77779B, 0xFF4141F1, 0xFF3B3BDB, 0xFF3C3CDC, 0xFF3B3BDC, 0xFF3838D9, 0xFF3C3CF5, 0xFF595980,
+	0xFF57575D, 0xFF4242D8, 0xFF3D3DEC, 0xFF3939D9, 0xFF3838D9, 0xFF3C3CEF, 0xFF3D3DDC, 0xFF4C4C52,
+	0xFF101010, 0xFF636385, 0xFF3E3ED8, 0xFF3D3DF4, 0xFF3D3DF6, 0xFF3D3DDD, 0xFF5D5D83, 0xFF101010,
+	0x00000000, 0xFF101010, 0xFF4E4E55, 0xFF5B5B83, 0xFF5B5B84, 0xFF4D4D54, 0xFF101010, 0x00000000
 };
 
 uint8 pbdAlpha[] = {
@@ -171,49 +198,50 @@ uint8 pbdAlpha[] = {
 	0xFF, 0xEF, 0xAE, 0x98, 0x97, 0xAF, 0xEF, 0xFF
 };
 
-uint16 slideSwitchUp[] = {
+uint32 slideSwitchUp[] = {
 	8, 16,
 
-	0x4B5E,0x4B5E,0x4B5E,0x4B5E,0x4B5E,0x4B5E,0x4B5E,0x4B5E,		// ++++++++
-	0x4B5E,0x0C7F,0x0C7F,0x0C7F,0x0C7F,0x0C7F,0x0C7F,0x0217,		// +      .
-	0x4B5E,0x0C7F,0x0C7F,0x0C7F,0x0C7F,0x0C7F,0x0C7F,0x0217,		// +      .
-	0x4B5E,0x0C7F,0x0C7F,0x0C7F,0x0C7F,0x0C7F,0x0C7F,0x0217,		// +      .
-	0x4B5E,0x0C7F,0x0C7F,0x0C7F,0x0C7F,0x0C7F,0x0C7F,0x0217,		// +      .
-	0x4B5E,0x0C7F,0x0C7F,0x0C7F,0x0C7F,0x0C7F,0x0C7F,0x0217,		// +      .
-	0x4B5E,0x0C7F,0x0C7F,0x0C7F,0x0C7F,0x0C7F,0x0C7F,0x0217,		// +      .
-	0x4B5E,0x0C7F,0x0C7F,0x0C7F,0x0C7F,0x0C7F,0x0C7F,0x0217,		// +      .
-	0x4B5E,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0217,		// +.......
-	0x4B5E,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0217,		// +.......
-	0x4B5E,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0217,		// +.......
-	0x4B5E,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0217,		// +.......
-	0x4B5E,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0217,		// +.......
-	0x4B5E,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0217,		// +.......
-	0x4B5E,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0217,		// +.......
-	0x0217,0x0217,0x0217,0x0217,0x0217,0x0217,0x0217,0x0217			// ........
+//0C7F -> 000011 00011 11111 -> 0000 1100 0001 1000 1111 1111 -> 0C 18 FF
+	0xFFF7D649,0xFFF7D649,0xFFF7D649,0xFFF7D649,0xFFF7D649,0xFFF7D649,0xFFF7D649,0xFFF7D649,		// ++++++++
+	0xFFF7D649,0xFFFF180C,0xFFFF180C,0xFFFF180C,0xFFFF180C,0xFFFF180C,0xFFFF180C,0xFFBD8400,		// +      .
+	0xFFF7D649,0xFFFF180C,0xFFFF180C,0xFFFF180C,0xFFFF180C,0xFFFF180C,0xFFFF180C,0xFFBD8400,		// +      .
+	0xFFF7D649,0xFFFF180C,0xFFFF180C,0xFFFF180C,0xFFFF180C,0xFFFF180C,0xFFFF180C,0xFFBD8400,		// +      .
+	0xFFF7D649,0xFFFF180C,0xFFFF180C,0xFFFF180C,0xFFFF180C,0xFFFF180C,0xFFFF180C,0xFFBD8400,		// +      .
+	0xFFF7D649,0xFFFF180C,0xFFFF180C,0xFFFF180C,0xFFFF180C,0xFFFF180C,0xFFFF180C,0xFFBD8400,		// +      .
+	0xFFF7D649,0xFFFF180C,0xFFFF180C,0xFFFF180C,0xFFFF180C,0xFFFF180C,0xFFFF180C,0xFFBD8400,		// +      .
+	0xFFF7D649,0xFFFF180C,0xFFFF180C,0xFFFF180C,0xFFFF180C,0xFFFF180C,0xFFFF180C,0xFFBD8400,		// +      .
+	0xFFF7D649,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0xFFBD8400,		// +.......
+	0xFFF7D649,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0xFFBD8400,		// +.......
+	0xFFF7D649,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0xFFBD8400,		// +.......
+	0xFFF7D649,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0xFFBD8400,		// +.......
+	0xFFF7D649,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0xFFBD8400,		// +.......
+	0xFFF7D649,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0xFFBD8400,		// +.......
+	0xFFF7D649,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0xFFBD8400,		// +.......
+	0xFFBD8400,0xFFBD8400,0xFFBD8400,0xFFBD8400,0xFFBD8400,0xFFBD8400,0xFFBD8400,0xFFBD8400			// ........
 };
 
-uint16 slideSwitchDown[] = {
+uint32 slideSwitchDown[] = {
 	8, 16,
 
-	0x4B5E,0x4B5E,0x4B5E,0x4B5E,0x4B5E,0x4B5E,0x4B5E,0x4B5E,		// ++++++++
-	0x4B5E,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0217,		// +.......
-	0x4B5E,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0217,		// +.......
-	0x4B5E,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0217,		// +.......
-	0x4B5E,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0217,		// +.......
-	0x4B5E,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0217,		// +.......
-	0x4B5E,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0217,		// +.......
-	0x4B5E,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0217,		// +.......
-	0x4B5E,0x0C7F,0x0C7F,0x0C7F,0x0C7F,0x0C7F,0x0C7F,0x0217,		// +      .
-	0x4B5E,0x0C7F,0x0C7F,0x0C7F,0x0C7F,0x0C7F,0x0C7F,0x0217,		// +      .
-	0x4B5E,0x0C7F,0x0C7F,0x0C7F,0x0C7F,0x0C7F,0x0C7F,0x0217,		// +      .
-	0x4B5E,0x0C7F,0x0C7F,0x0C7F,0x0C7F,0x0C7F,0x0C7F,0x0217,		// +      .
-	0x4B5E,0x0C7F,0x0C7F,0x0C7F,0x0C7F,0x0C7F,0x0C7F,0x0217,		// +      .
-	0x4B5E,0x0C7F,0x0C7F,0x0C7F,0x0C7F,0x0C7F,0x0C7F,0x0217,		// +      .
-	0x4B5E,0x0C7F,0x0C7F,0x0C7F,0x0C7F,0x0C7F,0x0C7F,0x0217,		// +      .
-	0x0217,0x0217,0x0217,0x0217,0x0217,0x0217,0x0217,0x0217			// ........
+	0xFFF7D649,0xFFF7D649,0xFFF7D649,0xFFF7D649,0xFFF7D649,0xFFF7D649,0xFFF7D649,0xFFF7D649,		// ++++++++
+	0xFFF7D649,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0xFFBD8400,		// +.......
+	0xFFF7D649,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0xFFBD8400,		// +.......
+	0xFFF7D649,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0xFFBD8400,		// +.......
+	0xFFF7D649,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0xFFBD8400,		// +.......
+	0xFFF7D649,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0xFFBD8400,		// +.......
+	0xFFF7D649,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0xFFBD8400,		// +.......
+	0xFFF7D649,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0xFFBD8400,		// +.......
+	0xFFF7D649,0xFFFF180C,0xFFFF180C,0xFFFF180C,0xFFFF180C,0xFFFF180C,0xFFFF180C,0xFFBD8400,		// +      .
+	0xFFF7D649,0xFFFF180C,0xFFFF180C,0xFFFF180C,0xFFFF180C,0xFFFF180C,0xFFFF180C,0xFFBD8400,		// +      .
+	0xFFF7D649,0xFFFF180C,0xFFFF180C,0xFFFF180C,0xFFFF180C,0xFFFF180C,0xFFFF180C,0xFFBD8400,		// +      .
+	0xFFF7D649,0xFFFF180C,0xFFFF180C,0xFFFF180C,0xFFFF180C,0xFFFF180C,0xFFFF180C,0xFFBD8400,		// +      .
+	0xFFF7D649,0xFFFF180C,0xFFFF180C,0xFFFF180C,0xFFFF180C,0xFFFF180C,0xFFFF180C,0xFFBD8400,		// +      .
+	0xFFF7D649,0xFFFF180C,0xFFFF180C,0xFFFF180C,0xFFFF180C,0xFFFF180C,0xFFFF180C,0xFFBD8400,		// +      .
+	0xFFF7D649,0xFFFF180C,0xFFFF180C,0xFFFF180C,0xFFFF180C,0xFFFF180C,0xFFFF180C,0xFFBD8400,		// +      .
+	0xFFBD8400,0xFFBD8400,0xFFBD8400,0xFFBD8400,0xFFBD8400,0xFFBD8400,0xFFBD8400,0xFFBD8400			// ........
 };
 
-/*uint16 [] = {
+/*uint32 [] = {
 	8, 8,
 
 	0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,		// ........
@@ -271,18 +299,21 @@ class Element
 //We're not allocating anything in the base class, so the answer would be NO.
 		bool Inside(uint32 x, uint32 y);
 		// Class method
-		static void SetScreenAndPitch(int16 * s, uint32 p) { screenBuffer = s, pitch = p; }
+//		static void SetScreenAndPitch(int16 * s, uint32 p) { screenBuffer = s, pitch = p; }
+		static void SetScreenAndPitch(uint32 * s, uint32 p) { screenBuffer = s, pitch = p; }
 
 	protected:
 		SDL_Rect extents;
 		uint32 state;
 		// Class variables...
-		static int16 * screenBuffer;
+//		static int16 * screenBuffer;
+		static uint32 * screenBuffer;
 		static uint32 pitch;
 };
 
 // Initialize class variables (Element)
-int16 * Element::screenBuffer = NULL;
+//int16 * Element::screenBuffer = NULL;
+uint32 * Element::screenBuffer = NULL;
 uint32 Element::pitch = 0;
 
 bool Element::Inside(uint32 x, uint32 y)
@@ -296,21 +327,21 @@ class Button: public Element
 {
 	public:
 		Button(uint32 x = 0, uint32 y = 0, uint32 w = 0, uint32 h = 0): Element(x, y, w, h),
-			activated(false), clicked(false), inside(false), fgColor(0xFFFF),
-			bgColor(0x03E0), pic(NULL), elementToTell(NULL) {}
-		Button(uint32 x, uint32 y, uint32 w, uint32 h, uint16 * p): Element(x, y, w, h),
-			activated(false), clicked(false), inside(false), fgColor(0xFFFF),
-			bgColor(0x03E0), pic(p), elementToTell(NULL) {}
-		Button(uint32 x, uint32 y, uint16 * p): Element(x, y, 0, 0),
-			activated(false), clicked(false), inside(false), fgColor(0xFFFF),
-			bgColor(0x03E0), pic(p), elementToTell(NULL)
+			activated(false), clicked(false), inside(false), fgColor(0xFFFFFFFF),
+			bgColor(0xFF00FF00), pic(NULL), elementToTell(NULL) {}
+		Button(uint32 x, uint32 y, uint32 w, uint32 h, uint32 * p): Element(x, y, w, h),
+			activated(false), clicked(false), inside(false), fgColor(0xFFFFFFFF),
+			bgColor(0xFF00FF00), pic(p), elementToTell(NULL) {}
+		Button(uint32 x, uint32 y, uint32 * p): Element(x, y, 0, 0),
+			activated(false), clicked(false), inside(false), fgColor(0xFFFFFFFF),
+			bgColor(0xFF00FF00), pic(p), elementToTell(NULL)
 			{ if (pic) extents.w = pic[0], extents.h = pic[1]; }
 		Button(uint32 x, uint32 y, uint32 w, uint32 h, string s): Element(x, y, w, h),
-			activated(false), clicked(false), inside(false), fgColor(0xFFFF),
-			bgColor(0x03E0), pic(NULL), text(s), elementToTell(NULL) {}
+			activated(false), clicked(false), inside(false), fgColor(0xFFFFFFFF),
+			bgColor(0xFF00FF00), pic(NULL), text(s), elementToTell(NULL) {}
 		Button(uint32 x, uint32 y, string s): Element(x, y, 0, 8),
-			activated(false), clicked(false), inside(false), fgColor(0xFFFF),
-			bgColor(0x03E0), pic(NULL), text(s), elementToTell(NULL)
+			activated(false), clicked(false), inside(false), fgColor(0xFFFFFFFF),
+			bgColor(0xFF00FF00), pic(NULL), text(s), elementToTell(NULL)
 			{ extents.w = s.length() * 8; }
 		virtual void HandleKey(SDLKey key) {}
 		virtual void HandleMouseMove(uint32 x, uint32 y);
@@ -322,8 +353,8 @@ class Button: public Element
 
 	protected:
 		bool activated, clicked, inside;
-		uint16 fgColor, bgColor;
-		uint16 * pic;
+		uint32 fgColor, bgColor;
+		uint32 * pic;
 		string text;
 		Element * elementToTell;
 };
@@ -364,7 +395,9 @@ void Button::Draw(uint32 offsetX/*= 0*/, uint32 offsetY/*= 0*/)
 			// Doesn't clip in y axis! !!! FIX !!!
 			if (extents.x + x < pitch)
 				screenBuffer[addr + x + (y * pitch)] 
-					= (clicked && inside ? fgColor : (inside ? 0x43F0 : bgColor));
+//					= (clicked && inside ? fgColor : (inside ? 0x43F0 : bgColor));
+//43F0 -> 010000 11111 10000 -> 0100 0001 1111 1111 1000 0100 -> 41 FF 84
+					= (clicked && inside ? fgColor : (inside ? 0xFF84FF41 : bgColor));
 		}
 	}
 
@@ -390,10 +423,10 @@ class PushButton: public Element
 //			bgColor(0x03E0), pic(NULL), elementToTell(NULL) {}
 		PushButton(uint32 x, uint32 y, bool * st, string s): Element(x, y, 8, 8), state(st),
 			inside(false), text(s) { if (st == NULL) state = &internalState; }
-/*		Button(uint32 x, uint32 y, uint32 w, uint32 h, uint16 * p): Element(x, y, w, h),
+/*		Button(uint32 x, uint32 y, uint32 w, uint32 h, uint32 * p): Element(x, y, w, h),
 			activated(false), clicked(false), inside(false), fgColor(0xFFFF),
 			bgColor(0x03E0), pic(p), elementToTell(NULL) {}
-		Button(uint32 x, uint32 y, uint16 * p): Element(x, y, 0, 0),
+		Button(uint32 x, uint32 y, uint32 * p): Element(x, y, 0, 0),
 			activated(false), clicked(false), inside(false), fgColor(0xFFFF),
 			bgColor(0x03E0), pic(p), elementToTell(NULL)
 			{ if (pic) extents.w = pic[0], extents.h = pic[1]; }
@@ -417,7 +450,7 @@ class PushButton: public Element
 		bool inside;
 //		bool activated, clicked, inside;
 //		uint16 fgColor, bgColor;
-//		uint16 * pic;
+//		uint32 * pic;
 		string text;
 //		Element * elementToTell;
 		bool internalState;
@@ -493,7 +526,7 @@ class SlideSwitch: public Element
 		bool inside;
 //		bool activated, clicked, inside;
 //		uint16 fgColor, bgColor;
-//		uint16 * pic;
+//		uint32 * pic;
 		string text1, text2;
 //		Element * elementToTell;
 };
@@ -542,7 +575,10 @@ class Window: public Element
 			{ close = new Button(w - 8, 1, closeBox); list.push_back(close); }*/
 		Window(uint32 x = 0, uint32 y = 0, uint32 w = 0, uint32 h = 0,
 			void (* f)(Element *) = NULL): Element(x, y, w, h),
-			/*clicked(false), inside(false),*/ fgColor(0x4FF0), bgColor(0x1E10),
+//			/*clicked(false), inside(false),*/ fgColor(0x4FF0), bgColor(0x1E10),
+//4FF0 -> 010011 11111 10000 -> 0100 1101 1111 1111 1000 0100 -> 4D FF 84
+//1E10 -> 000111 10000 10000 -> 0001 1111 1000 0100 1000 0100 -> 1F 84 84
+			/*clicked(false), inside(false),*/ fgColor(0xFF84FF4D), bgColor(0xFF84841F),
 			handler(f)
 			{ close = new Button(w - 8, 1, closeBox); list.push_back(close);
 			  close->SetNotificationElement(this); }
@@ -557,7 +593,7 @@ class Window: public Element
 
 	protected:
 //		bool clicked, inside;
-		uint16 fgColor, bgColor;
+		uint32 fgColor, bgColor;
 		void (* handler)(Element *);
 		Button * close;
 //We have to use a list of Element *pointers* because we can't make a list that will hold
@@ -641,9 +677,15 @@ void Window::Notify(Element * e)
 class Text: public Element
 {
 	public:
+//		Text(uint32 x = 0, uint32 y = 0, uint32 w = 0, uint32 h = 0): Element(x, y, w, h),
+//			fgColor(0x4FF0), bgColor(0xFE10) {}
+//		Text(uint32 x, uint32 y, string s, uint16 fg = 0x4FF0, uint16 bg = 0xFE10): Element(x, y, 0, 0),
+//			fgColor(fg), bgColor(bg), text(s) {}
+//4FF0 -> 010011 11111 10000 -> 0100 1101 1111 1111 1000 0100 -> 4D FF 84
+//FE10 -> 111111 10000 10000 -> 1111 1111 1000 0100 1000 0100 -> FF 84 84
 		Text(uint32 x = 0, uint32 y = 0, uint32 w = 0, uint32 h = 0): Element(x, y, w, h),
-			fgColor(0x4FF0), bgColor(0xFE10) {}
-		Text(uint32 x, uint32 y, string s, uint16 fg = 0x4FF0, uint16 bg = 0xFE10): Element(x, y, 0, 0),
+			fgColor(0xFF84FF4D), bgColor(0xFF8484FF) {}
+		Text(uint32 x, uint32 y, string s, uint32 fg = 0xFF84FF4D, uint32 bg = 0xFF8484FF): Element(x, y, 0, 0),
 			fgColor(fg), bgColor(bg), text(s) {}
 		virtual void HandleKey(SDLKey key) {}
 		virtual void HandleMouseMove(uint32 x, uint32 y) {}
@@ -652,7 +694,7 @@ class Text: public Element
 		virtual void Notify(Element *) {}
 
 	protected:
-		uint16 fgColor, bgColor;
+		uint32 fgColor, bgColor;
 		string text;
 };
 
@@ -859,9 +901,13 @@ void ListBox::Draw(uint32 offsetX/*= 0*/, uint32 offsetY/*= 0*/)
 		for(uint32 x=extents.x+offsetX+extents.w; x<extents.x+offsetX+extents.w+8; x++)
 		{
 			if (y >= thumbStart + (extents.y+offsetY+8) && y < thumbStart + thumb + (extents.y+offsetY+8))
-				screenBuffer[x + (y * pitch)] = (thumbClicked ? 0x458E : 0xFFFF);
+//				screenBuffer[x + (y * pitch)] = (thumbClicked ? 0x458E : 0xFFFF);
+//458E -> 01 0001  0 1100  0 1110 -> 0100 0101  0110 0011  0111 0011 -> 45 63 73
+				screenBuffer[x + (y * pitch)] = (thumbClicked ? 0xFF736345 : 0xFFFFFFFF);
 			else
-				screenBuffer[x + (y * pitch)] = 0x0200;
+//				screenBuffer[x + (y * pitch)] = 0x0200;
+//0200 -> 000000 10000 00000 -> 00 1000 0100 00
+				screenBuffer[x + (y * pitch)] = 0xFF008400;
 		}
 	}
 }
@@ -1037,9 +1083,15 @@ class MenuItems
 class Menu: public Element
 {
 	public:
+// 1CFF -> 0 001 11 00  111 1 1111 
+// 421F -> 0 100 00 10  000 1 1111
 		Menu(uint32 x = 0, uint32 y = 0, uint32 w = 0, uint32 h = 8,
-			uint16 fgc = 0x1CFF, uint16 bgc = 0x000F, uint16 fgch = 0x421F,
-			uint16 bgch = 0x1CFF): Element(x, y, w, h), activated(false), clicked(false),
+/*			uint16 fgc = 0x1CFF, uint16 bgc = 0x000F, uint16 fgch = 0x421F,
+			uint16 bgch = 0x1CFF): Element(x, y, w, h), activated(false), clicked(false),*/
+/*			uint32 fgc = 0xFF3F3F00, uint32 bgc = 0x7F000000, uint32 fgch = 0xFF878700,
+			uint32 bgch = 0xFF3F3F00): Element(x, y, w, h), activated(false), clicked(false),*/
+			uint32 fgc = 0xFFFF3F3F, uint32 bgc = 0xFF7F0000, uint32 fgch = 0xFFFF8787,
+			uint32 bgch = 0xFFFF3F3F): Element(x, y, w, h), activated(false), clicked(false),
 			inside(0), insidePopup(0), fgColor(fgc), bgColor(bgc), fgColorHL(fgch),
 			bgColorHL(bgch), menuChosen(-1), menuItemChosen(-1) {}
 		virtual void HandleKey(SDLKey key);
@@ -1052,7 +1104,8 @@ class Menu: public Element
 	protected:
 		bool activated, clicked;
 		uint32 inside, insidePopup;
-		uint16 fgColor, bgColor, fgColorHL, bgColorHL;
+//		uint16 fgColor, bgColor, fgColorHL, bgColorHL;
+		uint32 fgColor, bgColor, fgColorHL, bgColorHL;
 		int menuChosen, menuItemChosen;
 
 	private:
@@ -1165,7 +1218,8 @@ void Menu::Draw(uint32 offsetX/*= 0*/, uint32 offsetY/*= 0*/)
 
 	for(uint32 i=0; i<itemList.size(); i++)
 	{
-		uint16 color1 = fgColor, color2 = bgColor;
+//		uint16 color1 = fgColor, color2 = bgColor;
+		uint32 color1 = fgColor, color2 = bgColor;
 		if (inside == (i + 1) || (menuChosen != -1 && (uint32)menuChosen == i))
 			color1 = fgColorHL, color2 = bgColorHL;
 
@@ -1181,7 +1235,8 @@ void Menu::Draw(uint32 offsetX/*= 0*/, uint32 offsetY/*= 0*/)
 
 		for(uint32 i=0; i<itemList[menuChosen].item.size(); i++)
 		{
-			uint16 color1 = fgColor, color2 = bgColor;
+//			uint16 color1 = fgColor, color2 = bgColor;
+			uint32 color1 = fgColor, color2 = bgColor;
 
 			if (insidePopup == i + 1)
 				color1 = fgColorHL, color2 = bgColorHL, menuItemChosen = i;
@@ -1238,7 +1293,8 @@ void Menu::Add(MenuItems mi)
 //
 // Draw text at the given x/y coordinates. Can invert text as well.
 //
-void DrawString(int16 * screen, uint32 x, uint32 y, bool invert, const char * text, ...)
+//void DrawString(int16 * screen, uint32 x, uint32 y, bool invert, const char * text, ...)
+void DrawString(uint32 * screen, uint32 x, uint32 y, bool invert, const char * text, ...)
 {
 	char string[4096];
 	va_list arg;
@@ -1247,7 +1303,8 @@ void DrawString(int16 * screen, uint32 x, uint32 y, bool invert, const char * te
 	vsprintf(string, text, arg);
 	va_end(arg);
 
-	uint32 pitch = GetSDLScreenPitch() / 2;			// Returns pitch in bytes but we need words...
+//	uint32 pitch = GetSDLScreenPitch() / 2;			// Returns pitch in bytes but we need words...
+	uint32 pitch = GetSDLScreenWidthInPixels();
 	uint32 length = strlen(string), address = x + (y * pitch);
 
 	for(uint32 i=0; i<length; i++)
@@ -1259,7 +1316,8 @@ void DrawString(int16 * screen, uint32 x, uint32 y, bool invert, const char * te
 			for(uint32 xx=0; xx<8; xx++)
 			{
 				if ((font1[fontAddr] && !invert) || (!font1[fontAddr] && invert))
-					*(screen + address + xx + (yy * pitch)) = 0xFE00;
+//					*(screen + address + xx + (yy * pitch)) = 0xFE00;
+					*(screen + address + xx + (yy * pitch)) = 0xFF0080FF;
 				fontAddr++;
 			}
 		}
@@ -1271,7 +1329,8 @@ void DrawString(int16 * screen, uint32 x, uint32 y, bool invert, const char * te
 //
 // Draw text at the given x/y coordinates, using FG/BG colors.
 //
-void DrawStringOpaque(int16 * screen, uint32 x, uint32 y, uint16 color1, uint16 color2, const char * text, ...)
+//void DrawStringOpaque(int16 * screen, uint32 x, uint32 y, uint16 color1, uint16 color2, const char * text, ...)
+void DrawStringOpaque(uint32 * screen, uint32 x, uint32 y, uint32 color1, uint32 color2, const char * text, ...)
 {
 	char string[4096];
 	va_list arg;
@@ -1280,7 +1339,8 @@ void DrawStringOpaque(int16 * screen, uint32 x, uint32 y, uint16 color1, uint16 
 	vsprintf(string, text, arg);
 	va_end(arg);
 
-	uint32 pitch = GetSDLScreenPitch() / 2;			// Returns pitch in bytes but we need words...
+//	uint32 pitch = GetSDLScreenPitch() / 2;			// Returns pitch in bytes but we need words...
+	uint32 pitch = GetSDLScreenWidthInPixels();
 	uint32 length = strlen(string), address = x + (y * pitch);
 
 	for(uint32 i=0; i<length; i++)
@@ -1303,7 +1363,8 @@ void DrawStringOpaque(int16 * screen, uint32 x, uint32 y, uint16 color1, uint16 
 //
 // Draw text at the given x/y coordinates with transparency (0 is fully opaque, 32 is fully transparent).
 //
-void DrawStringTrans(int16 * screen, uint32 x, uint32 y, uint16 color, uint8 trans, const char * text, ...)
+//void DrawStringTrans(int16 * screen, uint32 x, uint32 y, uint16 color, uint8 trans, const char * text, ...)
+void DrawStringTrans(uint32 * screen, uint32 x, uint32 y, uint32 color, uint8 trans, const char * text, ...)
 {
 	char string[4096];
 	va_list arg;
@@ -1312,7 +1373,8 @@ void DrawStringTrans(int16 * screen, uint32 x, uint32 y, uint16 color, uint8 tra
 	vsprintf(string, text, arg);
 	va_end(arg);
 
-	uint32 pitch = GetSDLScreenPitch() / 2;			// Returns pitch in bytes but we need words...
+//	uint32 pitch = GetSDLScreenPitch() / 2;			// Returns pitch in bytes but we need words...
+	uint32 pitch = GetSDLScreenWidthInPixels();
 	uint32 length = strlen(string), address = x + (y * pitch);
 
 	for(uint32 i=0; i<length; i++)
@@ -1325,27 +1387,39 @@ void DrawStringTrans(int16 * screen, uint32 x, uint32 y, uint16 color, uint8 tra
 			{
 				if (font1[fontAddr])
 				{
-					uint16 existingColor = *(screen + address + xx + (yy * pitch));
+//					uint16 existingColor = *(screen + address + xx + (yy * pitch));
+					uint32 existingColor = *(screen + address + xx + (yy * pitch));
 
-					uint8 eRed = (existingColor >> 10) & 0x1F,
+/*					uint8 eRed = (existingColor >> 10) & 0x1F,
 						eGreen = (existingColor >> 5) & 0x1F,
 						eBlue = existingColor & 0x1F,
 //This could be done ahead of time, instead of on each pixel...
 						nRed = (color >> 10) & 0x1F,
 						nGreen = (color >> 5) & 0x1F,
-						nBlue = color & 0x1F;
+						nBlue = color & 0x1F;//*/
+					uint8 eBlue = (existingColor >> 16) & 0xFF,
+						eGreen = (existingColor >> 8) & 0xFF,
+						eRed = existingColor & 0xFF,
+//This could be done ahead of time, instead of on each pixel...
+						nBlue = (color >> 16) & 0xFF,
+						nGreen = (color >> 8) & 0xFF,
+						nRed = color & 0xFF;
 
 //This could be sped up by using a table of 5 + 5 + 5 bits (32 levels transparency -> 32768 entries)
 //Here we've modified it to have 33 levels of transparency (could have any # we want!)
 //because dividing by 32 is faster than dividing by 31...!
 					uint8 invTrans = 32 - trans;
-					uint16 bRed = (eRed * trans + nRed * invTrans) / 32;
+/*					uint16 bRed = (eRed * trans + nRed * invTrans) / 32;
 					uint16 bGreen = (eGreen * trans + nGreen * invTrans) / 32;
 					uint16 bBlue = (eBlue * trans + nBlue * invTrans) / 32;
 
-					uint16 blendedColor = (bRed << 10) | (bGreen << 5) | bBlue;
+					uint16 blendedColor = (bRed << 10) | (bGreen << 5) | bBlue;//*/
 
-					*(screen + address + xx + (yy * pitch)) = blendedColor;
+					uint32 bRed = (eRed * trans + nRed * invTrans) / 32;
+					uint32 bGreen = (eGreen * trans + nGreen * invTrans) / 32;
+					uint32 bBlue = (eBlue * trans + nBlue * invTrans) / 32;
+
+					*(screen + address + xx + (yy * pitch)) = 0xFF000000 | (bBlue << 16) | (bGreen << 8) | bRed;
 				}
 
 				fontAddr++;
@@ -1361,17 +1435,19 @@ void DrawStringTrans(int16 * screen, uint32 x, uint32 y, uint16 color, uint8 tra
 // Uses zero as transparent color
 // Can also use an optional alpha channel
 //
-void DrawTransparentBitmap(int16 * screen, uint32 x, uint32 y, uint16 * bitmap, uint8 * alpha/*=NULL*/)
+//void DrawTransparentBitmap(int16 * screen, uint32 x, uint32 y, uint16 * bitmap, uint8 * alpha/*=NULL*/)
+void DrawTransparentBitmap(uint32 * screen, uint32 x, uint32 y, uint32 * bitmap, uint8 * alpha/*=NULL*/)
 {
-	uint16 width = bitmap[0], height = bitmap[1];
+	uint32 width = bitmap[0], height = bitmap[1];
 	bitmap += 2;
 
-	uint32 pitch = GetSDLScreenPitch() / 2;			// Returns pitch in bytes but we need words...
+//	uint32 pitch = GetSDLScreenPitch() / 2;			// Returns pitch in bytes but we need words...
+	uint32 pitch = GetSDLScreenWidthInPixels();
 	uint32 address = x + (y * pitch);
 
-	for(int yy=0; yy<height; yy++)
+	for(uint32 yy=0; yy<height; yy++)
 	{
-		for(int xx=0; xx<width; xx++)
+		for(uint32 xx=0; xx<width; xx++)
 		{
 			if (alpha == NULL)
 			{
@@ -1381,23 +1457,23 @@ void DrawTransparentBitmap(int16 * screen, uint32 x, uint32 y, uint16 * bitmap, 
 			else
 			{
 				uint8 trans = *alpha;
-				uint16 color = *bitmap;
-				uint16 existingColor = *(screen + address + xx + (yy * pitch));
+				uint32 color = *bitmap;
+				uint32 existingColor = *(screen + address + xx + (yy * pitch));
 
-				uint8 eRed = (existingColor >> 10) & 0x1F,
-					eGreen = (existingColor >> 5) & 0x1F,
-					eBlue = existingColor & 0x1F,
+				uint8 eRed = existingColor & 0xFF,
+					eGreen = (existingColor >> 8) & 0xFF,
+					eBlue = (existingColor >> 16) & 0xFF,
 
-					nRed = (color >> 10) & 0x1F,
-					nGreen = (color >> 5) & 0x1F,
-					nBlue = color & 0x1F;
+					nRed = color & 0xFF,
+					nGreen = (color >> 8) & 0xFF,
+					nBlue = (color >> 16) & 0xFF;
 
 				uint8 invTrans = 255 - trans;
-				uint16 bRed = (eRed * trans + nRed * invTrans) / 255;
-				uint16 bGreen = (eGreen * trans + nGreen * invTrans) / 255;
-				uint16 bBlue = (eBlue * trans + nBlue * invTrans) / 255;
+				uint32 bRed = (eRed * trans + nRed * invTrans) / 255;
+				uint32 bGreen = (eGreen * trans + nGreen * invTrans) / 255;
+				uint32 bBlue = (eBlue * trans + nBlue * invTrans) / 255;
 
-				uint16 blendedColor = (bRed << 10) | (bGreen << 5) | bBlue;
+				uint32 blendedColor = 0xFF000000 | bRed | (bGreen << 8) | (bBlue << 16);
 
 				*(screen + address + xx + (yy * pitch)) = blendedColor;
 
@@ -1432,13 +1508,14 @@ bool GUIMain(char * filename)
 {
 WriteLog("GUI: Inside GUIMain...\n");
 // Need to set things up so that it loads and runs a file if given on the command line. !!! FIX !!!
-	extern int16 * backbuffer;
+	extern uint32 * backbuffer;
 //	bool done = false;
 	SDL_Event event;
 	Window * mainWindow = NULL;
 
 	// Set up the GUI classes...
-	Element::SetScreenAndPitch(backbuffer, GetSDLScreenPitch() / 2);
+//	Element::SetScreenAndPitch(backbuffer, GetSDLScreenPitch() / 2);
+	Element::SetScreenAndPitch(backbuffer, GetSDLScreenWidthInPixels());
 
 	Menu mainMenu;
 	MenuItems mi;
@@ -1471,23 +1548,31 @@ WriteLog("GUI: Resetting Jaguar...\n");
 
 WriteLog("GUI: Clearing BG save...\n");
 	// Set up our background save...
-	memset(background, 0x11, tom_getVideoModeWidth() * 240 * 2);
+//	memset(background, 0x11, tom_getVideoModeWidth() * 240 * 2);
+//1111 -> 000100 01000 10001 -> 0001 0000 0100 0010 1000 1100 -> 10 42 8C
+	for(uint32 i=0; i<tom_getVideoModeWidth()*240; i++)
+		background[i] = 0xFF8C4210;
 
-	// Handle loading file passed in on the command line...!
+	// Handle loading file passed in on the command line...! [DONE]
 
 	if (filename)
 	{
 		if (JaguarLoadFile(filename))
 		{
-			event.type = SDL_USEREVENT, event.user.code = MENU_ITEM_CHOSEN;
-			event.user.data1 = (void *)ResetJaguar;
-	    	SDL_PushEvent(&event);
+//			event.type = SDL_USEREVENT, event.user.code = MENU_ITEM_CHOSEN;
+//			event.user.data1 = (void *)ResetJaguar;
+//	    	SDL_PushEvent(&event);
+			// Make it so that if passed in on the command line, we quit right
+			// away when pressing ESC
+WriteLog("GUI: Bypassing GUI since ROM passed in on command line...\n");
+			ResetJaguar();
+			return true;
 		}
 		else
 		{
 			// Create error dialog...
 			char errText[1024];
-			sprintf(errText, "The file %40s could no be loaded.", filename);
+			sprintf(errText, "The file %40s could not be loaded.", filename);
 
 			mainWindow = new Window(8, 16, 304, 160);
 			mainWindow->AddElement(new Text(8, 8, "Error!"));
@@ -1583,7 +1668,8 @@ WriteLog("GUI: Entering main loop...\n");
 // it's simple. Perhaps there may be a reason down the road to be more selective with
 // our clearing, but for now, this will suffice.
 //			memset(backbuffer, 0x11, tom_getVideoModeWidth() * 240 * 2);
-			memcpy(backbuffer, background, tom_getVideoModeWidth() * 256 * 2);
+//			memcpy(backbuffer, background, tom_getVideoModeWidth() * 256 * 2);
+			memcpy(backbuffer, background, tom_getVideoModeWidth() * 256 * 4);
 
 			mainMenu.Draw();
 //Could do multiple windows here by using a vector + priority info...
@@ -1592,6 +1678,7 @@ WriteLog("GUI: Entering main loop...\n");
 				mainWindow->Draw();
 
 			if (showMouse)
+//				DrawTransparentBitmap(backbuffer, mouseX, mouseY, mousePic);
 				DrawTransparentBitmap(backbuffer, mouseX, mouseY, mousePic);
 
 			RenderBackbuffer();
@@ -1637,7 +1724,7 @@ bool debounceRunKey = true;
 Window * RunEmu(void)
 {
 //This is crappy... !!! FIX !!!
-	extern int16 * backbuffer;
+	extern uint32 * backbuffer;
 	extern bool finished, showGUI;
 
 	uint32 nFrame = 0, nFrameskip = 0;
@@ -1682,15 +1769,21 @@ Window * RunEmu(void)
 		if (showGUI)
 		{
 			extern uint32 gpu_pc, dsp_pc;
-			DrawString(backbuffer, 8, 8, false, "GPU PC: %08X", gpu_pc);
-			DrawString(backbuffer, 8, 16, false, "DSP PC: %08X", dsp_pc);
+			DrawString((uint32 *)backbuffer, 8, 8, false, "GPU PC: %08X", gpu_pc);
+			DrawString((uint32 *)backbuffer, 8, 16, false, "DSP PC: %08X", dsp_pc);
 		}
 
 		if (showMessage)
 		{
-			DrawStringTrans(backbuffer, 8, 24*8, 0xFF0F, transparency, "Running...");
-			DrawStringTrans(backbuffer, 8, 26*8, 0x3FE3, transparency, "%s, run address: %06X", cartTypeName[cartType], jaguarRunAddress);
-			DrawStringTrans(backbuffer, 8, 27*8, 0x3FE3, transparency, "CRC: %08X", jaguar_mainRom_crc32);
+// FF0F -> 1111 11 11  000 0 1111 -> 3F 18 0F
+// 3FE3 -> 0011 11 11  111 0 0011 -> 0F 3F 03
+/*			DrawStringTrans((uint32 *)backbuffer, 8, 24*8, 0xFF0F, transparency, "Running...");
+			DrawStringTrans((uint32 *)backbuffer, 8, 26*8, 0x3FE3, transparency, "%s, run address: %06X", cartTypeName[cartType], jaguarRunAddress);
+			DrawStringTrans((uint32 *)backbuffer, 8, 27*8, 0x3FE3, transparency, "CRC: %08X", jaguar_mainRom_crc32);//*/
+//first has wrong color. !!! FIX !!!
+			DrawStringTrans((uint32 *)backbuffer, 8, 24*8, 0xFF7F63FF, transparency, "Running...");
+			DrawStringTrans((uint32 *)backbuffer, 8, 26*8, 0xFF1FFF3F, transparency, "%s, run address: %06X", cartTypeName[cartType], jaguarRunAddress);
+			DrawStringTrans((uint32 *)backbuffer, 8, 27*8, 0xFF1FFF3F, transparency, "CRC: %08X", jaguar_mainRom_crc32);
 
 			if (showMsgFrames == 0)
 			{			
@@ -1719,18 +1812,24 @@ doGPUDis = true;//*/
 	}
 
 	// Reset the pitch, since it may have been changed in-game...
-	Element::SetScreenAndPitch(backbuffer, GetSDLScreenPitch() / 2);
+//	Element::SetScreenAndPitch(backbuffer, GetSDLScreenPitch() / 2);
+	Element::SetScreenAndPitch((uint32 *)backbuffer, GetSDLScreenWidthInPixels());
 
 	// Save the background for the GUI...
 //	memcpy(background, backbuffer, tom_getVideoModeWidth() * 240 * 2);
 	// In this case, we squash the color to monochrome, then force it to blue + green...
 	for(uint32 i=0; i<tom_getVideoModeWidth() * 256; i++)
 	{
-		uint16 word = backbuffer[i];
-		uint8 r = (word >> 10) & 0x1F, g = (word >> 5) & 0x1F, b = word & 0x1F;
-		word = ((r + g + b) / 3) & 0x001F;
-		word = (word << 5) | word;
-		background[i] = word;
+//		uint32 word = backbuffer[i];
+//		uint8 r = (word >> 10) & 0x1F, g = (word >> 5) & 0x1F, b = word & 0x1F;
+//		word = ((r + g + b) / 3) & 0x001F;
+//		word = (word << 5) | word;
+//		background[i] = word;
+
+		uint32 pixel = backbuffer[i];
+		uint8 b = (pixel >> 16) & 0xFF, g = (pixel >> 8) & 0xFF, r = pixel & 0xFF;
+		pixel = ((r + g + b) / 3) & 0x00FF;
+		background[i] = 0xFF000000 | (pixel << 16) | (pixel << 8);
 	}
 
 	return NULL;
@@ -1747,8 +1846,8 @@ Window * Quit(void)
 Window * About(void)
 {
 	Window * window = new Window(8, 16, 304, 160);
-	window->AddElement(new Text(8, 8, "Virtual Jaguar 1.0.7"));
-//	window->AddElement(new Text(8, 8, "Virtual Jaguar CVS 20040417"));
+//	window->AddElement(new Text(8, 8, "Virtual Jaguar 1.0.8"));
+	window->AddElement(new Text(8, 8, "Virtual Jaguar CVS 20041224"));
 	window->AddElement(new Text(8, 24, "Coders:"));
 	window->AddElement(new Text(16, 32, "Niels Wagenaar (nwagenaar)"));
 	window->AddElement(new Text(16, 40, "Carwin Jones (Caz)"));
