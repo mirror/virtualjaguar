@@ -2,57 +2,90 @@ CC = gcc
 LD = gcc 
 NASM = nasm
 
-CFLAGS  = -Wall -O3 -D__PORT__ -D__GCCUNIX__ -DSPEED_CONTROL -Dstricmp="strcasecmp" -fomit-frame-pointer `sdl-config --cflags`
+CFLAGS  = -Wall -O3 -D__PORT__ -D__GCCUNIX__ -Dstricmp="strcasecmp" \
+			-fomit-frame-pointer `sdl-config --cflags` -DLOG_UNMAPPED_MEMORY_ACCESSES
+#			-fomit-frame-pointer `sdl-config --cflags`
+#			-fomit-frame-pointer `sdl-config --cflags` -DTOM_DEBUG
 
 LDFLAGS = $(CFLAGS)
 
 TARGET = jag_em
 
-OBJ = \
-	src/version.o \
-	src/tom.o \
-	src/pcm.o \
-	src/objectp.o \
-	src/memory.o \
-	src/m68kdasm.o \
-	src/log.o \
-	src/joystick.o \
-	src/jerry.o \
-	src/jaguar.o \
-	src/jagdasm.o \
-	src/Jagem.o \
-	src/gpu.o \
-	src/eeprom.o \
-	src/dsp.o \
-	src/dsound_dummy.o \
-	src/crc32.o \
-	src/clock.o \
-	src/cdrom.o \
-	src/cdi.o \
-	src/cdbios.o \
-	src/blitter.o \
-	src/anajoy.o \
-	src/star026c/s68000.o
+OBJS = \
+	obj/version.o \
+	obj/pcm.o \
+	obj/objectp.o \
+	obj/memory.o \
+	obj/m68kdasmAG.o \
+	obj/log.o \
+	obj/jerry.o \
+	obj/jaguar.o \
+	obj/jagdasm.o \
+	obj/eeprom.o \
+	obj/dsound_dummy.o \
+	obj/crc32.o \
+	obj/clock.o \
+	obj/cdrom.o \
+	obj/cdi.o \
+	obj/cdbios.o \
+	obj/blitter.o \
+	obj/anajoy.o \
+	obj/tom.o \
+	obj/joystick.o \
+	obj/Jagem.o \
+	obj/gpu.o \
+	obj/dsp.o \
+	obj/m68kcpu.o obj/m68kops.o obj/m68kopac.o obj/m68kopdm.o obj/m68kopnz.o
 
 LIBS = `sdl-config --libs` -lstdc++
 
-all: $(TARGET)
-
-INCS = -I. `sdl-config --cflags`
+INCS = -I. -Isrc -Isrc/include `sdl-config --cflags`
 
 THECC = $(CC) $(CFLAGS) $(INCS)
 
-%.o: %.asm
+all: obj $(TARGET)
+
+clean:
+	rm -rf obj
+	rm -f ./jag_em
+
+obj:
+	mkdir obj
+
+obj/%.o: src/%.asm
 	$(NASM) -f elf -o $@ $<
 
-%.o: %.c
+obj/%.o: src/%.c
 	$(THECC) -c $< -o $@
 
-%.o: %.cpp
+obj/%.o: src/%.cpp
 	$(THECC) -c $< -o $@
 
-jag_em: $(OBJ) 
-	$(LD) $(LDFLAGS) -o $@ $(OBJ) $(LIBS)
-	 
-clean:
-	rm -f jag_em *.o src/*.o src/star026c/*.o
+jag_em: $(OBJS) 
+	$(LD) $(LDFLAGS) -o $@ $(OBJS) $(LIBS)
+	# upx -9 jag_em
+
+#
+# Musashi specific stuffola
+#
+
+obj/m68kcpu.o: obj/m68kops.h src/m68k.h src/m68kconf.h
+	$(CC) $(CFLAGS) -Iobj -c src/m68kcpu.c -o obj/m68kcpu.o
+
+obj/m68kops.o: obj/m68kmake obj/m68kops.h obj/m68kops.c src/m68k.h src/m68kconf.h
+	$(CC) $(CFLAGS) -Isrc -c obj/m68kops.c -o obj/m68kops.o
+
+obj/m68kopac.o: obj/m68kmake obj/m68kops.h obj/m68kopac.c src/m68k.h src/m68kconf.h
+	$(CC) $(CFLAGS) -Isrc -c obj/m68kopac.c -o obj/m68kopac.o
+
+obj/m68kopdm.o: obj/m68kmake obj/m68kops.h obj/m68kopdm.c src/m68k.h src/m68kconf.h
+	$(CC) $(CFLAGS) -Isrc -c obj/m68kopdm.c -o obj/m68kopdm.o
+
+obj/m68kopnz.o: obj/m68kmake obj/m68kops.h obj/m68kopnz.c src/m68k.h src/m68kconf.h
+	$(CC) $(CFLAGS) -Isrc -c obj/m68kopnz.c -o obj/m68kopnz.o
+
+obj/m68kops.h: obj/m68kmake
+	obj/m68kmake obj src/m68k_in.c
+
+obj/m68kmake: src/m68kmake.c src/m68k_in.c
+	$(CC) $(WARNINGS) src/m68kmake.c -o obj/m68kmake
