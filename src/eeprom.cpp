@@ -3,10 +3,12 @@
 //
 // by Cal2
 // GCC/SDL port by Niels Wagenaar (Linux/WIN32) and Caz (BeOS)
-// Cleanups by James L. Hammons
+// Cleanups/enhancements by James L. Hammons
 //
 
+#include <stdlib.h>
 #include "eeprom.h"
+#include "settings.h"
 
 #define eeprom_LOG
 
@@ -21,30 +23,10 @@ void eeprom_set_di(uint32 state);
 void eeprom_set_cs(uint32 state);
 uint32 eeprom_get_do(void);
 
-#define EE_STATE_START			1
-#define EE_STATE_OP_A			2
-#define EE_STATE_OP_B			3
-#define EE_STATE_0				4
-#define EE_STATE_1				5
-#define EE_STATE_2				6
-#define EE_STATE_3				7
-#define EE_STATE_0_0			8
-#define EE_READ_ADDRESS			9
-#define EE_STATE_0_0_0			10
-#define EE_STATE_0_0_1			11
-#define EE_STATE_0_0_2			12
-#define EE_STATE_0_0_3			13
-#define EE_STATE_0_0_1_0		14
-#define EE_READ_DATA			15
-#define EE_STATE_BUSY			16
-#define EE_STATE_1_0			17
-#define EE_STATE_1_1			18
-#define EE_STATE_2_0			19
-#define EE_STATE_3_0			20
-
-// External global variables
-
-extern char jaguar_boot_dir[1024];
+enum { EE_STATE_START = 1, EE_STATE_OP_A, EE_STATE_OP_B, EE_STATE_0, EE_STATE_1,
+	EE_STATE_2, EE_STATE_3, EE_STATE_0_0, EE_READ_ADDRESS, EE_STATE_0_0_0,
+	EE_STATE_0_0_1, EE_STATE_0_0_2, EE_STATE_0_0_3, EE_STATE_0_0_1_0, EE_READ_DATA,
+	EE_STATE_BUSY, EE_STATE_1_0, EE_STATE_1_1, EE_STATE_2_0, EE_STATE_3_0 };
 
 // Local global variables
 
@@ -58,12 +40,12 @@ uint16 jerry_ee_data_cnt = 16;
 uint16 jerry_writes_enabled = 0;
 uint16 jerry_ee_direct_jump = 0;
 FILE * jerry_ee_fp;
-static char eeprom_filename[1024];
+static char eeprom_filename[MAX_PATH];
 static bool foundEEPROM = false;
 
 void eeprom_init(void)
 {
-	sprintf(eeprom_filename, "%s/%s%08X.eep", jaguar_boot_dir, jaguar_eeproms_path, (unsigned int)jaguar_mainRom_crc32);
+	sprintf(eeprom_filename, "%s%08X.eep", vjs.EEPROMPath, (unsigned int)jaguar_mainRom_crc32);
 	jerry_ee_fp = fopen(eeprom_filename, "rb");
 	if (jerry_ee_fp)
 	{
@@ -77,7 +59,7 @@ void eeprom_init(void)
 		WriteLog("EEPROM: Creating %s\n", eeprom_filename);
 		jerry_ee_fp = fopen(eeprom_filename, "wb");
 		if (jerry_ee_fp == NULL)
-			WriteLog("EEPROM: Could not open/create %s\n", eeprom_filename);
+			WriteLog("EEPROM: Could not open/create %s!\n", eeprom_filename);
 	}
 }
 
@@ -89,8 +71,8 @@ void eeprom_reset(void)
 
 void eeprom_done(void)
 {
-//Actually, is this necessary now that we write the file immediately?
-	EEPROMSave();
+//Actually, is this necessary now that we write the file immediately upon write to EEPROM?
+//	EEPROMSave();
 }
 
 void EEPROMSave(void)
@@ -206,8 +188,8 @@ void eeprom_set_di(uint32 data)
 		if (jerry_writes_enabled)
 			for(int i=0; i<64; i++)
 				eeprom_ram[i] = jerry_ee_data;
-		EEPROMSave();	// Save it NOW!
-		//else 
+		EEPROMSave();								// Save it NOW!
+		//else
 		//	WriteLog("eeprom: not writing because read only\n");
 		jerry_ee_state = EE_STATE_BUSY;
 		break;
@@ -218,7 +200,7 @@ void eeprom_set_di(uint32 data)
 			for(int i=0; i<64; i++)
 				eeprom_ram[i] = 0xFFFF;
 
-		jerry_ee_state=EE_STATE_BUSY;
+		jerry_ee_state = EE_STATE_BUSY;
 		break;
 	case EE_STATE_0_0_3:
 		// writes enable
@@ -244,7 +226,7 @@ void eeprom_set_di(uint32 data)
 		//WriteLog("eeprom: writing 0x%.4x at 0x%.2x\n",jerry_ee_data,jerry_ee_address_data);
 		if (jerry_writes_enabled)
 			eeprom_ram[jerry_ee_address_data] = jerry_ee_data;
-		EEPROMSave();	// Save it NOW!
+		EEPROMSave();								// Save it NOW!
 		jerry_ee_state = EE_STATE_BUSY;
 		break;
 	case EE_STATE_2:
