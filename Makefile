@@ -12,7 +12,7 @@ TARGET     = vj$(EXESUFFIX)
 
 # Note that we use optimization level 2 instead of 3--3 doesn't seem to gain much over 2
 CFLAGS = -Wall -Wno-switch -Wno-non-virtual-dtor -O2 -D$(SYSTYPE) \
-		-fomit-frame-pointer `sdl-config --cflags`
+		-ffast-math -fomit-frame-pointer `sdl-config --cflags`
 #		-fomit-frame-pointer `sdl-config --cflags` -g
 #		-fomit-frame-pointer `sdl-config --cflags` -DLOG_UNMAPPED_MEMORY_ACCESSES
 
@@ -27,8 +27,6 @@ THECC = $(CC) $(CFLAGS) $(INCS)
 OBJS = \
 	obj/anajoy.o \
 	obj/blitter.o \
-	obj/cdbios.o \
-	obj/cdi.o \
 	obj/cdrom.o \
 	obj/cdintf.o \
 	obj/clock.o \
@@ -56,6 +54,8 @@ OBJS = \
 	obj/video.o \
 	obj/vj.o \
 	$(ICON)
+#	obj/cdbios.o 
+#	obj/cdi.o 
 
 all: obj $(TARGET)
 
