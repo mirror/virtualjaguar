@@ -5,7 +5,7 @@
 #ifndef __JERRY_H__
 #define __JERRY_H__
 
-#include "jaguar.h"
+#include "types.h"
 
 void jerry_init(void);
 void jerry_reset(void);
