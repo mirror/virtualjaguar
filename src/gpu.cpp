@@ -650,12 +650,8 @@ void GPUWriteLong(uint32 offset, uint32 data, uint32 who/*=UNKNOWN*/)
 		}
 #endif	// GPU_DEBUG
 
-/*		gpu_ram_8[offset & 0xFFF] = (data >> 24) & 0xFF,
-		gpu_ram_8[(offset+1) & 0xFFF] = (data >> 16) & 0xFF,
-		gpu_ram_8[(offset+2) & 0xFFF] = (data >> 8) & 0xFF,
-		gpu_ram_8[(offset+3) & 0xFFF] = data & 0xFF;//*/
 		offset &= 0xFFF;
-		SET32(gpu_ram_8, offset, data);//*/
+		SET32(gpu_ram_8, offset, data);
 		return;
 	}
 //	else if ((offset >= GPU_CONTROL_RAM_BASE) && (offset < GPU_CONTROL_RAM_BASE+0x20))
@@ -873,6 +869,7 @@ if (GPU_RUNNING && effect_start5 && gpu_pc == 0xF035D8)
 
 //	JaguarWriteWord(offset, (data >> 16) & 0xFFFF, who);
 //	JaguarWriteWord(offset+2, data & 0xFFFF, who);
+// We're a 32-bit processor, we can do a long write...!
 	JaguarWriteLong(offset, data, who);
 }
 
@@ -960,8 +957,6 @@ void GPUSetIRQLine(int irqline, int state)
 void gpu_init(void)
 {
 	memory_malloc_secure((void **)&gpu_ram_8, 0x1000, "GPU work RAM");
-//	memory_malloc_secure((void **)&gpu_reg, 32*sizeof(int32), "GPU bank 0 regs");
-//	memory_malloc_secure((void **)&gpu_alternate_reg, 32*sizeof(int32), "GPU bank 1 regs");
 	memory_malloc_secure((void **)&gpu_reg_bank_0, 32 * sizeof(int32), "GPU bank 0 regs");
 	memory_malloc_secure((void **)&gpu_reg_bank_1, 32 * sizeof(int32), "GPU bank 1 regs");
 
@@ -1080,6 +1075,8 @@ void gpu_done(void)
 	WriteLog("\n");
 
 	memory_free(gpu_ram_8);
+	memory_free(gpu_reg_bank_0);
+	memory_free(gpu_reg_bank_1);
 }
 
 //
@@ -1106,6 +1103,35 @@ void gpu_exec(int32 cycles)
 
 	while (cycles > 0 && GPU_RUNNING)
 	{
+if (gpu_ram_8[0x054] == 0x98 && gpu_ram_8[0x055] == 0x0A && gpu_ram_8[0x056] == 0x03
+	&& gpu_ram_8[0x057] == 0x00 && gpu_ram_8[0x058] == 0x00 && gpu_ram_8[0x059] == 0x00)
+{
+	if (gpu_pc == 0xF03000)
+	{
+		extern uint32 starCount;
+		starCount = 0;
+/*		WriteLog("GPU: Starting starfield generator... Dump of [R03=%08X]:\n", gpu_reg_bank_0[03]);
+		uint32 base = gpu_reg_bank_0[3];
+		for(uint32 i=0; i<0x100; i+=16)
+		{
+			WriteLog("%02X: ", i);
+			for(uint32 j=0; j<16; j++)
+			{
+				WriteLog("%02X ", JaguarReadByte(base + i + j));
+			}
+			WriteLog("\n");
+		}*/
+	}
+//	if (gpu_pc == 0xF03)
+	{
+	}
+}//*/
+/*if (gpu_pc == 0xF03B9E && gpu_reg_bank_0[01] == 0)
+{
+	GPUDumpRegisters();
+	WriteLog("GPU: Starting disassembly log...\n");
+	doGPUDis = true;
+}//*/
 /*if (gpu_pc == 0xF0359A)
 {
 	doGPUDis = true;
