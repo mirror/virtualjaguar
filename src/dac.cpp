@@ -9,6 +9,7 @@
 #include <SDL.h>
 #include "jaguar.h"
 #include "dac.h"
+#include "settings.h"
 
 //#define DEBUG_DAC
 
@@ -140,8 +141,8 @@ void SDLSoundCallback(void * userdata, Uint8 * buffer, int length)
 //
 int GetCalculatedFrequency(void)
 {
-	extern bool hardwareTypeNTSC;
-	int systemClockFrequency = (hardwareTypeNTSC ? RISC_CLOCK_RATE_NTSC : RISC_CLOCK_RATE_PAL);
+//	extern bool hardwareTypeNTSC;
+	int systemClockFrequency = (vjs.hardwareTypeNTSC ? RISC_CLOCK_RATE_NTSC : RISC_CLOCK_RATE_PAL);
 
 	// We divide by 32 here in order to find the frequency of 32 SCLKs in a row (transferring
 	// 16 bits of left data + 16 bits of right data = 32 bits, 1 SCLK = 1 bit transferred).

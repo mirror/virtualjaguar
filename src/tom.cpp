@@ -250,6 +250,7 @@
 #include "gpu.h"
 #include "objectp.h"
 #include "cry2rgb.h"
+#include "settings.h"
 
 // TOM registers (offset from $F00000)
 
@@ -262,6 +263,8 @@
 #define   BGEN		0x0080		// Background enable (CRY & RGB16 only)
 #define   VARMOD	0x0100		// Mixed CRY/RGB16 mode (only works in MODE 0!)
 #define   PWIDTH	0x0E00		// Pixel width in video clock cycles (value written + 1)
+#define BORD1		0x2A		// Border green/red values (8 BPP)
+#define BORD2		0x2C		// Border blue value (8 BPP)
 #define HP			0x2E		// Values range from 1 - 1024 (value written + 1)
 #define HBB			0x30
 #define HBE			0x32
@@ -283,6 +286,10 @@
 #define RIGHT_VISIBLE_HC	1528//*/
 #define LEFT_VISIBLE_HC		208
 #define RIGHT_VISIBLE_HC	1488
+//#define TOP_VISIBLE_VC		25
+//#define BOTTOM_VISIBLE_VC	503
+#define TOP_VISIBLE_VC		31
+#define BOTTOM_VISIBLE_VC	511
 
 //This can be defined in the makefile as well...
 //(It's easier to do it here, though...)
@@ -301,6 +308,7 @@ static int32 tom_timer_counter;
 uint16 tom_jerry_int_pending, tom_timer_int_pending, tom_object_int_pending,
 	tom_gpu_int_pending, tom_video_int_pending;
 uint16 * tom_cry_rgb_mix_lut;
+int16 * TOMBackbuffer;
 
 static char * videoMode_to_str[8] =
 	{ "16 BPP CRY", "24 BPP RGB", "16 BPP DIRECT", "16 BPP RGB",
@@ -783,23 +791,57 @@ void tom_render_16bpp_rgb_stretch_scanline(int16 *backbuffer)
 	}
 }
 
+void TOMResetBackbuffer(int16 * backbuffer)
+{
+	TOMBackbuffer = backbuffer;
+}
+
 //
 // Process a single scanline
 //
-void tom_exec_scanline(int16 * backbuffer, int32 scanline, bool render)
+void TOMExecScanline(uint16 scanline, bool render)
 {
-	if (render)
+	bool inActiveDisplayArea = true;
+
+//Interlacing is still not handled correctly here... !!! FIX !!!
+	if (scanline & 0x01)							// Execute OP only on even lines (non-interlaced only!)
+		return;
+
+	if (scanline >= (uint16)GET16(tom_ram_8, VDB) && scanline < (uint16)GET16(tom_ram_8, VDE))
 	{
-		uint8 * current_line_buffer = (uint8 *)&tom_ram_8[0x1800];
-		uint8 bgHI = tom_ram_8[BG], bgLO = tom_ram_8[BG + 1];
+		if (render)
+		{
+			uint8 * current_line_buffer = (uint8 *)&tom_ram_8[0x1800];
+			uint8 bgHI = tom_ram_8[BG], bgLO = tom_ram_8[BG + 1];
 
-		// Clear line buffer with BG
-		if (GET16(tom_ram_8, VMODE) & BGEN) // && (CRY or RGB16)...
-			for(uint32 i=0; i<720; i++)
-				*current_line_buffer++ = bgHI, *current_line_buffer++ = bgLO;
+			// Clear line buffer with BG
+			if (GET16(tom_ram_8, VMODE) & BGEN) // && (CRY or RGB16)...
+				for(uint32 i=0; i<720; i++)
+					*current_line_buffer++ = bgHI, *current_line_buffer++ = bgLO;
 
-		OPProcessList(scanline, render);
-		scanline_render[tom_getVideoMode()](backbuffer);
+			OPProcessList(scanline, render);
+		}
+	}
+	else
+		inActiveDisplayArea = false;
+
+	// Here's our virtualized scanline code...
+	if (scanline >= TOP_VISIBLE_VC && scanline < BOTTOM_VISIBLE_VC)
+	{
+		if (inActiveDisplayArea)
+			scanline_render[tom_getVideoMode()](TOMBackbuffer);
+		else
+		{
+			// If outside of VDB & VDE, then display the border color
+			int16 * currentLineBuffer = TOMBackbuffer;
+			uint8 g = tom_ram_8[BORD1], r = tom_ram_8[BORD1 + 1], b = tom_ram_8[BORD2 + 1];
+			uint16 pixel = ((r & 0xF8) << 7) | ((g & 0xF8) << 2) | (b >> 3);
+
+			for(uint32 i=0; i<tom_width; i++)
+				*currentLineBuffer++ = pixel;
+		}
+
+		TOMBackbuffer += GetSDLScreenPitch() / 2;	// Returns bytes, but we need words
 	}
 }
 
@@ -876,6 +918,7 @@ uint32 tom_getVideoModeWidth(void)
 //	return (RIGHT_VISIBLE_HC - LEFT_VISIBLE_HC) / pwidth;
 //Temporary, for testing Doom...
 	return (RIGHT_VISIBLE_HC - LEFT_VISIBLE_HC) / (pwidth == 8 ? 4 : pwidth);
+//	return (RIGHT_VISIBLE_HC - LEFT_VISIBLE_HC) / (pwidth == 4 ? 8 : pwidth);
 
 // More speculating...
 // According to the JTRM, the number of potential pixels across is given by the
@@ -900,11 +943,12 @@ uint32 tom_getVideoModeWidth(void)
 // height at 240 lines and clip using the VDB and VDE/VP registers...
 // Same with the width... [Width is pretty much virtualized now.]
 
+// Now that that the width is virtualized, let's virtualize the height. :-)
 uint32 tom_getVideoModeHeight(void)
 {
 //	uint16 vmode = GET16(tom_ram_8, VMODE);
-	uint16 vbe = GET16(tom_ram_8, VBE);
-	uint16 vbb = GET16(tom_ram_8, VBB);
+//	uint16 vbe = GET16(tom_ram_8, VBE);
+//	uint16 vbb = GET16(tom_ram_8, VBB);
 //	uint16 vdb = GET16(tom_ram_8, VDB);
 //	uint16 vde = GET16(tom_ram_8, VDE);
 //	uint16 vp = GET16(tom_ram_8, VP);
@@ -921,7 +965,11 @@ uint32 tom_getVideoModeHeight(void)
 //	return ((vde > vbb ? vbb : vde) - vdb) >> 1;
 //Let's try from the Vertical Blank interval...
 //Seems to work OK!
-	return (vbb - vbe) >> 1;	// Again, doesn't take interlacing into account...
+//	return (vbb - vbe) >> 1;	// Again, doesn't take interlacing into account...
+// This of course doesn't take interlacing into account. But I haven't seen any
+// Jaguar software that takes advantage of it either...
+//Also, doesn't reflect PAL Jaguar either... !!! FIX !!!
+	return 240;										// Set virtual screen height to 240 lines...
 }
 
 //
@@ -930,7 +978,7 @@ uint32 tom_getVideoModeHeight(void)
 //
 void tom_reset(void)
 {
-	extern bool hardwareTypeNTSC;
+//	extern bool hardwareTypeNTSC;
 
 	op_reset();
 	blitter_reset();
@@ -938,7 +986,7 @@ void tom_reset(void)
 
 	memset(tom_ram_8, 0x00, 0x4000);
 
-	if (hardwareTypeNTSC)
+	if (vjs.hardwareTypeNTSC)
 	{
 		SET16(tom_ram_8, MEMCON1, 0x1861);
 		SET16(tom_ram_8, MEMCON2, 0x35CC);
@@ -975,10 +1023,6 @@ void tom_reset(void)
 
 	tom_width = tom_real_internal_width = 0;
 	tom_height = 0;
-//	tom_scanline = 0;
-
-//This is WRONG
-//	hblankWidthInPixels = GET16(tom_ram_8, HDB1) >> 1;
 
 	tom_jerry_int_pending = 0;
 	tom_timer_int_pending = 0;
@@ -1109,25 +1153,25 @@ void TOMWriteByte(uint32 offset, uint8 data, uint32 who/*=UNKNOWN*/)
 	else if (offset == 0xF00050)
 	{
 		tom_timer_prescaler = (tom_timer_prescaler & 0x00FF) | (data << 8);
-		tom_reset_timer();
+		TOMResetPIT();
 		return;
 	}
 	else if (offset == 0xF00051)
 	{
 		tom_timer_prescaler = (tom_timer_prescaler & 0xFF00) | data;
-		tom_reset_timer();
+		TOMResetPIT();
 		return;
 	}
 	else if (offset == 0xF00052)
 	{
 		tom_timer_divider = (tom_timer_divider & 0x00FF) | (data << 8);
-		tom_reset_timer();
+		TOMResetPIT();
 		return;
 	}
 	else if (offset == 0xF00053)
 	{
 		tom_timer_divider = (tom_timer_divider & 0xFF00) | data;
-		tom_reset_timer();
+		TOMResetPIT();
 		return;
 	}
 	else if (offset >= 0xF00400 && offset <= 0xF007FF)	// CLUT (A & B)
@@ -1182,13 +1226,13 @@ if (offset >= 0xF02000 && offset <= 0xF020FF)
 	else if (offset == 0xF00050)
 	{
 		tom_timer_prescaler = data;
-		tom_reset_timer();
+		TOMResetPIT();
 		return;
 	}
 	else if (offset == 0xF00052)
 	{
 		tom_timer_divider = data;
-		tom_reset_timer();
+		TOMResetPIT();
 		return;
 	}
 	else if (offset == 0xF000E0)
@@ -1267,31 +1311,8 @@ if (offset == VMODE)
 
 		if ((width != tom_width) || (height != tom_height))
 		{
-//			extern SDL_Surface * surface, * mainSurface;
-//			extern Uint32 mainSurfaceFlags;
-//			static char window_title[256];
-			
 			tom_width = width, tom_height = height;
 			ResizeScreen(tom_width, tom_height);
-/*			SDL_FreeSurface(surface);
-			surface = SDL_CreateRGBSurface(SDL_SWSURFACE, tom_width, tom_height,
-				16, 0x7C00, 0x03E0, 0x001F, 0);
-			if (surface == NULL)
-			{
-				WriteLog("TOM: Could not create primary SDL surface: %s", SDL_GetError());
-				exit(1);
-			}
-
-			sprintf(window_title, "Virtual Jaguar (%i x %i)", (int)tom_width, (int)tom_height);
-			mainSurface = SDL_SetVideoMode(tom_width, tom_height, 16, mainSurfaceFlags);
-
-			if (mainSurface == NULL)
-			{
-				WriteLog("Joystick: SDL is unable to set the video mode: %s\n", SDL_GetError());
-				exit(1);
-			}
-
-			SDL_WM_SetCaption(window_title, window_title);//*/
 		}
 	}
 }
@@ -1315,7 +1336,7 @@ int tom_irq_enabled(int irq)
 	return (tom_ram_8[0xE0] << 8) | tom_ram_8[0xE1];
 }*/
 
-void tom_reset_timer(void)
+void TOMResetPIT(void)
 {
 	if (!tom_timer_prescaler || !tom_timer_divider)
 		tom_timer_counter = 0;
@@ -1329,7 +1350,7 @@ void tom_reset_timer(void)
 //
 // TOM Programmable Interrupt Timer handler
 //
-void tom_pit_exec(uint32 cycles)
+void TOMExecPIT(uint32 cycles)
 {
 	if (tom_timer_counter > 0)
 	{
@@ -1342,7 +1363,7 @@ void tom_pit_exec(uint32 cycles)
 			if (tom_irq_enabled(IRQ_TIMER) && jaguar_interrupt_handler_is_valid(64))
 				m68k_set_irq(7);				// Cause a 68000 NMI...
 
-			tom_reset_timer();
+			TOMResetPIT();
 		}
 	}
 }
