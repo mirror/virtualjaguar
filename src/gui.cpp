@@ -31,6 +31,7 @@ class Window;										// Forward declaration...
 void DrawTransparentBitmap(int16 * screen, uint32 x, uint32 y, uint16 * bitmap, uint8 * alpha = NULL);
 void DrawStringTrans(int16 * screen, uint32 x, uint32 y, uint16 color, uint8 opacity, const char * text, ...);
 void DrawStringOpaque(int16 * screen, uint32 x, uint32 y, uint16 color1, uint16 color2, const char * text, ...);
+void DrawString(int16 * screen, uint32 x, uint32 y, bool invert, const char * text, ...);
 Window * LoadROM(void);
 Window * ResetJaguar(void);
 Window * ResetJaguarCD(void);
@@ -54,7 +55,7 @@ extern bool CDBIOSLoaded;
 
 bool exitGUI = false;								// GUI (emulator) done variable
 int mouseX, mouseY;
-uint16 background[1280 * 240];						// GUI background buffer
+uint16 background[1280 * 256];						// GUI background buffer
 
 uint16 mousePic[] = {
 	6, 8,
@@ -642,8 +643,8 @@ class Text: public Element
 	public:
 		Text(uint32 x = 0, uint32 y = 0, uint32 w = 0, uint32 h = 0): Element(x, y, w, h),
 			fgColor(0x4FF0), bgColor(0xFE10) {}
-		Text(uint32 x, uint32 y, string s): Element(x, y, 0, 0),
-			fgColor(0x4FF0), bgColor(0xFE10), text(s) {}
+		Text(uint32 x, uint32 y, string s, uint16 fg = 0x4FF0, uint16 bg = 0xFE10): Element(x, y, 0, 0),
+			fgColor(fg), bgColor(bg), text(s) {}
 		virtual void HandleKey(SDLKey key) {}
 		virtual void HandleMouseMove(uint32 x, uint32 y) {}
 		virtual void HandleMouseButton(uint32 x, uint32 y, bool mouseDown) {}
@@ -658,7 +659,8 @@ class Text: public Element
 void Text::Draw(uint32 offsetX/*= 0*/, uint32 offsetY/*= 0*/)
 {
 	if (text.length() > 0)
-		DrawString(screenBuffer, extents.x + offsetX, extents.y + offsetY, false, "%s", text.c_str());
+//		DrawString(screenBuffer, extents.x + offsetX, extents.y + offsetY, false, "%s", text.c_str());
+		DrawStringOpaque(screenBuffer, extents.x + offsetX, extents.y + offsetY, fgColor, bgColor, "%s", text.c_str());
 }
 
 
@@ -1214,7 +1216,7 @@ void Menu::Add(MenuItems mi)
 
 //Do we even *need* this?
 //Doesn't seem like it...
-class RootWindow: public Window
+/*class RootWindow: public Window
 {
 	public:
 		RootWindow(Menu * m, Window * w = NULL): menu(m), window(w) {}
@@ -1230,23 +1232,8 @@ class RootWindow: public Window
 		Menu * menu;
 		Window * window;
 		int16 * rootImage[1280 * 240 * 2];
-};
+};//*/
 
-
-
-//
-// GUI stuff--it's not crunchy, it's GUI! ;-)
-//
-
-void InitGUI(void)
-{
-	SDL_ShowCursor(SDL_DISABLE);
-	SDL_GetMouseState(&mouseX, &mouseY);
-}
-
-void GUIDone(void)
-{
-}
 
 //
 // Draw text at the given x/y coordinates. Can invert text as well.
@@ -1370,10 +1357,80 @@ void DrawStringTrans(int16 * screen, uint32 x, uint32 y, uint16 color, uint8 tra
 }
 
 //
-// GUI Main loop
+// Draw "picture"
+// Uses zero as transparent color
+// Can also use an optional alpha channel
 //
-bool GUIMain(void)
+void DrawTransparentBitmap(int16 * screen, uint32 x, uint32 y, uint16 * bitmap, uint8 * alpha/*=NULL*/)
 {
+	uint16 width = bitmap[0], height = bitmap[1];
+	bitmap += 2;
+
+	uint32 pitch = GetSDLScreenPitch() / 2;			// Returns pitch in bytes but we need words...
+	uint32 address = x + (y * pitch);
+
+	for(int yy=0; yy<height; yy++)
+	{
+		for(int xx=0; xx<width; xx++)
+		{
+			if (alpha == NULL)
+			{
+				if (*bitmap && x + xx < pitch)			// NOTE: Still doesn't clip the Y val...
+					*(screen + address + xx + (yy * pitch)) = *bitmap;
+			}
+			else
+			{
+				uint8 trans = *alpha;
+				uint16 color = *bitmap;
+				uint16 existingColor = *(screen + address + xx + (yy * pitch));
+
+				uint8 eRed = (existingColor >> 10) & 0x1F,
+					eGreen = (existingColor >> 5) & 0x1F,
+					eBlue = existingColor & 0x1F,
+
+					nRed = (color >> 10) & 0x1F,
+					nGreen = (color >> 5) & 0x1F,
+					nBlue = color & 0x1F;
+
+				uint8 invTrans = 255 - trans;
+				uint16 bRed = (eRed * trans + nRed * invTrans) / 255;
+				uint16 bGreen = (eGreen * trans + nGreen * invTrans) / 255;
+				uint16 bBlue = (eBlue * trans + nBlue * invTrans) / 255;
+
+				uint16 blendedColor = (bRed << 10) | (bGreen << 5) | bBlue;
+
+				*(screen + address + xx + (yy * pitch)) = blendedColor;
+
+				alpha++;
+			}
+
+			bitmap++;
+		}
+	}
+}
+
+
+//
+// GUI stuff--it's not crunchy, it's GUI! ;-)
+//
+
+void InitGUI(void)
+{
+	SDL_ShowCursor(SDL_DISABLE);
+	SDL_GetMouseState(&mouseX, &mouseY);
+}
+
+void GUIDone(void)
+{
+}
+
+//
+// GUI main loop
+//
+//bool GUIMain(void)
+bool GUIMain(char * filename)
+{
+WriteLog("GUI: Inside GUIMain...\n");
 // Need to set things up so that it loads and runs a file if given on the command line. !!! FIX !!!
 	extern int16 * backbuffer;
 //	bool done = false;
@@ -1409,15 +1466,39 @@ bool GUIMain(void)
 
 //This is crappy!!! !!! FIX !!!
 //Is this even needed any more? Hmm. Maybe. Dunno.
+WriteLog("GUI: Resetting Jaguar...\n");
 	jaguar_reset();
 
+WriteLog("GUI: Clearing BG save...\n");
 	// Set up our background save...
 	memset(background, 0x11, tom_getVideoModeWidth() * 240 * 2);
 
-//	while (!done)
+	// Handle loading file passed in on the command line...!
+
+	if (filename)
+	{
+		if (JaguarLoadFile(filename))
+		{
+			event.type = SDL_USEREVENT, event.user.code = MENU_ITEM_CHOSEN;
+			event.user.data1 = (void *)ResetJaguar;
+	    	SDL_PushEvent(&event);
+		}
+		else
+		{
+			// Create error dialog...
+			char errText[1024];
+			sprintf(errText, "The file %40s could no be loaded.", filename);
+
+			mainWindow = new Window(8, 16, 304, 160);
+			mainWindow->AddElement(new Text(8, 8, "Error!"));
+			mainWindow->AddElement(new Text(8, 24, errText));
+		}
+	}
+
+WriteLog("GUI: Entering main loop...\n");
 	while (!exitGUI)
 	{
-		while (SDL_PollEvent(&event))
+		if (SDL_PollEvent(&event))
 		{
 			if (event.type == SDL_USEREVENT)
 			{
@@ -1465,12 +1546,7 @@ bool GUIMain(void)
 				mouseX = event.motion.x, mouseY = event.motion.y;
 
 				if (vjs.useOpenGL)
-// This is evil, Evil, EVIL! But we'll keep it until we can figure out WTF is going on here.
-#ifdef _OSX_
-					mouseX /= 2, mouseY = (480 - mouseY) / 2;
-#else
 					mouseX /= 2, mouseY /= 2;
-#endif
 
 				if (mainWindow)
 					mainWindow->HandleMouseMove(mouseX, mouseY);
@@ -1507,7 +1583,7 @@ bool GUIMain(void)
 // it's simple. Perhaps there may be a reason down the road to be more selective with
 // our clearing, but for now, this will suffice.
 //			memset(backbuffer, 0x11, tom_getVideoModeWidth() * 240 * 2);
-			memcpy(backbuffer, background, tom_getVideoModeWidth() * 240 * 2);
+			memcpy(backbuffer, background, tom_getVideoModeWidth() * 256 * 2);
 
 			mainMenu.Draw();
 //Could do multiple windows here by using a vector + priority info...
@@ -1528,6 +1604,7 @@ bool GUIMain(void)
 //
 // GUI "action" functions
 //
+
 Window * LoadROM(void)
 {
 	FileList * fileList = new FileList(8, 16, 304, 216);
@@ -1538,6 +1615,7 @@ Window * LoadROM(void)
 Window * ResetJaguar(void)
 {
 	jaguar_reset();
+
 	return RunEmu();
 }
 
@@ -1547,6 +1625,10 @@ Window * ResetJaguarCD(void)
 	jaguarRunAddress = 0x802000;
 	jaguar_mainRom_crc32 = crc32_calcCheckSum(jaguar_mainRom, 0x40000);
 	jaguar_reset();
+//This is a quick kludge to get the CDBIOS to boot properly...
+//Wild speculation: It could be that this memory location is wired into the CD unit
+//somehow, which lets it know whether or not a cart is present in the unit...
+	jaguar_mainRom[0x0040B] = 0x03;
 
 	return RunEmu();
 }
@@ -1567,15 +1649,20 @@ Window * RunEmu(void)
 	// Pass a message to the "joystick" code to debounce the ESC key...
 	debounceRunKey = true;
 
-	uint32 cartType = 2;
+	uint32 cartType = 4;
 	if (jaguarRomSize == 0x200000)
 		cartType = 0;
 	else if (jaguarRomSize == 0x400000)
 		cartType = 1;
+	else if (jaguar_mainRom_crc32 == 0x687068D5)
+		cartType = 2;
+	else if (jaguar_mainRom_crc32 == 0x55A0669C)
+		cartType = 3;
 
-	char * cartTypeName[3] = { "2M Cartridge", "4M Cartridge", "Homebrew" };
+	char * cartTypeName[5] = { "2M Cartridge", "4M Cartridge", "CD BIOS", "CD Dev BIOS", "Homebrew" };
 
-	while (!finished)
+//	while (!finished)
+	while (true)
 	{
 		// Set up new backbuffer with new pixels and data
 		JaguarExecute(backbuffer, true);
@@ -1637,7 +1724,7 @@ doGPUDis = true;//*/
 	// Save the background for the GUI...
 //	memcpy(background, backbuffer, tom_getVideoModeWidth() * 240 * 2);
 	// In this case, we squash the color to monochrome, then force it to blue + green...
-	for(uint32 i=0; i<tom_getVideoModeWidth() * 240; i++)
+	for(uint32 i=0; i<tom_getVideoModeWidth() * 256; i++)
 	{
 		uint16 word = backbuffer[i];
 		uint8 r = (word >> 10) & 0x1F, g = (word >> 5) & 0x1F, b = word & 0x1F;
@@ -1651,17 +1738,8 @@ doGPUDis = true;//*/
 
 Window * Quit(void)
 {
-//This is crap. We need some REAL exit code, instead of this psuedo crap... !!! FIX !!! [DONE]
 	WriteLog("GUI: Quitting due to user request.\n");
-
 	exitGUI = true;
-/*	jaguar_done();
-	version_done();
-	memory_done();
-	VideoDone();									// Free SDL components last...!
-	log_done();
-
-	exit(0);//*/
 
 	return NULL;
 }
@@ -1670,7 +1748,7 @@ Window * About(void)
 {
 	Window * window = new Window(8, 16, 304, 160);
 	window->AddElement(new Text(8, 8, "Virtual Jaguar 1.0.7"));
-//	window->AddElement(new Text(8, 8, "Virtual Jaguar CVS 20040317"));
+//	window->AddElement(new Text(8, 8, "Virtual Jaguar CVS 20040417"));
 	window->AddElement(new Text(8, 24, "Coders:"));
 	window->AddElement(new Text(16, 32, "Niels Wagenaar (nwagenaar)"));
 	window->AddElement(new Text(16, 40, "Carwin Jones (Caz)"));
@@ -1678,6 +1756,13 @@ Window * About(void)
 	window->AddElement(new Text(16, 56, "Adam Green"));
 	window->AddElement(new Text(8, 72, "Testers:"));
 	window->AddElement(new Text(16, 80, "Guruma"));
+	window->AddElement(new Text(8, 96, "Thanks go out to:"));
+	window->AddElement(new Text(16, 104, "Aaron Giles (original CoJag)"));
+	window->AddElement(new Text(16, 112, "David Raingeard (original VJ)"));
+	window->AddElement(new Text(16, 120, "Karl Stenerud (Musashi 68K emu)"));
+	window->AddElement(new Text(16, 128, "Sam Lantinga (amazing SDL libs)"));
+	window->AddElement(new Text(16, 136, "Ryan C. Gordon (VJ's web presence)"));
+	window->AddElement(new Text(16, 144, "The guys over at Atari Age ;-)"));
 
 	return window;
 }
@@ -1704,230 +1789,6 @@ Window * MiscOptions(void)
 	return window;
 }
 
-
-//
-// Draw "picture"
-// Uses zero as transparent color
-// Can also use an optional alpha channel
-//
-void DrawTransparentBitmap(int16 * screen, uint32 x, uint32 y, uint16 * bitmap, uint8 * alpha/*=NULL*/)
-{
-	uint16 width = bitmap[0], height = bitmap[1];
-	bitmap += 2;
-
-	uint32 pitch = GetSDLScreenPitch() / 2;			// Returns pitch in bytes but we need words...
-	uint32 address = x + (y * pitch);
-
-	for(int yy=0; yy<height; yy++)
-	{
-		for(int xx=0; xx<width; xx++)
-		{
-			if (alpha == NULL)
-			{
-				if (*bitmap && x + xx < pitch)			// NOTE: Still doesn't clip the Y val...
-					*(screen + address + xx + (yy * pitch)) = *bitmap;
-			}
-			else
-			{
-				uint8 trans = *alpha;
-				uint16 color = *bitmap;
-				uint16 existingColor = *(screen + address + xx + (yy * pitch));
-
-				uint8 eRed = (existingColor >> 10) & 0x1F,
-					eGreen = (existingColor >> 5) & 0x1F,
-					eBlue = existingColor & 0x1F,
-
-					nRed = (color >> 10) & 0x1F,
-					nGreen = (color >> 5) & 0x1F,
-					nBlue = color & 0x1F;
-
-				uint8 invTrans = 255 - trans;
-				uint16 bRed = (eRed * trans + nRed * invTrans) / 255;
-				uint16 bGreen = (eGreen * trans + nGreen * invTrans) / 255;
-				uint16 bBlue = (eBlue * trans + nBlue * invTrans) / 255;
-
-				uint16 blendedColor = (bRed << 10) | (bGreen << 5) | bBlue;
-
-				*(screen + address + xx + (yy * pitch)) = blendedColor;
-
-				alpha++;
-			}
-
-			bitmap++;
-		}
-	}
-}
-
-//
-// Very very crude GUI file selector
-//
-/*bool UserSelectFile(char * path, char * filename)
-{
-//Testing...
-GUIMain();
-	
-	extern int16 * backbuffer;
-	vector<string> fileList;
-
-	// Read in the candidate files from the directory pointed to by "path"
-
-	DIR * dp = opendir(path);
-	dirent * de;
-
-	while ((de = readdir(dp)) != NULL)
-	{
-		char * ext = strrchr(de->d_name, '.');
-
-		if (ext != NULL)
-			if (strcasecmp(ext, ".zip") == 0 || strcasecmp(ext, ".jag") == 0)
-				fileList.push_back(string(de->d_name));
-	}
-
-	closedir(dp);
-
-	if (fileList.size() == 0)						// Any files found?
-		return false;								// Nope. Bail!
-
-	// Main GUI selection loop
-
-	uint32 cursor = 0, startFile = 0;
-
-	if (fileList.size() > 1)	// Only go GUI if more than one possibility!
-	{
-		sort(fileList.begin(), fileList.end());
-
-		bool done = false;
-		uint32 limit = (fileList.size() > 30 ? 30 : fileList.size());
-		SDL_Event event;
-
-		// Ensure that the GUI is drawn before any user input...
-		event.type = SDL_USEREVENT;
-		SDL_PushEvent(&event);
-
-		while (!done)
-		{
-			while (SDL_PollEvent(&event))
-			{
-				if (event.type == SDL_KEYDOWN)
-				{
-					SDLKey key = event.key.keysym.sym;
-
-					if (key == SDLK_DOWN)
-					{
-						if (cursor != limit - 1)	// Cursor is within its window
-							cursor++;
-						else						// Otherwise, scroll the window...
-						{
-							if (cursor + startFile != fileList.size() - 1)
-								startFile++;
-						}
-					}
-					if (key == SDLK_UP)
-					{
-						if (cursor != 0)
-							cursor--;
-						else
-						{
-							if (startFile != 0)
-								startFile--;
-						}
-					}
-					if (key == SDLK_PAGEDOWN)
-					{
-						if (cursor != limit - 1)
-							cursor = limit - 1;
-						else
-						{
-							startFile += limit;
-							if (startFile > fileList.size() - limit)
-								startFile = fileList.size() - limit;
-						}
-					}
-					if (key == SDLK_PAGEUP)
-					{
-						if (cursor != 0)
-							cursor = 0;
-						else
-						{
-							if (startFile < limit)
-								startFile = 0;
-							else
-								startFile -= limit;
-						}
-					}
-					if (key == SDLK_RETURN)
-						done = true;
-					if (key == SDLK_ESCAPE)
-					{
-						WriteLog("GUI: Aborting VJ by user request.\n");
-						return false;						// Bail out!
-					}
-					if (key >= SDLK_a && key <= SDLK_z)
-					{
-						// Advance cursor to filename with first letter pressed...
-						uint8 which = (key - SDLK_a) + 65;	// Convert key to A-Z char
-
-						for(uint32 i=0; i<fileList.size(); i++)
-						{
-							if ((fileList[i][0] & 0xDF) == which)
-							{
-								cursor = i - startFile;
-								if (i > startFile + limit - 1)
-									startFile = i - limit + 1,
-									cursor = limit - 1;
-								if (i < startFile)
-									startFile = i,
-									cursor = 0;
-								break;
-							}
-						}
-					}
-				}
-				else if (event.type == SDL_MOUSEMOTION)
-				{
-					mouseX = event.motion.x, mouseY = event.motion.y;
-					if (vjs.useOpenGL)
-						mouseX /= 2, mouseY /= 2;
-				}
-				else if (event.type == SDL_MOUSEBUTTONDOWN)
-				{
-					uint32 mx = event.button.x, my = event.button.y;
-					if (vjs.useOpenGL)
-						mx /= 2, my /= 2;
-					cursor = my / 8;
-				}
-
-				// Draw the GUI...
-//				memset(backbuffer, 0x11, tom_getVideoModeWidth() * tom_getVideoModeHeight() * 2);
-				memset(backbuffer, 0x11, tom_getVideoModeWidth() * 240 * 2);
-
-				for(uint32 i=0; i<limit; i++)
-				{
-					// Clip our strings to guarantee that they fit on the screen...
-					// (and strip off the extension too)
-					string s(fileList[startFile + i], 0, fileList[startFile + i].length() - 4);
-					if (s.length() > 38)
-						s[38] = 0;
-					DrawString(backbuffer, 0, i*8, (cursor == i ? true : false), " %s ", s.c_str());
-				}
-
-				DrawTransparentBitmap(backbuffer, mouseX, mouseY, mousePic);
-
-				RenderBackbuffer();
-			}
-		}
-	}
-
-	strcpy(filename, path);
-
-	if (strlen(path) > 0)
-		if (path[strlen(path) - 1] != '/')
-			strcat(filename, "/");
-
-	strcat(filename, fileList[startFile + cursor].c_str());
-
-	return true;
-}*/
 
 //
 // Generic ROM loading
