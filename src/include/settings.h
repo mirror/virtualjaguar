@@ -10,6 +10,7 @@
 #include <limits.h>
 #define MAX_PATH		_POSIX_PATH_MAX
 #endif
+#include "types.h"
 
 // Settings struct
 
