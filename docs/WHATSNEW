@@ -14,6 +14,11 @@ Virtual Jaguar v1.0.6 GCC/SDL
 * Preliminary GUI mouse support. [Shamus]
 * Fixed an off-by-one bug in the Object Processor when dealing with scaled
   bitmap objects. [Shamus]
+* Fully virtualized screen size. What this means is that we can keep the
+  Jagaur screen displayed in a convenient size (320 x 240) and the graphics
+  that various ROMs display will now be properly centered (more or less, they
+  were really centered for a TV display). [Shamus]
+* Border color is now displayed properly. [Shamus]
 
 
 Virtual Jaguar v1.0.5 GCC/SDL
