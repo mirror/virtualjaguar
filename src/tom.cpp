@@ -457,8 +457,6 @@ Vertical resolution: 238 lines
 
 void tom_calc_cry_rgb_mix_lut(void)
 {
-	memory_malloc_secure((void **)&tom_cry_rgb_mix_lut, 2 * 0x10000, "CRY/RGB mixed mode LUT");
-
 	for (uint32 i=0; i<0x10000; i++)
 	{
 		uint16 color = i;
@@ -478,6 +476,7 @@ void tom_calc_cry_rgb_mix_lut(void)
 				blue = (((uint32)bluecv[chrm][chrl]) * y) >> 11;
 			color = (red << 10) | (green << 5) | blue;
 		}
+
 		tom_cry_rgb_mix_lut[i] = color;
 	}
 }
@@ -852,6 +851,8 @@ void TOMExecScanline(uint16 scanline, bool render)
 //
 void tom_init(void)
 {
+	memory_malloc_secure((void **)&tom_cry_rgb_mix_lut, 2 * 0x10000, "CRY/RGB mixed mode LUT");
+
 	op_init();
 	blitter_init();
 //This should be done by JERRY!	pcm_init();
@@ -875,6 +876,7 @@ void tom_done(void)
 //	gpu_done();
 //	dsp_done();
 	memory_free(tom_ram_8);
+	memory_free(tom_cry_rgb_mix_lut);
 }
 
 /*uint32 tom_getHBlankWidthInPixels(void)
