@@ -2,7 +2,9 @@
 Virtual Jaguar v1.0.7 GCC/SDL release INSTALL
 ---------------------------------------------
 
+
 REQUIREMENTS:
+-------------
 
 To compile Virtual Jaguar you need to check if you have the minimum
 requirements for compiling the sources:
@@ -12,26 +14,26 @@ requirements for compiling the sources:
 - ZLIB v1.1.4
 - OpenGL libraries
 - supported OS (BeOS, Linux, FreeBSD and WIN32 through mingw); other OSs may
-  work to but you may need to change some items in the Makefile(s).
+  work to but you may need to change some items in the Makefile and compile
+  script.
 
-Optionally you need a Atari Jaguar (CD) boot ROM which is available on the
-Internet. We can't include the boot ROM since it's still copyrighted.
+Optionally you need a Atari Jaguar boot ROM (and/or CD boot ROM) which is
+available on the Internet. We can't include the boot ROM since it's still
+copyrighted.
+
 
 COMPILING:
+----------
 
 If you sure you have the minimum software requirements, you can safely compile
-Virtual Jaguar by doing the following:
+Virtual Jaguar by issuing the following command in the directory where you
+decompressed the source:
 
-1) Compile:
+./compile
 
-   make -f Makefile.win32 (for WIN32 systems with mingw)
-   make -f Makefile.unix  (for UN*X  systems with gcc)
-
-2) Optionally you can manually strip vj[.exe] to downsize the binary.
-
-If you have upx in your path somewhere, you can uncomment the line in the
-makefile that executes upx so that you'll end up with a somewhat smaller
-binary.
+Optionally you can manually strip vj[.exe] to downsize the binary. If you have
+upx in your path somewhere, you can uncomment the line in the makefile that
+executes upx so that you'll end up with a somewhat smaller binary.
  
 That's it! You're done! You can now start the emulator with ./vj. See the
 output for more details or consult the README file for more info.
