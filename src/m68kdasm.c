@@ -270,9 +270,9 @@ static char* make_signed_hex_str_8(uint val)
 	if(val == 0x80)
 		sprintf(str, "-$80");
 	else if(val & 0x80)
-		sprintf(str, "-$%x", (0-val) & 0x7f);
+		sprintf(str, "-$%X", (0-val) & 0x7f);
 	else
-		sprintf(str, "$%x", val & 0x7f);
+		sprintf(str, "$%X", val & 0x7f);
 
 	return str;
 }
@@ -286,9 +286,9 @@ static char* make_signed_hex_str_16(uint val)
 	if(val == 0x8000)
 		sprintf(str, "-$8000");
 	else if(val & 0x8000)
-		sprintf(str, "-$%x", (0-val) & 0x7fff);
+		sprintf(str, "-$%X", (0-val) & 0x7fff);
 	else
-		sprintf(str, "$%x", val & 0x7fff);
+		sprintf(str, "$%X", val & 0x7fff);
 
 	return str;
 }
@@ -302,9 +302,9 @@ static char* make_signed_hex_str_32(uint val)
 	if(val == 0x80000000)
 		sprintf(str, "-$80000000");
 	else if(val & 0x80000000)
-		sprintf(str, "-$%x", (0-val) & 0x7fffffff);
+		sprintf(str, "-$%X", (0-val) & 0x7fffffff);
 	else
-		sprintf(str, "$%x", val & 0x7fffffff);
+		sprintf(str, "$%X", val & 0x7fffffff);
 
 	return str;
 }
@@ -327,11 +327,11 @@ static char* get_imm_str_u(uint size)
 {
 	static char str[15];
 	if(size == 0)
-		sprintf(str, "#$%x", read_imm_8() & 0xff);
+		sprintf(str, "#$%X", read_imm_8() & 0xff);
 	else if(size == 1)
-		sprintf(str, "#$%x", read_imm_16() & 0xffff);
+		sprintf(str, "#$%X", read_imm_16() & 0xffff);
 	else
-		sprintf(str, "#$%x", read_imm_32() & 0xffffffff);
+		sprintf(str, "#$%X", read_imm_32() & 0xffffffff);
 	return str;
 }
 
@@ -460,17 +460,17 @@ static char* get_ea_mode_str(uint instruction, uint size)
 			break;
 		case 0x38:
 		/* absolute short address */
-			sprintf(mode, "$%x.w", read_imm_16());
+			sprintf(mode, "$%X.w", read_imm_16());
 			break;
 		case 0x39:
 		/* absolute long address */
-			sprintf(mode, "$%x.l", read_imm_32());
+			sprintf(mode, "$%X.l", read_imm_32());
 			break;
 		case 0x3a:
 		/* program counter with displacement */
 			temp_value = read_imm_16();
 			sprintf(mode, "(%s,PC)", make_signed_hex_str_16(temp_value));
-			sprintf(g_helper_str, "; ($%x)", (make_int_16(temp_value) + g_cpu_pc-2) & 0xffffffff);
+			sprintf(g_helper_str, "; ($%X)", (make_int_16(temp_value) + g_cpu_pc-2) & 0xffffffff);
 			break;
 		case 0x3b:
 		/* program counter with index */
@@ -555,7 +555,7 @@ static char* get_ea_mode_str(uint instruction, uint size)
 			sprintf(mode, "%s", get_imm_str_u(size));
 			break;
 		default:
-			sprintf(mode, "INVALID %x", instruction & 0x3f);
+			sprintf(mode, "INVALID %X", instruction & 0x3f);
 	}
 	return mode;
 }
@@ -863,20 +863,20 @@ static void d68000_asl_ea(void)
 static void d68000_bcc_8(void)
 {
 	uint temp_pc = g_cpu_pc;
-	sprintf(g_dasm_str, "b%-2s     %x", g_cc[(g_cpu_ir>>8)&0xf], temp_pc + make_int_8(g_cpu_ir));
+	sprintf(g_dasm_str, "b%-2s     %X", g_cc[(g_cpu_ir>>8)&0xf], temp_pc + make_int_8(g_cpu_ir));
 }
 
 static void d68000_bcc_16(void)
 {
 	uint temp_pc = g_cpu_pc;
-	sprintf(g_dasm_str, "b%-2s     %x", g_cc[(g_cpu_ir>>8)&0xf], temp_pc + make_int_16(read_imm_16()));
+	sprintf(g_dasm_str, "b%-2s     %X", g_cc[(g_cpu_ir>>8)&0xf], temp_pc + make_int_16(read_imm_16()));
 }
 
 static void d68020_bcc_32(void)
 {
 	uint temp_pc = g_cpu_pc;
 	LIMIT_CPU_TYPES(M68020_PLUS);
-	sprintf(g_dasm_str, "b%-2s     %x; (2+)", g_cc[(g_cpu_ir>>8)&0xf], temp_pc + read_imm_32());
+	sprintf(g_dasm_str, "b%-2s     %X; (2+)", g_cc[(g_cpu_ir>>8)&0xf], temp_pc + read_imm_32());
 }
 
 static void d68000_bchg_r(void)
@@ -1078,20 +1078,20 @@ static void d68020_bftst(void)
 static void d68000_bra_8(void)
 {
 	uint temp_pc = g_cpu_pc;
-	sprintf(g_dasm_str, "bra     %x", temp_pc + make_int_8(g_cpu_ir));
+	sprintf(g_dasm_str, "bra     %X", temp_pc + make_int_8(g_cpu_ir));
 }
 
 static void d68000_bra_16(void)
 {
 	uint temp_pc = g_cpu_pc;
-	sprintf(g_dasm_str, "bra     %x", temp_pc + make_int_16(read_imm_16()));
+	sprintf(g_dasm_str, "bra     %X", temp_pc + make_int_16(read_imm_16()));
 }
 
 static void d68020_bra_32(void)
 {
 	uint temp_pc = g_cpu_pc;
 	LIMIT_CPU_TYPES(M68020_PLUS);
-	sprintf(g_dasm_str, "bra     %x; (2+)", temp_pc + read_imm_32());
+	sprintf(g_dasm_str, "bra     %X; (2+)", temp_pc + read_imm_32());
 }
 
 static void d68000_bset_r(void)
@@ -1108,20 +1108,20 @@ static void d68000_bset_s(void)
 static void d68000_bsr_8(void)
 {
 	uint temp_pc = g_cpu_pc;
-	sprintf(g_dasm_str, "bsr     %x", temp_pc + make_int_8(g_cpu_ir));
+	sprintf(g_dasm_str, "bsr     %X", temp_pc + make_int_8(g_cpu_ir));
 }
 
 static void d68000_bsr_16(void)
 {
 	uint temp_pc = g_cpu_pc;
-	sprintf(g_dasm_str, "bsr     %x", temp_pc + make_int_16(read_imm_16()));
+	sprintf(g_dasm_str, "bsr     %X", temp_pc + make_int_16(read_imm_16()));
 }
 
 static void d68020_bsr_32(void)
 {
 	uint temp_pc = g_cpu_pc;
 	LIMIT_CPU_TYPES(M68020_PLUS);
-	sprintf(g_dasm_str, "bsr     %x; (2+)", temp_pc + peek_imm_32());
+	sprintf(g_dasm_str, "bsr     %X; (2+)", temp_pc + peek_imm_32());
 }
 
 static void d68000_btst_r(void)
@@ -1383,7 +1383,7 @@ static void d68020_cpbcc_16(void)
 	LIMIT_CPU_TYPES(M68020_PLUS);
 	extension = read_imm_16();
 	new_pc += make_int_16(peek_imm_16());
-	sprintf(g_dasm_str, "%db%-4s  %s; %x (extension = %x) (2-3)", (g_cpu_ir>>9)&7, g_cpcc[g_cpu_ir&0x3f], get_imm_str_s16(), new_pc, extension);
+	sprintf(g_dasm_str, "%db%-4s  %s; %X (extension = %X) (2-3)", (g_cpu_ir>>9)&7, g_cpcc[g_cpu_ir&0x3f], get_imm_str_s16(), new_pc, extension);
 }
 
 static void d68020_cpbcc_32(void)
@@ -1393,7 +1393,7 @@ static void d68020_cpbcc_32(void)
 	LIMIT_CPU_TYPES(M68020_PLUS);
 	extension = read_imm_16();
 	new_pc += peek_imm_32();
-	sprintf(g_dasm_str, "%db%-4s  %s; %x (extension = %x) (2-3)", (g_cpu_ir>>9)&7, g_cpcc[g_cpu_ir&0x3f], get_imm_str_s16(), new_pc, extension);
+	sprintf(g_dasm_str, "%db%-4s  %s; %X (extension = %X) (2-3)", (g_cpu_ir>>9)&7, g_cpcc[g_cpu_ir&0x3f], get_imm_str_s16(), new_pc, extension);
 }
 
 static void d68020_cpdbcc(void)
@@ -1405,7 +1405,7 @@ static void d68020_cpdbcc(void)
 	extension1 = read_imm_16();
 	extension2 = read_imm_16();
 	new_pc += make_int_16(peek_imm_16());
-	sprintf(g_dasm_str, "%ddb%-4s D%d,%s; %x (extension = %x) (2-3)", (g_cpu_ir>>9)&7, g_cpcc[extension1&0x3f], g_cpu_ir&7, get_imm_str_s16(), new_pc, extension2);
+	sprintf(g_dasm_str, "%ddb%-4s D%d,%s; %X (extension = %X) (2-3)", (g_cpu_ir>>9)&7, g_cpcc[extension1&0x3f], g_cpu_ir&7, get_imm_str_s16(), new_pc, extension2);
 }
 
 static void d68020_cpgen(void)
@@ -1433,7 +1433,7 @@ static void d68020_cpscc(void)
 	LIMIT_CPU_TYPES(M68020_PLUS);
 	extension1 = read_imm_16();
 	extension2 = read_imm_16();
-	sprintf(g_dasm_str, "%ds%-4s  %s; (extension = %x) (2-3)", (g_cpu_ir>>9)&7, g_cpcc[extension1&0x3f], get_ea_mode_str_8(g_cpu_ir), extension2);
+	sprintf(g_dasm_str, "%ds%-4s  %s; (extension = %X) (2-3)", (g_cpu_ir>>9)&7, g_cpcc[extension1&0x3f], get_ea_mode_str_8(g_cpu_ir), extension2);
 }
 
 static void d68020_cptrapcc_0(void)
@@ -1443,7 +1443,7 @@ static void d68020_cptrapcc_0(void)
 	LIMIT_CPU_TYPES(M68020_PLUS);
 	extension1 = read_imm_16();
 	extension2 = read_imm_16();
-	sprintf(g_dasm_str, "%dtrap%-4s; (extension = %x) (2-3)", (g_cpu_ir>>9)&7, g_cpcc[extension1&0x3f], extension2);
+	sprintf(g_dasm_str, "%dtrap%-4s; (extension = %X) (2-3)", (g_cpu_ir>>9)&7, g_cpcc[extension1&0x3f], extension2);
 }
 
 static void d68020_cptrapcc_16(void)
@@ -1453,7 +1453,7 @@ static void d68020_cptrapcc_16(void)
 	LIMIT_CPU_TYPES(M68020_PLUS);
 	extension1 = read_imm_16();
 	extension2 = read_imm_16();
-	sprintf(g_dasm_str, "%dtrap%-4s %s; (extension = %x) (2-3)", (g_cpu_ir>>9)&7, g_cpcc[extension1&0x3f], get_imm_str_u16(), extension2);
+	sprintf(g_dasm_str, "%dtrap%-4s %s; (extension = %X) (2-3)", (g_cpu_ir>>9)&7, g_cpcc[extension1&0x3f], get_imm_str_u16(), extension2);
 }
 
 static void d68020_cptrapcc_32(void)
@@ -1463,7 +1463,7 @@ static void d68020_cptrapcc_32(void)
 	LIMIT_CPU_TYPES(M68020_PLUS);
 	extension1 = read_imm_16();
 	extension2 = read_imm_16();
-	sprintf(g_dasm_str, "%dtrap%-4s %s; (extension = %x) (2-3)", (g_cpu_ir>>9)&7, g_cpcc[extension1&0x3f], get_imm_str_u32(), extension2);
+	sprintf(g_dasm_str, "%dtrap%-4s %s; (extension = %X) (2-3)", (g_cpu_ir>>9)&7, g_cpcc[extension1&0x3f], get_imm_str_u32(), extension2);
 }
 
 static void d68040_cpush(void)
@@ -1489,13 +1489,13 @@ static void d68040_cpush(void)
 static void d68000_dbra(void)
 {
 	uint temp_pc = g_cpu_pc;
-	sprintf(g_dasm_str, "dbra    D%d, %x", g_cpu_ir & 7, temp_pc + make_int_16(read_imm_16()));
+	sprintf(g_dasm_str, "dbra    D%d, %X", g_cpu_ir & 7, temp_pc + make_int_16(read_imm_16()));
 }
 
 static void d68000_dbcc(void)
 {
 	uint temp_pc = g_cpu_pc;
-	sprintf(g_dasm_str, "db%-2s    D%d, %x", g_cc[(g_cpu_ir>>8)&0xf], g_cpu_ir & 7, temp_pc + make_int_16(read_imm_16()));
+	sprintf(g_dasm_str, "db%-2s    D%d, %X", g_cc[(g_cpu_ir>>8)&0xf], g_cpu_ir & 7, temp_pc + make_int_16(read_imm_16()));
 }
 
 static void d68000_divs(void)
@@ -2102,22 +2102,22 @@ static void d68000_movem_re_32(void)
 
 static void d68000_movep_re_16(void)
 {
-	sprintf(g_dasm_str, "movep.w D%d, ($%x,A%d)", (g_cpu_ir>>9)&7, read_imm_16(), g_cpu_ir&7);
+	sprintf(g_dasm_str, "movep.w D%d, ($%X,A%d)", (g_cpu_ir>>9)&7, read_imm_16(), g_cpu_ir&7);
 }
 
 static void d68000_movep_re_32(void)
 {
-	sprintf(g_dasm_str, "movep.l D%d, ($%x,A%d)", (g_cpu_ir>>9)&7, read_imm_16(), g_cpu_ir&7);
+	sprintf(g_dasm_str, "movep.l D%d, ($%X,A%d)", (g_cpu_ir>>9)&7, read_imm_16(), g_cpu_ir&7);
 }
 
 static void d68000_movep_er_16(void)
 {
-	sprintf(g_dasm_str, "movep.w ($%x,A%d), D%d", read_imm_16(), g_cpu_ir&7, (g_cpu_ir>>9)&7);
+	sprintf(g_dasm_str, "movep.w ($%X,A%d), D%d", read_imm_16(), g_cpu_ir&7, (g_cpu_ir>>9)&7);
 }
 
 static void d68000_movep_er_32(void)
 {
-	sprintf(g_dasm_str, "movep.l ($%x,A%d), D%d", read_imm_16(), g_cpu_ir&7, (g_cpu_ir>>9)&7);
+	sprintf(g_dasm_str, "movep.l ($%X,A%d), D%d", read_imm_16(), g_cpu_ir&7, (g_cpu_ir>>9)&7);
 }
 
 static void d68010_moves_8(void)
@@ -2648,7 +2648,7 @@ static void d68000_tas(void)
 
 static void d68000_trap(void)
 {
-	sprintf(g_dasm_str, "trap    #$%x", g_cpu_ir&0xf);
+	sprintf(g_dasm_str, "trap    #$%X", g_cpu_ir&0xf);
 }
 
 static void d68020_trapcc_0(void)
