@@ -16,6 +16,7 @@ void VideoDone(void);
 void RenderBackbuffer(void);
 void ResizeScreen(uint32 width, uint32 height);
 uint32 GetSDLScreenPitch(void);
+uint32 GetSDLScreenWidthInPixels(void);
 void ToggleFullscreen(void);
 
 #endif	// __VIDEO_H__
