@@ -19,14 +19,15 @@
 #include "unzip.h"
 #include "video.h"
 #include "gui.h"
-#include "sdlemu_opengl.h"							// For testing only... ;-)
+#include "sdlemu_opengl.h"
+#include "settings.h"								// Pull in "vjs" struct
 
-// Uncomment this for speed control
+// Uncomment this for speed control (?)
 //#define SPEED_CONTROL
 
 // Private function prototypes
 
-void InitSDL(void);
+//void InitSDL(void);
 uint32 JaguarLoadROM(uint8 *, char *);
 void JaguarLoadCart(uint8 *, char *);
 int gzfilelength(gzFile gd);
@@ -51,74 +52,55 @@ SDL_Joystick * joystick;
 Uint32 mainSurfaceFlags = SDL_SWSURFACE;
 
 bool finished = false;
-bool fullscreen = false;
-bool hardwareTypeNTSC = true;						// Set to false for PAL
-
-bool useJoystick = false;
-int32 nJoyport = 0;									// Joystick port
 bool showGUI = false;
-//These two should be local!
-// And now they are! ;-)
-bool jaguar_use_bios = false;						// Default is now to USE the BIOS
-bool dsp_enabled = false;
-
-// Keybindings in order of L, R, U, D, C, B, A, Op, Pa, 0-9, #, *
-uint16 p1KeyBindings[21] = {};
-uint16 p2KeyBindings[21] = {};
-
 bool showMessage = false;
 uint32 showMessageTimeout;
 char messageBuffer[200];
-
-bool useOpenGL = true;								// ! ;-)
 
 //
 // The main emulator loop (what else?)
 //
 //Maybe we should move the video stuff to TOM? Makes more sense to put it there...
+//Actually, it would probably be better served in VIDEO.CPP... !!! FIX !!!
 uint32 totalFrames;//temp, so we can grab this from elsewhere...
 int main(int argc, char * argv[])
 {
 	uint32 startTime;//, totalFrames;//, endTime;//, w, h;
 	uint32 nNormalLast = 0;
 	int32 nNormalFrac = 0; 
-    int32 nFrameskip = 0;								// Default: Show every frame
-    int32 nFrame = 0;									// No. of Frame
+    int32 nFrameskip = 0;							// Default: Show every frame
+    int32 nFrame = 0;								// No. of Frame
 
-	printf("Virtual Jaguar/SDL v1.0.6 (GCC/SDL Port)\n");
-	printf("Based upon Virtual Jaguar core v1.0.0 by cal2 of Potato emulation.\n");
-	printf("Written by Niels Wagenaar (Linux/WIN32) and Caz (BeOS)\n");
-	printf("Portions massaged by James L. Hammons (WIN32)\n");
+	printf("Virtual Jaguar GCC/SDL Portable Jaguar Emulator v1.0.6\n");
+	printf("Based upon Virtual Jaguar core v1.0.0 by Cal2 of Potato emulation.\n");
+	printf("Written by Niels Wagenaar (Linux/WIN32), Caz (BeOS),\n");
+	printf("James L. Hammons (WIN32) and Adam Green (MacOS)\n");
 	printf("Contact: http://sdlemu.ngemu.com/ | sdlemu@ngemu.com\n");
 
-	// BIOS is now ON by default--use the -nobios switch to turn it off!
-	jaguar_use_bios = true;
-	bool haveCart = false;								// Assume there is no cartridge...!
+	bool haveCart = false;							// Assume there is no cartridge...!
 
-	// Checking the switches ;)
+	LoadVJSettings();								// Get config file settings...
+
+	// Check the switches... ;-)
+	// NOTE: Command line switches can override any config file settings.
 
 	for(int i=1; i<argc || argv[i]!=NULL; i++)
 	{
 		// This would be the most likely place to do the cart loading...
 		if (argv[i][0] != '-')
-			haveCart = true;								// It looks like we have a cartridge!
+			haveCart = true;						// It looks like we have a cartridge!
 
 		if (!strcmp(argv[i], "-fullscreen")) 
-			fullscreen = true;
-
-//We *don't* need this option!
-/*		if (!strcmp(argv[i], "-window")) 
-//			console.option("windowed output");
-			fullscreen = false;*/
+			vjs.fullscreen = true;
 
 		if (!strcmp(argv[i], "-joystick")) 
-			useJoystick = true;
+			vjs.useJoystick = true;
 
 		if (!strcmp(argv[i], "-joyport"))
 		{
-			nJoyport = atoi(argv[++i]) + 1;
-			if (nJoyport > 3)
-				nJoyport = 3;
+			vjs.joyport = atoi(argv[++i]) + 1;
+			if (vjs.joyport > 3)
+				vjs.joyport = 3;
 		}
 
 		if (!strcmp(argv[i], "-frameskip"))
@@ -131,14 +113,20 @@ int main(int argc, char * argv[])
 #endif
 		}
 
+		if (!strcmp(argv[i], "-bios"))
+			vjs.useJaguarBIOS = true;
+
 		if (!strcmp(argv[i], "-nobios"))
-			jaguar_use_bios = false;
+			vjs.useJaguarBIOS = false;
 
 		if (!strcmp(argv[i], "-dspon"))
-			dsp_enabled = 1;
+			vjs.DSPEnabled = true;
 
 		if (!strcmp(argv[i], "-pal"))
-			hardwareTypeNTSC = false;
+			vjs.hardwareTypeNTSC = false;
+
+		if (!strcmp(argv[i], "-nogl"))
+			vjs.useOpenGL = false;
 
 		if (!strcmp(argv[i], "-help") || !strcmp(argv[i], "-?"))
 		{
@@ -149,9 +137,11 @@ int main(int argc, char * argv[])
 			printf("  -frameskip 1-10 : Enable frameskip 1 - 10 (default: none)   \n");
 			printf("  -joystick       : Enable joystick/gamepad                   \n");
 			printf("  -joyport   0-3  : Select desired joystick port              \n");
+			printf("  -bios           : Boot cart using Jaguar BIOS ROM           \n");
 			printf("  -nobios         : Boot cart without using Jaguar BIOS ROM   \n");
 			printf("  -dspon          : Force VJ to use the DSP                   \n");
 			printf("  -pal            : Force VJ to PAL mode (default is NTSC)    \n");
+			printf("  -nogl           : Use old non-OpenGL rendering              \n");
 			printf("\nInvoking Virtual Jagaur with no ROM file will cause it to boot up\n");
 			printf("with the Jaguar BIOS.\n");
  			return 1;
@@ -166,29 +156,23 @@ int main(int argc, char * argv[])
 	jaguar_init();
 
 	// Get the BIOS ROM
-	if (jaguar_use_bios)
+	if (vjs.useJaguarBIOS)
 		JaguarLoadROM(jaguar_bootRom, jaguar_bootRom_path);
 
 	SET32(jaguar_mainRam, 0, 0x00200000);			// Set top of stack...
 
-//This is done here, so that we get valid numbers from TOM... !!! FIX !!!
-	jaguar_reset();
-
 	// Set up the backbuffer
-//	int16 * backbuffer = (int16 *)malloc(845 * 525 * sizeof(int16));
+//To be safe, this should be 1280 * 625 * 2...
 	backbuffer = (int16 *)malloc(845 * 525 * sizeof(int16));
-	memset(backbuffer, 0x22, tom_getVideoModeWidth() * tom_getVideoModeHeight() * sizeof(int16));
+	memset(backbuffer, 0x22, VIRTUAL_SCREEN_WIDTH * VIRTUAL_SCREEN_HEIGHT * sizeof(int16));
 
-	InitSDL();
+	InitVideo();
+	InitGUI();
 
 	// Get the cartridge ROM (if passed in)
-//	if (haveCart)
-//		JaguarLoadCart(jaguar_mainRom, argv[1]);
 	// Now with crunchy GUI goodness!
 	JaguarLoadCart(jaguar_mainRom, (haveCart ? argv[1] : (char *)""));
 
-//Do this again??? Hmm... This is not very nice.
-//Maybe it's not necessary??? Seems to be, at least for PD ROMs... !!! FIX !!!
 	jaguar_reset();
 	
 	totalFrames = 0;
@@ -224,11 +208,11 @@ int main(int argc, char * argv[])
 			for(int i=0; i<nCount-1; i++)
 				jaguar_exec(backbuffer, false);
 #endif
-            // Setting up new backbuffer with new pixels and data
+            // Set up new backbuffer with new pixels and data
 			JaguarExecute(backbuffer, true);
 			totalFrames++;
 
-			// GUI stuff here...
+			// Some QnD GUI stuff here...
 			if (showGUI)
 			{
 				extern uint32 gpu_pc, dsp_pc;
@@ -254,107 +238,15 @@ int main(int argc, char * argv[])
 
 	int elapsedTime = clock() - startTime;
 	int fps = (1000 * totalFrames) / elapsedTime;
-	fprintf(log_get(), "VJ: Ran at an average of %i FPS.\n", fps);
+	WriteLog("VJ: Ran at an average of %i FPS.\n", fps);
 
 	jaguar_done();
 	version_done();
 	memory_done();
+	VideoDone();									// Free SDL components last...!
 	log_done();	
 
-	if (useOpenGL)
-		sdlemu_close_opengl();
-	SDL_JoystickClose(joystick);
-	SDL_FreeSurface(surface);
-	SDL_QuitSubSystem(SDL_INIT_VIDEO | SDL_INIT_JOYSTICK | SDL_INIT_AUDIO | SDL_INIT_TIMER);
-	SDL_Quit();
-
     return 0;
-}
-
-//
-// Prime SDL and create surfaces
-//
-void InitSDL(void)
-{
-	// Set up SDL library
-	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_JOYSTICK | SDL_INIT_AUDIO | SDL_INIT_TIMER | SDL_INIT_NOPARACHUTE) < 0)
-	{
-		WriteLog("VJ: Could not initialize the SDL library: %s", SDL_GetError());
-		exit(1);
-	}
-
-	// Get proper info about the platform we're running on...
-	const SDL_VideoInfo * info = SDL_GetVideoInfo();
-
-	if (!info)
-	{
-		WriteLog("VJ: SDL is unable to get the video info: %s\n", SDL_GetError());
-		exit(1);
-	}
-
-	if (useOpenGL)
-	{
-		mainSurfaceFlags = SDL_HWSURFACE | SDL_HWPALETTE | SDL_DOUBLEBUF | SDL_OPENGL;
-		SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
-	}
-	else
-	{
-		if (info->hw_available)
-			mainSurfaceFlags = SDL_HWSURFACE | SDL_HWPALETTE | SDL_DOUBLEBUF;
-
-		if (info->blit_hw)
-			mainSurfaceFlags |= SDL_HWACCEL;
-	}
-
-	if (fullscreen)
-		mainSurfaceFlags |= SDL_FULLSCREEN;
-
-//	mainSurface = SDL_SetVideoMode(tom_getVideoModeWidth(), tom_getVideoModeHeight(), 16, mainSurfaceFlags);
-//Testing purposes... :-)
-	mainSurface = SDL_SetVideoMode(tom_getVideoModeWidth()*2, tom_getVideoModeHeight()*2, 16, mainSurfaceFlags);
-
-	if (mainSurface == NULL)
-	{
-		WriteLog("VJ: SDL is unable to set the video mode: %s\n", SDL_GetError());
-		exit(1);
-	}
-
-	SDL_WM_SetCaption("Virtual Jaguar", "Virtual Jaguar");
-
-	// Create the primary SDL display (16 BPP, 5/5/5 RGB format)
-	surface = SDL_CreateRGBSurface(SDL_SWSURFACE, tom_getVideoModeWidth(),
-		tom_getVideoModeHeight(), 16, 0x7C00, 0x03E0, 0x001F, 0);
-
-	if (surface == NULL)
-	{
-		WriteLog("VJ: Could not create primary SDL surface: %s\n", SDL_GetError());
-		exit(1);
-	}
-
-	if (useOpenGL)
-//		sdlemu_init_opengl(surface, 1/*method*/, 1/*size*/, 0/*texture type (linear, nearest)*/);
-//Testing purposes... :-)
-		sdlemu_init_opengl(surface, 1/*method*/, 2/*size*/, 0/*texture type (linear, nearest)*/);
-
-	// Initialize Joystick support under SDL
-	if (useJoystick)
-	{
-		if (SDL_NumJoysticks() <= 0)
-		{
-			useJoystick = false;
-			printf("VJ: No joystick(s) or joypad(s) detected on your system. Using keyboard...\n");
-		}
-		else
-		{
-			if ((joystick = SDL_JoystickOpen(nJoyport)) == 0)
-			{
-				useJoystick = false;
-				printf("VJ: Unable to open a Joystick on port: %d\n", (int)nJoyport);
-			}
-			else
-				printf("VJ: Using: %s\n", SDL_JoystickName(nJoyport));
-		}
-	}
 }
 
 //
@@ -404,8 +296,7 @@ uint32 JaguarLoadROM(uint8 * rom, char * path)
 				return 0;
 			}
 
-			//fseek(fp, 0, SEEK_END);
-			romSize = gzfilelength(fp);//ftell(fp);
+			romSize = gzfilelength(fp);
 			gzseek(fp, 0, SEEK_SET);
 			gzread(fp, rom, romSize);
 			gzclose(fp);
