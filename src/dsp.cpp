@@ -1,7 +1,7 @@
 //
 // DSP core
 //
-// by cal2
+// by Cal2
 // GCC/SDL port by Niels Wagenaar (Linux/WIN32) and Caz (BeOS)
 // Extensive cleanups/rewrites by James L. Hammons
 //
@@ -10,7 +10,7 @@
 #include "dsp.h"
 
 #define DSP_DEBUG
-//#define DSP_DEBUG_IRQ
+#define DSP_DEBUG_IRQ
 
 // Disassembly definitions
 
@@ -28,6 +28,7 @@
 #define DSP_DIS_IMACN
 #define DSP_DIS_IMULT
 #define DSP_DIS_IMULTN
+#define DSP_DIS_ILLEGAL
 #define DSP_DIS_JR
 #define DSP_DIS_JUMP
 #define DSP_DIS_LOAD
@@ -63,9 +64,10 @@
 #define DSP_DIS_SUBQ
 #define DSP_DIS_SUBQT
 #define DSP_DIS_XOR
-
-bool doDSPDis = false;
 //*/
+//bool doDSPDis = false;
+bool doDSPDis = true;
+
 
 /*
 No dis yet:
@@ -265,7 +267,7 @@ void (* dsp_opcode[64])() =
 
 uint32 dsp_opcode_use[64];
 
-char * dsp_opcode_str[64]=
+char * dsp_opcode_str[65]=
 {	
 	"add",				"addc",				"addq",				"addqt",
 	"sub",				"subc",				"subq",				"subqt",
@@ -282,7 +284,8 @@ char * dsp_opcode_str[64]=
 	"mirror",			"store_r14_indexed","store_r15_indexed","move_pc",
 	"jump",				"jr",				"mmult",			"mtoi",
 	"normi",			"nop",				"load_r14_ri",		"load_r15_ri",
-	"store_r14_ri",		"store_r15_ri",		"nop",				"addqmod",
+	"store_r14_ri",		"store_r15_ri",		"illegal",			"addqmod",
+	"STALL"
 };
 
 uint32 dsp_pc;
@@ -338,6 +341,7 @@ FILE * dsp_fp;
 
 void DSPDumpRegisters(void);
 void DSPDumpDisassembly(void);
+void FlushDSPPipeline(void);
 
 
 void dsp_reset_stats(void)
@@ -669,6 +673,9 @@ void DSPWriteLong(uint32 offset, uint32 data, uint32 who/*=UNKNOWN*/)
 		{
 		case 0x00:
 		{
+#ifdef DSP_DEBUG
+			WriteLog("DSP: Writing %08X to DSP_FLAGS by %s...\n", data, whoName[who]);
+#endif
 			bool IMASKCleared = (dsp_flags & IMASK) && !(data & IMASK);
 			dsp_flags = data;
 			dsp_flag_z = dsp_flags & 0x01;
@@ -725,7 +732,9 @@ void DSPWriteLong(uint32 offset, uint32 data, uint32 who/*=UNKNOWN*/)
 			// Check for CPU -> DSP interrupt
 			if (data & DSPINT0)
 			{
+#ifdef DSP_DEBUG
 				WriteLog("DSP: CPU -> DSP interrupt\n");
+#endif
 				m68k_end_timeslice();
 				gpu_releaseTimeslice();
 				DSPSetIRQLine(DSPIRQ_CPU, ASSERT_LINE);
@@ -763,9 +772,17 @@ else
 WriteLog("\n");
 #endif	// DSP_DEBUG
 //This isn't exactly right either--we don't know if it was the M68K or the GPU writing here...
-// !!! FIX !!!
+// !!! FIX !!! [DONE]
 			if (DSP_RUNNING)
-				m68k_end_timeslice();
+			{
+				if (who == M68K)
+					m68k_end_timeslice();
+				else if (who == GPU)
+					gpu_releaseTimeslice();
+
+				FlushDSPPipeline();
+//DSPDumpDisassembly();
+			}
 			break;
 		}
 		case 0x18:
@@ -839,7 +856,6 @@ void DSPHandleIRQs(void)
 #ifdef DSP_DEBUG_IRQ
 	WriteLog("DSP: Generating interrupt #%i...\n", which);
 #endif
-
 	dsp_flags |= IMASK;
 	DSPUpdateRegisterBanks();
 
@@ -853,6 +869,7 @@ void DSPHandleIRQs(void)
 	// jump  (r30)					; jump to ISR 
 	// nop
 	dsp_pc = dsp_reg[30] = DSP_WORK_RAM_BASE + (which * 0x10);
+	FlushDSPPipeline();
 }
 
 //
@@ -2032,4 +2049,1523 @@ void dsp_opcode_sat16s(void)
 	UINT32 res = (r2 < -32768) ? -32768 : (r2 > 32767) ? 32767 : r2;
 	RN = res;
 	SET_ZN(res);
+}
+
+//
+// New pipelined DSP core
+//
+
+static void DSP_abs(void);
+static void DSP_add(void);
+static void DSP_addc(void);
+static void DSP_addq(void);
+static void DSP_addqmod(void);	
+static void DSP_addqt(void);
+static void DSP_and(void);
+static void DSP_bclr(void);
+static void DSP_bset(void);
+static void DSP_btst(void);
+static void DSP_cmp(void);
+static void DSP_cmpq(void);
+static void DSP_div(void);
+static void DSP_imacn(void);
+static void DSP_imult(void);
+static void DSP_imultn(void);
+static void DSP_illegal(void);
+static void DSP_jr(void);
+static void DSP_jump(void);
+static void DSP_load(void);
+static void DSP_loadb(void);
+static void DSP_loadw(void);
+static void DSP_load_r14_i(void);
+static void DSP_load_r14_r(void);
+static void DSP_load_r15_i(void);
+static void DSP_load_r15_r(void);
+static void DSP_mirror(void);	
+static void DSP_mmult(void);
+static void DSP_move(void);
+static void DSP_movefa(void);
+static void DSP_movei(void);
+static void DSP_movepc(void);
+static void DSP_moveq(void);
+static void DSP_moveta(void);
+static void DSP_mtoi(void);
+static void DSP_mult(void);
+static void DSP_neg(void);
+static void DSP_nop(void);
+static void DSP_normi(void);
+static void DSP_not(void);
+static void DSP_or(void);
+static void DSP_resmac(void);
+static void DSP_ror(void);
+static void DSP_rorq(void);
+static void DSP_sat16s(void);	
+static void DSP_sat32s(void);	
+static void DSP_sh(void);
+static void DSP_sha(void);
+static void DSP_sharq(void);
+static void DSP_shlq(void);
+static void DSP_shrq(void);
+static void DSP_store(void);
+static void DSP_storeb(void);
+static void DSP_storew(void);
+static void DSP_store_r14_i(void);
+static void DSP_store_r14_r(void);
+static void DSP_store_r15_i(void);
+static void DSP_store_r15_r(void);
+static void DSP_sub(void);
+static void DSP_subc(void);
+static void DSP_subq(void);
+static void DSP_subqmod(void);	
+static void DSP_subqt(void);
+static void DSP_xor(void);
+
+void (* DSPOpcode[64])() =
+{	
+	DSP_add,			DSP_addc,			DSP_addq,			DSP_addqt,
+	DSP_sub,			DSP_subc,			DSP_subq,			DSP_subqt,
+	DSP_neg,			DSP_and,			DSP_or,				DSP_xor,
+	DSP_not,			DSP_btst,			DSP_bset,			DSP_bclr,
+
+	DSP_mult,			DSP_imult,			DSP_imultn,			DSP_resmac,
+	DSP_imacn,			DSP_div,			DSP_abs,			DSP_sh,
+	DSP_shlq,			DSP_shrq,			DSP_sha,			DSP_sharq,
+	DSP_ror,			DSP_rorq,			DSP_cmp,			DSP_cmpq,
+
+	DSP_subqmod,		DSP_sat16s,			DSP_move,			DSP_moveq,
+	DSP_moveta,			DSP_movefa,			DSP_movei,			DSP_loadb,
+	DSP_loadw,			DSP_load,			DSP_sat32s,			DSP_load_r14_i,
+	DSP_load_r15_i,		DSP_storeb,			DSP_storew,			DSP_store,
+
+	DSP_mirror,			DSP_store_r14_i,	DSP_store_r15_i,	DSP_movepc,
+	DSP_jump,			DSP_jr,				DSP_mmult,			DSP_mtoi,
+	DSP_normi,			DSP_nop,			DSP_load_r14_r,		DSP_load_r15_r,
+	DSP_store_r14_r,	DSP_store_r15_r,	DSP_illegal,		DSP_addqmod
+};
+
+bool readAffected[64][2] =
+{
+	{ true,  true}, { true,  true}, {false,  true}, {false,  true},
+	{ true,  true}, { true,  true}, {false,  true}, {false,  true},
+	{false,  true}, { true,  true}, { true,  true}, { true,  true},
+	{false,  true}, {false,  true}, {false,  true}, {false,  true},
+
+	{ true,  true}, { true,  true}, { true,  true}, {false,  true},
+	{ true,  true}, { true,  true}, {false,  true}, { true,  true},
+	{false,  true}, {false,  true}, { true,  true}, {false,  true},
+	{ true,  true}, {false,  true}, { true,  true}, {false,  true},
+
+	{false,  true}, {false,  true}, { true, false}, {false, false},
+	{ true, false}, {false, false}, {false, false}, { true, false},
+	{ true, false}, { true, false}, {false,  true}, { true, false},
+	{ true, false}, { true,  true}, { true,  true}, { true,  true},
+
+	{false,  true}, { true,  true}, { true,  true}, {false,  true},
+	{ true, false}, { true, false}, { true,  true}, { true, false},
+	{ true, false}, {false, false}, { true, false}, { true, false},
+	{ true,  true}, { true,  true}, {false, false}, {false,  true}
+};
+
+bool affectsScoreboard[64] =
+{
+	 true,  true,  true,  true,
+	 true,  true,  true,  true,
+	 true,  true,  true,  true,
+	 true, false,  true,  true,
+
+	 true,  true, false,  true,
+	false,  true,  true,  true,
+	 true,  true,  true,  true,
+	 true,  true, false, false,
+
+	 true,  true,  true,  true,
+	false,  true,  true,  true,
+	 true,  true,  true,  true,
+	 true, false, false, false,
+
+	 true, false, false,  true,
+	false, false,  true,  true,
+	 true, false,  true,  true,
+	false, false, false,  true
+};
+
+// Pipeline structures
+
+struct PipelineStage
+{
+	uint16 instruction;
+	uint8 opcode, operand1, operand2;
+	uint32 reg1, reg2, areg1, areg2;
+	uint32 result;
+	uint8 writebackRegister;
+};
+
+bool scoreboard[32];
+
+uint8 plPtrFetch, plPtrRead, plPtrExec, plPtrWrite;
+
+#define PIPELINE_STALL		64						// Set to # of opcodes + 1
+
+PipelineStage pipeline[4];
+
+void FlushDSPPipeline(void)
+{
+	plPtrFetch = 3, plPtrRead = 2, plPtrExec = 1, plPtrWrite = 0;
+
+	for(int i=0; i<4; i++)
+		pipeline[i].opcode = PIPELINE_STALL;
+
+	for(int i=0; i<32; i++)
+		scoreboard[i] = false;
+}
+
+//
+// New pipelined DSP execution core
+//
+void DSPExecP(int32 cycles)
+{
+//	bool inhibitFetch = false;
+
+	dsp_releaseTimeSlice_flag = 0;
+	dsp_in_exec++;
+
+	while (cycles > 0 && DSP_RUNNING)
+	{
+WriteLog("DSPExecP: Pipeline status...\n");
+WriteLog("\tF -> %02u, %02u, %02u; r1=%08X, r2= %08X, res=%08X, wb=%u \n", pipeline[plPtrFetch].opcode, pipeline[plPtrFetch].operand1, pipeline[plPtrFetch].operand2, pipeline[plPtrFetch].reg1, pipeline[plPtrFetch].reg2, pipeline[plPtrFetch].result, pipeline[plPtrFetch].writebackRegister);
+WriteLog("\tR -> %02u, %02u, %02u; r1=%08X, r2= %08X, res=%08X, wb=%u \n", pipeline[plPtrRead].opcode, pipeline[plPtrRead].operand1, pipeline[plPtrRead].operand2, pipeline[plPtrRead].reg1, pipeline[plPtrRead].reg2, pipeline[plPtrRead].result, pipeline[plPtrRead].writebackRegister);
+WriteLog("\tE -> %02u, %02u, %02u; r1=%08X, r2= %08X, res=%08X, wb=%u \n", pipeline[plPtrExec].opcode, pipeline[plPtrExec].operand1, pipeline[plPtrExec].operand2, pipeline[plPtrExec].reg1, pipeline[plPtrExec].reg2, pipeline[plPtrExec].result, pipeline[plPtrExec].writebackRegister);
+WriteLog("\tW -> %02u, %02u, %02u; r1=%08X, r2= %08X, res=%08X, wb=%u \n", pipeline[plPtrWrite].opcode, pipeline[plPtrWrite].operand1, pipeline[plPtrWrite].operand2, pipeline[plPtrWrite].reg1, pipeline[plPtrWrite].reg2, pipeline[plPtrWrite].result, pipeline[plPtrWrite].writebackRegister);
+WriteLog("  --> Scoreboard: ");
+for(int i=0; i<32; i++)
+	WriteLog("%s ", scoreboard[i] ? "T" : "F");
+WriteLog("\n");
+		// Stage 1: Instruction fetch
+//		if (!inhibitFetch)
+//		{
+		pipeline[plPtrFetch].instruction = DSPReadWord(dsp_pc, DSP);
+		pipeline[plPtrFetch].opcode = pipeline[plPtrFetch].instruction >> 10;
+		pipeline[plPtrFetch].operand1 = (pipeline[plPtrFetch].instruction >> 5) & 0x1F;
+		pipeline[plPtrFetch].operand2 = pipeline[plPtrFetch].instruction & 0x1F;
+		if (pipeline[plPtrFetch].opcode == 38)
+			pipeline[plPtrFetch].result = (uint32)DSPReadWord(dsp_pc + 2, DSP)
+				| ((uint32)DSPReadWord(dsp_pc + 4, DSP) << 16);
+//		}
+//		else
+//			inhibitFetch = false;
+WriteLog("DSPExecP: Fetching instruction (%04X) from DSP_PC = %08X...\n", pipeline[plPtrFetch].instruction, dsp_pc);
+
+WriteLog("DSPExecP: Pipeline status (after stage 1)...\n");
+WriteLog("\tF -> %02u, %02u, %02u; r1=%08X, r2= %08X, res=%08X, wb=%u \n", pipeline[plPtrFetch].opcode, pipeline[plPtrFetch].operand1, pipeline[plPtrFetch].operand2, pipeline[plPtrFetch].reg1, pipeline[plPtrFetch].reg2, pipeline[plPtrFetch].result, pipeline[plPtrFetch].writebackRegister);
+WriteLog("\tR -> %02u, %02u, %02u; r1=%08X, r2= %08X, res=%08X, wb=%u \n", pipeline[plPtrRead].opcode, pipeline[plPtrRead].operand1, pipeline[plPtrRead].operand2, pipeline[plPtrRead].reg1, pipeline[plPtrRead].reg2, pipeline[plPtrRead].result, pipeline[plPtrRead].writebackRegister);
+WriteLog("\tE -> %02u, %02u, %02u; r1=%08X, r2= %08X, res=%08X, wb=%u \n", pipeline[plPtrExec].opcode, pipeline[plPtrExec].operand1, pipeline[plPtrExec].operand2, pipeline[plPtrExec].reg1, pipeline[plPtrExec].reg2, pipeline[plPtrExec].result, pipeline[plPtrExec].writebackRegister);
+WriteLog("\tW -> %02u, %02u, %02u; r1=%08X, r2= %08X, res=%08X, wb=%u \n", pipeline[plPtrWrite].opcode, pipeline[plPtrWrite].operand1, pipeline[plPtrWrite].operand2, pipeline[plPtrWrite].reg1, pipeline[plPtrWrite].reg2, pipeline[plPtrWrite].result, pipeline[plPtrWrite].writebackRegister);
+		// Stage 2: Read registers
+//Ok, stalls here depend on whether or not the instruction reads two registers or not
+//and *which* register (1 or 2) is the one being read... !!! FIX !!!
+		if ((/*scoreboard[pipeline[plPtrRead].operand1]
+			||*/ scoreboard[pipeline[plPtrRead].operand2])
+			&& pipeline[plPtrRead].opcode != PIPELINE_STALL)
+			// We have a hit in the scoreboard, so we have to stall the pipeline...
+{
+//This is crappy, crappy CRAPPY! And it doesn't work! !!! FIX !!!
+//			dsp_pc -= (pipeline[plPtrRead].opcode == 38 ? 6 : 2);
+WriteLog("  --> Stalling pipeline: scoreboard = %s\n", scoreboard[pipeline[plPtrRead].operand2] ? "true" : "false");
+			pipeline[plPtrFetch] = pipeline[plPtrRead];
+			pipeline[plPtrRead].opcode = PIPELINE_STALL;
+}
+		else
+		{
+			pipeline[plPtrRead].reg1 = dsp_reg[pipeline[plPtrRead].operand1];
+			pipeline[plPtrRead].reg2 = dsp_reg[pipeline[plPtrRead].operand2];
+			pipeline[plPtrRead].writebackRegister = pipeline[plPtrRead].operand2;	// Set it to RN
+
+			if (pipeline[plPtrRead].opcode != PIPELINE_STALL)
+			// Shouldn't we be more selective with the register scoreboarding?
+			// Yes, we should. !!! FIX !!!
+//			scoreboard[pipeline[plPtrRead].operand1]
+				/*=*/ scoreboard[pipeline[plPtrRead].operand2] = true;
+//Advance PC here??? Yes.
+//			dsp_pc += (pipeline[plPtrRead].opcode == 38 ? 6 : 2);
+//This is a mangling of the pipeline stages, but what else to do???
+			dsp_pc += (pipeline[plPtrFetch].opcode == 38 ? 6 : 2);
+		}
+/*
+DSPExecP: Pipeline status (after stage 1)...
+	F -> 52, 00, 00; r1=00000000, r2= 00000000, res=00000000, wb=0 
+	R -> 38, 00, 00; r1=00000000, r2= 00000000, res=00F1B034, wb=0 
+	E -> 64, 00, 00; r1=00000000, r2= 00000000, res=00000000, wb=0 
+	W -> 64, 00, 00; r1=00000000, r2= 00000000, res=00000000, wb=0 
+  --> Stalling pipeline: scoreboard = true
+DSPExecP: Pipeline status (after stage 2)...
+	F -> 52, 00, 00; r1=00000000, r2= 00000000, res=00000000, wb=0 
+	R -> 64, 00, 00; r1=00000000, r2= 00000000, res=00F1B034, wb=0 
+	E -> 64, 00, 00; r1=00000000, r2= 00000000, res=00000000, wb=0 
+	W -> 64, 00, 00; r1=00000000, r2= 00000000, res=00000000, wb=0 */
+
+
+WriteLog("DSPExecP: Pipeline status (after stage 2)...\n");
+WriteLog("\tF -> %02u, %02u, %02u; r1=%08X, r2= %08X, res=%08X, wb=%u \n", pipeline[plPtrFetch].opcode, pipeline[plPtrFetch].operand1, pipeline[plPtrFetch].operand2, pipeline[plPtrFetch].reg1, pipeline[plPtrFetch].reg2, pipeline[plPtrFetch].result, pipeline[plPtrFetch].writebackRegister);
+WriteLog("\tR -> %02u, %02u, %02u; r1=%08X, r2= %08X, res=%08X, wb=%u \n", pipeline[plPtrRead].opcode, pipeline[plPtrRead].operand1, pipeline[plPtrRead].operand2, pipeline[plPtrRead].reg1, pipeline[plPtrRead].reg2, pipeline[plPtrRead].result, pipeline[plPtrRead].writebackRegister);
+WriteLog("\tE -> %02u, %02u, %02u; r1=%08X, r2= %08X, res=%08X, wb=%u \n", pipeline[plPtrExec].opcode, pipeline[plPtrExec].operand1, pipeline[plPtrExec].operand2, pipeline[plPtrExec].reg1, pipeline[plPtrExec].reg2, pipeline[plPtrExec].result, pipeline[plPtrExec].writebackRegister);
+WriteLog("\tW -> %02u, %02u, %02u; r1=%08X, r2= %08X, res=%08X, wb=%u \n", pipeline[plPtrWrite].opcode, pipeline[plPtrWrite].operand1, pipeline[plPtrWrite].operand2, pipeline[plPtrWrite].reg1, pipeline[plPtrWrite].reg2, pipeline[plPtrWrite].result, pipeline[plPtrWrite].writebackRegister);
+		// Stage 3: Execute
+		if (pipeline[plPtrExec].opcode != PIPELINE_STALL)
+		{
+WriteLog("DSPExecP: About to execute opcode %s...\n", dsp_opcode_str[pipeline[plPtrExec].opcode]);
+			DSPOpcode[pipeline[plPtrExec].opcode]();
+			dsp_opcode_use[pipeline[plPtrExec].opcode]++;
+			cycles -= dsp_opcode_cycles[pipeline[plPtrExec].opcode];
+		}
+		else
+			cycles--;
+
+WriteLog("DSPExecP: Pipeline status (after stage 3)...\n");
+WriteLog("\tF -> %02u, %02u, %02u; r1=%08X, r2= %08X, res=%08X, wb=%u \n", pipeline[plPtrFetch].opcode, pipeline[plPtrFetch].operand1, pipeline[plPtrFetch].operand2, pipeline[plPtrFetch].reg1, pipeline[plPtrFetch].reg2, pipeline[plPtrFetch].result, pipeline[plPtrFetch].writebackRegister);
+WriteLog("\tR -> %02u, %02u, %02u; r1=%08X, r2= %08X, res=%08X, wb=%u \n", pipeline[plPtrRead].opcode, pipeline[plPtrRead].operand1, pipeline[plPtrRead].operand2, pipeline[plPtrRead].reg1, pipeline[plPtrRead].reg2, pipeline[plPtrRead].result, pipeline[plPtrRead].writebackRegister);
+WriteLog("\tE -> %02u, %02u, %02u; r1=%08X, r2= %08X, res=%08X, wb=%u \n", pipeline[plPtrExec].opcode, pipeline[plPtrExec].operand1, pipeline[plPtrExec].operand2, pipeline[plPtrExec].reg1, pipeline[plPtrExec].reg2, pipeline[plPtrExec].result, pipeline[plPtrExec].writebackRegister);
+WriteLog("\tW -> %02u, %02u, %02u; r1=%08X, r2= %08X, res=%08X, wb=%u \n", pipeline[plPtrWrite].opcode, pipeline[plPtrWrite].operand1, pipeline[plPtrWrite].operand2, pipeline[plPtrWrite].reg1, pipeline[plPtrWrite].reg2, pipeline[plPtrWrite].result, pipeline[plPtrWrite].writebackRegister);
+		// Stage 4: Write back register
+		if (pipeline[plPtrWrite].opcode != PIPELINE_STALL)
+		{
+			if (pipeline[plPtrWrite].writebackRegister != 0xFF)
+				dsp_reg[pipeline[plPtrWrite].writebackRegister] = pipeline[plPtrWrite].result;
+
+			scoreboard[pipeline[plPtrWrite].operand1]
+				= scoreboard[pipeline[plPtrWrite].operand2] = false;
+		}
+
+		// Push instructions through the pipeline...
+		plPtrFetch = (++plPtrFetch) & 0x03;
+		plPtrRead = (++plPtrRead) & 0x03;
+		plPtrExec = (++plPtrExec) & 0x03;
+		plPtrWrite = (++plPtrWrite) & 0x03;
+	}
+
+	dsp_in_exec--;
+}
+
+
+
+#define DSP_DEBUG_PL2
+//Let's try a 3 stage pipeline....
+void DSPExecP2(int32 cycles)
+{
+	dsp_releaseTimeSlice_flag = 0;
+	dsp_in_exec++;
+
+	while (cycles > 0 && DSP_RUNNING)
+	{
+#ifdef DSP_DEBUG_PL2
+WriteLog("DSPExecP: Pipeline status...\n");
+WriteLog("\tR -> %02u, %02u, %02u; r1=%08X, r2= %08X, res=%08X, wb=%u \n", pipeline[plPtrRead].opcode, pipeline[plPtrRead].operand1, pipeline[plPtrRead].operand2, pipeline[plPtrRead].reg1, pipeline[plPtrRead].reg2, pipeline[plPtrRead].result, pipeline[plPtrRead].writebackRegister);
+WriteLog("\tE -> %02u, %02u, %02u; r1=%08X, r2= %08X, res=%08X, wb=%u \n", pipeline[plPtrExec].opcode, pipeline[plPtrExec].operand1, pipeline[plPtrExec].operand2, pipeline[plPtrExec].reg1, pipeline[plPtrExec].reg2, pipeline[plPtrExec].result, pipeline[plPtrExec].writebackRegister);
+WriteLog("\tW -> %02u, %02u, %02u; r1=%08X, r2= %08X, res=%08X, wb=%u \n", pipeline[plPtrWrite].opcode, pipeline[plPtrWrite].operand1, pipeline[plPtrWrite].operand2, pipeline[plPtrWrite].reg1, pipeline[plPtrWrite].reg2, pipeline[plPtrWrite].result, pipeline[plPtrWrite].writebackRegister);
+WriteLog("  --> Scoreboard: ");
+for(int i=0; i<32; i++)
+	WriteLog("%s ", scoreboard[i] ? "T" : "F");
+WriteLog("\n");
+#endif
+		// Stage 1a: Instruction fetch
+		pipeline[plPtrRead].instruction = DSPReadWord(dsp_pc, DSP);
+		pipeline[plPtrRead].opcode = pipeline[plPtrRead].instruction >> 10;
+		pipeline[plPtrRead].operand1 = (pipeline[plPtrRead].instruction >> 5) & 0x1F;
+		pipeline[plPtrRead].operand2 = pipeline[plPtrRead].instruction & 0x1F;
+		if (pipeline[plPtrRead].opcode == 38)
+			pipeline[plPtrRead].result = (uint32)DSPReadWord(dsp_pc + 2, DSP)
+				| ((uint32)DSPReadWord(dsp_pc + 4, DSP) << 16);
+#ifdef DSP_DEBUG_PL2
+WriteLog("DSPExecP: Fetching instruction (%04X) from DSP_PC = %08X...\n", pipeline[plPtrRead].instruction, dsp_pc);
+WriteLog("DSPExecP: Pipeline status (after stage 1a)...\n");
+WriteLog("\tR -> %02u, %02u, %02u; r1=%08X, r2= %08X, res=%08X, wb=%u \n", pipeline[plPtrRead].opcode, pipeline[plPtrRead].operand1, pipeline[plPtrRead].operand2, pipeline[plPtrRead].reg1, pipeline[plPtrRead].reg2, pipeline[plPtrRead].result, pipeline[plPtrRead].writebackRegister);
+WriteLog("\tE -> %02u, %02u, %02u; r1=%08X, r2= %08X, res=%08X, wb=%u \n", pipeline[plPtrExec].opcode, pipeline[plPtrExec].operand1, pipeline[plPtrExec].operand2, pipeline[plPtrExec].reg1, pipeline[plPtrExec].reg2, pipeline[plPtrExec].result, pipeline[plPtrExec].writebackRegister);
+WriteLog("\tW -> %02u, %02u, %02u; r1=%08X, r2= %08X, res=%08X, wb=%u \n", pipeline[plPtrWrite].opcode, pipeline[plPtrWrite].operand1, pipeline[plPtrWrite].operand2, pipeline[plPtrWrite].reg1, pipeline[plPtrWrite].reg2, pipeline[plPtrWrite].result, pipeline[plPtrWrite].writebackRegister);
+#endif
+		// Stage 1b: Read registers
+		if (scoreboard[pipeline[plPtrRead].operand2])
+			// We have a hit in the scoreboard, so we have to stall the pipeline...
+#ifdef DSP_DEBUG_PL2
+{
+WriteLog("  --> Stalling pipeline: scoreboard[%u] = %s\n", pipeline[plPtrRead].operand2, scoreboard[pipeline[plPtrRead].operand2] ? "true" : "false");
+#endif
+			pipeline[plPtrRead].opcode = PIPELINE_STALL;
+#ifdef DSP_DEBUG_PL2
+}
+#endif
+		else
+		{
+			pipeline[plPtrRead].reg1 = dsp_reg[pipeline[plPtrRead].operand1];
+			pipeline[plPtrRead].reg2 = dsp_reg[pipeline[plPtrRead].operand2];
+			pipeline[plPtrRead].writebackRegister = pipeline[plPtrRead].operand2;	// Set it to RN
+
+			// Shouldn't we be more selective with the register scoreboarding?
+			// Yes, we should. !!! FIX !!! [Kinda DONE]
+			scoreboard[pipeline[plPtrRead].operand2] = affectsScoreboard[pipeline[plPtrRead].opcode];
+
+//Advance PC here??? Yes.
+			dsp_pc += (pipeline[plPtrRead].opcode == 38 ? 6 : 2);
+		}
+
+#ifdef DSP_DEBUG_PL2
+WriteLog("DSPExecP: Pipeline status (after stage 1b)...\n");
+WriteLog("\tR -> %02u, %02u, %02u; r1=%08X, r2= %08X, res=%08X, wb=%u \n", pipeline[plPtrRead].opcode, pipeline[plPtrRead].operand1, pipeline[plPtrRead].operand2, pipeline[plPtrRead].reg1, pipeline[plPtrRead].reg2, pipeline[plPtrRead].result, pipeline[plPtrRead].writebackRegister);
+WriteLog("\tE -> %02u, %02u, %02u; r1=%08X, r2= %08X, res=%08X, wb=%u \n", pipeline[plPtrExec].opcode, pipeline[plPtrExec].operand1, pipeline[plPtrExec].operand2, pipeline[plPtrExec].reg1, pipeline[plPtrExec].reg2, pipeline[plPtrExec].result, pipeline[plPtrExec].writebackRegister);
+WriteLog("\tW -> %02u, %02u, %02u; r1=%08X, r2= %08X, res=%08X, wb=%u \n", pipeline[plPtrWrite].opcode, pipeline[plPtrWrite].operand1, pipeline[plPtrWrite].operand2, pipeline[plPtrWrite].reg1, pipeline[plPtrWrite].reg2, pipeline[plPtrWrite].result, pipeline[plPtrWrite].writebackRegister);
+#endif
+		// Stage 2: Execute
+		if (pipeline[plPtrExec].opcode != PIPELINE_STALL)
+		{
+#ifdef DSP_DEBUG_PL2
+WriteLog("DSPExecP: About to execute opcode %s...\n", dsp_opcode_str[pipeline[plPtrExec].opcode]);
+#endif
+			DSPOpcode[pipeline[plPtrExec].opcode]();
+			dsp_opcode_use[pipeline[plPtrExec].opcode]++;
+			cycles -= dsp_opcode_cycles[pipeline[plPtrExec].opcode];
+		}
+		else
+			cycles--;
+
+#ifdef DSP_DEBUG_PL2
+WriteLog("DSPExecP: Pipeline status (after stage 2)...\n");
+WriteLog("\tR -> %02u, %02u, %02u; r1=%08X, r2= %08X, res=%08X, wb=%u \n", pipeline[plPtrRead].opcode, pipeline[plPtrRead].operand1, pipeline[plPtrRead].operand2, pipeline[plPtrRead].reg1, pipeline[plPtrRead].reg2, pipeline[plPtrRead].result, pipeline[plPtrRead].writebackRegister);
+WriteLog("\tE -> %02u, %02u, %02u; r1=%08X, r2= %08X, res=%08X, wb=%u \n", pipeline[plPtrExec].opcode, pipeline[plPtrExec].operand1, pipeline[plPtrExec].operand2, pipeline[plPtrExec].reg1, pipeline[plPtrExec].reg2, pipeline[plPtrExec].result, pipeline[plPtrExec].writebackRegister);
+WriteLog("\tW -> %02u, %02u, %02u; r1=%08X, r2= %08X, res=%08X, wb=%u \n", pipeline[plPtrWrite].opcode, pipeline[plPtrWrite].operand1, pipeline[plPtrWrite].operand2, pipeline[plPtrWrite].reg1, pipeline[plPtrWrite].reg2, pipeline[plPtrWrite].result, pipeline[plPtrWrite].writebackRegister);
+WriteLog("\n");
+#endif
+		// Stage 3: Write back register
+		if (pipeline[plPtrWrite].opcode != PIPELINE_STALL)
+		{
+			if (pipeline[plPtrWrite].writebackRegister != 0xFF)
+				dsp_reg[pipeline[plPtrWrite].writebackRegister] = pipeline[plPtrWrite].result;
+
+			if (affectsScoreboard[pipeline[plPtrWrite].opcode])
+				scoreboard[pipeline[plPtrWrite].operand2] = false;
+		}
+
+		// Push instructions through the pipeline...
+		plPtrRead = (++plPtrRead) & 0x03;
+		plPtrExec = (++plPtrExec) & 0x03;
+		plPtrWrite = (++plPtrWrite) & 0x03;
+	}
+
+	dsp_in_exec--;
+}
+
+
+//Problems: JR and any other instruction that relies on DSP_PC is getting WRONG values!
+//!!! FIX !!!
+
+#define DSP_DEBUG_PL3
+//Let's try a 2 stage pipeline....
+void DSPExecP3(int32 cycles)
+{
+	dsp_releaseTimeSlice_flag = 0;
+	dsp_in_exec++;
+
+	while (cycles > 0 && DSP_RUNNING)
+	{
+#ifdef DSP_DEBUG_PL3
+WriteLog("DSPExecP: Pipeline status...\n");
+WriteLog("\tF/R -> %02u, %02u, %02u; r1=%08X, r2= %08X, res=%08X, wb=%u (%s)\n", pipeline[plPtrRead].opcode, pipeline[plPtrRead].operand1, pipeline[plPtrRead].operand2, pipeline[plPtrRead].reg1, pipeline[plPtrRead].reg2, pipeline[plPtrRead].result, pipeline[plPtrRead].writebackRegister, dsp_opcode_str[pipeline[plPtrRead].opcode]);
+WriteLog("\tE/W -> %02u, %02u, %02u; r1=%08X, r2= %08X, res=%08X, wb=%u (%s)\n", pipeline[plPtrExec].opcode, pipeline[plPtrExec].operand1, pipeline[plPtrExec].operand2, pipeline[plPtrExec].reg1, pipeline[plPtrExec].reg2, pipeline[plPtrExec].result, pipeline[plPtrExec].writebackRegister, dsp_opcode_str[pipeline[plPtrExec].opcode]);
+WriteLog("  --> Scoreboard: ");
+for(int i=0; i<32; i++)
+	WriteLog("%s ", scoreboard[i] ? "T" : "F");
+WriteLog("\n");
+#endif
+		// Stage 1a: Instruction fetch
+		pipeline[plPtrRead].instruction = DSPReadWord(dsp_pc, DSP);
+		pipeline[plPtrRead].opcode = pipeline[plPtrRead].instruction >> 10;
+		pipeline[plPtrRead].operand1 = (pipeline[plPtrRead].instruction >> 5) & 0x1F;
+		pipeline[plPtrRead].operand2 = pipeline[plPtrRead].instruction & 0x1F;
+		if (pipeline[plPtrRead].opcode == 38)
+			pipeline[plPtrRead].result = (uint32)DSPReadWord(dsp_pc + 2, DSP)
+				| ((uint32)DSPReadWord(dsp_pc + 4, DSP) << 16);
+#ifdef DSP_DEBUG_PL3
+WriteLog("DSPExecP: Fetching instruction (%04X) from DSP_PC = %08X...\n", pipeline[plPtrRead].instruction, dsp_pc);
+WriteLog("DSPExecP: Pipeline status (after stage 1a)...\n");
+WriteLog("\tF/R -> %02u, %02u, %02u; r1=%08X, r2= %08X, res=%08X, wb=%u (%s)\n", pipeline[plPtrRead].opcode, pipeline[plPtrRead].operand1, pipeline[plPtrRead].operand2, pipeline[plPtrRead].reg1, pipeline[plPtrRead].reg2, pipeline[plPtrRead].result, pipeline[plPtrRead].writebackRegister, dsp_opcode_str[pipeline[plPtrRead].opcode]);
+WriteLog("\tE/W -> %02u, %02u, %02u; r1=%08X, r2= %08X, res=%08X, wb=%u (%s)\n", pipeline[plPtrExec].opcode, pipeline[plPtrExec].operand1, pipeline[plPtrExec].operand2, pipeline[plPtrExec].reg1, pipeline[plPtrExec].reg2, pipeline[plPtrExec].result, pipeline[plPtrExec].writebackRegister, dsp_opcode_str[pipeline[plPtrExec].opcode]);
+#endif
+		// Stage 1b: Read registers
+		if ((scoreboard[pipeline[plPtrRead].operand1] && readAffected[pipeline[plPtrRead].opcode][0])
+			|| (scoreboard[pipeline[plPtrRead].operand2] && readAffected[pipeline[plPtrRead].opcode][1]))
+			// We have a hit in the scoreboard, so we have to stall the pipeline...
+#if 1//def DSP_DEBUG_PL3
+{
+WriteLog("  --> Stalling pipeline: ");
+if (readAffected[pipeline[plPtrRead].opcode][0])
+	WriteLog("scoreboard[%u] = %s (reg 1) ", pipeline[plPtrRead].operand1, scoreboard[pipeline[plPtrRead].operand1] ? "true" : "false");
+if (readAffected[pipeline[plPtrRead].opcode][1])
+	WriteLog("scoreboard[%u] = %s (reg 2)", pipeline[plPtrRead].operand2, scoreboard[pipeline[plPtrRead].operand2] ? "true" : "false");
+WriteLog("\n");
+#endif
+			pipeline[plPtrRead].opcode = PIPELINE_STALL;
+#if 1//def DSP_DEBUG_PL3
+}
+#endif
+		else
+		{
+			pipeline[plPtrRead].reg1 = dsp_reg[pipeline[plPtrRead].operand1];
+			pipeline[plPtrRead].reg2 = dsp_reg[pipeline[plPtrRead].operand2];
+			pipeline[plPtrRead].writebackRegister = pipeline[plPtrRead].operand2;	// Set it to RN
+
+			// Shouldn't we be more selective with the register scoreboarding?
+			// Yes, we should. !!! FIX !!! [Kinda DONE]
+			scoreboard[pipeline[plPtrRead].operand2] = affectsScoreboard[pipeline[plPtrRead].opcode];
+
+//Advance PC here??? Yes.
+			dsp_pc += (pipeline[plPtrRead].opcode == 38 ? 6 : 2);
+		}
+
+#ifdef DSP_DEBUG_PL3
+WriteLog("DSPExecP: Pipeline status (after stage 1b)...\n");
+WriteLog("\tF/R -> %02u, %02u, %02u; r1=%08X, r2= %08X, res=%08X, wb=%u (%s)\n", pipeline[plPtrRead].opcode, pipeline[plPtrRead].operand1, pipeline[plPtrRead].operand2, pipeline[plPtrRead].reg1, pipeline[plPtrRead].reg2, pipeline[plPtrRead].result, pipeline[plPtrRead].writebackRegister, dsp_opcode_str[pipeline[plPtrRead].opcode]);
+WriteLog("\tE/W -> %02u, %02u, %02u; r1=%08X, r2= %08X, res=%08X, wb=%u (%s)\n", pipeline[plPtrExec].opcode, pipeline[plPtrExec].operand1, pipeline[plPtrExec].operand2, pipeline[plPtrExec].reg1, pipeline[plPtrExec].reg2, pipeline[plPtrExec].result, pipeline[plPtrExec].writebackRegister, dsp_opcode_str[pipeline[plPtrExec].opcode]);
+#endif
+		// Stage 2a: Execute
+		if (pipeline[plPtrExec].opcode != PIPELINE_STALL)
+		{
+#ifdef DSP_DEBUG_PL3
+WriteLog("DSPExecP: About to execute opcode %s...\n", dsp_opcode_str[pipeline[plPtrExec].opcode]);
+#endif
+			DSPOpcode[pipeline[plPtrExec].opcode]();
+			dsp_opcode_use[pipeline[plPtrExec].opcode]++;
+			cycles -= dsp_opcode_cycles[pipeline[plPtrExec].opcode];
+		}
+		else
+			cycles--;
+
+#ifdef DSP_DEBUG_PL3
+WriteLog("DSPExecP: Pipeline status (after stage 2a)...\n");
+WriteLog("\tF/R -> %02u, %02u, %02u; r1=%08X, r2= %08X, res=%08X, wb=%u (%s)\n", pipeline[plPtrRead].opcode, pipeline[plPtrRead].operand1, pipeline[plPtrRead].operand2, pipeline[plPtrRead].reg1, pipeline[plPtrRead].reg2, pipeline[plPtrRead].result, pipeline[plPtrRead].writebackRegister, dsp_opcode_str[pipeline[plPtrRead].opcode]);
+WriteLog("\tE/W -> %02u, %02u, %02u; r1=%08X, r2= %08X, res=%08X, wb=%u (%s)\n", pipeline[plPtrExec].opcode, pipeline[plPtrExec].operand1, pipeline[plPtrExec].operand2, pipeline[plPtrExec].reg1, pipeline[plPtrExec].reg2, pipeline[plPtrExec].result, pipeline[plPtrExec].writebackRegister, dsp_opcode_str[pipeline[plPtrExec].opcode]);
+WriteLog("\n");
+#endif
+		// Stage 2b: Write back register
+		if (pipeline[plPtrExec].opcode != PIPELINE_STALL)
+		{
+			if (pipeline[plPtrExec].writebackRegister != 0xFF)
+				dsp_reg[pipeline[plPtrExec].writebackRegister] = pipeline[plPtrExec].result;
+
+			if (affectsScoreboard[pipeline[plPtrExec].opcode])
+				scoreboard[pipeline[plPtrExec].operand2] = false;
+		}
+
+		// Push instructions through the pipeline...
+		plPtrRead = (++plPtrRead) & 0x03;
+		plPtrExec = (++plPtrExec) & 0x03;
+//		plPtrWrite = (++plPtrWrite) & 0x03;
+	}
+
+	dsp_in_exec--;
+}
+
+//
+// DSP pipelined opcode handlers
+//
+
+#define PRM				pipeline[plPtrExec].reg1
+#define PRN				pipeline[plPtrExec].reg2
+#define PIMM1			pipeline[plPtrExec].operand1
+#define PIMM2			pipeline[plPtrExec].operand2
+#define PRES			pipeline[plPtrExec].result
+#define PWBR			pipeline[plPtrExec].writebackRegister
+#define NO_WRITEBACK	pipeline[plPtrExec].writebackRegister = 0xFF
+
+static void DSP_abs(void)
+{
+	uint32 _Rn = PRN;
+	
+	if (_Rn == 0x80000000)
+		dsp_flag_n = 1;
+	else
+	{
+		dsp_flag_c = ((_Rn & 0x80000000) >> 31);
+		PRES = (_Rn & 0x80000000 ? -_Rn : _Rn);
+		CLR_ZN; SET_Z(PRES);
+	}
+}
+
+static void DSP_add(void)
+{
+#ifdef DSP_DIS_ADD
+	if (doDSPDis)
+		WriteLog("%06X: ADD    R%02u, R%02u [NCZ:%u%u%u, R%02u=%08X, R%02u=%08X] -> ", dsp_pc-2, PIMM1, PIMM2, dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM1, PRM, PIMM2, PRN);
+#endif
+	UINT32 res = PRN + PRM;
+	SET_ZNC_ADD(PRN, PRM, res);
+	PRES = res;
+#ifdef DSP_DIS_ADD
+	if (doDSPDis)
+		WriteLog("[NCZ:%u%u%u, R%02u=%08X, R%02u=%08X]\n", dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM1, PRM, PIMM2, PRN);
+#endif
+}
+
+static void DSP_addc(void)
+{
+#ifdef DSP_DIS_ADDC
+	if (doDSPDis)
+		WriteLog("%06X: ADDC   R%02u, R%02u [NCZ:%u%u%u, R%02u=%08X, R%02u=%08X] -> ", dsp_pc-2, PIMM1, PIMM2, dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM1, PRM, PIMM2, PRN);
+#endif
+	UINT32 res = PRN + PRM + dsp_flag_c;
+	UINT32 carry = dsp_flag_c;
+//	SET_ZNC_ADD(PRN, PRM, res); //???BUG??? Yes!
+	SET_ZNC_ADD(PRN + carry, PRM, res);
+//	SET_ZNC_ADD(PRN, PRM + carry, res);
+	PRES = res;
+#ifdef DSP_DIS_ADDC
+	if (doDSPDis)
+		WriteLog("[NCZ:%u%u%u, R%02u=%08X, R%02u=%08X]\n", dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM1, PRM, PIMM2, PRN);
+#endif
+}
+
+static void DSP_addq(void)
+{
+#ifdef DSP_DIS_ADDQ
+	if (doDSPDis)
+		WriteLog("%06X: ADDQ   #%u, R%02u [NCZ:%u%u%u, R%02u=%08X] -> ", dsp_pc-2, dsp_convert_zero[PIMM1], PIMM2, dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM2, PRN);
+#endif
+	UINT32 r1 = dsp_convert_zero[PIMM1];
+	UINT32 res = PRN + r1;
+	CLR_ZNC; SET_ZNC_ADD(PRN, r1, res);
+	PRES = res;
+#ifdef DSP_DIS_ADDQ
+	if (doDSPDis)
+		WriteLog("[NCZ:%u%u%u, R%02u=%08X]\n", dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM2, PRN);
+#endif
+}
+
+static void DSP_addqmod(void)
+{
+#ifdef DSP_DIS_ADDQMOD
+	if (doDSPDis)
+		WriteLog("%06X: ADDQMOD #%u, R%02u [NCZ:%u%u%u, R%02u=%08X, DSP_MOD=%08X] -> ", dsp_pc-2, dsp_convert_zero[PIMM1], PIMM2, dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM2, PRN, dsp_modulo);
+#endif
+	UINT32 r1 = dsp_convert_zero[PIMM1];
+	UINT32 r2 = PRN;
+	UINT32 res = r2 + r1;
+	res = (res & (~dsp_modulo)) | (r2 & dsp_modulo);
+	PRES = res;
+	SET_ZNC_ADD(r2, r1, res);
+#ifdef DSP_DIS_ADDQMOD
+	if (doDSPDis)
+		WriteLog("[NCZ:%u%u%u, R%02u=%08X]\n", dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM2, PRN);
+#endif
+}
+
+static void DSP_addqt(void)
+{
+#ifdef DSP_DIS_ADDQT
+	if (doDSPDis)
+		WriteLog("%06X: ADDQT  #%u, R%02u [NCZ:%u%u%u, R%02u=%08X] -> ", dsp_pc-2, dsp_convert_zero[PIMM1], PIMM2, dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM2, PRN);
+#endif
+	PRES = PRN + dsp_convert_zero[PIMM1];
+#ifdef DSP_DIS_ADDQT
+	if (doDSPDis)
+		WriteLog("[NCZ:%u%u%u, R%02u=%08X]\n", dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM2, PRN);
+#endif
+}
+
+static void DSP_and(void)
+{
+#ifdef DSP_DIS_AND
+	if (doDSPDis)
+		WriteLog("%06X: AND    R%02u, R%02u [NCZ:%u%u%u, R%02u=%08X, R%02u=%08X] -> ", dsp_pc-2, PIMM1, PIMM2, dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM1, PRM, PIMM2, PRN);
+#endif
+	PRES = PRN & PRM;
+	SET_ZN(PRES);
+#ifdef DSP_DIS_AND
+	if (doDSPDis)
+		WriteLog("[NCZ:%u%u%u, R%02u=%08X, R%02u=%08X]\n", dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM1, PRM, PIMM2, PRN);
+#endif
+}
+
+static void DSP_bclr(void)
+{
+#ifdef DSP_DIS_BCLR
+	if (doDSPDis)
+		WriteLog("%06X: BCLR   #%u, R%02u [NCZ:%u%u%u, R%02u=%08X] -> ", dsp_pc-2, PIMM1, PIMM2, dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM2, PRN);
+#endif
+	PRES = PRN & ~(1 << PIMM1);
+	SET_ZN(PRES);
+#ifdef DSP_DIS_BCLR
+	if (doDSPDis)
+		WriteLog("[NCZ:%u%u%u, R%02u=%08X]\n", dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM2, PRN);
+#endif
+}
+
+static void DSP_bset(void)
+{
+#ifdef DSP_DIS_BSET
+	if (doDSPDis)
+		WriteLog("%06X: BSET   #%u, R%02u [NCZ:%u%u%u, R%02u=%08X] -> ", dsp_pc-2, PIMM1, PIMM2, dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM2, PRN);
+#endif
+	PRES = PRN | (1 << PIMM1);
+	SET_ZN(PRES);
+#ifdef DSP_DIS_BSET
+	if (doDSPDis)
+		WriteLog("[NCZ:%u%u%u, R%02u=%08X]\n", dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM2, PRN);
+#endif
+}
+
+static void DSP_btst(void)
+{
+#ifdef DSP_DIS_BTST
+	if (doDSPDis)
+		WriteLog("%06X: BTST   #%u, R%02u [NCZ:%u%u%u, R%02u=%08X] -> ", dsp_pc-2, PIMM1, PIMM2, dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM2, PRN);
+#endif
+	dsp_flag_z = (~PRN >> PIMM1) & 1;
+	NO_WRITEBACK;
+#ifdef DSP_DIS_BTST
+	if (doDSPDis)
+		WriteLog("[NCZ:%u%u%u, R%02u=%08X]\n", dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM2, PRN);
+#endif
+}
+
+static void DSP_cmp(void)
+{
+#ifdef DSP_DIS_CMP
+	if (doDSPDis)
+		WriteLog("%06X: CMP    R%02u, R%02u [NCZ:%u%u%u, R%02u=%08X, R%02u=%08X] -> ", dsp_pc-2, PIMM1, PIMM2, dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM1, PRM, PIMM2, PRN);
+#endif
+	UINT32 res = PRN - PRM;
+	SET_ZNC_SUB(PRN, PRM, res);
+	NO_WRITEBACK;
+#ifdef DSP_DIS_CMP
+	if (doDSPDis)
+		WriteLog("[NCZ:%u%u%u]\n", dsp_flag_n, dsp_flag_c, dsp_flag_z);
+#endif
+}
+
+static void DSP_cmpq(void)
+{
+	static int32 sqtable[32] =
+		{ 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,-16,-15,-14,-13,-12,-11,-10,-9,-8,-7,-6,-5,-4,-3,-2,-1 };
+#ifdef DSP_DIS_CMPQ
+	if (doDSPDis)
+		WriteLog("%06X: CMPQ   #%d, R%02u [NCZ:%u%u%u, R%02u=%08X] -> ", dsp_pc-2, sqtable[PIMM1], PIMM2, dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM2, PRN);
+#endif
+	UINT32 r1 = sqtable[PIMM1 & 0x1F]; // I like this better -> (INT8)(jaguar.op >> 2) >> 3;
+	UINT32 res = PRN - r1;
+	SET_ZNC_SUB(PRN, r1, res);
+	NO_WRITEBACK;
+#ifdef DSP_DIS_CMPQ
+	if (doDSPDis)
+		WriteLog("[NCZ:%u%u%u]\n", dsp_flag_n, dsp_flag_c, dsp_flag_z);
+#endif
+}
+
+static void DSP_div(void)
+{
+	uint32 _Rm = PRM, _Rn = PRN;
+
+	if (_Rm)
+	{
+		if (dsp_div_control & 1)
+		{
+			dsp_remain = (((uint64)_Rn) << 16) % _Rm;
+			if (dsp_remain & 0x80000000)
+				dsp_remain -= _Rm;
+			PRES = (((uint64)_Rn) << 16) / _Rm;
+		}
+		else
+		{
+			dsp_remain = _Rn % _Rm;
+			if (dsp_remain & 0x80000000)
+				dsp_remain -= _Rm;
+			PRES = PRN / _Rm;
+		}
+	}
+	else
+		PRES = 0xFFFFFFFF;
+}
+
+static void DSP_imacn(void)
+{
+#ifdef DSP_DIS_IMACN
+	if (doDSPDis)
+		WriteLog("%06X: IMACN  R%02u, R%02u [NCZ:%u%u%u, R%02u=%08X, R%02u=%08X] -> ", dsp_pc-2, PIMM1, PIMM2, dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM1, PRM, PIMM2, PRN);
+#endif
+	int32 res = (int16)PRM * (int16)PRN;
+	dsp_acc += (int64)res;
+//Should we AND the result to fit into 40 bits here???
+	NO_WRITEBACK;
+#ifdef DSP_DIS_IMACN
+	if (doDSPDis)
+		WriteLog("[NCZ:%u%u%u, DSP_ACC=%02X%08X]\n", dsp_flag_n, dsp_flag_c, dsp_flag_z, (uint8)(dsp_acc >> 32), (uint32)(dsp_acc & 0xFFFFFFFF));
+#endif
+} 
+
+static void DSP_imult(void)
+{
+#ifdef DSP_DIS_IMULT
+	if (doDSPDis)
+		WriteLog("%06X: IMULT  R%02u, R%02u [NCZ:%u%u%u, R%02u=%08X, R%02u=%08X] -> ", dsp_pc-2, PIMM1, PIMM2, dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM1, PRM, PIMM2, PRN);
+#endif
+	PRES = (int16)PRN * (int16)PRM;
+	SET_ZN(PRES);
+#ifdef DSP_DIS_IMULT
+	if (doDSPDis)
+		WriteLog("[NCZ:%u%u%u, R%02u=%08X, R%02u=%08X]\n", dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM1, PRM, PIMM2, PRN);
+#endif
+}
+
+static void DSP_imultn(void)
+{
+#ifdef DSP_DIS_IMULTN
+	if (doDSPDis)
+		WriteLog("%06X: IMULTN R%02u, R%02u [NCZ:%u%u%u, R%02u=%08X, R%02u=%08X] -> ", dsp_pc-2, PIMM1, PIMM2, dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM1, PRM, PIMM2, PRN);
+#endif
+	// This is OK, since this multiply won't overflow 32 bits...
+	int32 res = (int32)((int16)PRN * (int16)PRM);
+	dsp_acc = (int64)res;
+	SET_ZN(res);
+	NO_WRITEBACK;
+#ifdef DSP_DIS_IMULTN
+	if (doDSPDis)
+		WriteLog("[NCZ:%u%u%u, DSP_ACC=%02X%08X]\n", dsp_flag_n, dsp_flag_c, dsp_flag_z, (uint8)(dsp_acc >> 32), (uint32)(dsp_acc & 0xFFFFFFFF));
+#endif
+}
+
+static void DSP_illegal(void)
+{
+#ifdef DSP_DIS_ILLEGAL
+	if (doDSPDis)
+		WriteLog("%06X: ILLEGAL [NCZ:%u%u%u]\n", dsp_pc-2, dsp_flag_n, dsp_flag_c, dsp_flag_z);
+#endif
+	NO_WRITEBACK;
+}
+
+// There is a problem here with interrupt handlers the JUMP and JR instructions that
+// can cause trouble because an interrupt can occur *before* the instruction following the
+// jump can execute... !!! FIX !!!
+static void DSP_jr(void)
+{
+#ifdef DSP_DIS_JR
+char * condition[32] =
+{	"T", "nz", "z", "???", "nc", "nc nz", "nc z", "???", "c", "c nz",
+	"c z", "???", "???", "???", "???", "???", "???", "???", "???",
+	"???", "nn", "nn nz", "nn z", "???", "n", "n nz", "n z", "???",
+	"???", "???", "???", "F" };
+	if (doDSPDis)
+		WriteLog("%06X: JR     %s, %06X [NCZ:%u%u%u] ", dsp_pc-2, condition[PIMM2], dsp_pc+((PIMM1 & 0x10 ? 0xFFFFFFF0 | PIMM1 : PIMM1) * 2), dsp_flag_n, dsp_flag_c, dsp_flag_z);
+#endif
+	// KLUDGE: Used by BRANCH_CONDITION macro
+	uint32 jaguar_flags = (dsp_flag_n << 2) | (dsp_flag_c << 1) | dsp_flag_z;
+
+	if (BRANCH_CONDITION(PIMM2))
+	{
+#ifdef DSP_DIS_JR
+	if (doDSPDis)
+		WriteLog("Branched!\n");
+#endif
+		int32 offset = (PIMM1 & 0x10 ? 0xFFFFFFF0 | PIMM1 : PIMM1);		// Sign extend PIMM1
+		int32 delayed_pc = dsp_pc + (offset * 2);
+//		DSPExec(1);
+		dsp_pc = delayed_pc;
+	}
+#ifdef DSP_DIS_JR
+	else
+		if (doDSPDis)
+			WriteLog("Branch NOT taken.\n");
+#endif
+	NO_WRITEBACK;
+}
+
+static void DSP_jump(void)
+{
+#ifdef DSP_DIS_JUMP
+char * condition[32] =
+{	"T", "nz", "z", "???", "nc", "nc nz", "nc z", "???", "c", "c nz",
+	"c z", "???", "???", "???", "???", "???", "???", "???", "???",
+	"???", "nn", "nn nz", "nn z", "???", "n", "n nz", "n z", "???",
+	"???", "???", "???", "F" };
+	if (doDSPDis)
+		WriteLog("%06X: JUMP   %s, (R%02u) [NCZ:%u%u%u, R%02u=%08X] ", dsp_pc-2, condition[PIMM2], PIMM1, dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM1, PRM);
+#endif
+	// KLUDGE: Used by BRANCH_CONDITION macro
+	uint32 jaguar_flags = (dsp_flag_n << 2) | (dsp_flag_c << 1) | dsp_flag_z;
+
+	if (BRANCH_CONDITION(PIMM2))
+	{
+#ifdef DSP_DIS_JUMP
+	if (doDSPDis)
+		WriteLog("Branched!\n");
+#endif
+//		uint32 delayed_pc = PRM;
+//		DSPExec(1);
+//		dsp_pc = delayed_pc;
+		dsp_pc = PRM;
+	}
+#ifdef DSP_DIS_JUMP
+	else
+		if (doDSPDis)
+			WriteLog("Branch NOT taken.\n");
+#endif
+	NO_WRITEBACK;
+}
+
+static void DSP_load(void)
+{
+#ifdef DSP_DIS_LOAD
+	if (doDSPDis)
+		WriteLog("%06X: LOAD   (R%02u), R%02u [NCZ:%u%u%u, R%02u=%08X, R%02u=%08X] -> ", dsp_pc-2, PIMM1, PIMM2, dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM1, PRM, PIMM2, PRN);
+#endif
+	PRES = DSPReadLong(PRM, DSP);
+#ifdef DSP_DIS_LOAD
+	if (doDSPDis)
+		WriteLog("[NCZ:%u%u%u, R%02u=%08X]\n", dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM2, PRN);
+#endif
+}
+
+static void DSP_loadb(void)
+{
+#ifdef DSP_DIS_LOADB
+	if (doDSPDis)
+		WriteLog("%06X: LOADB  (R%02u), R%02u [NCZ:%u%u%u, R%02u=%08X, R%02u=%08X] -> ", dsp_pc-2, PIMM1, PIMM2, dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM1, PRM, PIMM2, PRN);
+#endif
+	if (PRM >= DSP_WORK_RAM_BASE && PRM <= (DSP_WORK_RAM_BASE + 0x1FFF))
+		PRES = DSPReadLong(PRM, DSP) & 0xFF;
+	else
+		PRES = JaguarReadByte(PRM, DSP);
+#ifdef DSP_DIS_LOADB
+	if (doDSPDis)
+		WriteLog("[NCZ:%u%u%u, R%02u=%08X]\n", dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM2, PRN);
+#endif
+}
+
+static void DSP_loadw(void)
+{
+#ifdef DSP_DIS_LOADW
+	if (doDSPDis)
+		WriteLog("%06X: LOADW  (R%02u), R%02u [NCZ:%u%u%u, R%02u=%08X, R%02u=%08X] -> ", dsp_pc-2, PIMM1, PIMM2, dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM1, PRM, PIMM2, PRN);
+#endif
+	if (PRM >= DSP_WORK_RAM_BASE && PRM <= (DSP_WORK_RAM_BASE + 0x1FFF))
+		PRES = DSPReadLong(PRM, DSP) & 0xFFFF;
+	else
+		PRES = JaguarReadWord(PRM, DSP);
+#ifdef DSP_DIS_LOADW
+	if (doDSPDis)
+		WriteLog("[NCZ:%u%u%u, R%02u=%08X]\n", dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM2, PRN);
+#endif
+}
+
+static void DSP_load_r14_i(void)
+{
+#ifdef DSP_DIS_LOAD14I
+	if (doDSPDis)
+		WriteLog("%06X: LOAD   (R14+$%02X), R%02u [NCZ:%u%u%u, R14+$%02X=%08X, R%02u=%08X] -> ", dsp_pc-2, dsp_convert_zero[PIMM1] << 2, PIMM2, dsp_flag_n, dsp_flag_c, dsp_flag_z, dsp_convert_zero[PIMM1] << 2, dsp_reg[14]+(dsp_convert_zero[PIMM1] << 2), PIMM2, PRN);
+#endif
+	PRES = DSPReadLong(dsp_reg[14] + (dsp_convert_zero[PIMM1] << 2), DSP);
+#ifdef DSP_DIS_LOAD14I
+	if (doDSPDis)
+		WriteLog("[NCZ:%u%u%u, R%02u=%08X]\n", dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM2, PRN);
+#endif
+}
+
+static void DSP_load_r14_r(void)
+{
+#ifdef DSP_DIS_LOAD14R
+	if (doDSPDis)
+		WriteLog("%06X: LOAD   (R14+R%02u), R%02u [NCZ:%u%u%u, R14+R%02u=%08X, R%02u=%08X] -> ", dsp_pc-2, PIMM1, PIMM2, dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM1, PRM+dsp_reg[14], PIMM2, PRN);
+#endif
+	PRES = DSPReadLong(dsp_reg[14] + PRM, DSP);
+#ifdef DSP_DIS_LOAD14R
+	if (doDSPDis)
+		WriteLog("[NCZ:%u%u%u, R%02u=%08X]\n", dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM2, PRN);
+#endif
+}
+
+static void DSP_load_r15_i(void)
+{
+#ifdef DSP_DIS_LOAD15I
+	if (doDSPDis)
+		WriteLog("%06X: LOAD   (R15+$%02X), R%02u [NCZ:%u%u%u, R15+$%02X=%08X, R%02u=%08X] -> ", dsp_pc-2, dsp_convert_zero[PIMM1] << 2, PIMM2, dsp_flag_n, dsp_flag_c, dsp_flag_z, dsp_convert_zero[PIMM1] << 2, dsp_reg[15]+(dsp_convert_zero[PIMM1] << 2), PIMM2, PRN);
+#endif
+	PRES = DSPReadLong(dsp_reg[15] + (dsp_convert_zero[PIMM1] << 2), DSP);
+#ifdef DSP_DIS_LOAD15I
+	if (doDSPDis)
+		WriteLog("[NCZ:%u%u%u, R%02u=%08X]\n", dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM2, PRN);
+#endif
+}
+
+static void DSP_load_r15_r(void)
+{
+#ifdef DSP_DIS_LOAD15R
+	if (doDSPDis)
+		WriteLog("%06X: LOAD   (R15+R%02u), R%02u [NCZ:%u%u%u, R15+R%02u=%08X, R%02u=%08X] -> ", dsp_pc-2, PIMM1, PIMM2, dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM1, PRM+dsp_reg[15], PIMM2, PRN);
+#endif
+	PRES = DSPReadLong(dsp_reg[15] + PRM, DSP);
+#ifdef DSP_DIS_LOAD15R
+	if (doDSPDis)
+		WriteLog("[NCZ:%u%u%u, R%02u=%08X]\n", dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM2, PRN);
+#endif
+}
+
+static void DSP_mirror(void)	
+{
+	UINT32 r1 = PRN;
+	PRES = (mirror_table[r1 & 0xFFFF] << 16) | mirror_table[r1 >> 16];
+	SET_ZN(PRES);
+}
+
+static void DSP_mmult(void)
+{
+	int count	= dsp_matrix_control&0x0f;
+	uint32 addr = dsp_pointer_to_matrix; // in the gpu ram
+	int64 accum = 0;
+	uint32 res;
+
+	if (!(dsp_matrix_control & 0x10))
+	{
+		for (int i = 0; i < count; i++)
+		{ 
+			int16 a;
+			if (i&0x01)
+				a=(int16)((dsp_alternate_reg[dsp_opcode_first_parameter + (i>>1)]>>16)&0xffff);
+			else
+				a=(int16)(dsp_alternate_reg[dsp_opcode_first_parameter + (i>>1)]&0xffff);
+			int16 b=((int16)DSPReadWord(addr + 2, DSP));
+			accum += a*b;
+			addr += 4;
+		}
+	}
+	else
+	{
+		for (int i = 0; i < count; i++)
+		{
+			int16 a;
+			if (i&0x01)
+				a=(int16)((dsp_alternate_reg[dsp_opcode_first_parameter + (i>>1)]>>16)&0xffff);
+			else
+				a=(int16)(dsp_alternate_reg[dsp_opcode_first_parameter + (i>>1)]&0xffff);
+			int16 b=((int16)DSPReadWord(addr + 2, DSP));
+			accum += a*b;
+			addr += 4 * count;
+		}
+	}
+
+	PRES = res = (int32)accum;
+	// carry flag to do
+//NOTE: The flags are set based upon the last add/multiply done...
+	SET_ZN(PRES);
+}
+
+static void DSP_move(void)
+{
+#ifdef DSP_DIS_MOVE
+	if (doDSPDis)
+		WriteLog("%06X: MOVE   R%02u, R%02u [NCZ:%u%u%u, R%02u=%08X, R%02u=%08X] -> ", dsp_pc-2, PIMM1, PIMM2, dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM1, PRM, PIMM2, PRN);
+#endif
+	PRES = PRM;
+#ifdef DSP_DIS_MOVE
+	if (doDSPDis)
+		WriteLog("[NCZ:%u%u%u, R%02u=%08X, R%02u=%08X]\n", dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM1, PRM, PIMM2, PRN);
+#endif
+}
+
+static void DSP_movefa(void)
+{
+#ifdef DSP_DIS_MOVEFA
+	if (doDSPDis)
+//		WriteLog("%06X: MOVEFA R%02u, R%02u [NCZ:%u%u%u, R%02u(alt)=%08X, R%02u=%08X] -> ", dsp_pc-2, PIMM1, PIMM2, dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM1, ALTERNATE_RM, PIMM2, PRN);
+		WriteLog("%06X: MOVEFA R%02u, R%02u [NCZ:%u%u%u, R%02u(alt)=%08X, R%02u=%08X] -> ", dsp_pc-2, PIMM1, PIMM2, dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM1, dsp_alternate_reg[PIMM1], PIMM2, PRN);
+#endif
+//	PRES = ALTERNATE_RM;
+	PRES = dsp_alternate_reg[PIMM1];
+#ifdef DSP_DIS_MOVEFA
+	if (doDSPDis)
+//		WriteLog("[NCZ:%u%u%u, R%02u(alt)=%08X, R%02u=%08X]\n", dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM1, ALTERNATE_RM, PIMM2, PRN);
+		WriteLog("[NCZ:%u%u%u, R%02u(alt)=%08X, R%02u=%08X]\n", dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM1, dsp_alternate_reg[PIMM1], PIMM2, PRES);
+#endif
+}
+
+static void DSP_movei(void)
+{
+#ifdef DSP_DIS_MOVEI
+	if (doDSPDis)
+		WriteLog("%06X: MOVEI  #$%08X, R%02u [NCZ:%u%u%u, R%02u=%08X] -> ", dsp_pc-2, PRES, PIMM2, dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM2, PRN);
+#endif
+//	// This instruction is followed by 32-bit value in LSW / MSW format...
+//	PRES = (uint32)DSPReadWord(dsp_pc, DSP) | ((uint32)DSPReadWord(dsp_pc + 2, DSP) << 16);
+//	dsp_pc += 4;
+#ifdef DSP_DIS_MOVEI
+	if (doDSPDis)
+		WriteLog("[NCZ:%u%u%u, R%02u=%08X]\n", dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM2, PRES);
+#endif
+}
+
+static void DSP_movepc(void)
+{
+//Need to fix this to take into account pipelining effects... !!! FIX !!!
+	PRES = dsp_pc - 2;
+}
+
+static void DSP_moveq(void)
+{
+#ifdef DSP_DIS_MOVEQ
+	if (doDSPDis)
+		WriteLog("%06X: MOVEQ  #%u, R%02u [NCZ:%u%u%u, R%02u=%08X] -> ", dsp_pc-2, PIMM1, PIMM2, dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM2, PRN);
+#endif
+	PRES = PIMM1;
+#ifdef DSP_DIS_MOVEQ
+	if (doDSPDis)
+		WriteLog("[NCZ:%u%u%u, R%02u=%08X]\n", dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM2, PRN);
+#endif
+}
+
+static void DSP_moveta(void)
+{
+#ifdef DSP_DIS_MOVETA
+	if (doDSPDis)
+//		WriteLog("%06X: MOVETA R%02u, R%02u [NCZ:%u%u%u, R%02u=%08X, R%02u(alt)=%08X] -> ", dsp_pc-2, PIMM1, PIMM2, dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM1, PRM, PIMM2, ALTERNATE_RN);
+		WriteLog("%06X: MOVETA R%02u, R%02u [NCZ:%u%u%u, R%02u=%08X, R%02u(alt)=%08X] -> ", dsp_pc-2, PIMM1, PIMM2, dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM1, PRM, PIMM2, dsp_alternate_reg[PIMM2]);
+#endif
+//	ALTERNATE_RN = PRM;
+	dsp_alternate_reg[PIMM2] = PRM;
+	NO_WRITEBACK;
+#ifdef DSP_DIS_MOVETA
+	if (doDSPDis)
+//		WriteLog("[NCZ:%u%u%u, R%02u=%08X, R%02u(alt)=%08X]\n", dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM1, PRM, PIMM2, ALTERNATE_RN);
+		WriteLog("[NCZ:%u%u%u, R%02u=%08X, R%02u(alt)=%08X]\n", dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM1, PRM, PIMM2, dsp_alternate_reg[PIMM2]);
+#endif
+}
+
+static void DSP_mtoi(void)
+{
+	PRES = (((INT32)PRM >> 8) & 0xFF800000) | (PRM & 0x007FFFFF);
+	SET_ZN(PRES);
+}
+
+static void DSP_mult(void)
+{
+#ifdef DSP_DIS_MULT
+	if (doDSPDis)
+		WriteLog("%06X: MULT   R%02u, R%02u [NCZ:%u%u%u, R%02u=%08X, R%02u=%08X] -> ", dsp_pc-2, PIMM1, PIMM2, dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM1, PRM, PIMM2, PRN);
+#endif
+	PRES = (uint16)PRM * (uint16)PRN;
+	SET_ZN(PRES);
+#ifdef DSP_DIS_MULT
+	if (doDSPDis)
+		WriteLog("[NCZ:%u%u%u, R%02u=%08X, R%02u=%08X]\n", dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM1, PRM, PIMM2, PRN);
+#endif
+}
+
+static void DSP_neg(void)
+{
+#ifdef DSP_DIS_NEG
+	if (doDSPDis)
+		WriteLog("%06X: NEG    R%02u [NCZ:%u%u%u, R%02u=%08X] -> ", dsp_pc-2, PIMM2, dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM2, PRN);
+#endif
+	UINT32 res = -PRN;
+	SET_ZNC_SUB(0, PRN, res);
+	PRES = res;
+#ifdef DSP_DIS_NEG
+	if (doDSPDis)
+		WriteLog("[NCZ:%u%u%u, R%02u=%08X]\n", dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM2, PRN);
+#endif
+}
+
+static void DSP_nop(void)
+{
+#ifdef DSP_DIS_NOP
+	if (doDSPDis)
+		WriteLog("%06X: NOP    [NCZ:%u%u%u]\n", dsp_pc-2, dsp_flag_n, dsp_flag_c, dsp_flag_z);
+#endif
+	NO_WRITEBACK;
+}
+
+static void DSP_normi(void)
+{
+	uint32 _Rm = PRM;
+	uint32 res = 0;
+
+	if (_Rm)
+	{
+		while ((_Rm & 0xffc00000) == 0)
+		{
+			_Rm <<= 1;
+			res--;
+		}
+		while ((_Rm & 0xff800000) != 0)
+		{
+			_Rm >>= 1;
+			res++;
+		}
+	}
+	PRES = res;
+	SET_ZN(PRES);
+}
+
+static void DSP_not(void)
+{
+#ifdef DSP_DIS_NOT
+	if (doDSPDis)
+		WriteLog("%06X: NOT    R%02u, R%02u [NCZ:%u%u%u, R%02u=%08X, R%02u=%08X] -> ", dsp_pc-2, PIMM1, PIMM2, dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM1, PRM, PIMM2, PRN);
+#endif
+	PRES = ~PRN;
+	SET_ZN(PRES);
+#ifdef DSP_DIS_NOT
+	if (doDSPDis)
+		WriteLog("[NCZ:%u%u%u, R%02u=%08X, R%02u=%08X]\n", dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM1, PRM, PIMM2, PRN);
+#endif
+}
+
+static void DSP_or(void)
+{
+#ifdef DSP_DIS_OR
+	if (doDSPDis)
+		WriteLog("%06X: OR     R%02u, R%02u [NCZ:%u%u%u, R%02u=%08X, R%02u=%08X] -> ", dsp_pc-2, PIMM1, PIMM2, dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM1, PRM, PIMM2, PRN);
+#endif
+	PRES = PRN | PRM;
+	SET_ZN(PRES);
+#ifdef DSP_DIS_OR
+	if (doDSPDis)
+		WriteLog("[NCZ:%u%u%u, R%02u=%08X, R%02u=%08X]\n", dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM1, PRM, PIMM2, PRN);
+#endif
+}
+
+static void DSP_resmac(void)
+{
+#ifdef DSP_DIS_RESMAC
+	if (doDSPDis)
+		WriteLog("%06X: RESMAC R%02u [NCZ:%u%u%u, R%02u=%08X, DSP_ACC=%02X%08X] -> ", dsp_pc-2, PIMM2, dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM2, PRN, (uint8)(dsp_acc >> 32), (uint32)(dsp_acc & 0xFFFFFFFF));
+#endif
+	PRES = (uint32)dsp_acc;
+#ifdef DSP_DIS_RESMAC
+	if (doDSPDis)
+		WriteLog("[NCZ:%u%u%u, R%02u=%08X]\n", dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM2, PRN);
+#endif
+}
+
+static void DSP_ror(void)
+{
+#ifdef DSP_DIS_ROR
+	if (doDSPDis)
+		WriteLog("%06X: ROR    R%02u, R%02u [NCZ:%u%u%u, R%02u=%08X, R%02u=%08X] -> ", dsp_pc-2, PIMM1, PIMM2, dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM1, PRM, PIMM2, PRN);
+#endif
+	UINT32 r1 = PRM & 0x1F;
+	UINT32 res = (PRN >> r1) | (PRN << (32 - r1));
+	SET_ZN(res); dsp_flag_c = (PRN >> 31) & 1;
+	PRES = res;
+#ifdef DSP_DIS_ROR
+	if (doDSPDis)
+		WriteLog("[NCZ:%u%u%u, R%02u=%08X, R%02u=%08X]\n", dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM1, PRM, PIMM2, PRN);
+#endif
+}
+
+static void DSP_rorq(void)
+{
+#ifdef DSP_DIS_RORQ
+	if (doDSPDis)
+		WriteLog("%06X: RORQ   #%u, R%02u [NCZ:%u%u%u, R%02u=%08X] -> ", dsp_pc-2, dsp_convert_zero[PIMM1], PIMM2, dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM2, PRN);
+#endif
+	UINT32 r1 = dsp_convert_zero[PIMM1 & 0x1F];
+	UINT32 r2 = PRN;
+	UINT32 res = (r2 >> r1) | (r2 << (32 - r1));
+	PRES = res;
+	SET_ZN(res); dsp_flag_c = (r2 >> 31) & 0x01;
+#ifdef DSP_DIS_RORQ
+	if (doDSPDis)
+		WriteLog("[NCZ:%u%u%u, R%02u=%08X]\n", dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM2, PRN);
+#endif
+}
+
+static void DSP_sat16s(void)		
+{
+	INT32 r2 = PRN;
+	UINT32 res = (r2 < -32768) ? -32768 : (r2 > 32767) ? 32767 : r2;
+	PRES = res;
+	SET_ZN(res);
+}
+
+static void DSP_sat32s(void)		
+{
+	INT32 r2 = (UINT32)PRN;
+	INT32 temp = dsp_acc >> 32;
+	UINT32 res = (temp < -1) ? (INT32)0x80000000 : (temp > 0) ? (INT32)0x7FFFFFFF : r2;
+	PRES = res;
+	SET_ZN(res);
+}
+
+static void DSP_sh(void)
+{
+	int32 sRm = (int32)PRM;
+	uint32 _Rn = PRN;
+
+	if (sRm < 0)
+	{
+		uint32 shift = -sRm;
+
+		if (shift >= 32)
+			shift = 32;
+
+		dsp_flag_c = (_Rn & 0x80000000) >> 31;
+
+		while (shift)
+		{
+			_Rn <<= 1;
+			shift--;
+		}
+	}
+	else
+	{
+		uint32 shift = sRm;
+
+		if (shift >= 32)
+			shift = 32;
+
+		dsp_flag_c = _Rn & 0x1;
+
+		while (shift)
+		{
+			_Rn >>= 1;
+			shift--;
+		}
+	}
+
+	PRES = _Rn;
+	SET_ZN(PRES);
+}
+
+static void DSP_sha(void)
+{
+	int32 sRm = (int32)PRM;
+	uint32 _Rn = PRN;
+
+	if (sRm < 0)
+	{
+		uint32 shift = -sRm;
+
+		if (shift >= 32)
+			shift = 32;
+
+		dsp_flag_c = (_Rn & 0x80000000) >> 31;
+
+		while (shift)
+		{
+			_Rn <<= 1;
+			shift--;
+		}
+	}
+	else
+	{
+		uint32 shift = sRm;
+
+		if (shift >= 32)
+			shift = 32;
+
+		dsp_flag_c = _Rn & 0x1;
+
+		while (shift)
+		{
+			_Rn = ((int32)_Rn) >> 1;
+			shift--;
+		}
+	}
+
+	PRES = _Rn;
+	SET_ZN(PRES);
+}
+
+static void DSP_sharq(void)
+{
+#ifdef DSP_DIS_SHARQ
+	if (doDSPDis)
+		WriteLog("%06X: SHARQ  #%u, R%02u [NCZ:%u%u%u, R%02u=%08X] -> ", dsp_pc-2, dsp_convert_zero[PIMM1], PIMM2, dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM2, PRN);
+#endif
+	UINT32 res = (INT32)PRN >> dsp_convert_zero[PIMM1];
+	SET_ZN(res); dsp_flag_c = PRN & 0x01;
+	PRES = res;
+#ifdef DSP_DIS_SHARQ
+	if (doDSPDis)
+		WriteLog("[NCZ:%u%u%u, R%02u=%08X]\n", dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM2, PRN);
+#endif
+}
+
+static void DSP_shlq(void)
+{
+#ifdef DSP_DIS_SHLQ
+	if (doDSPDis)
+		WriteLog("%06X: SHLQ   #%u, R%02u [NCZ:%u%u%u, R%02u=%08X] -> ", dsp_pc-2, 32 - PIMM1, PIMM2, dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM2, PRN);
+#endif
+	INT32 r1 = 32 - PIMM1;
+	UINT32 res = PRN << r1;
+	SET_ZN(res); dsp_flag_c = (PRN >> 31) & 1;
+	PRES = res;
+#ifdef DSP_DIS_SHLQ
+	if (doDSPDis)
+		WriteLog("[NCZ:%u%u%u, R%02u=%08X]\n", dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM2, PRN);
+#endif
+}
+
+static void DSP_shrq(void)
+{
+#ifdef DSP_DIS_SHRQ
+	if (doDSPDis)
+		WriteLog("%06X: SHRQ   #%u, R%02u [NCZ:%u%u%u, R%02u=%08X] -> ", dsp_pc-2, dsp_convert_zero[PIMM1], PIMM2, dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM2, PRN);
+#endif
+	INT32 r1 = dsp_convert_zero[PIMM1];
+	UINT32 res = PRN >> r1;
+	SET_ZN(res); dsp_flag_c = PRN & 1;
+	PRES = res;
+#ifdef DSP_DIS_SHRQ
+	if (doDSPDis)
+		WriteLog("[NCZ:%u%u%u, R%02u=%08X]\n", dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM2, PRN);
+#endif
+}
+
+static void DSP_store(void)
+{
+#ifdef DSP_DIS_STORE
+	if (doDSPDis)
+		WriteLog("%06X: STORE  R%02u, (R%02u) [NCZ:%u%u%u, R%02u=%08X, R%02u=%08X]\n", dsp_pc-2, PIMM2, PIMM1, dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM2, PRN, PIMM1, PRM);
+#endif
+	DSPWriteLong(PRM, PRN, DSP);
+	NO_WRITEBACK;
+}
+
+static void DSP_storeb(void)
+{
+#ifdef DSP_DIS_STOREB
+	if (doDSPDis)
+		WriteLog("%06X: STOREB R%02u, (R%02u) [NCZ:%u%u%u, R%02u=%08X, R%02u=%08X]\n", dsp_pc-2, PIMM2, PIMM1, dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM2, PRN, PIMM1, PRM);
+#endif
+	if (PRM >= DSP_WORK_RAM_BASE && PRM <= (DSP_WORK_RAM_BASE + 0x1FFF))
+		DSPWriteLong(PRM, PRN & 0xFF, DSP);
+	else
+		JaguarWriteByte(PRM, PRN, DSP);
+
+	NO_WRITEBACK;
+}
+
+static void DSP_storew(void)
+{
+#ifdef DSP_DIS_STOREW
+	if (doDSPDis)
+		WriteLog("%06X: STOREW R%02u, (R%02u) [NCZ:%u%u%u, R%02u=%08X, R%02u=%08X]\n", dsp_pc-2, PIMM2, PIMM1, dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM2, PRN, PIMM1, PRM);
+#endif
+	if (PRM >= DSP_WORK_RAM_BASE && PRM <= (DSP_WORK_RAM_BASE + 0x1FFF))
+		DSPWriteLong(PRM, PRN & 0xFFFF, DSP);
+	else
+		JaguarWriteWord(PRM, PRN, DSP);
+
+	NO_WRITEBACK;
+}
+
+static void DSP_store_r14_i(void)
+{
+#ifdef DSP_DIS_STORE14I
+	if (doDSPDis)
+		WriteLog("%06X: STORE  R%02u, (R14+$%02X) [NCZ:%u%u%u, R%02u=%08X, R14+$%02X=%08X]\n", dsp_pc-2, PIMM2, dsp_convert_zero[PIMM1] << 2, dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM2, PRN, dsp_convert_zero[PIMM1] << 2, dsp_reg[14]+(dsp_convert_zero[PIMM1] << 2));
+#endif
+	DSPWriteLong(dsp_reg[14] + (dsp_convert_zero[PIMM1] << 2), PRN, DSP);
+	NO_WRITEBACK;
+}
+
+static void DSP_store_r14_r(void)
+{
+	DSPWriteLong(dsp_reg[14] + PRM, PRN, DSP);
+	NO_WRITEBACK;
+}
+
+static void DSP_store_r15_i(void)
+{
+#ifdef DSP_DIS_STORE15I
+	if (doDSPDis)
+		WriteLog("%06X: STORE  R%02u, (R15+$%02X) [NCZ:%u%u%u, R%02u=%08X, R15+$%02X=%08X]\n", dsp_pc-2, PIMM2, dsp_convert_zero[PIMM1] << 2, dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM2, PRN, dsp_convert_zero[PIMM1] << 2, dsp_reg[15]+(dsp_convert_zero[PIMM1] << 2));
+#endif
+	DSPWriteLong(dsp_reg[15] + (dsp_convert_zero[PIMM1] << 2), PRN, DSP);
+	NO_WRITEBACK;
+}
+
+static void DSP_store_r15_r(void)
+{
+	DSPWriteLong(dsp_reg[15] + PRM, PRN, DSP);
+	NO_WRITEBACK;
+}
+
+static void DSP_sub(void)
+{
+#ifdef DSP_DIS_SUB
+	if (doDSPDis)
+		WriteLog("%06X: SUB    R%02u, R%02u [NCZ:%u%u%u, R%02u=%08X, R%02u=%08X] -> ", dsp_pc-2, PIMM1, PIMM2, dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM1, PRM, PIMM2, PRN);
+#endif
+	UINT32 res = PRN - PRM;
+	SET_ZNC_SUB(PRN, PRM, res);
+	PRES = res;
+#ifdef DSP_DIS_SUB
+	if (doDSPDis)
+		WriteLog("[NCZ:%u%u%u, R%02u=%08X, R%02u=%08X]\n", dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM1, PRM, PIMM2, PRN);
+#endif
+}
+
+static void DSP_subc(void)
+{
+#ifdef DSP_DIS_SUBC
+	if (doDSPDis)
+		WriteLog("%06X: SUBC   R%02u, R%02u [NCZ:%u%u%u, R%02u=%08X, R%02u=%08X] -> ", dsp_pc-2, PIMM1, PIMM2, dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM1, PRM, PIMM2, PRN);
+#endif
+	UINT32 res = PRN - PRM - dsp_flag_c;
+	UINT32 borrow = dsp_flag_c;
+	SET_ZNC_SUB(PRN - borrow, PRM, res);
+	PRES = res;
+#ifdef DSP_DIS_SUBC
+	if (doDSPDis)
+		WriteLog("[NCZ:%u%u%u, R%02u=%08X, R%02u=%08X]\n", dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM1, PRM, PIMM2, PRN);
+#endif
+}
+
+static void DSP_subq(void)
+{
+#ifdef DSP_DIS_SUBQ
+	if (doDSPDis)
+		WriteLog("%06X: SUBQ   #%u, R%02u [NCZ:%u%u%u, R%02u=%08X] -> ", dsp_pc-2, dsp_convert_zero[PIMM1], PIMM2, dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM2, PRN);
+#endif
+	UINT32 r1 = dsp_convert_zero[PIMM1];
+	UINT32 res = PRN - r1;
+	SET_ZNC_SUB(PRN, r1, res);
+	PRES = res;
+#ifdef DSP_DIS_SUBQ
+	if (doDSPDis)
+		WriteLog("[NCZ:%u%u%u, R%02u=%08X]\n", dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM2, PRN);
+#endif
+}
+
+static void DSP_subqmod(void)	
+{
+	UINT32 r1 = dsp_convert_zero[PIMM1];
+	UINT32 r2 = PRN;
+	UINT32 res = r2 - r1;
+	res = (res & (~dsp_modulo)) | (r2 & dsp_modulo);
+	PRES = res;
+	SET_ZNC_SUB(r2, r1, res);
+}
+
+static void DSP_subqt(void)
+{
+#ifdef DSP_DIS_SUBQT
+	if (doDSPDis)
+		WriteLog("%06X: SUBQT  #%u, R%02u [NCZ:%u%u%u, R%02u=%08X] -> ", dsp_pc-2, dsp_convert_zero[PIMM1], PIMM2, dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM2, PRN);
+#endif
+	PRES = PRN - dsp_convert_zero[PIMM1];
+#ifdef DSP_DIS_SUBQT
+	if (doDSPDis)
+		WriteLog("[NCZ:%u%u%u, R%02u=%08X]\n", dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM2, PRN);
+#endif
+}
+
+static void DSP_xor(void)
+{
+#ifdef DSP_DIS_XOR
+	if (doDSPDis)
+		WriteLog("%06X: XOR    R%02u, R%02u [NCZ:%u%u%u, R%02u=%08X, R%02u=%08X] -> ", dsp_pc-2, PIMM1, PIMM2, dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM1, PRM, PIMM2, PRN);
+#endif
+	PRES = PRN ^ PRM;
+	SET_ZN(PRES);
+#ifdef DSP_DIS_XOR
+	if (doDSPDis)
+		WriteLog("[NCZ:%u%u%u, R%02u=%08X, R%02u=%08X]\n", dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM1, PRM, PIMM2, PRN);
+#endif
 }
