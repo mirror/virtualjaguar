@@ -34,6 +34,7 @@ Window * ResetJaguar(void);
 Window * RunEmu(void);
 Window * Quit(void);
 Window * About(void);
+Window * MiscOptions(void);
 
 int gzfilelength(gzFile gd);
 
@@ -113,6 +114,87 @@ uint16 downArrowBox[] = {
 	0x0217,0x0217,0x0217,0x0217,0x0217,0x0217,0x0217,0x0217			// ........
 };
 
+uint16 pushButtonUp[] = {
+	8, 8,
+
+	0x0000,0x0000,0x0000,0x000A,0x000A,0x0000,0x0000,0x0000,		// ...##...
+	0x0000,0x000A,0x000A,0x000A,0x000A,0x000A,0x000A,0x0000,		// .######.
+	0x0000,0x000A,0x000A,0x000A,0x000A,0x000A,0x000A,0x0000,		// .######.
+	0x000A,0x000A,0x000A,0x000A,0x000A,0x000A,0x000A,0x000A,		// ########
+	0x000A,0x000A,0x000A,0x000A,0x000A,0x000A,0x000A,0x000A,		// ########
+	0x0000,0x000A,0x000A,0x000A,0x000A,0x000A,0x000A,0x0000,		// .######.
+	0x0000,0x000A,0x000A,0x000A,0x000A,0x000A,0x000A,0x0000,		// .######.
+	0x0000,0x0000,0x0000,0x000A,0x000A,0x0000,0x0000,0x0000			// ...##...
+};
+
+uint16 pushButtonDown[] = {
+	8, 8,
+
+	0x0000,0x0000,0x0000,0x000A,0x000A,0x0000,0x0000,0x0000,		// ...@@...
+	0x0000,0x000A,0x000A,0x0C7F,0x0C7F,0x000A,0x000A,0x0000,		// .@@##@@.
+	0x0000,0x000A,0x0C7F,0x0C7F,0x0C7F,0x0C7F,0x000A,0x0000,		// .@####@.
+	0x000A,0x0C7F,0x0C7F,0x0C7F,0x0C7F,0x0C7F,0x0C7F,0x000A,		// @######@
+	0x000A,0x0C7F,0x0C7F,0x0C7F,0x0C7F,0x0C7F,0x0C7F,0x000A,		// @######@
+	0x0000,0x000A,0x0C7F,0x0C7F,0x0C7F,0x0C7F,0x000A,0x0000,		// .@####@.
+	0x0000,0x000A,0x000A,0x0C7F,0x0C7F,0x000A,0x000A,0x0000,		// .@@##@@.
+	0x0000,0x0000,0x0000,0x000A,0x000A,0x0000,0x0000,0x0000			// ...@@...
+};
+
+uint16 slideSwitchUp[] = {
+	8, 16,
+
+	0x4B5E,0x4B5E,0x4B5E,0x4B5E,0x4B5E,0x4B5E,0x4B5E,0x4B5E,		// ++++++++
+	0x4B5E,0x0C7F,0x0C7F,0x0C7F,0x0C7F,0x0C7F,0x0C7F,0x0217,		// +      .
+	0x4B5E,0x0C7F,0x0C7F,0x0C7F,0x0C7F,0x0C7F,0x0C7F,0x0217,		// +      .
+	0x4B5E,0x0C7F,0x0C7F,0x0C7F,0x0C7F,0x0C7F,0x0C7F,0x0217,		// +      .
+	0x4B5E,0x0C7F,0x0C7F,0x0C7F,0x0C7F,0x0C7F,0x0C7F,0x0217,		// +      .
+	0x4B5E,0x0C7F,0x0C7F,0x0C7F,0x0C7F,0x0C7F,0x0C7F,0x0217,		// +      .
+	0x4B5E,0x0C7F,0x0C7F,0x0C7F,0x0C7F,0x0C7F,0x0C7F,0x0217,		// +      .
+	0x4B5E,0x0C7F,0x0C7F,0x0C7F,0x0C7F,0x0C7F,0x0C7F,0x0217,		// +      .
+	0x4B5E,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0217,		// +.......
+	0x4B5E,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0217,		// +.......
+	0x4B5E,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0217,		// +.......
+	0x4B5E,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0217,		// +.......
+	0x4B5E,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0217,		// +.......
+	0x4B5E,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0217,		// +.......
+	0x4B5E,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0217,		// +.......
+	0x0217,0x0217,0x0217,0x0217,0x0217,0x0217,0x0217,0x0217			// ........
+};
+
+uint16 slideSwitchDown[] = {
+	8, 16,
+
+	0x4B5E,0x4B5E,0x4B5E,0x4B5E,0x4B5E,0x4B5E,0x4B5E,0x4B5E,		// ++++++++
+	0x4B5E,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0217,		// +.......
+	0x4B5E,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0217,		// +.......
+	0x4B5E,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0217,		// +.......
+	0x4B5E,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0217,		// +.......
+	0x4B5E,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0217,		// +.......
+	0x4B5E,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0217,		// +.......
+	0x4B5E,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0217,		// +.......
+	0x4B5E,0x0C7F,0x0C7F,0x0C7F,0x0C7F,0x0C7F,0x0C7F,0x0217,		// +      .
+	0x4B5E,0x0C7F,0x0C7F,0x0C7F,0x0C7F,0x0C7F,0x0C7F,0x0217,		// +      .
+	0x4B5E,0x0C7F,0x0C7F,0x0C7F,0x0C7F,0x0C7F,0x0C7F,0x0217,		// +      .
+	0x4B5E,0x0C7F,0x0C7F,0x0C7F,0x0C7F,0x0C7F,0x0C7F,0x0217,		// +      .
+	0x4B5E,0x0C7F,0x0C7F,0x0C7F,0x0C7F,0x0C7F,0x0C7F,0x0217,		// +      .
+	0x4B5E,0x0C7F,0x0C7F,0x0C7F,0x0C7F,0x0C7F,0x0C7F,0x0217,		// +      .
+	0x4B5E,0x0C7F,0x0C7F,0x0C7F,0x0C7F,0x0C7F,0x0C7F,0x0217,		// +      .
+	0x0217,0x0217,0x0217,0x0217,0x0217,0x0217,0x0217,0x0217			// ........
+};
+
+/*uint16 [] = {
+	8, 8,
+
+	0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,		// ........
+	0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,		// ........
+	0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,		// ........
+	0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,		// ........
+	0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,		// ........
+	0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,		// ........
+	0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,		// ........
+	0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000			// ........
+};*/
+
 char separator[] = "--------------------------------------------------------";
 
 uint16 background[1280 * 240];
@@ -155,6 +237,7 @@ bool Element::Inside(uint32 x, uint32 y)
 	return (x >= (uint32)extents.x && x < (uint32)(extents.x + extents.w)
 		&& y >= (uint32)extents.y && y < (uint32)(extents.y + extents.h) ? true : false);
 }
+
 
 class Button: public Element
 {
@@ -238,6 +321,160 @@ void Button::Draw(uint32 offsetX/*= 0*/, uint32 offsetY/*= 0*/)
 	if (text.length() > 0)
 		DrawString(screenBuffer, extents.x + offsetX, extents.y + offsetY, false, "%s", text.c_str());
 }
+
+
+class PushButton: public Element
+{
+// How to handle?
+// Save state externally?
+
+	public:
+//		PushButton(uint32 x = 0, uint32 y = 0, uint32 w = 0, uint32 h = 0): Element(x, y, w, h),
+//			activated(false), clicked(false), inside(false), fgColor(0xFFFF),
+//			bgColor(0x03E0), pic(NULL), elementToTell(NULL) {}
+		PushButton(uint32 x, uint32 y, bool * st, string s): Element(x, y, 8, 8), state(st),
+			inside(false), text(s) { if (st == NULL) state = &internalState; }
+/*		Button(uint32 x, uint32 y, uint32 w, uint32 h, uint16 * p): Element(x, y, w, h),
+			activated(false), clicked(false), inside(false), fgColor(0xFFFF),
+			bgColor(0x03E0), pic(p), elementToTell(NULL) {}
+		Button(uint32 x, uint32 y, uint16 * p): Element(x, y, 0, 0),
+			activated(false), clicked(false), inside(false), fgColor(0xFFFF),
+			bgColor(0x03E0), pic(p), elementToTell(NULL)
+			{ if (pic) extents.w = pic[0], extents.h = pic[1]; }
+		Button(uint32 x, uint32 y, uint32 w, uint32 h, string s): Element(x, y, w, h),
+			activated(false), clicked(false), inside(false), fgColor(0xFFFF),
+			bgColor(0x03E0), pic(NULL), text(s), elementToTell(NULL) {}
+		PushButton(uint32 x, uint32 y, string s): Element(x, y, 0, 8),
+			activated(false), clicked(false), inside(false), fgColor(0xFFFF),
+			bgColor(0x03E0), pic(NULL), text(s), elementToTell(NULL)
+			{ extents.w = s.length() * 8; }*/
+		virtual void HandleKey(SDLKey key) {}
+		virtual void HandleMouseMove(uint32 x, uint32 y);
+		virtual void HandleMouseButton(uint32 x, uint32 y, bool mouseDown);
+		virtual void Draw(uint32 offsetX = 0, uint32 offsetY = 0);
+		virtual void Notify(Element *) {}
+//		bool ButtonClicked(void) { return activated; }
+//		void SetNotificationElement(Element * e) { elementToTell = e; }
+
+	protected:
+		bool * state;
+		bool inside;
+//		bool activated, clicked, inside;
+//		uint16 fgColor, bgColor;
+//		uint16 * pic;
+		string text;
+//		Element * elementToTell;
+		bool internalState;
+};
+
+void PushButton::HandleMouseMove(uint32 x, uint32 y)
+{
+	inside = Inside(x, y);
+}
+
+void PushButton::HandleMouseButton(uint32 x, uint32 y, bool mouseDown)
+{
+	if (inside && mouseDown)
+	{
+/*		if (mouseDown)
+			clicked = true;
+
+		if (clicked && !mouseDown)
+		{
+			clicked = false, activated = true;
+
+			// Send a message that we're activated (if there's someone to tell, that is)
+			if (elementToTell)
+				elementToTell->Notify(this);
+		}*/
+		*state = !(*state);
+	}
+//	else
+//		clicked = activated = false;
+}
+
+void PushButton::Draw(uint32 offsetX/*= 0*/, uint32 offsetY/*= 0*/)
+{
+/*	uint32 addr = (extents.x + offsetX) + ((extents.y + offsetY) * pitch);
+
+	for(uint32 y=0; y<extents.h; y++)
+	{
+		for(uint32 x=0; x<extents.w; x++)
+		{
+			// Doesn't clip in y axis! !!! FIX !!!
+			if (extents.x + x < pitch)
+				screenBuffer[addr + x + (y * pitch)] 
+					= (clicked && inside ? fgColor : (inside ? 0x43F0 : bgColor));
+		}
+	}*/
+
+	DrawTransparentBitmap(screenBuffer, extents.x + offsetX, extents.y + offsetY, (*state ? pushButtonDown : pushButtonUp));
+	if (text.length() > 0)
+		DrawString(screenBuffer, extents.x + offsetX + 12, extents.y + offsetY, false, "%s", text.c_str());
+}
+
+
+class SlideSwitch: public Element
+{
+// How to handle?
+// Save state externally?
+
+	public:
+		SlideSwitch(uint32 x, uint32 y, bool * st, string s1, string s2): Element(x, y, 8, 16), state(st),
+			inside(false), text1(s1), text2(s2) {}
+		virtual void HandleKey(SDLKey key) {}
+		virtual void HandleMouseMove(uint32 x, uint32 y);
+		virtual void HandleMouseButton(uint32 x, uint32 y, bool mouseDown);
+		virtual void Draw(uint32 offsetX = 0, uint32 offsetY = 0);
+		virtual void Notify(Element *) {}
+//		bool ButtonClicked(void) { return activated; }
+//		void SetNotificationElement(Element * e) { elementToTell = e; }
+
+	protected:
+		bool * state;
+		bool inside;
+//		bool activated, clicked, inside;
+//		uint16 fgColor, bgColor;
+//		uint16 * pic;
+		string text1, text2;
+//		Element * elementToTell;
+};
+
+void SlideSwitch::HandleMouseMove(uint32 x, uint32 y)
+{
+	inside = Inside(x, y);
+}
+
+void SlideSwitch::HandleMouseButton(uint32 x, uint32 y, bool mouseDown)
+{
+	if (inside && mouseDown)
+	{
+/*		if (mouseDown)
+			clicked = true;
+
+		if (clicked && !mouseDown)
+		{
+			clicked = false, activated = true;
+
+			// Send a message that we're activated (if there's someone to tell, that is)
+			if (elementToTell)
+				elementToTell->Notify(this);
+		}*/
+		*state = !(*state);
+	}
+//	else
+//		clicked = activated = false;
+}
+
+void SlideSwitch::Draw(uint32 offsetX/*= 0*/, uint32 offsetY/*= 0*/)
+{
+	DrawTransparentBitmap(screenBuffer, extents.x + offsetX, extents.y + offsetY, (*state ? slideSwitchDown : slideSwitchUp));
+	if (text1.length() > 0)
+		DrawString(screenBuffer, extents.x + offsetX + 12, extents.y + offsetY, false, "%s", text1.c_str());
+	if (text2.length() > 0)
+		DrawString(screenBuffer, extents.x + offsetX + 12, extents.y + offsetY + 8, false, "%s", text2.c_str());
+}
+
 
 class Window: public Element
 {
@@ -342,6 +579,7 @@ void Window::Notify(Element * e)
 	}
 }
 
+
 class Text: public Element
 {
 	public:
@@ -365,6 +603,7 @@ void Text::Draw(uint32 offsetX/*= 0*/, uint32 offsetY/*= 0*/)
 	if (text.length() > 0)
 		DrawString(screenBuffer, extents.x + offsetX, extents.y + offsetY, false, "%s", text.c_str());
 }
+
 
 class ListBox: public Element
 //class ListBox: public Window
@@ -491,8 +730,8 @@ void ListBox::HandleMouseMove(uint32 x, uint32 y)
 	if (thumbClicked)
 	{
 		uint32 sbHeight = extents.h - 24,
-			thumb = (uint32)(((float)limit / (float)item.size()) * (float)sbHeight),
-			thumbStart = (uint32)(((float)windowPtr / (float)item.size()) * (float)sbHeight);
+			thumb = (uint32)(((float)limit / (float)item.size()) * (float)sbHeight);//,
+//			thumbStart = (uint32)(((float)windowPtr / (float)item.size()) * (float)sbHeight);
 
 //yRelativePoint is the spot on the thumb where we clicked...
 //		int32 thumbDelta = y - yRelativePoint;
@@ -614,6 +853,7 @@ string ListBox::GetSelectedItem(void)
 	return item[windowPtr + cursor];
 }
 
+
 class FileList: public Window
 {
 	public:
@@ -676,16 +916,17 @@ void FileList::Notify(Element * e)
 
 		strcat(filename, files->GetSelectedItem().c_str());
 
-		uint32 romSize = JaguarLoadROM(jaguar_mainRom, filename);
+//		uint32 romSize = JaguarLoadROM(jaguar_mainRom, filename);
+		JaguarLoadCart(jaguar_mainRom, filename);
 
-		if (romSize == 0)
+//		if (romSize == 0)
 //We need better error checking here... !!! FIX !!!
-			WriteLog("VJ: Could not load ROM from file \"%s\"...", files->GetSelectedItem().c_str());
-		else
-		{
-			jaguar_mainRom_crc32 = crc32_calcCheckSum(jaguar_mainRom, romSize);
-			WriteLog("CRC: %08X\n", (unsigned int)jaguar_mainRom_crc32);
-			eeprom_init();
+//			WriteLog("VJ: Could not load ROM from file \"%s\"...", files->GetSelectedItem().c_str());
+//		else
+//		{
+//			jaguar_mainRom_crc32 = crc32_calcCheckSum(jaguar_mainRom, romSize);
+//			WriteLog("CRC: %08X\n", (unsigned int)jaguar_mainRom_crc32);
+//			eeprom_init();
 
 			SDL_Event event;
 			event.type = SDL_USEREVENT, event.user.code = WINDOW_CLOSE;
@@ -694,7 +935,7 @@ void FileList::Notify(Element * e)
 			event.type = SDL_USEREVENT, event.user.code = MENU_ITEM_CHOSEN;
 			event.user.data1 = (void *)ResetJaguar;
 		    SDL_PushEvent(&event);
-		}
+//		}
 	}
 	else
 		Window::Notify(e);
@@ -710,6 +951,7 @@ struct NameAction
 	NameAction(string n, Window * (* a)(void) = NULL, SDLKey k = SDLK_UNKNOWN): name(n),
 		action(a), hotKey(k) {}
 };
+
 
 class MenuItems
 {
@@ -904,6 +1146,7 @@ void Menu::Add(MenuItems mi)
 	extents.w += (mi.title.length() + 2) * 8;
 }
 
+
 //Do we even *need* this?
 class RootWindow: public Window
 {
@@ -1086,7 +1329,7 @@ bool GUIMain(void)
 	mi.item.clear();
 	mi.item.push_back(NameAction("Video..."));
 	mi.item.push_back(NameAction("Audio..."));
-	mi.item.push_back(NameAction("Misc..."));
+	mi.item.push_back(NameAction("Misc...", MiscOptions, SDLK_m));
 	mainMenu.Add(mi);
 	mi.title = "Info";
 	mi.item.clear();
@@ -1225,16 +1468,24 @@ Window * RunEmu(void)
 {
 //This is crappy... !!! FIX !!!
 	extern int16 * backbuffer;
-	extern bool finished;
-	extern bool showGUI;
+	extern bool finished, showGUI;
+
 	uint32 nFrame = 0, nFrameskip = 0;
 	uint32 totalFrames = 0;
 	finished = false;
 	bool showMessage = true;
-	uint32 showMsgFrames = 60;
+	uint32 showMsgFrames = 120;
 	uint8 transparency = 0;
 	// Pass a message to the "joystick" code to debounce the ESC key...
 	debounceRunKey = true;
+
+	uint32 cartType = 2;
+	if (jaguarRomSize == 0x200000)
+		cartType = 0;
+	else if (jaguarRomSize == 0x400000)
+		cartType = 1;
+
+	char * cartTypeName[3] = { "2M Cartridge", "4M Cartridge", "Homebrew" };
 
 	while (!finished)
 	{
@@ -1262,13 +1513,20 @@ Window * RunEmu(void)
 		if (showMessage)
 		{
 			DrawStringTrans(backbuffer, 8, 24*8, 0xFF0F, transparency, "Running...");
+			DrawStringTrans(backbuffer, 8, 26*8, 0x3FE3, transparency, "%s, run address: %06X", cartTypeName[cartType], jaguarRunAddress);
+			DrawStringTrans(backbuffer, 8, 27*8, 0x3FE3, transparency, "CRC: %08X", jaguar_mainRom_crc32);
 
 			if (showMsgFrames == 0)
 			{			
 				transparency++;
 
 				if (transparency == 33)
+{
 					showMessage = false;
+/*extern bool doGPUDis;
+doGPUDis = true;//*/
+}
+
 			}
 			else
 				showMsgFrames--;
@@ -1304,8 +1562,16 @@ Window * RunEmu(void)
 
 Window * Quit(void)
 {
+//This is crap. We need some REAL exit code, instead of this psuedo crap... !!! FIX !!!
 	WriteLog("GUI: Quitting due to user request.\n");
-	log_done();
+
+//	log_done();
+	jaguar_done();
+	version_done();
+	memory_done();
+	VideoDone();									// Free SDL components last...!
+	log_done();	
+
 	exit(0);
 
 	return NULL;									// We never get here...
@@ -1323,6 +1589,29 @@ Window * About(void)
 
 	return window;
 }
+
+Window * MiscOptions(void)
+{
+	Window * window = new Window(8, 16, 304, 160);
+	window->AddElement(new PushButton(8, 8, &vjs.useJaguarBIOS, "BIOS"));
+	window->AddElement(new SlideSwitch(8, 20, &vjs.hardwareTypeNTSC, "PAL", "NTSC"));
+	window->AddElement(new PushButton(8, 40, &vjs.DSPEnabled, "DSP"));
+	window->AddElement(new SlideSwitch(16, 52, &vjs.usePipelinedDSP, "Original", "Pipelined"));
+	window->AddElement(new SlideSwitch(8, 72, (bool *)&vjs.glFilter, "Sharp", "Blurry"));
+
+// Missing:
+// * BIOS path
+// * ROM path
+// * EEPROM path
+// * joystick
+// * joystick port
+// * OpenGL?
+// * GL Filter type
+// * Window/fullscreen
+
+	return window;
+}
+
 
 //
 // Draw "picture"
@@ -1582,10 +1871,10 @@ uint32 JaguarLoadROM(uint8 * rom, char * path)
 //
 void JaguarLoadCart(uint8 * mem, char * path)
 {
-	uint32 romSize = JaguarLoadROM(mem, path);
+	jaguarRomSize = JaguarLoadROM(mem, path);
 
-	if (romSize == 0)
-	{
+//	if (romSize == 0)
+//	{
 /*		char newPath[2048];
 		WriteLog("VJ: Trying GUI...\n");
 
@@ -1600,18 +1889,38 @@ void JaguarLoadCart(uint8 * mem, char * path)
 
 		romSize = JaguarLoadROM(mem, newPath);
 */
-		if (romSize == 0)
+		if (jaguarRomSize == 0)
 		{
 //			WriteLog("VJ: Could not load ROM from file \"%s\"...\nAborting!\n", newPath);
 			WriteLog("VJ: Could not load ROM from file \"%s\"...\nAborting!\n", path);
 			log_done();
 			exit(0);
 		}
-	}
+//	}
 
-	jaguar_mainRom_crc32 = crc32_calcCheckSum(jaguar_mainRom, romSize);
+	jaguar_mainRom_crc32 = crc32_calcCheckSum(jaguar_mainRom, jaguarRomSize);
 	WriteLog("CRC: %08X\n", (unsigned int)jaguar_mainRom_crc32);
 	eeprom_init();
+
+	jaguarRunAddress = 0x802000;
+//NOTE: The bytes 'JAGR' should also be at position $1C...
+//      Also, there's *always* a $601A header at position $00...
+	if (jaguar_mainRom[0] == 0x60 && jaguar_mainRom[1] == 0x1A)
+	{
+		uint32 loadAddress = GET32(jaguar_mainRom, 0x22), runAddress = GET32(jaguar_mainRom, 0x2A);
+//This is not always right! Especially when converted via bin2jag1!!!
+//We should have access to the length of the furshlumiger file that was loaded anyway!
+//Now, we do! ;-)
+//			uint32 progLength = GET32(jaguar_mainRom, 0x02);
+//jaguarRomSize
+//jaguarRunAddress
+//			WriteLog("Jaguar: Setting up PD ROM... Run address: %08X, length: %08X\n", runAddress, progLength);
+//			memcpy(jaguar_mainRam + loadAddress, jaguar_mainRom + 0x2E, progLength);
+		WriteLog("Jaguar: Setting up PD ROM... Run address: %08X, length: %08X\n", runAddress, jaguarRomSize - 0x2E);
+		memcpy(jaguar_mainRam + loadAddress, jaguar_mainRom + 0x2E, jaguarRomSize - 0x2E);
+//		SET32(jaguar_mainRam, 4, runAddress);
+		jaguarRunAddress = runAddress;
+	}
 }
 
 //

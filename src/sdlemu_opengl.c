@@ -22,6 +22,7 @@
 static SDL_Surface *texture      = 0;
 static GLuint       texid        = 0;
 static GLfloat      texcoord[4];
+static unsigned int glFilter;
 
 static inline int power_of_two(int input)
 {
@@ -33,16 +34,16 @@ static inline int power_of_two(int input)
 	return value;
 }
 
-void sdlemu_init_opengl(SDL_Surface * src, int texturetype, int size, int glfilter)
+void sdlemu_init_opengl(SDL_Surface * src, int texturetype, float size, int filter)
 {
 	int w, h;
 
 	printf("\nOpenGL driver information :\n");
 	printf("\n");
-	printf("Vendor            : %s\n", glGetString(GL_VENDOR));
-	printf("Renderer          : %s\n", glGetString(GL_RENDERER));
-	printf("Version           : %s\n", glGetString(GL_VERSION));
-	printf("OpenGL drawmethod : ");
+	printf("Vendor:            %s\n", glGetString(GL_VENDOR));
+	printf("Renderer:          %s\n", glGetString(GL_RENDERER));
+	printf("Version:           %s\n", glGetString(GL_VERSION));
+	printf("OpenGL drawmethod: ");
 
 	switch (texturetype)
 	{
@@ -53,6 +54,8 @@ void sdlemu_init_opengl(SDL_Surface * src, int texturetype, int size, int glfilt
 		printf("GL_TRIANGLE rendering\n\n");
 		break;
 	}
+
+	glFilter = filter;
 
 	// Texture width/height should be power of 2
 	// So, find the largest power of two that will contain both the width and height
@@ -94,15 +97,15 @@ void sdlemu_init_opengl(SDL_Surface * src, int texturetype, int size, int glfilt
 	glGenTextures(1, &texid);
 	glBindTexture(GL_TEXTURE_2D, texid);
 	
-	if (glfilter)
+	if (glFilter)
 	{
-       printf("OpenGL filters : enabled\n");
+       printf("OpenGL filters: enabled\n");
 	   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	}
 	else
 	{
-       printf("OpenGL filters : disabled\n");
+       printf("OpenGL filters: disabled\n");
 	   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     }
@@ -158,8 +161,9 @@ void sdlemu_close_opengl(void)
 // Resize the texture
 // This should honor the glFilter flag that is passed in to the initialization code,
 // but, at the moment, it doesn't...
+// Now it does...!
 //
-void sdlemu_resize_texture(SDL_Surface * src, SDL_Surface * dst)
+void sdlemu_resize_texture(SDL_Surface * src, SDL_Surface * dst, int filter)
 {
 	// Texture width/height should be power of 2
 	// So, find the largest power of two that will contain both the width and height
@@ -204,15 +208,16 @@ void sdlemu_resize_texture(SDL_Surface * src, SDL_Surface * dst)
 	glGenTextures(1, &texid);
 	glBindTexture(GL_TEXTURE_2D, texid);
 	
-/*	if (glfilter)
+//	if (glFilter)
+	if (filter)
 	{
-       printf("OpenGL filters : enabled\n");
+       printf("OpenGL filters: enabled\n");
 	   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	}
-	else*/
+	else
 	{
-       printf("OpenGL filters : disabled\n");
+       printf("OpenGL filters: disabled\n");
 	   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     }

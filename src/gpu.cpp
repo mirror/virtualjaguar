@@ -1,7 +1,7 @@
 //
 // GPU Core
 //
-// by Cal2
+// Originally by David Raingeard (Cal2)
 // GCC/SDL port by Niels Wagenaar (Linux/WIN32) and Caz (BeOS)
 // Cleanups, endian wrongness, and bad ASM amelioration by James L. Hammons
 // Note: Endian wrongness probably stems from the MAME origins of this emu and
@@ -1593,7 +1593,7 @@ static void gpu_opcode_move_pc(void)
 {
 #ifdef GPU_DIS_MOVEPC
 	if (doGPUDis)
-		WriteLog("%06X: MOVE   PC, R%02u [NCZ:%u%u%u, PC=%08X, R%02u=%08X] -> ", gpu_pc-2, IMM_1, IMM_2, gpu_flag_n, gpu_flag_c, gpu_flag_z, gpu_pc-2, IMM_2, RN);
+		WriteLog("%06X: MOVE   PC, R%02u [NCZ:%u%u%u, PC=%08X, R%02u=%08X] -> ", gpu_pc-2, IMM_2, gpu_flag_n, gpu_flag_c, gpu_flag_z, gpu_pc-2, IMM_2, RN);
 #endif
 	// Should be previous PC--this might not always be previous instruction!
 	// Then again, this will point right at the *current* instruction, i.e., MOVE PC,R!

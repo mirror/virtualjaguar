@@ -34,9 +34,10 @@ void LoadVJSettings(void)
 	vjs.hardwareTypeNTSC = sdlemu_getval_bool("hardwareTypeNTSC", true);
 	vjs.useJaguarBIOS = sdlemu_getval_bool("useJaguarBIOS", false);
 	vjs.DSPEnabled = sdlemu_getval_bool("DSPEnabled", false);
+	vjs.usePipelinedDSP = sdlemu_getval_bool("usePipelinedDSP", true);
 	vjs.fullscreen = sdlemu_getval_bool("fullscreen", false);
 	vjs.useOpenGL = sdlemu_getval_bool("useOpenGL", true);
-	vjs.usePipelinedDSP = sdlemu_getval_bool("usePipelinedDSP", true);
+	vjs.glFilter = sdlemu_getval_int("glFilterType", 0);
 
 	// Keybindings in order of U, D, L, R, C, B, A, Op, Pa, 0-9, #, *
 	vjs.p1KeyBindings[0] = sdlemu_getval_int("p1k_up", SDLK_UP);

@@ -316,6 +316,9 @@ extern int op_start_log;
 
 //	objectp_stop_reading_list = false;
 
+//WriteLog("OP: Processing line #%u (OLP=%08X)...\n", scanline, op_pointer);
+//op_done();
+
 // *** BEGIN OP PROCESSOR TESTING ONLY ***
 extern bool interactiveMode;
 extern bool iToggle;
@@ -337,6 +340,7 @@ else
 //			return;
 			
 		uint64 p0 = op_load_phrase(op_pointer);
+//WriteLog("\t%08X type %i\n", op_pointer, (uint8)p0 & 0x07);
 		op_pointer += 8;
 if (scanline == tom_get_vdb() && op_start_log)
 //if (scanline == 215 && op_start_log)
@@ -406,7 +410,6 @@ if ((p0 & 0x07) == OBJECT_TYPE_STOP)
 WriteLog("    --> List end\n");
 }//*/
 		
-//		WriteLog("%08X type %i\n", op_pointer, (uint8)p0 & 0x07);		
 		switch ((uint8)p0 & 0x07)
 		{
 		case OBJECT_TYPE_BITMAP:
@@ -465,7 +468,14 @@ if (!inhibit)	// For OP testing only!
 				p0 |= data << 40;
 				OPStorePhrase(oldOPP, p0);
 			}
+//WriteLog("\t\tOld OP: %08X -> ", op_pointer);
+//Temp, for testing...
+//No doubt, this type of check will break all kinds of stuff... !!! FIX !!!
+	if (op_pointer > ((p0 & 0x000007FFFF000000LL) >> 21))
+		return;
+
 			op_pointer = (p0 & 0x000007FFFF000000LL) >> 21;
+//WriteLog("New OP: %08X\n", op_pointer);
 			break;
 		}
 		case OBJECT_TYPE_SCALE:
@@ -506,12 +516,14 @@ if (!inhibit)	// For OP testing only!
 				if (vscale == 0)
 					vscale = 0x20;					// OP bug??? Nope, it isn't...! Or is it?
 
-/*extern int start_logging;
-if (start_logging)
-	WriteLog("--> Returned from scaled bitmap processing (rem=%02X, vscale=%02X)...\n", remainder, vscale);*/
+//extern int start_logging;
+//if (start_logging)
+//	WriteLog("--> Returned from scaled bitmap processing (rem=%02X, vscale=%02X)...\n", remainder, vscale);//*/
 //Locks up here:
 //--> Returned from scaled bitmap processing (rem=20, vscale=80)...
 //There are other problems here, it looks like...
+//Another lock up:
+//About to execute OP (508)...
 /*
 OP: Scaled bitmap 4x? 4bpp at 38,? hscale=7C fpix=0 data=00075E28 pitch 1 hflipped=no dwidth=? (linked to 00071118) Transluency=no
 --> Returned from scaled bitmap processing (rem=50, vscale=7C)...
@@ -576,8 +588,8 @@ OP: Scaled bitmap 4x? 4bpp at 34,? hscale=80 fpix=0 data=000756E8 pitch 1 hflipp
 
 				remainder -= 0x20;					// 1.0f in [3.5] fixed point format
 
-/*if (start_logging)
-	WriteLog("--> Finished writebacks...\n");*/
+//if (start_logging)
+//	WriteLog("--> Finished writebacks...\n");//*/
 
 //WriteLog(" [%08X%08X -> ", (uint32)(p2>>32), (uint32)(p2&0xFFFFFFFF));
 				p2 &= ~0x0000000000FF0000LL;

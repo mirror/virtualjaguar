@@ -26,7 +26,7 @@
 // Exports from JAGUAR.CPP
 
 extern int32 jaguar_cpu_in_exec;
-extern uint32 jaguar_mainRom_crc32;
+extern uint32 jaguar_mainRom_crc32, jaguarRomSize, jaguarRunAddress;
 extern char * jaguar_eeproms_path;
 extern char * whoName[9];
 

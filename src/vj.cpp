@@ -181,7 +181,9 @@ int main(int argc, char * argv[])
 	jaguar_init();
 
 	// Get the BIOS ROM
-	if (vjs.useJaguarBIOS)
+//	if (vjs.useJaguarBIOS)
+// What would be nice here would be a way to check if the BIOS was loaded so that we
+// could disable the pushbutton on the Misc Options menu... !!! FIX !!!
 		JaguarLoadROM(jaguar_bootRom, vjs.jagBootPath);
 
 	SET32(jaguar_mainRam, 0, 0x00200000);			// Set top of stack...

@@ -1,8 +1,8 @@
 //
 // JAGUAR.CPP
 //
-// by Cal2
-// GCC/SDL port by Niels Wagenaar (Linux/WIN32) and Caz (BeOS)
+// Originally by David Raingeard (Cal2)
+// GCC/SDL port by Niels Wagenaar (Linux/WIN32) and Carwin Jones (BeOS)
 // Cleanups and endian wrongness amelioration by James L. Hammons
 // Note: Endian wrongness probably stems from the MAME origins of this emu and
 //       the braindead way in which MAME handles memory. :-)
@@ -16,6 +16,7 @@
 #define CPU_DEBUG
 //Do this in makefile??? Yes! Could, but it's easier to define here...
 #define LOG_UNMAPPED_MEMORY_ACCESSES
+//#define ABORT_ON_UNMAPPED_MEMORY_ACCESS
 #define CPU_DEBUG_MEMORY
 
 // Private function prototypes
@@ -42,7 +43,7 @@ char * whoName[9] =
 
 uint32 jaguar_active_memory_dumps = 0;
 
-uint32 jaguar_mainRom_crc32;
+uint32 jaguar_mainRom_crc32, jaguarRomSize, jaguarRunAddress;
 
 /*static*/ uint8 * jaguar_mainRam = NULL;
 /*static*/ uint8 * jaguar_bootRom = NULL;
@@ -462,6 +463,8 @@ void jaguar_unknown_writebyte(unsigned address, unsigned data, uint32 who/*=UNKN
 {
 #ifdef LOG_UNMAPPED_MEMORY_ACCESSES
 	WriteLog("Jaguar: Unknown byte %02X written at %08X by %s (M68K PC=%06X)\n", data, address, whoName[who], m68k_get_reg(NULL, M68K_REG_PC));
+#endif
+#ifdef ABORT_ON_UNMAPPED_MEMORY_ACCESS
 	extern bool finished;
 	finished = true;
 	extern bool doDSPDis;
@@ -474,6 +477,8 @@ void jaguar_unknown_writeword(unsigned address, unsigned data, uint32 who/*=UNKN
 {
 #ifdef LOG_UNMAPPED_MEMORY_ACCESSES
 	WriteLog("Jaguar: Unknown word %04X written at %08X by %s (M68K PC=%06X)\n", data, address, whoName[who], m68k_get_reg(NULL, M68K_REG_PC));
+#endif
+#ifdef ABORT_ON_UNMAPPED_MEMORY_ACCESS
 	extern bool finished;
 	finished = true;
 	extern bool doDSPDis;
@@ -486,6 +491,8 @@ unsigned jaguar_unknown_readbyte(unsigned address, uint32 who/*=UNKNOWN*/)
 {
 #ifdef LOG_UNMAPPED_MEMORY_ACCESSES
 	WriteLog("Jaguar: Unknown byte read at %08X by %s (M68K PC=%06X)\n", address, whoName[who], m68k_get_reg(NULL, M68K_REG_PC));
+#endif
+#ifdef ABORT_ON_UNMAPPED_MEMORY_ACCESS
 	extern bool finished;
 	finished = true;
 	extern bool doDSPDis;
@@ -499,6 +506,8 @@ unsigned jaguar_unknown_readword(unsigned address, uint32 who/*=UNKNOWN*/)
 {
 #ifdef LOG_UNMAPPED_MEMORY_ACCESSES
 	WriteLog("Jaguar: Unknown word read at %08X by %s (M68K PC=%06X)\n", address, whoName[who], m68k_get_reg(NULL, M68K_REG_PC));
+#endif
+#ifdef ABORT_ON_UNMAPPED_MEMORY_ACCESS
 	extern bool finished;
 	finished = true;
 	extern bool doDSPDis;
@@ -816,17 +825,27 @@ void jaguar_reset(void)
 		memcpy(jaguar_mainRam, jaguar_bootRom, 8);
 	else
 	{
-		SET32(jaguar_mainRam, 4, 0x00802000);
+// Should also make a run address global as well, for when we reset the jag (PD mainly)
+/*		SET32(jaguar_mainRam, 4, 0x00802000);
 		// Handle PD stuff...
 		// This should definitely go elsewhere (like in the cart load section)!
+//NOTE: The bytes 'JAGR' should also be at position $1C...
 		if (jaguar_mainRom[0] == 0x60 && jaguar_mainRom[1] == 0x1A)
 		{
-			uint32 runAddress = GET32(jaguar_mainRom, 0x2A);
-			uint32 progLength = GET32(jaguar_mainRom, 0x02);
-			WriteLog("Setting up PD ROM... Run address: %08X, length: %08X\n", runAddress, progLength);
-			memcpy(jaguar_mainRam + runAddress, jaguar_mainRom + 0x2E, progLength);
+			uint32 loadAddress = GET32(jaguar_mainRom, 0x22), runAddress = GET32(jaguar_mainRom, 0x2A);
+//This is not always right! Especially when converted via bin2jag1!!!
+//We should have access to the length of the furshlumiger file that was loaded anyway!
+//Now, we do! ;-)
+//			uint32 progLength = GET32(jaguar_mainRom, 0x02);
+//jaguarRomSize
+//jaguarRunAddress
+//			WriteLog("Jaguar: Setting up PD ROM... Run address: %08X, length: %08X\n", runAddress, progLength);
+//			memcpy(jaguar_mainRam + loadAddress, jaguar_mainRom + 0x2E, progLength);
+			WriteLog("Jaguar: Setting up PD ROM... Run address: %08X, length: %08X\n", runAddress, jaguarRomSize - 0x2E);
+			memcpy(jaguar_mainRam + loadAddress, jaguar_mainRom + 0x2E, jaguarRomSize - 0x2E);
 			SET32(jaguar_mainRam, 4, runAddress);
-		}
+		}//*/
+		SET32(jaguar_mainRam, 4, jaguarRunAddress);
 	}
 
 //	WriteLog("jaguar_reset():\n");
@@ -895,23 +914,23 @@ if (effect_start)
 //		if (invalid_instruction_address != 0x80000000)
 //			cd_bios_process(invalid_instruction_address);
 //if (start_logging)
-//	WriteLog("About to execute M68K...\n");
+//	WriteLog("About to execute M68K (%u)...\n", i);
 		m68k_execute(M68KCyclesPerScanline);
 		// No CD handling... !!! FIX !!!
 //if (start_logging)
-//	WriteLog("About to execute CD BIOS...\n");
+//	WriteLog("About to execute CD BIOS (%u)...\n", i);
 		cd_bios_exec(i);	// NOTE: Ignores parameter...
 //if (start_logging)
-//	WriteLog("About to execute TOM's PIT...\n");
+//	WriteLog("About to execute TOM's PIT (%u)...\n", i);
 		TOMExecPIT(RISCCyclesPerScanline);
 //if (start_logging)
-//	WriteLog("About to execute JERRY's PIT...\n");
+//	WriteLog("About to execute JERRY's PIT (%u)...\n", i);
 		jerry_pit_exec(RISCCyclesPerScanline);
 //if (start_logging)
-//	WriteLog("About to execute JERRY's SSI...\n");
+//	WriteLog("About to execute JERRY's SSI (%u)...\n", i);
 		jerry_i2s_exec(RISCCyclesPerScanline);
 //if (start_logging)
-//	WriteLog("About to execute GPU...\n");
+//	WriteLog("About to execute GPU (%u)...\n", i);
 		gpu_exec(RISCCyclesPerScanline);
 
 		if (vjs.DSPEnabled)
@@ -922,7 +941,7 @@ if (effect_start)
 //			DSPExecComp(RISCCyclesPerScanline);		// Comparison core
 
 //if (start_logging)
-//	WriteLog("About to execute OP...\n");
+//	WriteLog("About to execute OP (%u)...\n", i);
 		TOMExecScanline(i, render);
 	}
 }

@@ -81,7 +81,8 @@ bool InitVideo(void)
 	}
 
 	if (vjs.useOpenGL)
-		sdlemu_init_opengl(surface, 1/*method*/, 2/*size*/, 0/*texture type (linear, nearest)*/);
+//Should make another setting here, for either linear or nearest (instead of just picking one)
+		sdlemu_init_opengl(surface, 1/*method*/, 2/*size*/, vjs.glFilter/*texture type (linear, nearest)*/);
 
 	// Initialize Joystick support under SDL
 	if (vjs.useJoystick)
@@ -169,9 +170,10 @@ void ResizeScreen(uint32 width, uint32 height)
 		exit(1);
 	}
 
-	sprintf(window_title, "Virtual Jaguar (%i x %i)", (int)width, (int)height);
-
-	if (!vjs.useOpenGL)
+	if (vjs.useOpenGL)
+		// This seems to work well for resizing (i.e., changes in the pixel width)...
+		sdlemu_resize_texture(surface, mainSurface, vjs.glFilter);
+	else
 	{
 		mainSurface = SDL_SetVideoMode(width, height, 16, mainSurfaceFlags);
 
@@ -182,11 +184,12 @@ void ResizeScreen(uint32 width, uint32 height)
 		}
 	}
 
+	sprintf(window_title, "Virtual Jaguar (%i x %i)", (int)width, (int)height);
 	SDL_WM_SetCaption(window_title, window_title);
 
 	// This seems to work well for resizing (i.e., changes in the pixel width)...
-	if (vjs.useOpenGL)
-		sdlemu_resize_texture(surface, mainSurface);
+//	if (vjs.useOpenGL)
+//		sdlemu_resize_texture(surface, mainSurface);
 }
 
 //

@@ -28,10 +28,10 @@
 extern "C" {
 #endif
 
-void sdlemu_init_opengl(SDL_Surface * src, int texturetype, int size, int glfilter);
+void sdlemu_init_opengl(SDL_Surface * src, int texturetype, float size, int filter);
 void sdlemu_draw_texture(SDL_Surface * dst, SDL_Surface * src, int texturetype);
 void sdlemu_close_opengl(void);
-void sdlemu_resize_texture(SDL_Surface * src, SDL_Surface * dst);
+void sdlemu_resize_texture(SDL_Surface * src, SDL_Surface * dst, int filter);
 
 #ifdef __cplusplus
 }

@@ -859,6 +859,20 @@ void blitter_blit(uint32 cmd)
 		a1_yadd = (REG(A1_INC) & 0xFFFF0000) | (REG(A1_FINC) >> 16);
 		break;
 	}
+
+
+//Blit! (0011D000 -> 000B9600) count: 228 x 1, A1/2_FLAGS: 00073820/00064220 [cmd: 41802801]
+//  A1 -> pitch: 1 phrases, depth: 16bpp, z-off: 0, width: 128 (1C), addctl: XADDINC YADD1 XSIGNADD YSIGNADD
+//  A2 -> pitch: 1 phrases, depth: 16bpp, z-off: 0, width: 320 (21), addctl: XADD0 YADD1 XSIGNADD YSIGNADD
+//if (YADD1_A1 && YADD1_A2 && xadd_a2_control == XADD0 && xadd_a1_control == XADDINC)// &&
+//	UINT32 a1f = REG(A1_FLAGS), a2f = REG(A2_FLAGS);
+//Ok, so this ISN'T it... Prolly the XADDPHR code above that's doing it...
+//if (REG(A1_FLAGS) == 0x00073820 && REG(A2_FLAGS) == 0x00064220 && cmd == 0x41802801)
+//        A1 x/y: 14368/7, A2 x/y: 150/36
+//This is it... The problem...
+//if ((a1_x >> 16) == 14368) // 14368 = $3820
+//	return; //Lesse what we got...
+
 	if (XSIGNSUB_A1)
 		a1_xadd = -a1_xadd;
 
@@ -892,6 +906,7 @@ WriteLog("BLIT: Asked to use invalid bit combo (XADDINC) for A2...\n");
 //		a2_xadd = 1 << 16;
 		break;
 	}
+
 	if (XSIGNSUB_A2)
 		a2_xadd = -a2_xadd;
 
@@ -1284,14 +1299,21 @@ uint8 BlitterReadByte(uint32 offset, uint32 who/*=UNKNOWN*/)
 	if (offset == (0x38 + 3))
 		return 0x01;	// always idle
 
+//Attempted fix for AvP:
+	if (offset >= 0x04 && offset <= 0x07)
+		return (offset > 0x05 ? blitter_ram[PIXLINECOUNTER + offset - 0x04] : 0x00);
+//		return 0x00;	// WO register! What does it expect to see here???
+
 	return blitter_ram[offset];
 }
 
+//Crappy!
 uint16 BlitterReadWord(uint32 offset, uint32 who/*=UNKNOWN*/)
 {
 	return ((uint16)BlitterReadByte(offset, who) << 8) | (uint16)BlitterReadByte(offset+1, who);
 }
 
+//Crappy!
 uint32 BlitterReadLong(uint32 offset, uint32 who/*=UNKNOWN*/)
 {
 	return (BlitterReadWord(offset, who) << 16) | BlitterReadWord(offset+2, who);
@@ -1338,6 +1360,21 @@ void BlitterWriteByte(uint32 offset, uint8 data, uint32 who/*=UNKNOWN*/)
 
 void BlitterWriteWord(uint32 offset, uint16 data, uint32 who/*=UNKNOWN*/)
 {
+//#if 1
+/*	if (offset & 0xFF == A1_PIXEL && data == 14368)
+	{
+		WriteLog("\n1\nA1_PIXEL written by %s (%u)...\n\n\n", whoName[who], data);
+extern bool doGPUDis;
+doGPUDis = true;
+	}
+	if ((offset & 0xFF) == (A1_PIXEL + 2) && data == 14368)
+	{
+		WriteLog("\n2\nA1_PIXEL written by %s (%u)...\n\n\n", whoName[who], data);
+extern bool doGPUDis;
+doGPUDis = true;
+	}//*/
+//#endif
+
 	BlitterWriteByte(offset+0, (data>>8) & 0xFF, who);
 	BlitterWriteByte(offset+1, data & 0xFF, who);
 
@@ -1345,14 +1382,20 @@ void BlitterWriteWord(uint32 offset, uint16 data, uint32 who/*=UNKNOWN*/)
 	// I.e., the second write of 32-bit value--not convinced this is the best way to do this!
 	// But then again, according to the Jaguar docs, this is correct...!
 		blitter_blit(GET32(blitter_ram, 0x38));
-// Testing purposes only!
-//This does the clipping correctly, but not the Gouraud shading...
-//		blitter2_exec(GET32(blitter_ram, 0x38));
 }
 //F02278,9,A,B
 
 void BlitterWriteLong(uint32 offset, uint32 data, uint32 who/*=UNKNOWN*/)
 {
+//#if 1
+/*	if ((offset & 0xFF) == A1_PIXEL && (data & 0xFFFF) == 14368)
+	{
+		WriteLog("\n3\nA1_PIXEL written by %s (%u)...\n\n\n", whoName[who], data);
+extern bool doGPUDis;
+doGPUDis = true;
+	}//*/
+//#endif
+
 	BlitterWriteWord(offset, data >> 16, who);
 	BlitterWriteWord(offset+2, data & 0xFFFF, who);
 }

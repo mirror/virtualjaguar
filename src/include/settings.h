@@ -20,9 +20,10 @@ struct VJSettings
 	bool hardwareTypeNTSC;							// Set to false for PAL
 	bool useJaguarBIOS;
 	bool DSPEnabled;
+	bool usePipelinedDSP;
 	bool fullscreen;
 	bool useOpenGL;
-	bool usePipelinedDSP;
+	uint32 glFilter;
 
 	// Keybindings in order of U, D, L, R, C, B, A, Op, Pa, 0-9, #, *
 	uint16 p1KeyBindings[21];
