@@ -193,8 +193,10 @@ void jerry_i2s_exec(uint32 cycles)
 	{
 		DSPSetIRQLine(DSPIRQ_SSI, ASSERT_LINE);
 		jerry_i2s_interrupt_timer += jerryI2SCycles;
+#ifdef JERRY_DEBUG
 		if (jerry_i2s_interrupt_timer < 0)
 			WriteLog("JERRY: Missed generating an interrupt (missed %u)!\n", (-jerry_i2s_interrupt_timer / jerryI2SCycles) + 1);
+#endif
 	}
 }
 
