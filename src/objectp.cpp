@@ -592,8 +592,11 @@ void OPProcessFixedBitmap(int scanline, uint64 p0, uint64 p1, bool render)
 //#endif
 
 	int32 phraseWidthToPixels[8] = { 64, 32, 16, 8, 4, 2, 0, 0 };
-	int32 leftMargin = xpos, rightMargin = (xpos + (phraseWidthToPixels[depth] * iwidth)) - 1;
-	uint32 clippedWidth = 0, phraseClippedWidth = 0;//, phrasePixel = 0;
+//	int32 leftMargin = xpos, rightMargin = (xpos + (phraseWidthToPixels[depth] * iwidth)) - 1;
+	int32 startPos = xpos, endPos = xpos +
+		(!(flags & OPFLAG_REFLECT) ? (phraseWidthToPixels[depth] * iwidth) - 1
+		: -((phraseWidthToPixels[depth] * iwidth) + 1));
+	uint32 clippedWidth = 0, phraseClippedWidth = 0, dataClippedWidth = 0;//, phrasePixel = 0;
 	bool in24BPPMode = (((GET16(tom_ram_8, 0x0028) >> 1) & 0x03) == 1 ? true : false);	// VMODE
 	// Not sure if this is Jaguar Two only location or what...
 	// From the docs, it is... If we want to limit here we should think of something else.
@@ -617,8 +620,11 @@ void OPProcessFixedBitmap(int scanline, uint64 p0, uint64 p1, bool render)
 // That way, you could simply set XPOS to leftMargin if !REFLECT and to rightMargin otherwise.
 // Still have to be careful with the DATA and IWIDTH values though...
 
-	if ((!(flags & OPFLAG_REFLECT) && (rightMargin < 0 || leftMargin > lbufWidth))
-		|| ((flags & OPFLAG_REFLECT) && (leftMargin < 0 || rightMargin > lbufWidth)))
+//	if ((!(flags & OPFLAG_REFLECT) && (rightMargin < 0 || leftMargin > lbufWidth))
+//		|| ((flags & OPFLAG_REFLECT) && (leftMargin < 0 || rightMargin > lbufWidth)))
+//		return;
+	if ((!(flags & OPFLAG_REFLECT) && (endPos < 0 || startPos > lbufWidth))
+		|| ((flags & OPFLAG_REFLECT) && (startPos < 0 || endPos > lbufWidth)))
 		return;
 
 	// Otherwise, find the clip limits and clip the phrase as well...
@@ -636,6 +642,9 @@ void OPProcessFixedBitmap(int scanline, uint64 p0, uint64 p1, bool render)
 //The strange thing is that it seems to work, but that's no guarantee that it's bulletproof!
 //Yup. Seems that JagMania doesn't work correctly with this...
 //Dunno if this is the problem, but Atari Karts is showing *some* of the road now...
+//	if (!(flags & OPFLAG_REFLECT))
+
+/*
 	if (leftMargin < 0)
 		clippedWidth = 0 - leftMargin,
 		phraseClippedWidth = clippedWidth / phraseWidthToPixels[depth],
@@ -644,9 +653,29 @@ void OPProcessFixedBitmap(int scanline, uint64 p0, uint64 p1, bool render)
 
 	if (rightMargin > lbufWidth)
 		clippedWidth = rightMargin - lbufWidth,
-		phraseClippedWidth = clippedWidth / phraseWidthToPixels[depth],
-		rightMargin = lbufWidth + (clippedWidth % phraseWidthToPixels[depth]);
+		phraseClippedWidth = clippedWidth / phraseWidthToPixels[depth];//,
+//		rightMargin = lbufWidth + (clippedWidth % phraseWidthToPixels[depth]);
 //		rightMargin = lbufWidth;
+*/
+	// NOTE: We're just using endPos to figure out how much, if any, to clip by.
+	// ALSO: There may be another case where we start out of bounds and end out of bounds...!
+	if (startPos < 0)			// Case #1: Begin out, end in, L to R
+		clippedWidth = 0 - startPos,
+		dataClippedWidth = phraseClippedWidth = clippedWidth / phraseWidthToPixels[depth],
+		startPos = 0 - (clippedWidth % phraseWidthToPixels[depth]);
+
+	if (endPos < 0)				// Case #2: Begin in, end out, R to L
+		clippedWidth = 0 - endPos,
+		phraseClippedWidth = clippedWidth / phraseWidthToPixels[depth];
+
+	if (endPos > lbufWidth)		// Case #3: Begin in, end out, L to R
+		clippedWidth = endPos - lbufWidth,
+		phraseClippedWidth = clippedWidth / phraseWidthToPixels[depth];
+
+	if (startPos > lbufWidth)	// Case #4: Begin out, end in, R to L
+		clippedWidth = startPos - lbufWidth,
+		dataClippedWidth = phraseClippedWidth = clippedWidth / phraseWidthToPixels[depth],
+		startPos = lbufWidth + (clippedWidth % phraseWidthToPixels[depth]);
 
 	// If the image is sitting on the line buffer left or right edge, we need to compensate
 	// by decreasing the image phrase width accordingly.
@@ -654,11 +683,13 @@ void OPProcessFixedBitmap(int scanline, uint64 p0, uint64 p1, bool render)
 
 	// Also, if we're clipping the phrase we need to make sure we're in the correct part of
 	// the pixel data.
-	data += phraseClippedWidth * (pitch << 3);
+//	data += phraseClippedWidth * (pitch << 3);
+	data += dataClippedWidth * (pitch << 3);
 
 	// NOTE: When the bitmap is in REFLECT mode, the XPOS marks the *right* side of the
 	//       bitmap! This makes clipping & etc. MUCH, much easier...!
-	uint32 lbufAddress = 0x1800 + (!in24BPPMode ? leftMargin * 2 : leftMargin * 4);
+//	uint32 lbufAddress = 0x1800 + (!in24BPPMode ? leftMargin * 2 : leftMargin * 4);
+	uint32 lbufAddress = 0x1800 + (!in24BPPMode ? startPos * 2 : startPos * 4);
 	uint8 * currentLineBuffer = &tom_ram_8[lbufAddress];
 
 	// Render.
