@@ -50,9 +50,15 @@ bool InitVideo(void)
 		mainSurfaceFlags |= SDL_FULLSCREEN;
 
 	if (!vjs.useOpenGL)
-		mainSurface = SDL_SetVideoMode(VIRTUAL_SCREEN_WIDTH, VIRTUAL_SCREEN_HEIGHT_NTSC, 16, mainSurfaceFlags);
+//		mainSurface = SDL_SetVideoMode(VIRTUAL_SCREEN_WIDTH, VIRTUAL_SCREEN_HEIGHT_NTSC, 16, mainSurfaceFlags);
+		mainSurface = SDL_SetVideoMode(VIRTUAL_SCREEN_WIDTH,
+			(vjs.hardwareTypeNTSC ? VIRTUAL_SCREEN_HEIGHT_NTSC : VIRTUAL_SCREEN_HEIGHT_PAL),
+			16, mainSurfaceFlags);
 	else
-		mainSurface = SDL_SetVideoMode(VIRTUAL_SCREEN_WIDTH * 2, VIRTUAL_SCREEN_HEIGHT_NTSC * 2, 16, mainSurfaceFlags);
+//		mainSurface = SDL_SetVideoMode(VIRTUAL_SCREEN_WIDTH * 2, VIRTUAL_SCREEN_HEIGHT_NTSC * 2, 16, mainSurfaceFlags);
+		mainSurface = SDL_SetVideoMode(VIRTUAL_SCREEN_WIDTH * 2,
+			(vjs.hardwareTypeNTSC ? VIRTUAL_SCREEN_HEIGHT_NTSC : VIRTUAL_SCREEN_HEIGHT_PAL) * 2,
+			16, mainSurfaceFlags);
 
 	if (mainSurface == NULL)
 	{
@@ -63,7 +69,8 @@ bool InitVideo(void)
 	SDL_WM_SetCaption("Virtual Jaguar", "Virtual Jaguar");
 
 	// Create the primary SDL display (16 BPP, 5/5/5 RGB format)
-	surface = SDL_CreateRGBSurface(SDL_SWSURFACE, VIRTUAL_SCREEN_WIDTH, VIRTUAL_SCREEN_HEIGHT_NTSC,
+	surface = SDL_CreateRGBSurface(SDL_SWSURFACE, VIRTUAL_SCREEN_WIDTH,
+		(vjs.hardwareTypeNTSC ? VIRTUAL_SCREEN_HEIGHT_NTSC : VIRTUAL_SCREEN_HEIGHT_PAL),
 		16, 0x7C00, 0x03E0, 0x001F, 0);
 
 	if (surface == NULL)
@@ -101,7 +108,10 @@ bool InitVideo(void)
 //To be safe, this should be 1280 * 625 * 2...
 //	backbuffer = (int16 *)malloc(845 * 525 * sizeof(int16));
 	backbuffer = (int16 *)malloc(1280 * 625 * sizeof(int16));
-	memset(backbuffer, 0x44, VIRTUAL_SCREEN_WIDTH * VIRTUAL_SCREEN_HEIGHT_NTSC * sizeof(int16));
+//	memset(backbuffer, 0x44, VIRTUAL_SCREEN_WIDTH * VIRTUAL_SCREEN_HEIGHT_NTSC * sizeof(int16));
+	memset(backbuffer, 0x44, VIRTUAL_SCREEN_WIDTH *
+		(vjs.hardwareTypeNTSC ? VIRTUAL_SCREEN_HEIGHT_NTSC : VIRTUAL_SCREEN_HEIGHT_PAL)
+		* sizeof(int16));
 
 	return true;
 }
@@ -157,12 +167,19 @@ void ResizeScreen(uint32 width, uint32 height)
 	if (surface == NULL)
 	{
 		WriteLog("Video: Could not create primary SDL surface: %s", SDL_GetError());
+//This is just crappy. We shouldn't exit this way--it leaves all kinds of memory leaks
+//as well as screwing up SDL... !!! FIX !!!
 		exit(1);
 	}
 
 	if (vjs.useOpenGL)
+	{
+//Need to really resize the window height--no pixel height shenanigans!
+//Err, we should only do this *if* we changed from PAL to NTSC or vice versa... !!! FIX !!!
+		mainSurface = SDL_SetVideoMode(VIRTUAL_SCREEN_WIDTH * 2, height * 2, 16, mainSurfaceFlags);
 		// This seems to work well for resizing (i.e., changes in the pixel width)...
 		sdlemu_resize_texture(surface, mainSurface, vjs.glFilter);
+	}
 	else
 	{
 		mainSurface = SDL_SetVideoMode(width, height, 16, mainSurfaceFlags);
@@ -176,10 +193,6 @@ void ResizeScreen(uint32 width, uint32 height)
 
 	sprintf(window_title, "Virtual Jaguar (%i x %i)", (int)width, (int)height);
 	SDL_WM_SetCaption(window_title, window_title);
-
-	// This seems to work well for resizing (i.e., changes in the pixel width)...
-//	if (vjs.useOpenGL)
-//		sdlemu_resize_texture(surface, mainSurface);
 }
 
 //
@@ -193,9 +206,12 @@ uint32 GetSDLScreenPitch(void)
 //
 // Fullscreen <-> window switching
 //
-//NOTE: This does *NOT* work with OpenGL rendering! !!! FIX !!!
 void ToggleFullscreen(void)
 {
+//NOTE: This does *NOT* work with OpenGL rendering! !!! FIX !!!
+	if (vjs.useOpenGL)
+		return;										// Until we can fix it...
+
 	vjs.fullscreen = !vjs.fullscreen;
 	mainSurfaceFlags &= ~SDL_FULLSCREEN;
 
