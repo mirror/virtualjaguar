@@ -6,7 +6,7 @@ REQUIREMENTS:
 To compile Virtual Jaguar you need to check if you have the minimum
 requirements for compiling the sources:
 
-- GCC v2.95 of v3.x;
+- GCC v2.95 or v3.x;
 - SDL v1.2.5 or higher;
 - ZLIB v1.1.4
 - OpenGL libraries

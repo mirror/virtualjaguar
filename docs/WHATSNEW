@@ -1,7 +1,7 @@
 Virtual Jaguar v1.0.6 GCC/SDL
 -----------------------------
 
-* Added support for gzip files. [Adam Green]
+* Added support for gzipped ROM files. [Adam Green]
 * Added OpenGL support. Because of this, aspect ratios in the various
   graphic modes should be correct now. Thanks goes to Niels for enlightenment
   in this area. :-) [Shamus]
@@ -19,6 +19,8 @@ Virtual Jaguar v1.0.6 GCC/SDL
   that various ROMs display will now be properly centered (more or less, they
   were really centered for a TV display). [Shamus]
 * Border color is now displayed properly. [Shamus]
+* Fully pipelined DSP core. Because of this, Wolfenstein 3D now has sound. To
+  use the old core, use the -nopipeline switch. [Shamus]
 
 
 Virtual Jaguar v1.0.5 GCC/SDL

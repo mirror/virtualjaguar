@@ -64,9 +64,9 @@ use Virtual Jaguar using the following command:
 
 The context of ROMFILE is the filename of the an Atari Jaguar ROM dump (can be
 either compressed or uncompressed). You can also use switches. By just typing
-./vj -? you get an overview of the options you can use. WIN32 users should look
-into the stdout.txt for that information. If you have a directory full of ROM
-files, then you can type
+./vj -? (or ./vj -help) you get an overview of the options you can use. WIN32
+users should look into the stdout.txt for that information. If you have a
+directory full of ROM files, you can type
 
 ./vj [directory with ROM files] [-switches]
 
@@ -103,8 +103,8 @@ website : http://sdlemu.ngemu.com.
 
 I hope you enjoy the emulator and will use it wisely! 
 
-Special thanks go to guys over at ngemu.com and #ngemu (EFNET). Also the author
-who originally developed this emulator is thanked for releasing the sources to
-the public.
+Special thanks go to guys over at ngemu.com and #ngemu (EFNET). Also Cal2 of
+Potato Emulation who originally developed this emulator is thanked for
+releasing the sources to the public.
 
 SDLEMU
