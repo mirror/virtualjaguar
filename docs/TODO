@@ -1,6 +1,8 @@
 Stuff to add/fix for the next release of Virtual Jaguar
 -------------------------------------------------------
 
+- Make sure that VJ doesn't crash if the useJaguarBIOS key is set to 1 and the
+  BIOS file isn't available. [Shamus]
 - Create an EEPROMs directory (or whatever is in EEPROMPath[]) if it doesn't
   already exist. [Shamus]
 - It would be nice to have the emulator pick up where you last left off, or at
