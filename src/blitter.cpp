@@ -340,6 +340,8 @@ if (specialLog)
 {
 	WriteLog("  A1_X/Y = %08X/%08X, A2_X/Y = %08X/%08X\n", a1_x, a1_y, a2_x, a2_y);
 }
+		uint32 a1_start = a1_x, a2_start = a2_x;
+
 		inner_loop = n_pixels;
 		while (inner_loop--)
 		{
@@ -702,26 +704,45 @@ Blit! (000B8250 <- 0012C3A0) count: 16 x 1, A1/2_FLAGS: 00014420/00012000 [cmd: 
 			// Bump the pointer to the next phrase boundary
 			// Even though it works, this is crappy... Clean it up!
 			uint32 size = 64 / a1_psize;
+
+			// Crappy kludge... ('aligning' source to destination)
+			if (a2_phrase_mode && DSTA2)
+			{
+				uint32 extra = (a2_start >> 16) % size;
+				a1_x += extra << 16;
+			}
+
 			uint32 newx = (a1_x >> 16) / size;
 			uint32 newxrem = (a1_x >> 16) % size;
 			a1_x &= 0x0000FFFF;
 			a1_x |= (((newx + (newxrem == 0 ? 0 : 1)) * size) & 0xFFFF) << 16;
 		}
+
 		if (a2_phrase_mode)
 		{
 			// Bump the pointer to the next phrase boundary
 			// Even though it works, this is crappy... Clean it up!
-			uint32 size = 64 / a1_psize;
+			uint32 size = 64 / a2_psize;
+
+			// Crappy kludge... ('aligning' source to destination)
+			// Prolly should do this for A1 channel as well...
+			if (a1_phrase_mode && !DSTA2)
+			{
+				uint32 extra = (a1_start >> 16) % size;
+				a2_x += extra << 16;
+			}
+
 			uint32 newx = (a2_x >> 16) / size;
 			uint32 newxrem = (a2_x >> 16) % size;
 			a2_x &= 0x0000FFFF;
-			a2_x |= (((newx + (newxrem == 0 ? 0 : 1)) * size) & 0xFFFF) << 16;
+			a2_x |= (((newx + (newxrem == 0 ? 0 : 1) /*+ extra*/) * size) & 0xFFFF) << 16;
 		}
 
+		//Not entirely: This still mucks things up... !!! FIX !!!
 		a1_x += a1_step_x;
 		a1_y += a1_step_y;
 		a2_x += a2_step_x;
-		a2_y += a2_step_y;
+		a2_y += a2_step_y;//*/
 
 /*		if (a2_phrase_mode)
 		{
@@ -1128,6 +1149,7 @@ Also fixed!
 More (not sure this is a blitter problem as much as it's a GPU problem):
 All but the "M" are trashed...
 This does *NOT* look like a blitter problem, as it's rendering properly...
+Actually, if you look at the A1 step values, there IS a discrepancy!
 
 ; D
 
