@@ -34,8 +34,12 @@ bool InitVideo(void)
 
 	if (vjs.useOpenGL)
 	{
-		mainSurfaceFlags = SDL_HWSURFACE | SDL_HWPALETTE | SDL_DOUBLEBUF | SDL_OPENGL;
-		SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+	    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 0);
+        SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+
+//		mainSurfaceFlags = SDL_HWSURFACE | SDL_HWPALETTE | SDL_DOUBLEBUF | SDL_OPENGL;
+		mainSurfaceFlags = SDL_OPENGL;
+		
 	}
 	else
 	{
@@ -71,6 +75,7 @@ bool InitVideo(void)
 	// Create the primary SDL display (16 BPP, 5/5/5 RGB format)
 	surface = SDL_CreateRGBSurface(SDL_SWSURFACE, VIRTUAL_SCREEN_WIDTH,
 		(vjs.hardwareTypeNTSC ? VIRTUAL_SCREEN_HEIGHT_NTSC : VIRTUAL_SCREEN_HEIGHT_PAL),
+//		16, 63488, 2016, 31, 0);
 		16, 0x7C00, 0x03E0, 0x001F, 0);
 
 	if (surface == NULL)
@@ -82,7 +87,7 @@ bool InitVideo(void)
 	if (vjs.useOpenGL)
 //Should make another setting here, for either linear or nearest (instead of just picking one)
 //And we have! ;-)
-		sdlemu_init_opengl(surface, 1/*method*/, 2/*size*/, vjs.glFilter/*texture type (linear, nearest)*/);
+		sdlemu_init_opengl(surface, 1/*method*/, 2/*size*/, vjs.glFilter/*texture type (linear, nearest)*/, NULL);
 
 	// Initialize Joystick support under SDL
 	if (vjs.useJoystick)
@@ -161,8 +166,9 @@ void ResizeScreen(uint32 width, uint32 height)
 	char window_title[256];
 
 	SDL_FreeSurface(surface);
-	surface = SDL_CreateRGBSurface(SDL_SWSURFACE, width, height, 16,
-		0x7C00, 0x03E0, 0x001F, 0);
+	surface = SDL_CreateRGBSurface(SDL_SWSURFACE, width, height, 
+//		16, 63488, 2016, 31, 0);
+        16, 0x7C00, 0x03E0, 0x001F, 0);
 
 	if (surface == NULL)
 	{
@@ -178,7 +184,7 @@ void ResizeScreen(uint32 width, uint32 height)
 //Err, we should only do this *if* we changed from PAL to NTSC or vice versa... !!! FIX !!!
 		mainSurface = SDL_SetVideoMode(VIRTUAL_SCREEN_WIDTH * 2, height * 2, 16, mainSurfaceFlags);
 		// This seems to work well for resizing (i.e., changes in the pixel width)...
-		sdlemu_resize_texture(surface, mainSurface, vjs.glFilter);
+		sdlemu_resize_texture(surface, mainSurface, vjs.glFilter, NULL);
 	}
 	else
 	{
@@ -209,8 +215,8 @@ uint32 GetSDLScreenPitch(void)
 void ToggleFullscreen(void)
 {
 //NOTE: This does *NOT* work with OpenGL rendering! !!! FIX !!!
-	if (vjs.useOpenGL)
-		return;										// Until we can fix it...
+//	if (vjs.useOpenGL)
+//		return;										// Until we can fix it...
 
 	vjs.fullscreen = !vjs.fullscreen;
 	mainSurfaceFlags &= ~SDL_FULLSCREEN;
