@@ -19,6 +19,7 @@ Stuff to add/fix for the next release of Virtual Jaguar
   the various keys on the emulated Jaguar controller while inside the emulator.
   [Shamus]
 - Code to stretch the display in a generic way would be nice. [Shamus]
+  [DONE for OpenGL - nwagenaar]
 - Blitter needs fixing. [Shamus]
 - We need a comprehensive way of determining what gets written where and
   by whom (i.e., blitter wrote to range $F03000-$F03230) in order to figure

@@ -28,6 +28,15 @@ Virtual Jaguar v1.0.7 GCC/SDL
   also fixed a problem that caused the OP to hang in certain situations. This
   fixes Bubsy, International Sensible Soccer, and probably a few others.
   [Shamus]
+* Cleaned up various bits of video rendering related code. [nwagenaar]
+* Added support for OpenGL textures with a depth of 16bpp, 24bpp or 32bpp.
+  [nwagenaar]
+* Rewrote several OpenGL related rendering code concerning the new OpenGL
+  texture depths and texture sizes. [nwagenaar]
+* Rewrote several OpenGL rendering functions concerning speed related items.
+  [nwagenaar]
+* Several bugs resolved due to OpenGL and normal rendering code. [nwagenaar]
+* Default resolution for OpenGL is now 640x480 [nwagenaar];
 
 
 Virtual Jaguar v1.0.6 GCC/SDL
