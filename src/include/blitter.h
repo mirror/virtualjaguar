@@ -19,4 +19,7 @@ void blitter_reg_write(uint32 offset, uint32 data);
 
 extern uint8 blitter_working;
 
+//For testing only...
+void LogBlit(void);
+
 #endif
