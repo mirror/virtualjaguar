@@ -10,6 +10,7 @@
 #include <string>
 #include <vector>
 #include <algorithm>
+#include <ctype.h>								// For toupper()
 #include "types.h"
 #include "settings.h"
 #include "tom.h"
@@ -198,6 +199,29 @@ uint16 slideSwitchDown[] = {
 char separator[] = "--------------------------------------------------------";
 
 uint16 background[1280 * 240];
+
+//
+// Case insensitive string compare function
+// Taken straight out of Thinking In C++ by Bruce Eckel. Thanks Bruce!
+//
+
+int stringCmpi(const string &s1, const string &s2)
+{
+	// Select the first element of each string:
+	string::const_iterator p1 = s1.begin(), p2 = s2.begin();
+
+	while (p1 != s1.end() && p2 != s2.end())			// Don’t run past the end
+	{
+		if (toupper(*p1) != toupper(*p2))				// Compare upper-cased chars
+			return (toupper(*p1) < toupper(*p2) ? -1 : 1);// Report which was lexically greater
+
+		p1++;
+		p2++;
+	}
+
+	// If they match up to the detected eos, say which was longer. Return 0 if the same.
+	return s2.size() - s1.size();
+}
 
 //
 // Local GUI classes
@@ -691,14 +715,6 @@ void ListBox::HandleKey(SDLKey key)
 				windowPtr -= limit;
 		}
 	}
-//How to handle these???
-/*	if (key == SDLK_RETURN)
-		done = true;
-	if (key == SDLK_ESCAPE)
-	{
-		WriteLog("GUI: Aborting VJ by user request.\n");
-		return false;						// Bail out!
-	}*/
 	else if (key >= SDLK_a && key <= SDLK_z)
 	{
 		// Advance cursor to filename with first letter pressed...
@@ -710,11 +726,9 @@ void ListBox::HandleKey(SDLKey key)
 			{
 				cursor = i - windowPtr;
 				if (i > windowPtr + limit - 1)
-					windowPtr = i - limit + 1,
-					cursor = limit - 1;
+					windowPtr = i - limit + 1, cursor = limit - 1;
 				if (i < windowPtr)
-					windowPtr = i,
-					cursor = 0;
+					windowPtr = i, cursor = 0;
 				break;
 			}
 		}
@@ -730,11 +744,9 @@ void ListBox::HandleMouseMove(uint32 x, uint32 y)
 	if (thumbClicked)
 	{
 		uint32 sbHeight = extents.h - 24,
-			thumb = (uint32)(((float)limit / (float)item.size()) * (float)sbHeight);//,
-//			thumbStart = (uint32)(((float)windowPtr / (float)item.size()) * (float)sbHeight);
+			thumb = (uint32)(((float)limit / (float)item.size()) * (float)sbHeight);
 
 //yRelativePoint is the spot on the thumb where we clicked...
-//		int32 thumbDelta = y - yRelativePoint;
 		int32 newThumbStart = y - yRelativePoint;
 
 		if (newThumbStart < 0)
@@ -745,6 +757,7 @@ void ListBox::HandleMouseMove(uint32 x, uint32 y)
 
 		windowPtr = (uint32)(((float)newThumbStart / (float)sbHeight) * (float)item.size());
 //Check for cursor bounds as well... Or do we need to???
+//Actually, we don't...!
 	}
 }
 
@@ -839,13 +852,23 @@ void ListBox::Notify(Element * e)
 
 void ListBox::AddItem(string s)
 {
-	item.push_back(s);
-	limit = (item.size() > charHeight ? charHeight : item.size());
-//WriteLog("ListBox: Adding item [%s], limit = %u...\n", s.c_str(), limit);
+	// Do a simple insertion sort
+	bool inserted = false;
 
-	//Do this *every* time?
-	//What other choice is there? :-p
-	sort(item.begin(), item.end());
+	for(vector<string>::iterator i=item.begin(); i<item.end(); i++)
+	{
+		if (stringCmpi(s, *i) == -1)
+		{
+			item.insert(i, s);
+			inserted = true;
+			break;
+		}
+	}
+
+	if (!inserted)
+		item.push_back(s);
+
+	limit = (item.size() > charHeight ? charHeight : item.size());
 }
 
 string ListBox::GetSelectedItem(void)
@@ -879,7 +902,6 @@ FileList::FileList(uint32 x, uint32 y, uint32 w, uint32 h): Window(x, y, w, h)
 	AddElement(load);
 	load->SetNotificationElement(this);
 
-//	DIR * dp = opendir(path);
 	DIR * dp = opendir(vjs.ROMPath);
 	dirent * de;
 
@@ -928,13 +950,13 @@ void FileList::Notify(Element * e)
 //			WriteLog("CRC: %08X\n", (unsigned int)jaguar_mainRom_crc32);
 //			eeprom_init();
 
-			SDL_Event event;
-			event.type = SDL_USEREVENT, event.user.code = WINDOW_CLOSE;
-			SDL_PushEvent(&event);
+		SDL_Event event;
+		event.type = SDL_USEREVENT, event.user.code = WINDOW_CLOSE;
+		SDL_PushEvent(&event);
 
-			event.type = SDL_USEREVENT, event.user.code = MENU_ITEM_CHOSEN;
-			event.user.data1 = (void *)ResetJaguar;
-		    SDL_PushEvent(&event);
+		event.type = SDL_USEREVENT, event.user.code = MENU_ITEM_CHOSEN;
+		event.user.data1 = (void *)ResetJaguar;
+	    SDL_PushEvent(&event);
 //		}
 	}
 	else
@@ -1916,12 +1938,60 @@ void JaguarLoadCart(uint8 * mem, char * path)
 //jaguarRunAddress
 //			WriteLog("Jaguar: Setting up PD ROM... Run address: %08X, length: %08X\n", runAddress, progLength);
 //			memcpy(jaguar_mainRam + loadAddress, jaguar_mainRom + 0x2E, progLength);
-		WriteLog("Jaguar: Setting up PD ROM... Run address: %08X, length: %08X\n", runAddress, jaguarRomSize - 0x2E);
+		WriteLog("Jaguar: Setting up homebrew... Run address: %08X, length: %08X\n", runAddress, jaguarRomSize - 0x2E);
 		memcpy(jaguar_mainRam + loadAddress, jaguar_mainRom + 0x2E, jaguarRomSize - 0x2E);
 //		SET32(jaguar_mainRam, 4, runAddress);
 		jaguarRunAddress = runAddress;
 	}
 }
+
+/*
+ABS Format sleuthing (LBUGDEMO.ABS):
+
+000000  60 1B 00 00 05 0C 00 04 62 C0 00 00 04 28 00 00
+000010  12 A6 00 00 00 00 00 80 20 00 FF FF 00 80 25 0C
+000020  00 00 40 00
+
+DRI-format file detected...
+Text segment size = 0x0000050c bytes
+Data segment size = 0x000462c0 bytes
+BSS Segment size = 0x00000428 bytes
+Symbol Table size = 0x000012a6 bytes
+Absolute Address for text segment = 0x00802000
+Absolute Address for data segment = 0x0080250c
+Absolute Address for BSS segment = 0x00004000
+
+(CRZDEMO.ABS):
+000000  01 50 00 03 00 00 00 00 00 03 83 10 00 00 05 3b
+000010  00 1c 00 03 00 00 01 07 00 00 1d d0 00 03 64 98
+000020  00 06 8b 80 00 80 20 00 00 80 20 00 00 80 3d d0
+
+000030  2e 74 78 74 00 00 00 00 00 80 20 00 00 80 20 00 .txt (+36 bytes)
+000040  00 00 1d d0 00 00 00 a8 00 00 00 00 00 00 00 00
+000050  00 00 00 00 00 00 00 20
+000058  2e 64 74 61 00 00 00 00 00 80 3d d0 00 80 3d d0 .dta (+36 bytes)
+000068  00 03 64 98 00 00 1e 78 00 00 00 00 00 00 00 00
+000078  00 00 00 00 00 00 00 40
+000080  2e 62 73 73 00 00 00 00 00 00 50 00 00 00 50 00 .bss (+36 bytes)
+000090  00 06 8b 80 00 03 83 10 00 00 00 00 00 00 00 00
+0000a0  00 00 00 00 00 00 00 80
+
+Header size is $A8 bytes...
+
+BSD/COFF format file detected...
+3 sections specified
+Symbol Table offset = 230160				($00038310)
+Symbol Table contains 1339 symbol entries	($0000053B)
+The additional header size is 28 bytes		($001C)
+Magic Number for RUN_HDR = 0x00000107
+Text Segment Size = 7632					($00001DD0)
+Data Segment Size = 222360					($00036498)
+BSS Segment Size = 428928					($00068B80)
+Starting Address for executable = 0x00802000
+Start of Text Segment = 0x00802000
+Start of Data Segment = 0x00803dd0
+*/
+
 
 //
 // Get the length of a (possibly) gzipped file
