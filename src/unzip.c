@@ -4,15 +4,14 @@
 // Added by James L. Hammons
 //
 
-#include "unzip.h"
-//#include "driver.h"
-#include "log.h"
-
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
 #include <assert.h>
 #include <zlib.h>
+
+#include "unzip.h"
+#include "log.h"
 
 /* public globals */
 int	gUnzipQuiet = 0;		/* flag controls error messages */
