@@ -22,4 +22,4 @@ extern uint8 blitter_working;
 //For testing only...
 void LogBlit(void);
 
-#endif
+#endif	// __BLITTER_H__
