@@ -16,7 +16,7 @@ Virtual Jaguar v1.0.4 GCC/SDL - source only release
   to fry at the moment. Also, ZLIB is now required to compile VJ. [Shamus]
 * Support for PD ROMs. Currently the only one that works at all is JagMania,
   though as the hardware emulation gets better more PD ROMs will begin to
-  work. [Shamus]
+  work. Note that you must use the -nobios switch for this to work. [Shamus]
 * Preliminary support for PAL Jaguar emulation. Default is NTSC. To use it,
   use the -pal switch. [Shamus]
 * Support for DSP activation. The DSP is now *off* by default, since it
