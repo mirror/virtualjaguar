@@ -1,7 +1,7 @@
 //
 // CD Interface handler
 //
-// by cal2
+// by David Raingeard
 // GCC/SDL port by Niels Wagenaar (Linux/WIN32) and Caz (BeOS)
 // Cleanups by James L. Hammons
 //

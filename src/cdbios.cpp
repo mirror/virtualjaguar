@@ -1,13 +1,13 @@
 //
 // CD BIOS core
 //
-// by cal2
+// by David Raingeard
 // GCC/SDL port by Niels Wagenaar (Linux/WIN32) and Caz (BeOS)
 // Cleanups by James L. Hammons
 //
-// cal2:
-// 02/20/2002: fixed sector to msf conversion
-// 02/19/2002: fixed a bug in toc encoding function
+// David R.:
+// 02/20/2002: Fixed sector to MSF conversion
+// 02/19/2002: Fixed a bug in TOC encoding function
 //
 
 #include "cdbios.h"
