@@ -1,6 +1,8 @@
 Stuff to add/fix for the next release of Virtual Jaguar
 -------------------------------------------------------
 
+- Create an EEPROMs directory (or whatever is in EEPROMPath[]) if it doesn't
+  already exist. [Shamus]
 - It would be nice to have the emulator pick up where you last left off, or at
   least give you the option of continuing from your last session. This would
   require save states, 'natch. ;-) [Shamus]
