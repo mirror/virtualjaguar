@@ -4,7 +4,6 @@
 // by James L. Hammons
 //
 
-#include "types.h"
 #include "tom.h"
 #include "sdlemu_opengl.h"
 #include "settings.h"
@@ -20,17 +19,10 @@ int16 * backbuffer;
 SDL_Joystick * joystick;
 
 //
-// Prime SDL and create surfaces
+// Create SDL/OpenGL surfaces
 //
 bool InitVideo(void)
 {
-	// Set up SDL library
-	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_JOYSTICK | SDL_INIT_AUDIO | SDL_INIT_TIMER | SDL_INIT_NOPARACHUTE) < 0)
-	{
-		WriteLog("VJ: Could not initialize the SDL library: %s", SDL_GetError());
-		return false;
-	}
-
 	// Get proper info about the platform we're running on...
 	const SDL_VideoInfo * info = SDL_GetVideoInfo();
 
@@ -124,9 +116,6 @@ void VideoDone(void)
 
 	SDL_JoystickClose(joystick);
 	SDL_FreeSurface(surface);
-	SDL_QuitSubSystem(SDL_INIT_VIDEO | SDL_INIT_JOYSTICK | SDL_INIT_AUDIO | SDL_INIT_TIMER);
-	SDL_Quit();
-
 	free(backbuffer);
 }
 
