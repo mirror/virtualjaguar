@@ -1,33 +1,83 @@
+--------------------------------------------
 Virtual Jaguar v1.0.7 GCC/SDL release README
 --------------------------------------------
 
+--------------
 - DISCLAIMER -
+--------------
 
 Or, "O liability, I do disclaim thee!"
 
 Ported by SDLEMU (Niels Wagenaar & Carwin Jones) and is based upon the
-original work from Potato Emulation. For requirements please consult the
-INSTALL file for more information about supported OS's and software
-requirements.
+original work by David Raingeard of Potato Emulation. For requirements please
+consult the INSTALL file for more information about supported OS's and
+software requirements.
 
 The use of this software is entirely at your own risk. We can't be held
 responsible for damage done to you hardware and/or software. This software
 requires the use of the Atari Jaguar (CD) boot ROM and/or Commercial ROM
-images. You may only use the ROM images if you own the cartridges itself.
-The use of Commercial ROMs without owning the original cartridge is illegal
-in most countries and could result in fines and/or legal actions.
+images. You may only use the ROM images if you own the cartridges itself. The
+use of Commercial ROMs without owning the original cartridge is illegal in
+most countries and could result in fines and/or legal actions.
 
 This software is released under the GPL license. For more information I direct
 you to the GPL.TXT. You may hack/change the code anyway you like. You may not
-commercially sell this software. 
-
-If you make changes, release the source code to the public and send us the
-changes you made to the original authors. 
+commercially sell this software. If you make changes, release the source code
+to the public and send the changes you made to the original authors. 
 
 The products and brands used in these documents and/or sourcecode are owned by
 their respective companies.
 
-- What is Virtual Jaguar GCC/SDL?
+----------------------------------------------------------------
+- IMPORTANT NOTE ABOUT JAGUAR FILE FORMATS--READ THIS OR ELSE! -
+----------------------------------------------------------------
+
+There seems to be a lot of confusion surrounding the various file formats that
+Jaguar programs come in, and a lot of this confusion seem to come from
+Cowering's GoodJag renaming tool. Note that it simply gets some files wrong,
+and it also incorrectly renames cartridge images with an extension that
+belongs to an already established extension (.jag is a Jaguar Server
+executable--read on). To clarify, there are basically four major types of
+Jaguar binary images that are NOT cartridge images:
+
+    .abs
+    .jag
+    .rom
+    .bin
+
+The first type, the .abs file, is a DRI/Alcyon format absolute location
+executable. These come in two different flavors and contain load and run
+addresses in their headers. Note that some files which have an .abs extension
+are really incorrectly labelled .bin files with no header information
+whatsoever.
+
+The second type, the .jag file, is a Jaguar Server executable. These files
+contain header information that tells you where to load and run the file's
+executable code. Note that as of this writing (1/1/2004) that the GoodJag ROM
+renaming tool by Cowering incorrectly renames Jaguar cartridge ROM dumps to
+have a .jag extension (a better choice, and the one supported by Virtual
+Jaguar, is .j64)--if you're trying to run a ROM image with a .jag extension on
+VJ, it will misinterpret it as a Jaguar Server executable and likely fail to
+run.
+
+The third type, the .rom file, is an Alpine Board/ROM Image file. These files
+have no header, but are known to load and run at $802000 in the Jaguar memory
+space. Again, these are *different* from cartridge dumps since they load at a
+higher address than a Jaguar cartridge.
+
+The fourth type, the .bin file, is simply a Jaguar executable with no header.
+Since these files contain no information about where they load and execute,
+Virtual Jaguar does not support this file type. Go bug the author to release
+either a file with headers or a file in Alpine ROM format. Virtual Jaguar is
+not omniscient! ;-)
+
+There is a fifth type of file that is supported by Virtual Jaguar, the .j64
+file, which is simply a 1, 2, or 4 Meg dump of a Jaguar cartridge ROM which
+loads at $800000 in the Jaguar memory space.
+
+-----------------------------------
+- What is Virtual Jaguar GCC/SDL? -
+-----------------------------------
 
 Virtual Jaguar is software dedicated to emulating the Atari Jaguar hardware on
 a standard PC. The software was originally developed by David Raingeard of
@@ -51,15 +101,18 @@ are particularly welcome! :)
 
 More information about SDL can be found at http://www.libsdl.org.
 
-- Using Virtual Jaguar GCC/SDL
+--------------------------------
+- Using Virtual Jaguar GCC/SDL -
+--------------------------------
 
 After compiling the binary (see INSTALL) you can now run original Atari Jaguar
-games. These games are distributed on cartridges and can there for cannot be
-used on a PC. To use these games on Virtual Jaguar GCC/SDL you need to get ROM
-images. Besides the ROM images from commercial games you must also obtain the
-Atari Jaguar (CD) boot ROM which you must copy to the BIOS directory. For legal
-issues concerning ROM images please consult the DISCLAIMER at the beginning of
-this file.
+games. These games are distributed on cartridges and can therefore cannot be
+used on a PC (we're still waiting for that Jaguar-on-a-PCI-card that you plug
+into your late model PC, complete with cartridge slot ;-). To use these games
+on Virtual Jaguar GCC/SDL you need to get ROM images. Besides the ROM images
+from commercial games you must also obtain the Atari Jaguar (CD) boot ROM
+which you must copy to the BIOS directory. For legal issues concerning ROM
+images please consult the DISCLAIMER at the beginning of this file.
 
 After obtaining the Atari Jaguar (CD) boot ROM and several ROMs you can now
 use Virtual Jaguar using the following command:
@@ -101,7 +154,9 @@ to change the key layout, simply edit the vj.cfg file and change the keys. :)
 NOTE: There are quite a few keys mapped to debugging functions at present. You
 have been warned!
 
-- Finally
+-----------
+- Finally -
+-----------
 
 If you find bugs, enhance the code or simply have questions, drop us an e-mail
 at sdlemu AT ngemu DOT com or drop a message on the SDLEMU Official Forum. 

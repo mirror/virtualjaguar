@@ -27,9 +27,9 @@ CFLAGS = -Wall -Wno-switch -Wno-non-virtual-dtor -O2 -D$(SYSTYPE) -Dstricmp="str
 
 LDFLAGS = $(CFLAGS)
 
-LIBS = -L/usr/local/lib `sdl-config --libs` -lstdc++ -lz -l$(GLLIB)
+LIBS = -L/usr/local/lib -L/usr/lib `sdl-config --libs` -lstdc++ -lz -l$(GLLIB)
 
-INCS = -I. -Isrc -Isrc/include -I/usr/local/include
+INCS = -I. -Isrc -Isrc/include -I/usr/local/include -I/usr/include
 
 THECC = $(CC) $(CFLAGS) $(INCS)
 

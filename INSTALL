@@ -1,3 +1,4 @@
+---------------------------------------------
 Virtual Jaguar v1.0.7 GCC/SDL release INSTALL
 ---------------------------------------------
 
@@ -15,10 +16,6 @@ requirements for compiling the sources:
 
 Optionally you need a Atari Jaguar (CD) boot ROM which is available on the
 Internet. We can't include the boot ROM since it's still copyrighted.
-
-Also, I would recommend that you have at least 20MB of free space. The .o's
-can be quite big and the binary is likely to be about a 1.5MB in size (with
-UPX and/or strip this could downsize to about 400K).
 
 COMPILING:
 
