@@ -44,7 +44,7 @@ uint32 CDIntfGetCurrentDrive(void)
 	return 0;
 }
 
-uint8 * CDIntfGetDriveName(uint32)
+const uint8 * CDIntfGetDriveName(uint32)
 {
 	WriteLog("CDINTF: GetDriveName unimplemented!\n");
 	return NULL;
