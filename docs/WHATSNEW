@@ -1,6 +1,11 @@
 Virtual Jaguar v1.0.7 GCC/SDL
 -----------------------------
 
+* Fixed a blitter intensity addition problem. This fixes the title in Hover
+  Strike and the road/shadows in Checkered Flag. [Shamus]
+* Partially fixed a problem with the SUBC opcode in the RISC processors. This
+  allows Hover Strike, Phase Zero and Fight For Life to boot into their title
+  screens and makes them somewhat playable. [Shamus]
 * Fixed a horizontal scaling problem in the OP and the off-by-one bug that it
   reintroduced. This fixes the road in Atari Karts and probably a few others.
   [Shamus]
