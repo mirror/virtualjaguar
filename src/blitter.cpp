@@ -1,15 +1,17 @@
 //
 // Blitter core
 //
-// by Cal2
+// Originally by David Raingeard
 // GCC/SDL port by Niels Wagenaar (Linux/WIN32) and Caz (BeOS)
-// Cleanups/fixes by James L. Hammons
+// Extensive cleanups/fixes by James L. Hammons
 //
+
 bool specialLog = false;
 extern int effect_start;
 extern int blit_start_log;
 
 #include "jaguar.h"
+#include "blitter.h"
 
 #define REG(A)	(((uint32)blitter_ram[(A)] << 24) | ((uint32)blitter_ram[(A)+1] << 16) \
 				| ((uint32)blitter_ram[(A)+2] << 8) | (uint32)blitter_ram[(A)+3])
@@ -931,6 +933,8 @@ Lesse, with pre-add we'd have:
   |rolls back to here. Hmm.
 
 */
+//NOTE: The way to fix the CD BIOS is to uncomment below and comment the stuff after
+//      the phrase mode mucking around. But it fucks up everything else...
 		a1_x += a1_step_x;
 		a1_y += a1_step_y;
 		a2_x += a2_step_x;
