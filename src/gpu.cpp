@@ -239,7 +239,7 @@ static void gpu_opcode_pack(void);
 //This is wrong, wrong, WRONG, but it seems to work for the time being...
 //(That is, it fixes Flip Out which relies on GPU timing rather than semaphores. Bad developers! Bad!)
 //What's needed here is a way to take pipeline effects into account (including pipeline stalls!)...
-uint8 gpu_opcode_cycles[64] = 
+/*uint8 gpu_opcode_cycles[64] = 
 {
 	1,  1,  1,  1,  1,  1,  1,  1,
 	1,  1,  1,  1,  1,  1,  1,  1,
@@ -249,7 +249,18 @@ uint8 gpu_opcode_cycles[64] =
 	2,  2,  2,  3,  3,  1,  1,  1,
 	1,  1,  1,  1,  1,  1,  4,  1,
 	1,  1,  3,  3,  1,  1,  1,  1
-};
+};//*/
+uint8 gpu_opcode_cycles[64] = 
+{
+	1,  1,  1,  1,  1,  1,  1,  1,
+	1,  1,  1,  1,  1,  1,  1,  1,
+	1,  1,  1,  1,  1,  1,  1,  1,
+	1,  1,  1,  1,  1,  1,  1,  1,
+	1,  1,  1,  1,  1,  1,  1,  1,
+	1,  1,  1,  1,  1,  1,  1,  1,
+	1,  1,  1,  1,  1,  1,  1,  1,
+	1,  1,  1,  1,  1,  1,  1,  1
+};//*/
 
 void (*gpu_opcode[64])()= 
 {	
