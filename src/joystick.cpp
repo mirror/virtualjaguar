@@ -44,7 +44,8 @@ static uint8 joystick_ram[4];
 static uint8 joypad_0_buttons[21];
 static uint8 joypad_1_buttons[21];
 extern bool finished;
-extern bool showGUI, GUIKeyHeld = false;
+extern bool showGUI;
+bool GUIKeyHeld = false;
 extern int start_logging;
 int gpu_start_log = 0;
 int op_start_log = 0;
@@ -119,6 +120,7 @@ void joystick_exec(void)
 	if (keystate[SDLK_z])		joypad_0_buttons[BUTTON_C] = 0x01;
 	if (keystate[SDLK_x])		joypad_0_buttons[BUTTON_B] = 0x01;
 	if (keystate[SDLK_c])		joypad_0_buttons[BUTTON_A] = 0x01;
+//I may yet move these to O and P...
 	if (keystate[SDLK_QUOTE])	joypad_0_buttons[BUTTON_OPTION] = 0x01;
 	if (keystate[SDLK_RETURN])	joypad_0_buttons[BUTTON_PAUSE] = 0x01;
 
