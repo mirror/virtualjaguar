@@ -81,6 +81,7 @@ obj/%.o: src/%.cpp
 
 vj: $(OBJS)
 	$(LD) $(LDFLAGS) -o $@ $(OBJS) $(LIBS)
+	strip --strip-all vj$(EXESUFFIX)
 #	upx -9 vj$(EXESUFFIX)
 
 # Other stuff that has unusual dependencies
