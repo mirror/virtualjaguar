@@ -1,7 +1,7 @@
 //
 // JAGUAR.CPP
 //
-// by cal2
+// by Cal2
 // GCC/SDL port by Niels Wagenaar (Linux/WIN32) and Caz (BeOS)
 // Cleanups and endian wrongness amelioration by James L. Hammons
 // Note: Endian wrongness probably stems from the MAME origins of this emu and
@@ -39,11 +39,6 @@ bool jaguar_use_bios = true;				// Default is now to USE the BIOS
 uint32 jaguar_active_memory_dumps = 0;
 
 uint32 jaguar_mainRom_crc32;
-
-static uint32 m68k_cycles_per_scanline;
-static uint32 gpu_cycles_per_scanline;
-static uint32 dsp_cycles_per_scanline;
-static uint32 jaguar_screen_scanlines;
 
 /*static*/ uint8 * jaguar_mainRam = NULL;
 /*static*/ uint8 * jaguar_bootRom = NULL;
@@ -211,9 +206,6 @@ void m68k_write_memory_16(unsigned int address, unsigned int value)
 //if (address >= 0x0E75D0 && address <= 0x0E75E7)
 //	WriteLog("M68K: Writing %04X at %08X, M68K PC=%08X\n", value, address, m68k_get_reg(NULL, M68K_REG_PC));
 /*extern uint32 totalFrames;
-extern bool suppressOutput;
-if (totalFrames >= 59)
-	suppressOutput = false;//*/
 /*if (address == 0xF02114)
 	WriteLog("M68K: Writing to GPU_CTRL (frame:%u)... [M68K PC:%08X]\n", totalFrames, m68k_get_reg(NULL, M68K_REG_PC));
 if (address == 0xF02110)
@@ -524,17 +516,6 @@ void jaguar_init(void)
 //	cd_bios_boot("C:\\ftp\\jaguar\\cd\\primalrage.cdi");
 //	cd_bios_boot("C:\\ftp\\jaguar\\cd\\Dragons Lair.cdi");
 
-	// Should these be hardwired or read from VP?
-	jaguar_screen_scanlines = (hardwareTypeNTSC ? 524 : 624);
-//Should the divisor be 50 for PAL??? Let's try it!
-	m68k_cycles_per_scanline = (hardwareTypeNTSC ? M68K_CLOCK_RATE_NTSC : M68K_CLOCK_RATE_PAL) / (jaguar_screen_scanlines * (hardwareTypeNTSC ? 60 : 50));
-	gpu_cycles_per_scanline = dsp_cycles_per_scanline
-		= (hardwareTypeNTSC ? RISC_CLOCK_RATE_NTSC : RISC_CLOCK_RATE_PAL) / (jaguar_screen_scanlines * (hardwareTypeNTSC ? 60 : 50));
-
-//#ifdef SOUND_OUTPUT
-//	ws_audio_init();
-//#endif
-
 	m68k_set_cpu_type(M68K_CPU_TYPE_68000);
 	gpu_init();
 	DSPInit();
@@ -573,9 +554,7 @@ void jaguar_done(void)
 	WriteLog("Jaguar: VBL interrupt is %s\n", ((tom_irq_enabled(IRQ_VBLANK)) && (jaguar_interrupt_handler_is_valid(64))) ? "enabled" : "disabled");
 	M68K_show_context();
 //#endif
-//#ifdef SOUND_OUTPUT
-//	ws_audio_done();
-//#endif
+
 	cd_bios_done();
 	cdrom_done();
 	gpu_done();
@@ -621,77 +600,19 @@ void jaguar_reset(void)
 	WriteLog("\t68K PC=%06X SP=%08X\n", m68k_get_reg(NULL, M68K_REG_PC), m68k_get_reg(NULL, M68K_REG_A7));
 }
 
+/*unused
 void jaguar_reset_handler(void)
 {
-}
-
-void jaguar_exec(int16 * backbuffer, bool render)
-{ 
-	uint32 i, vblank_duration = tom_get_vdb();
-
-	// vblank
-	if (tom_irq_enabled(IRQ_VBLANK) && jaguar_interrupt_handler_is_valid(64))
-	{
-		if (JaguarReadWord(0xF0004E) != 0x07FF)	// VI (11 bits wide!)
-		{
-			tom_set_pending_video_int();
-//			s68000interrupt(7, IRQ_VBLANK+64);
-//			s68000flushInterrupts();
-			m68k_set_irq(7);					// IRQ_VBLANK+64??? Not autovectored??? No.
-// Could set a global variable here, to signal that this is a VBLANK interrupt...
-// Then again, since IRQ_VBLANK is set to zero, this would not be necessary in this case.
-		}
-	}
-
-	for(i=0; i<vblank_duration; i++)
-	{
-/*		uint32 invalid_instruction_address = s68000exec(m68k_cycles_per_scanline);
-		if (invalid_instruction_address != 0x80000000)
-			cd_bios_process(invalid_instruction_address);*/
-		m68k_execute(m68k_cycles_per_scanline);
-		// No CD handling... !!! FIX !!!
-
-		cd_bios_exec(i);
-		tom_pit_exec(m68k_cycles_per_scanline);
-		tom_exec_scanline(backbuffer, i, false);
-		jerry_pit_exec(m68k_cycles_per_scanline);
-		jerry_i2s_exec(m68k_cycles_per_scanline);
-		gpu_exec(gpu_cycles_per_scanline);
-		if (dsp_enabled)
-			DSPExec(dsp_cycles_per_scanline);
-	}
-	
-	for (; i<jaguar_screen_scanlines; i++)
-	{
-/*		uint32 invalid_instruction_address = s68000exec(m68k_cycles_per_scanline);
-		if (invalid_instruction_address != 0x80000000)
-			cd_bios_process(invalid_instruction_address);*/
-		m68k_execute(m68k_cycles_per_scanline);
-		// No CD handling... !!! FIX !!!
-		cd_bios_exec(i);
-		tom_pit_exec(m68k_cycles_per_scanline);
-		jerry_pit_exec(m68k_cycles_per_scanline);
-		jerry_i2s_exec(m68k_cycles_per_scanline);
-		tom_exec_scanline(backbuffer, i, render);
-		gpu_exec(gpu_cycles_per_scanline);
-		if (dsp_enabled)
-			DSPExec(dsp_cycles_per_scanline);
-		backbuffer += tom_width;
-	}
-//#ifdef SOUND_OUTPUT
-//	system_sound_update();
-//#endif
-}
+}*/
 
 //
 // Main Jaguar execution loop (1 frame)
 //
 void JaguarExecute(int16 * backbuffer, bool render)
 {
-	uint16 vp = TOMReadWord(0xF0003E);//Hmm. This is a WO register. Will work? Looks like. But wrong behavior!
+	uint16 vp = TOMReadWord(0xF0003E) + 1;//Hmm. This is a WO register. Will work? Looks like. But wrong behavior!
 	uint16 vi = TOMReadWord(0xF0004E);//Another WO register...
 	uint16 vdb = TOMReadWord(0xF00046);
-//	uint16 endingLine = 
 //Note: This is the *definite* end of the display, though VDE *might* be less than this...
 //	uint16 vbb = TOMReadWord(0xF00040);
 //It seems that they mean it when they say that VDE is the end of object processing.
@@ -699,49 +620,53 @@ void JaguarExecute(int16 * backbuffer, bool render)
 //buffer and not to write any more pixels... !!! FIX !!!
 	uint16 vde = TOMReadWord(0xF00048);
 
+	uint16 refreshRate = (hardwareTypeNTSC ? 60 : 50);
+	// Should these be hardwired or read from VP? Yes, from VP!
+	uint32 M68KCyclesPerScanline
+		= (hardwareTypeNTSC ? M68K_CLOCK_RATE_NTSC : M68K_CLOCK_RATE_PAL) / (vp * refreshRate);
+	uint32 RISCCyclesPerScanline
+		= (hardwareTypeNTSC ? RISC_CLOCK_RATE_NTSC : RISC_CLOCK_RATE_PAL) / (vp * refreshRate);
+
 /*extern int effect_start;
 if (effect_start)
 {
-	WriteLog("JagExe: VP=%u, VI=%u, VDB=%u, VBB=%u CPU CPS=%u, GPU CPS=%u\n", vp, vi, vdb, vbb, m68k_cycles_per_scanline, gpu_cycles_per_scanline);
+	WriteLog("JagExe: VP=%u, VI=%u, VDB=%u, VBB=%u CPU CPS=%u, GPU CPS=%u\n", vp, vi, vdb, vbb, M68KCyclesPerScanline, RISCCyclesPerScanline);
 }//*/
 
 	for(uint16 i=0; i<vp; i++)
 	{
 		// Increment the horizontal count (why? RNG?)
-		TOMWriteWord(0xF00004, TOMReadWord(0xF00004) + 1);
+		TOMWriteWord(0xF00004, (TOMReadWord(0xF00004) + 1) & 0x7FF);
 
-		TOMWriteWord(0xF00006, i);				// Write the VC
+		TOMWriteWord(0xF00006, i);					// Write the VC
 
 		if (i == vi)								// Time for Vertical Interrupt?
 		{
-			if (tom_irq_enabled(IRQ_VBLANK) && jaguar_interrupt_handler_is_valid(64))
+			if (tom_irq_enabled(IRQ_VBLANK))// && jaguar_interrupt_handler_is_valid(64))
 			{
 				// We don't have to worry about autovectors & whatnot because the Jaguar
-				// tells you through registers who sent the interrupt...
+				// tells you through its HW registers who sent the interrupt...
 				tom_set_pending_video_int();
 				m68k_set_irq(7);
 			}
 		}
 		
-//		uint32 invalid_instruction_address = s68000exec(m68k_cycles_per_scanline);
+//		uint32 invalid_instruction_address = s68000exec(M68KCyclesPerScanline);
 //		if (invalid_instruction_address != 0x80000000)
 //			cd_bios_process(invalid_instruction_address);
 		// These are divided by 2 because we're executing *half* lines...!
-		m68k_execute(m68k_cycles_per_scanline / 2);
+		// Err, this is *already* accounted for in jaguar_init...!
+		m68k_execute(M68KCyclesPerScanline);
 		// No CD handling... !!! FIX !!!
 		cd_bios_exec(i);	// NOTE: Ignores parameter...
-//I'm pretty sure these run at the RISC clock rate...
-//		tom_pit_exec(m68k_cycles_per_scanline / 2);
-//		jerry_pit_exec(m68k_cycles_per_scanline / 2);
-//		jerry_i2s_exec(m68k_cycles_per_scanline / 2);
-		tom_pit_exec(gpu_cycles_per_scanline / 2);
-		jerry_pit_exec(gpu_cycles_per_scanline / 2);
-		jerry_i2s_exec(gpu_cycles_per_scanline / 2);
-		gpu_exec(gpu_cycles_per_scanline / 2);
+		tom_pit_exec(RISCCyclesPerScanline);
+		jerry_pit_exec(RISCCyclesPerScanline);
+		jerry_i2s_exec(RISCCyclesPerScanline);
+		gpu_exec(RISCCyclesPerScanline);
 		if (dsp_enabled)
-			DSPExec(dsp_cycles_per_scanline / 2);
+			DSPExec(RISCCyclesPerScanline);
 
-//Interlacing is still not handled correctly here...
+//Interlacing is still not handled correctly here... !!! FIX !!!
 		if (i >= vdb && i < vde)//vbb)
 		{
 			if (!(i & 0x01))						// Execute OP only on even lines (non-interlaced only!)
@@ -751,10 +676,6 @@ if (effect_start)
 			}
 		}
 	}
-
-//#ifdef SOUND_OUTPUT
-//	system_sound_update();
-//#endif
 }
 
 // Temp debugging stuff

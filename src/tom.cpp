@@ -245,7 +245,6 @@
 //	------------------------------------------------------------
 
 #include <SDL.h>
-//#include "SDLptc.h"
 #include "tom.h"
 #include "gpu.h"
 #include "objectp.h"
@@ -260,8 +259,8 @@
 #define VMODE		0x28
 #define   MODE		0x0006		// Line buffer to video generator mode
 #define   BGEN		0x0080		// Background enable (CRY & RGB16 only)
-#define   VARMOD	0x0100		// Mixed CRY/RGB16 mode
-#define   PWIDTH	0x0E00		// Pixel width in video clock cycles
+#define   VARMOD	0x0100		// Mixed CRY/RGB16 mode (only works in MODE 0!)
+#define   PWIDTH	0x0E00		// Pixel width in video clock cycles (value written + 1)
 #define HP			0x2E		// Values range from 1 - 1024 (value written + 1)
 #define HBB			0x30
 #define HBE			0x32
@@ -276,14 +275,13 @@
 #define VDE			0x48
 #define VI			0x4E
 #define BG			0x58
+#define INT1		0xE0
 
 //This can be defined in the makefile as well...
 //(It's easier to do it here, though...)
 //#define TOM_DEBUG
 
 extern uint32 jaguar_mainRom_crc32;
-//extern Console console;
-//extern Surface * surface;
 extern uint8 objectp_running;
 
 static uint8 * tom_ram_8;
@@ -291,18 +289,15 @@ uint32 tom_width, tom_height, tom_real_internal_width;
 static uint32 tom_timer_prescaler;
 static uint32 tom_timer_divider;
 static int32 tom_timer_counter;
-uint32 tom_scanline;
-uint32 hblankWidthInPixels = 0;
-uint16 tom_puck_int_pending;
-uint16 tom_timer_int_pending;
-uint16 tom_object_int_pending;
-uint16 tom_gpu_int_pending;
-uint16 tom_video_int_pending;
+//uint32 tom_scanline;
+//uint32 hblankWidthInPixels = 0;
+uint16 tom_jerry_int_pending, tom_timer_int_pending, tom_object_int_pending,
+	tom_gpu_int_pending, tom_video_int_pending;
 uint16 * tom_cry_rgb_mix_lut;
 
 static char * videoMode_to_str[8] =
-	{ "16 bpp CRY", "24 bpp RGB", "16 bpp DIRECT", "16 bpp RGB",
-	  "Mixed mode", "24 bpp RGB", "16 bpp DIRECT", "16 bpp RGB" };
+	{ "16 BPP CRY", "24 BPP RGB", "16 BPP DIRECT", "16 BPP RGB",
+	  "Mixed mode", "24 BPP RGB", "16 BPP DIRECT", "16 BPP RGB" };
 
 typedef void (render_xxx_scanline_fn)(int16 *);
 
@@ -329,7 +324,7 @@ render_xxx_scanline_fn * scanline_render_normal[]=
 	tom_render_16bpp_cry_rgb_mix_scanline,
 	tom_render_24bpp_scanline,
 	tom_render_16bpp_direct_scanline,
-	tom_render_16bpp_rgb_scanline,
+	tom_render_16bpp_rgb_scanline
 };
 
 render_xxx_scanline_fn * scanline_render_stretch[]=
@@ -374,9 +369,9 @@ void tom_calc_cry_rgb_mix_lut(void)
 	}
 }
 
-void tom_set_pending_puck_int(void)
+void tom_set_pending_jerry_int(void)
 {
-	tom_puck_int_pending = 1;
+	tom_jerry_int_pending = 1;
 }
 
 void tom_set_pending_timer_int(void)
@@ -410,19 +405,10 @@ uint8 tom_getVideoMode(void)
 	return ((vmode & VARMOD) >> 6) | ((vmode & MODE) >> 1);
 }
 
-uint16 tom_get_scanline(void)
-{
-	return tom_scanline;
-}
-
-/*uint16 tom_get_hdb(void)
-{
-	return GET16(tom_ram_8, HDB);
-}*/
-
+//Used in only one place (and for debug purposes): OBJECTP.CPP
 uint16 tom_get_vdb(void)
 {
-	// This in NOT VDB!!!
+// This in NOT VDB!!!
 //	return GET16(tom_ram_8, VBE);
 	return GET16(tom_ram_8, VDB);
 }
@@ -489,6 +475,8 @@ void tom_render_24bpp_scanline(int16 * backbuffer)
 	}
 }
 
+//Seems to me that this is NOT a valid mode--the JTRM seems to imply that you would need
+//extra hardware outside of the Jaguar console to support this!
 //
 // 16 BPP direct mode rendering
 //
@@ -655,24 +643,17 @@ void tom_render_16bpp_rgb_stretch_scanline(int16 *backbuffer)
 //
 void tom_exec_scanline(int16 * backbuffer, int32 scanline, bool render)
 {
-	tom_scanline = scanline;
-
-	// Increment the horizontal count (why? RNG?)
-//	TOMWriteWord(0xF00004, TOMReadWord(0xF00004) + 1);
-
 	if (render)
 	{
 		uint8 * current_line_buffer = (uint8 *)&tom_ram_8[0x1800];
-		uint8 bgHI = tom_ram_8[BG], bgLO = tom_ram_8[BG+1];
+		uint8 bgHI = tom_ram_8[BG], bgLO = tom_ram_8[BG + 1];
 
 		// Clear line buffer with BG
 		if (GET16(tom_ram_8, VMODE) & BGEN) // && (CRY or RGB16)...
 			for(uint32 i=0; i<720; i++)
 				*current_line_buffer++ = bgHI, *current_line_buffer++ = bgLO;
 
-//		op_process_list(backbuffer, scanline, render);
 		OPProcessList(scanline, render);
-		
 		scanline_render[tom_getVideoMode()](backbuffer);
 	}
 }
@@ -714,55 +695,55 @@ void tom_done(void)
 	memory_free(tom_ram_8);
 }
 
-uint32 tom_getHBlankWidthInPixels(void)
+/*uint32 tom_getHBlankWidthInPixels(void)
 {
 	return hblankWidthInPixels;
-}
+}*/
 
 uint32 tom_getVideoModeWidth(void)
 {
-	uint16 vmode = GET16(tom_ram_8, VMODE);
-	uint16 hdb1 = GET16(tom_ram_8, HDB1);
-//	uint16 hde = GET16(tom_ram_8, HDE);
-//	uint16 hbb = GET16(tom_ram_8, HBB);
-//	uint16 hbe = GET16(tom_ram_8, HBE);
+	//These widths are pretty bogus. Should use HDB1/2 & HDE/HBB & PWIDTH to calc the width...
+	uint32 width[8] = { 1330, 665, 443, 332, 266, 222, 190, 166 };
+//Temporary, for testing Doom...
+//	uint32 width[8] = { 1330, 665, 443, 332, 266, 222, 190, 332 };
 
-	// NOTE: PWIDTH is value + 1...!
-	int pwidth = ((vmode & PWIDTH) >> 9) + 1;
+	// Note that the following PWIDTH values have the following pixel aspect ratios:
+	// PWIDTH = 1 -> 0.25:1 pixels (X:Y ratio)
+	// PWIDTH = 2 -> 0.50:1 pixels
+	// PWIDTH = 3 -> 0.75:1 pixels
+	// PWIDTH = 4 -> 1.00:1 pixels
+	// PWIDTH = 5 -> 1.25:1 pixels
+	// PWIDTH = 6 -> 1.50:1 pixels
+	// PWIDTH = 7 -> 1.75:1 pixels
+	// PWIDTH = 8 -> 2.00:1 pixels
+
 	// Also note that the JTRM says that PWIDTH of 4 gives pixels that are "about" square--
 	// this implies that the other modes have pixels that are *not* square!
+	// Also, I seriously doubt that you will see any games that use PWIDTH = 1!
 
-	uint32 width = 640;
-	switch (pwidth)
-	{
-/*	case 1: width = 640; break;
-	case 2: width = 640; break;
-	case 3: width = 448; break;
-	case 4: width = 320; break;
-	case 5: width = 256; break;
-	case 6: width = 256; break;
-	case 7: width = 256; break;
-	case 8: width = 320; break;//*/
-	case 1: width = 1330; break;		// 0.25:1 pixels (X:Y ratio)
-	case 2: width = 665; break;			// 0.50:1 pixels
-	case 3: width = 443; break;			// 0.75:1 pixels
-	case 4: width = 332; break;			// 1.00:1 pixels
-	case 5: width = 266; break;			// 1.25:1 pixels
-	case 6: width = 222; break;			// 1.50:1 pixels
-	case 7: width = 190; break;			// 1.75:1 pixels
-	case 8: width = 166; break;			// 2.00:1 pixels
-//Temporary, for testing Doom...
-//	case 8: width = 332; break;			// 2.00:1 pixels
-//*/
-	}
-	
-	if (hdb1 == 123)
-		hblankWidthInPixels = 16;
-	else
-		hblankWidthInPixels = 0;
+	// NOTE: Even though the PWIDTH value is + 1, here we're using a zero-based index and
+	//       so we don't bother to add one...
+//	return width[(GET16(tom_ram_8, VMODE) & PWIDTH) >> 9];
 
-//	WriteLog("TOM: HDB1=%i HBE=%i\n", hdb1, hbe);
-	return width;
+	// Now, we just calculate it...
+	uint16 hdb1 = GET16(tom_ram_8, HDB1), hde = GET16(tom_ram_8, HDE),
+		hbb = GET16(tom_ram_8, HBB), pwidth = ((GET16(tom_ram_8, VMODE) & PWIDTH) >> 9) + 1;
+	return ((hbb < hde ? hbb : hde) - hdb1) / pwidth;
+
+// More speculating...
+// According to the JTRM, the number of potential pixels across is given by the
+// Horizontal Period (HP - in NTSC this is 845). The Horizontal Count counts from
+// zero to this value twice per scanline (the high bit is set on the second count).
+// HBE and HBB define the absolute "black" limits of the screen, while HDB1/2 and
+// HDE determine the extent of the OP "on" time. I.e., when the OP is turned on by
+// HDB1, it starts fetching the line from position 0 in LBUF.
+
+// The trick, it would seem, is to figure out how long the typical visible scanline
+// of a TV is in HP ticks and limit the visible area to that (divided by PWIDTH, of
+// course). Using that length, we can establish an "absolute left display limit" with
+// which to measure HBB & HDB1/2 against when rendering LBUF (i.e., if HDB1 is 20 ticks
+// to the right of the ALDL and PWIDTH is 4, then start writing the LBUF starting at
+// backbuffer + 5 pixels).
 }
 
 // *** SPECULATION ***
@@ -790,13 +771,13 @@ uint32 tom_getVideoModeHeight(void)
 //	return ((vde > vp ? vp : vde) - vdb) >> 1;
 //	return ((vde > vbb ? vbb : vde) - vdb) >> 1;
 //Let's try from the Vertical Blank interval...
-	return (vbb - vbe) >> 1;
+//Seems to work OK!
+	return (vbb - vbe) >> 1;	// Again, doesn't take interlacing into account...
 }
 
 //
 // TOM reset code
-// NOTE: Should set up PAL values here when in PAL mode (use BIOS to find default values)
-//       for when user starts with -nobios -pal flags... [DONE]
+// Now PAL friendly!
 //
 void tom_reset(void)
 {
@@ -812,7 +793,7 @@ void tom_reset(void)
 	{
 		SET16(tom_ram_8, MEMCON1, 0x1861);
 		SET16(tom_ram_8, MEMCON2, 0x35CC);
-		SET16(tom_ram_8, HP, 844);					// Horizontal Period
+		SET16(tom_ram_8, HP, 844);					// Horizontal Period (1-based; HP=845)
 		SET16(tom_ram_8, HBB, 1713);				// Horizontal Blank Begin
 		SET16(tom_ram_8, HBE, 125);					// Horizontal Blank End
 		SET16(tom_ram_8, HDE, 1665);				// Horizontal Display End
@@ -845,11 +826,12 @@ void tom_reset(void)
 
 	tom_width = tom_real_internal_width = 0;
 	tom_height = 0;
-	tom_scanline = 0;
+//	tom_scanline = 0;
 
-	hblankWidthInPixels = GET16(tom_ram_8, HDB1) >> 1;
+//This is WRONG
+//	hblankWidthInPixels = GET16(tom_ram_8, HDB1) >> 1;
 
-	tom_puck_int_pending = 0;
+	tom_jerry_int_pending = 0;
 	tom_timer_int_pending = 0;
 	tom_object_int_pending = 0;
 	tom_gpu_int_pending = 0;
@@ -911,13 +893,13 @@ if (offset >= 0xF02000 && offset <= 0xF020FF)
 
 	if (offset == 0xF000E0)
 	{
-		uint16 data = (tom_puck_int_pending << 4) | (tom_timer_int_pending << 3)
+		uint16 data = (tom_jerry_int_pending << 4) | (tom_timer_int_pending << 3)
 			| (tom_object_int_pending << 2) | (tom_gpu_int_pending << 1)
 			| (tom_video_int_pending << 0);
 		//WriteLog("tom: interrupt status is 0x%.4x \n",data);
 		return data;
 	}
-//Shoud be handled by the jaguar main loop now...
+//Shoud be handled by the jaguar main loop now... And it is! ;-)
 /*	else if (offset == 0xF00006)	// VC
 	// What if we're in interlaced mode?
 	// According to docs, in non-interlace mode VC is ALWAYS even...
@@ -1072,7 +1054,7 @@ if (offset >= 0xF02000 && offset <= 0xF020FF)
 		if (data & 0x0800)
 			tom_timer_int_pending = 0;
 		if (data & 0x1000)
-			tom_puck_int_pending = 0;
+			tom_jerry_int_pending = 0;
 	}
 	else if ((offset >= 0xF02200) && (offset <= 0xF0229F))
 	{
@@ -1110,7 +1092,7 @@ if (offset == HDB1)
 if (offset == HDE)
 	WriteLog("TOM: Horizontal Display End written by %s: %u\n", whoName[who], data);
 if (offset == HP)
-	WriteLog("TOM: Horizontal Period written by %s: %u\n", whoName[who], data);
+	WriteLog("TOM: Horizontal Period written by %s: %u (+1*2 = %u)\n", whoName[who], data, (data + 1) * 2);
 if (offset == VBB)
 	WriteLog("TOM: Vertical Blank Begin written by %s: %u\n", whoName[who], data);
 if (offset == VBE)
@@ -1124,7 +1106,11 @@ if (offset == HBB)
 if (offset == HBE)
 	WriteLog("TOM: Horizontal Blank End written by %s: %u\n", whoName[who], data);
 if (offset == VMODE)
-	WriteLog("TOM: Video Mode written by %s: %04X (PWIDTH = %u, VC = %u)\n", whoName[who], data, ((data >> 9) & 0x07) + 1, GET16(tom_ram_8, VC));
+	WriteLog("TOM: Video Mode written by %s: %04X. PWIDTH = %u, MODE = %s, flags:%s%s (VC = %u)\n", whoName[who], data, ((data >> 9) & 0x07) + 1, videoMode_to_str[(data & MODE) >> 1], (data & BGEN ? " BGEN" : ""), (data & VARMOD ? " VARMOD" : ""), GET16(tom_ram_8, VC));
+/*#define   MODE		0x0006		// Line buffer to video generator mode
+#define   BGEN		0x0080		// Background enable (CRY & RGB16 only)
+#define   VARMOD	0x0100		// Mixed CRY/RGB16 mode
+#define   PWIDTH	0x0E00		// Pixel width in video clock cycles (value written + 1)*/
 
 	// detect screen resolution changes
 //This may go away in the future, if we do the virtualized screen thing...
@@ -1178,7 +1164,7 @@ int tom_irq_enabled(int irq)
 {
 	// This is the correct byte in big endian... D'oh!
 //	return jaguar_byte_read(0xF000E1) & (1 << irq);
-	return tom_ram_8[0xE1] & (1 << irq);
+	return tom_ram_8[INT1 + 1/*0xE1*/] & (1 << irq);
 }
 
 //unused

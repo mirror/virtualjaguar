@@ -639,10 +639,10 @@ void DSPWriteLong(uint32 offset, uint32 data, uint32 who/*=UNKNOWN*/)
 //	WriteLog("dsp: writing %.8x at 0x%.8x\n",data,offset);
 	if (offset >= DSP_WORK_RAM_BASE && offset <= DSP_WORK_RAM_BASE + 0x1FFF)
 	{
-if (offset == 0xF1BE2C)
+/*if (offset == 0xF1BE2C)
 {
 	WriteLog("DSP: %s is writing %08X at location 0xF1BE2C (DSP_PC: %08X)...\n", whoName[who], data, dsp_pc - 2);
-}
+}//*/
 		offset -= DSP_WORK_RAM_BASE;
 		SET32(dsp_ram_8, offset, data);
 		return;

@@ -311,14 +311,6 @@ extern int op_start_log;
 //	char * condition_to_str[8] =
 //		{ "==", "<", ">", "(opflag set)", "(second half line)", "?", "?", "?" };
 
-// If jaguar_exec() is working right, we should *never* have to check for this
-// condition...
-/*	if (scanline < tom_get_vdb())
-		return;
-
-	if (scanline >= 525)//tom_getVideoModeHeight()+tom_get_vdb())
-		return;//*/
-
 	op_pointer = op_get_list_pointer();
 
 	objectp_stop_reading_list = false;

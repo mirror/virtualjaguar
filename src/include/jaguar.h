@@ -31,7 +31,7 @@ extern char * whoName[9];
 
 void jaguar_init(void);
 void jaguar_reset(void);
-void jaguar_reset_handler(void);
+//void jaguar_reset_handler(void);
 void jaguar_done(void);
 
 uint8 JaguarReadByte(uint32 offset, uint32 who = UNKNOWN);

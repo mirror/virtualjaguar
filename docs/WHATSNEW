@@ -1,3 +1,23 @@
+Virtual Jaguar v1.0.5 GCC/SDL
+-----------------------------
+
+* Added a simple file selector so that typing in long filenames in order
+  to run the emulator is no longer necessary. :-) To use it, instead of
+  supplying a ROM name, simple put in the name of the directory where your
+  ROMs live. [Shamus]
+* Removed all the assembly language code from the DSP, so it should be a
+  little less buggy now. Also, removed some brain-dead timeslice releasing
+  that was causing a bunch of problems with various ROMs. [Shamus]
+* Added sound support! In order to hear any sound, you probably have to
+  start VJ with the -dspon switch. Also, unless you have a very fast computer
+  the sound is going to be choppy. Hopefully future optimizations will cure
+  this. ;-) [Shamus]
+* Added GUI support. You can see the results by hitting the TAB key while the
+  emulator is running. ;-) [Shamus]
+* Lots of cleanups to the source code including the ability to trace who
+  writes what to where. [Shamus]
+
+
 Virtual Jaguar v1.0.4 GCC/SDL - source only release
 ---------------------------------------------------
 
@@ -62,6 +82,8 @@ NOTE: Tested only on WIN32 platform!
 
 1.0.1 - 1.0.2 - Unreleased, mostly for testing/finding bugs
 -----------------------------------------------------------
+
+* Lots of stuff happened, but we can't remember any of it. :-)
 
 
 Virtual Jaguar v1.0.0 GCC/SDL - initial source release

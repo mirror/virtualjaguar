@@ -1,8 +1,8 @@
 Stuff to add/fix for the next release of Virtual Jaguar
 -------------------------------------------------------
 
-- Would be nice to have a GUI for ROM selection, perhaps even for things
-  that are set on the command line. [Shamus]
+- Would be nice to have a GUI for things that are set on the command line.
+  [Shamus]
 - Would also be nice to be able to dynamically change the keybindings for
   the various keys on the emulated Jaguar controller while inside the emulator.
   [Shamus]
@@ -12,17 +12,22 @@ Stuff to add/fix for the next release of Virtual Jaguar
 - We need a comprehensive way of determining what gets written where and
   by whom (i.e., blitter wrote to range $F03000-$F03230) in order to figure
   out the remaining problems with various ROMs. [Shamus]
-- Sound needs a rewrite. With SDL, this shouldn't be much of a problem.
-  Of course, whoever does this should realize that the PCM outs are probably
-  not being used for a majority of the ROMs out there--according to the JTRM,
-  you're supposed to use the I2S interface to output sound since the PCM outs
-  aren't even physically hooked up in the console! [Shamus]
 - There is a bug either with the GPU or the blitter (most likely the latter)
   which causes the spinning "A"s in the BIOS startup code to be corrupted
   when they are showing their backsides. [Shamus]
-- Need to rewrite the main Jaguar execution loop to increment the VC by one
-  instead of by two, which is how the real Jaguar works. [Shamus]
+- We need to have an external configuration file for remembering a user's
+  preferences, such as key bindings, etc. [Shamus]
+- We need to come up with a way to fix the aspect ratio for pixel modes that
+  aren't square (PWIDTH != 4). [Shamus]
 
 Stuff that was added/fixed
 --------------------------
 
+- GUI for ROM selection [Shamus] [DONE--Shamus]
+- Need to rewrite the main Jaguar execution loop to increment the VC by one
+  instead of by two, which is how the real Jaguar works. [Shamus] [DONE--Shamus]
+- Sound needs a rewrite. With SDL, this shouldn't be much of a problem.
+  Of course, whoever does this should realize that the PCM outs are probably
+  not being used for a majority of the ROMs out there--according to the JTRM,
+  you're supposed to use the I2S interface to output sound since the PCM outs
+  aren't even physically hooked up in the console! [Shamus] [DONE--Shamus]
