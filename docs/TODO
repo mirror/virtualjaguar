@@ -32,6 +32,8 @@ Stuff to add/fix for the next release of Virtual Jaguar
 Stuff that was added/fixed
 --------------------------
 
+- Make it possible to completely disable the GUI (using a switch like -nogui
+  or the like) for people running VJ in a cabinet. [Shamus] [DONE--Shamus]
 - Would be nice to have a GUI for things that are set on the command line or
   in the config file. [Shamus] [DONE--Shamus]
 - DSP code needs to be rewritten. [Shamus] [DONE but still work to be done--Shamus]

@@ -1,3 +1,10 @@
+Virtual Jaguar v1.0.8 GCC/SDL
+-----------------------------
+
+* Switched OpenGL rendering to 32 BPP. This is not only how a real Jaguar
+  renders graphics, but it also gives VJ a nice speed boost. ;-) [Shamus]
+
+
 Virtual Jaguar v1.0.7 GCC/SDL
 -----------------------------
 
