@@ -1,9 +1,9 @@
 //
 // Object Processor
 //
-// by cal2
+// Original source by Cal2
 // GCC/SDL port by Niels Wagenaar (Linux/WIN32) and Caz (BeOS)
-// Cleanups/fixes/rewrites by James L. Hammons
+// Extensive cleanups/fixes/rewrites by James L. Hammons
 //
 
 #include <stdio.h>
@@ -36,15 +36,11 @@
 
 // Private function prototypes
 
-void OPProcessFixedBitmap(int scanline, uint64 p0, uint64 p1, bool render);
-void OPProcessScaledBitmap(int scanline, uint64 p0, uint64 p1, uint64 p2, bool render);
+void OPProcessFixedBitmap(uint64 p0, uint64 p1, bool render);
+void OPProcessScaledBitmap(uint64 p0, uint64 p1, uint64 p2, bool render);
 void DumpScaledObject(uint64 p0, uint64 p1, uint64 p2);
 void DumpFixedObject(uint64 p0, uint64 p1);
 uint64 op_load_phrase(uint32 offset);
-
-// External global variables
-
-extern uint32 jaguar_mainRom_crc32;
 
 // Local global variables
 
@@ -54,7 +50,7 @@ static uint8 * op_blend_cr;
 // some of the regular TOM RAM...
 static uint8 objectp_ram[0x40];			// This is based at $F00000
 uint8 objectp_running;
-bool objectp_stop_reading_list;
+//bool objectp_stop_reading_list;
 
 static uint8 op_bitmap_bit_depth[8] = { 1, 2, 4, 8, 16, 24, 32, 0 };
 //static uint32 op_bitmap_bit_size[8] =
@@ -153,6 +149,11 @@ void op_done(void)
 // Object Processor memory access
 // Memory range: F00010 - F00027
 //
+//	F00010-F00017   R     xxxxxxxx xxxxxxxx   OB - current object code from the graphics processor
+//	F00020-F00023     W   xxxxxxxx xxxxxxxx   OLP - start of the object list
+//	F00026            W   -------- -------x   OBF - object processor flag
+//
+
 uint8 OPReadByte(uint32 offset, uint32 who/*=UNKNOWN*/)
 {
 	offset &= 0x3F;
@@ -164,10 +165,6 @@ uint16 OPReadWord(uint32 offset, uint32 who/*=UNKNOWN*/)
 	offset &= 0x3F;
 	return GET16(objectp_ram, offset);
 }
-
-//	F00010-F00017   R     xxxxxxxx xxxxxxxx   OB - current object code from the graphics processor
-//	F00020-F00023     W   xxxxxxxx xxxxxxxx   OLP - start of the object list
-//	F00026            W   -------- -------x   OBF - object processor flag
 
 void OPWriteByte(uint32 offset, uint8 data, uint32 who/*=UNKNOWN*/)
 {
@@ -305,6 +302,8 @@ void DumpFixedObject(uint64 p0, uint64 p1)
 //
 // Object Processor main routine
 //
+//Need to fix this so that when an GPU object IRQ happens, we can pick up OP processing
+//where we left off. !!! FIX !!!
 void OPProcessList(int scanline, bool render)
 {
 extern int op_start_log;
@@ -313,7 +312,7 @@ extern int op_start_log;
 
 	op_pointer = op_get_list_pointer();
 
-	objectp_stop_reading_list = false;
+//	objectp_stop_reading_list = false;
 
 // *** BEGIN OP PROCESSOR TESTING ONLY ***
 extern bool interactiveMode;
@@ -332,12 +331,12 @@ if (interactiveMode && bitmapCounter == objectPtr)
 else
 	inhibit = false;
 // *** END OP PROCESSOR TESTING ONLY ***
-		if (objectp_stop_reading_list)
-			return;
+//		if (objectp_stop_reading_list)
+//			return;
 			
 		uint64 p0 = op_load_phrase(op_pointer);
 		op_pointer += 8;
-if (scanline == tom_get_vdb() && op_start_log)
+if (scanline == tom_get_vdb() + 1 && op_start_log)
 //if (scanline == 215 && op_start_log)
 {
 WriteLog("%08X --> phrase %08X %08X", op_pointer - 8, (int)(p0>>32), (int)(p0&0xFFFFFFFF));
@@ -408,8 +407,7 @@ WriteLog("    --> List end\n");
 		{
 		case OBJECT_TYPE_BITMAP:
 		{
-			// Would *not* be /2 if interlaced...!
-			uint16 ypos = ((p0 >> 3) & 0x3FF) / 2;
+			uint16 ypos = (p0 >> 3) & 0x3FF;
 // This is only theory implied by Rayman...!
 // It seems that if the YPOS is zero, then bump the YPOS value so that it coincides with
 // the VDB value. With interlacing, this would be slightly more tricky.
@@ -435,11 +433,13 @@ if (!inhibit)	// For OP testing only!
 				op_pointer += 8;
 //WriteLog("OP: Writing scanline %d with ypos == %d...\n", scanline, ypos);
 //WriteLog("--> Writing %u BPP bitmap...\n", op_bitmap_bit_depth[(p1 >> 12) & 0x07]);
-				OPProcessFixedBitmap(scanline, p0, p1, render);
+//				OPProcessFixedBitmap(scanline, p0, p1, render);
+				OPProcessFixedBitmap(p0, p1, render);
 
 				// OP write-backs
 
 //???Does this really happen??? Doesn't seem to work if you do this...!
+//Probably not. Must be a bug in the documentation...!
 //				uint32 link = (p0 & 0x7FFFF000000) >> 21;
 //				SET16(objectp_ram, 0x20, link & 0xFFFF);	// OLP
 //				SET16(objectp_ram, 0x22, link >> 16);
@@ -465,19 +465,7 @@ if (!inhibit)	// For OP testing only!
 		}
 		case OBJECT_TYPE_SCALE:
 		{
-			// Would *not* be /2 if interlaced...!
-			uint16 ypos = ((p0 >> 3) & 0x3FF) / 2;
-// This is only theory implied by Rayman...!
-// It seems that if the YPOS is zero, then bump the YPOS value so that it coincides with
-// the VDB value. With interlacing, this would be slightly more tricky.
-// There's probably another bit somewhere that enables this mode--but so far, doesn't seem
-// to affect any other game in a negative way (that I've seen).
-// Either that, or it's an undocumented bug...
-
-//No, the reason this was needed is that the OP code before was wrong. Any value
-//less than VDB will get written to the top line of the display!
-//			if (ypos == 0)
-//				ypos = TOMReadWord(0xF00046, OP) / 2;			// Get the VDB value
+			uint16 ypos = (p0 >> 3) & 0x3FF;
 			uint32 height = (p0 & 0xFFC000) >> 14;
 			uint32 oldOPP = op_pointer - 8;
 // *** BEGIN OP PROCESSOR TESTING ONLY ***
@@ -496,19 +484,9 @@ if (!inhibit)	// For OP testing only!
 				uint64 p2 = op_load_phrase(op_pointer);
 				op_pointer += 8;
 //WriteLog("OP: %08X (%d) %08X%08X %08X%08X %08X%08X\n", oldOPP, scanline, (uint32)(p0>>32), (uint32)(p0&0xFFFFFFFF), (uint32)(p1>>32), (uint32)(p1&0xFFFFFFFF), (uint32)(p2>>32), (uint32)(p2&0xFFFFFFFF));
-				OPProcessScaledBitmap(scanline, p0, p1, p2, render);
+				OPProcessScaledBitmap(p0, p1, p2, render);
 
 				// OP write-backs
-
-//???Does this really happen??? Doesn't seem to work if you do this...!
-//				uint32 link = (p0 & 0x7FFFF000000) >> 21;
-//				SET16(objectp_ram, 0x20, link & 0xFFFF);	// OLP
-//				SET16(objectp_ram, 0x22, link >> 16);
-/*				uint32 height = (p0 & 0xFFC000) >> 14;
-				if (height - 1 > 0)
-					height--;*/
-				// NOTE: Would subtract 2 if in interlaced mode...!
-//				uint64 height = ((p0 & 0xFFC000) - 0x4000) & 0xFFC000;
 
 				uint8 remainder = p2 >> 16, vscale = p2 >> 8;
 //Actually, we should skip this object if it has a vscale of zero.
@@ -523,12 +501,14 @@ if (!inhibit)	// For OP testing only!
 					vscale = 0x20;					// OP bug??? Nope, it isn't...! Or is it?
 
 				remainder -= 0x20;					// 1.0f in [3.5] fixed point format
-				if (remainder & 0x80)				// I.e., it's negative
+//				if (remainder & 0x80)				// I.e., it's negative
+				if ((remainder & 0x80) || remainder == 0)	// I.e., it's <= 0
 				{
 					uint64 data = (p0 & 0xFFFFF80000000000) >> 40;
 					uint64 dwidth = (p1 & 0xFFC0000) >> 15;
 
-					while (remainder & 0x80)
+//					while (remainder & 0x80)
+					while ((remainder & 0x80) || remainder == 0)
 					{
 						remainder += vscale;
 						if (height)
@@ -564,6 +544,7 @@ if (!inhibit)	// For OP testing only!
 //OPSuspendedByGPU = true;
 //Dunno if the OP keeps processing from where it was interrupted, or if it just continues
 //on the next scanline...
+// --> It continues from where it was interrupted! !!! FIX !!!
 			break;
 		}
 		case OBJECT_TYPE_BRANCH:
@@ -577,21 +558,14 @@ if (!inhibit)	// For OP testing only!
 			switch (cc)
 			{
 			case CONDITION_EQUAL:
-//Why do this for the equal case? If they wrote an odd YPOS, then it wouldn't be detected!
-//				if (ypos != 0x7FF && (ypos & 0x01))
-//				 	ypos ^= 0x01;
-//				if ((2 * tom_get_scanline()) == ypos || ypos == 0x7FF)
-//Here we're using VC instead of the bogus tom_get_scanline() value...
 				if (TOMReadWord(0xF00006, OP) == ypos || ypos == 0x7FF)
 					op_pointer = link;
 				break;
 			case CONDITION_LESS_THAN:
-//				if ((2 * tom_get_scanline()) < ypos)
 				if (TOMReadWord(0xF00006, OP) < ypos)
 					op_pointer = link;
 				break;
 			case CONDITION_GREATER_THAN:
-//				if ((2 * tom_get_scanline()) > ypos)
 				if (TOMReadWord(0xF00006, OP) > ypos)
 					op_pointer = link;
 				break;
@@ -622,7 +596,7 @@ if (!inhibit)	// For OP testing only!
 			if (p0 & 0x08)
 			{
 				tom_set_pending_object_int();
-				if (tom_irq_enabled(IRQ_OPFLAG) && jaguar_interrupt_handler_is_valid(64))
+				if (tom_irq_enabled(IRQ_OPFLAG))// && jaguar_interrupt_handler_is_valid(64))
 					m68k_set_irq(7);				// Cause an NMI to occur...
 			}
 
@@ -639,11 +613,7 @@ if (!inhibit)	// For OP testing only!
 //
 // Store fixed size bitmap in line buffer
 //
-
-// Interesting thing about Rayman: There seems to be a transparent bitmap (1/8/16 bpp--which?)
-// being rendered under his feet--doesn't align when walking... Check it out!
-
-void OPProcessFixedBitmap(int scanline, uint64 p0, uint64 p1, bool render)
+void OPProcessFixedBitmap(uint64 p0, uint64 p1, bool render)
 {
 // Need to make sure that when writing that it stays within the line buffer...
 // LBUF ($F01800 - $F01D9E) 360 x 32-bit RAM
@@ -652,7 +622,6 @@ void OPProcessFixedBitmap(int scanline, uint64 p0, uint64 p1, bool render)
 	uint32 iwidth = (p1 >> 28) & 0x3FF;				// Image width in *phrases*
 	uint32 data = (p0 >> 40) & 0xFFFFF8;			// Pixel data address
 //#ifdef OP_DEBUG_BMP
-// Prolly should use this... Though not sure exactly how.
 	uint32	firstPix = (p1 >> 49) & 0x3F;
 	// "The LSB is significant only for scaled objects..." -JTRM
 	// "In 1 BPP mode, all five bits are significant. In 2 BPP mode, the top four are significant..."
@@ -761,7 +730,7 @@ void OPProcessFixedBitmap(int scanline, uint64 p0, uint64 p1, bool render)
 //		rightMargin = lbufWidth;
 */
 if (depth > 5)
-	WriteLog("We're about to encounter a divide by zero error!\n");
+	WriteLog("OP: We're about to encounter a divide by zero error!\n");
 	// NOTE: We're just using endPos to figure out how much, if any, to clip by.
 	// ALSO: There may be another case where we start out of bounds and end out of bounds...!
 	// !!! FIX !!!
@@ -933,18 +902,20 @@ if (firstPix)
 	}
 	else if (depth == 3)							// 8 BPP
 	{
-if (firstPix)
-	WriteLog("OP: Fixed bitmap @ 8 BPP requesting FIRSTPIX! (fp=%u)\n", firstPix);
 		// The LSB is OPFLAG_REFLECT, so sign extend it and or 2 into it.
 		int32 lbufDelta = ((int8)((flags << 7) & 0xFF) >> 5) | 0x02;
 
+		// Fetch 1st phrase...
+		uint64 pixels = ((uint64)JaguarReadLong(data, OP) << 32) | JaguarReadLong(data + 4, OP);
+//Note that firstPix should only be honored *if* we start with the 1st phrase of the bitmap
+//i.e., we didn't clip on the margin... !!! FIX !!!
+		firstPix &= 0x30;							// Only top two bits are valid for 8 BPP
+		pixels <<= firstPix;						// Skip first N pixels (N=firstPix)...
+		int i = firstPix >> 3;						// Start counter at right spot...
+
 		while (iwidth--)
 		{
-			// Fetch phrase...
-			uint64 pixels = ((uint64)JaguarReadLong(data, OP) << 32) | JaguarReadLong(data + 4, OP);
-			data += pitch;
-
-			for(int i=0; i<8; i++)
+			while (i++ < 8)
 			{
 				uint8 bits = pixels >> 56;
 // Seems to me that both of these are in the same endian, so we could cast it as
@@ -968,6 +939,10 @@ if (firstPix)
 				currentLineBuffer += lbufDelta;
 				pixels <<= 8;
 			}
+			i = 0;
+			// Fetch next phrase...
+			data += pitch;
+			pixels = ((uint64)JaguarReadLong(data, OP) << 32) | JaguarReadLong(data + 4, OP);
 		}
 	}
 	else if (depth == 4)							// 16 BPP
@@ -1051,7 +1026,7 @@ if (firstPix)
 //
 // Store scaled bitmap in line buffer
 //
-void OPProcessScaledBitmap(int scanline, uint64 p0, uint64 p1, uint64 p2, bool render)
+void OPProcessScaledBitmap(uint64 p0, uint64 p1, uint64 p2, bool render)
 {
 // Need to make sure that when writing that it stays within the line buffer...
 // LBUF ($F01800 - $F01D9E) 360 x 32-bit RAM
@@ -1077,22 +1052,22 @@ if (firstPix)
 	uint8 index = (p1 >> 37) & 0xFE;				// CLUT index offset (upper pix, 1-4 bpp)
 	uint32 pitch = (p1 >> 15) & 0x07;				// Phrase pitch
 
-//	int16 scanlineWidth = tom_getVideoModeWidth();
 	uint8 * tom_ram_8 = tom_get_ram_pointer();
 	uint8 * paletteRAM = &tom_ram_8[0x400];
 	// This is OK as long as it's used correctly: For 16-bit RAM to RAM direct copies--NOT
-	// for use when using endian-corrected data (i.e., any of the *_word_read functions!)
+	// for use when using endian-corrected data (i.e., any of the *ReadWord functions!)
 	uint16 * paletteRAM16 = (uint16 *)paletteRAM;
 
 	uint8 hscale = p2 & 0xFF;
-	uint8 horizontalRemainder = hscale;				// Not sure if it starts full, but seems reasonable
+//	uint8 horizontalRemainder = hscale;				// Not sure if it starts full, but seems reasonable [It's not!]
+	uint8 horizontalRemainder = 0;					// Let's try zero! Seems to work! Yay!
 	int32 scaledWidthInPixels = (iwidth * phraseWidthToPixels[depth] * hscale) >> 5;
 	uint32 scaledPhrasePixels = (phraseWidthToPixels[depth] * hscale) >> 5;
 
 //	WriteLog("bitmap %ix? %ibpp at %i,? firstpix=? data=0x%.8x pitch %i hflipped=%s dwidth=? (linked to ?) RMW=%s Tranparent=%s\n",
 //		iwidth, op_bitmap_bit_depth[bitdepth], xpos, ptr, pitch, (flags&OPFLAG_REFLECT ? "yes" : "no"), (flags&OPFLAG_RMW ? "yes" : "no"), (flags&OPFLAG_TRANS ? "yes" : "no"));
 
-//Looks like an hscale of zero means don't draw!
+// Looks like an hscale of zero means don't draw!
 	if (!render || iwidth == 0 || hscale == 0)
 		return;
 
