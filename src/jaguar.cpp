@@ -9,6 +9,7 @@
 // 
 
 #include "jaguar.h"
+#include "video.h"
 //#include "m68kdasmAG.h"
 
 #define CPU_DEBUG
@@ -26,9 +27,9 @@ void M68K_show_context(void);
 
 // External variables
 
-extern bool hardwareTypeNTSC;				// Set to false for PAL
+extern bool hardwareTypeNTSC;						// Set to false for PAL
 #ifdef CPU_DEBUG_MEMORY
-extern bool startMemLog;					// Set by "e" key
+extern bool startMemLog;							// Set by "e" key
 extern int effect_start;
 extern int effect_start2, effect_start3, effect_start4, effect_start5, effect_start6;
 #endif
@@ -40,8 +41,8 @@ char * whoName[9] =
 
 // These values are overridden by command line switches...
 
-bool dsp_enabled = false;
-bool jaguar_use_bios = true;				// Default is now to USE the BIOS
+extern bool dsp_enabled;
+extern bool jaguar_use_bios;						// Default is now to USE the BIOS
 uint32 jaguar_active_memory_dumps = 0;
 
 uint32 jaguar_mainRom_crc32;
@@ -63,6 +64,15 @@ uint32 returnAddr[4000], raPtr = 0xFFFFFFFF;
 void M68KInstructionHook(void)
 {
 	uint32 m68kPC = m68k_get_reg(NULL, M68K_REG_PC);
+/*	if (m68kPC >= 0x807EC4 && m68kPC <= 0x807EDB)
+	{
+		static char buffer[2048];
+		m68k_disassemble(buffer, m68kPC, M68K_CPU_TYPE_68000);
+		WriteLog("%08X: %s", m68kPC, buffer);
+		WriteLog("\t\tA0=%08X, A1=%08X, D0=%08X, D1=%08X\n",
+			m68k_get_reg(NULL, M68K_REG_A0), m68k_get_reg(NULL, M68K_REG_A1),
+			m68k_get_reg(NULL, M68K_REG_D0), m68k_get_reg(NULL, M68K_REG_D1));
+	}//*/
 /*	if (m68kPC == 0x8D0E48 && effect_start5)
 	{
 		WriteLog("\nM68K: At collision detection code. Exiting!\n\n");
@@ -122,7 +132,7 @@ void M68KInstructionHook(void)
 		M68K_show_context();
 		log_done();
 		exit(0);
-	}
+	}//*/
 }
 
 //
@@ -339,7 +349,12 @@ if (address == 0xF02110)
 	else if ((address >= 0xF10000) && (address <= 0xF1FFFE))
 		JERRYWriteWord(address, value, M68K);
 	else
+	{
 		jaguar_unknown_writeword(address, value, M68K);
+		WriteLog("\tA0=%08X, A1=%08X, D0=%08X, D1=%08X\n",
+			m68k_get_reg(NULL, M68K_REG_A0), m68k_get_reg(NULL, M68K_REG_A1),
+			m68k_get_reg(NULL, M68K_REG_D0), m68k_get_reg(NULL, M68K_REG_D1));
+	}
 }
 
 void m68k_write_memory_32(unsigned int address, unsigned int value)
@@ -397,6 +412,22 @@ void M68K_show_context(void)
 //
 // Unknown read/write byte/word routines
 //
+
+// It's hard to believe that developers would be sloppy with their memory writes, yet in
+// some cases the developers screwed up royal. E.g., Club Drive has the following code:
+//
+// 807EC4: movea.l #$f1b000, A1
+// 807ECA: movea.l #$8129e0, A0
+// 807ED0: move.l  A0, D0
+// 807ED2: move.l  #$f1bb94, D1
+// 807ED8: sub.l   D0, D1
+// 807EDA: lsr.l   #2, D1
+// 807EDC: move.l  (A0)+, (A1)+
+// 807EDE: dbra    D1, 807edc
+//
+// The problem is at $807ED0--instead of putting A0 into D0, they really meant to put A1
+// in. This mistake causes it to try and overwrite approximately $700000 worth of address
+// space! (That is, unless the 68K causes a bus error...)
 
 void jaguar_unknown_writebyte(unsigned address, unsigned data, uint32 who/*=UNKNOWN*/)
 {
@@ -566,34 +597,37 @@ void JaguarWriteByte(uint32 offset, uint8 data, uint32 who/*=UNKNOWN*/)
 void JaguarWriteWord(uint32 offset, uint16 data, uint32 who/*=UNKNOWN*/)
 {
 //TEMP--Mirror of F03000? Yes, but only 32-bit CPUs can do it (i.e., NOT the 68K!)
-//if (offset >= 0xF0B000 && offset <= 0xF0BFFF)
-//WriteLog("[JWW16] --> Possible GPU RAM mirror access! [%08X]", offset);
-//if ((offset >= 0x1FF020 && offset <= 0x1FF03F) || (offset >= 0x1FF820 && offset <= 0x1FF83F))
-//	WriteLog("JagWW: Writing %04X at %08X\n", data, offset);
+// PLUS, you would handle this in the GPU/DSP WroteLong code! Not here!
 	offset &= 0xFFFFFF;
-	
+
 	if (offset <= 0x3FFFFE)
 	{
+if (offset == 0x670C)
+	WriteLog("Jaguar: %s writing to location $670C...\n", whoName[who]);
+
 		jaguar_mainRam[(offset+0) & 0x3FFFFF] = (data>>8) & 0xFF;
 		jaguar_mainRam[(offset+1) & 0x3FFFFF] = data & 0xFF;
 		return;
 	}
-	else if ((offset >= 0xDFFF00) && (offset <= 0xDFFFFE))
+	else if (offset >= 0xDFFF00 && offset <= 0xDFFFFE)
 	{
 		CDROMWriteWord(offset, data, who);
 		return;
 	}
-	else if ((offset >= 0xF00000) && (offset <= 0xF0FFFE))
+	else if (offset >= 0xF00000 && offset <= 0xF0FFFE)
 	{
 		TOMWriteWord(offset, data, who);
 		return;
 	}
-	else if ((offset >= 0xF10000) && (offset <= 0xF1FFFE))
+	else if (offset >= 0xF10000 && offset <= 0xF1FFFE)
 	{
 		JERRYWriteWord(offset, data, who);
 		return;
 	}
-    
+	// Don't bomb on attempts to write to ROM
+	else if (offset >= 0x800000 && offset <= 0xEFFFFF)
+		return;
+
 	jaguar_unknown_writeword(offset, data, who);
 }
 
@@ -625,7 +659,8 @@ void jaguar_init(void)
 	memory_malloc_secure((void **)&jaguar_mainRom, 0x600000, "Jaguar 68K CPU ROM");
 	memset(jaguar_mainRam, 0x00, 0x400000);
 //	memset(jaguar_mainRom, 0xFF, 0x200000);	// & set it to all Fs...
-	memset(jaguar_mainRom, 0x00, 0x200000);	// & set it to all 0s...
+//	memset(jaguar_mainRom, 0x00, 0x200000);	// & set it to all 0s...
+	memset(jaguar_mainRom, 0x01, 0x600000);	// & set it to all 01s...
 
 //	cd_bios_boot("C:\\ftp\\jaguar\\cd\\Brain Dead 13.cdi");
 //	cd_bios_boot("C:\\ftp\\jaguar\\cd\\baldies.cdi");
@@ -708,10 +743,16 @@ void jaguar_done(void)
 	jaguar_dasm(0x802B00, 500);
 	WriteLog("\n");//*/
 
-/*	WriteLog("\n\nM68000 disassembly at $8099F8...\n");
+/*	WriteLog("\n\nM68000 disassembly at $809900 (look @ $8099F8)...\n");
 	jaguar_dasm(0x809900, 500);
 	WriteLog("\n");//*/
 //8099F8
+/*	WriteLog("\n\nDump of $8093C8:\n\n");
+	for(int i=0x8093C8; i<0x809900; i+=4)
+		WriteLog("%06X: %08X\n", i, JaguarReadLong(i));//*/
+/*	WriteLog("\n\nM68000 disassembly at $90006C...\n");
+	jaguar_dasm(0x90006C, 500);
+	WriteLog("\n");//*/
 
 //	WriteLog("Jaguar: CD BIOS version %04X\n", JaguarReadWord(0x3004));
 	WriteLog("Jaguar: Interrupt enable = %02X\n", TOMReadByte(0xF000E1) & 0x1F);
@@ -829,7 +870,7 @@ if (effect_start)
 			if (!(i & 0x01))						// Execute OP only on even lines (non-interlaced only!)
 			{
 				tom_exec_scanline(backbuffer, i/2, render);	// i/2 is a kludge...
-				backbuffer += TOMGetSDLScreenPitch() / 2;	// Convert bytes to words...
+				backbuffer += GetSDLScreenPitch() / 2;	// Convert bytes to words...
 			}
 		}
 	}

@@ -5,17 +5,20 @@
 // by James L. Hammons
 //
 
-#include <string.h>
 #include <dirent.h>
 #include <SDL.h>
+#include <string>
+#include <vector>
+#include <algorithm>
 #include "types.h"
 #include "tom.h"
+#include "video.h"
 #include "font1.h"
 #include "gui.h"
 
-// Private function prototypes
+using namespace std;								// For STL stuff
 
-uint32 CountROMFiles(char * path);
+// Private function prototypes
 
 
 void InitGUI(void)
@@ -27,33 +30,9 @@ void GUIDone(void)
 }
 
 //
-// Render the backbuffer to the primary screen surface
-//
-void BlitBackbuffer(void)
-{
-	extern SDL_Surface * surface, * mainSurface;
-	extern int16 * backbuffer;
-
-	if (SDL_MUSTLOCK(surface))
-		while (SDL_LockSurface(surface) < 0)
-			SDL_Delay(10);
-
-	memcpy(surface->pixels, backbuffer, tom_getVideoModeWidth() * tom_getVideoModeHeight() * 2);
-
-	if (SDL_MUSTLOCK(surface))
-		SDL_UnlockSurface(surface);
-
-	SDL_Rect srcrect, dstrect;
-	srcrect.x = srcrect.y = 0, srcrect.w = surface->w, srcrect.h = surface->h;
-	dstrect.x = dstrect.y = 0, dstrect.w = surface->w, dstrect.h = surface->h;
-	SDL_BlitSurface(surface, &srcrect, mainSurface, &dstrect);
-    SDL_Flip(mainSurface);      
-}
-
-//
 // Draw text at the given x/y coordinates. Can invert text as well.
 //
-void DrawText(int16 * screen, uint32 x, uint32 y, bool invert, const char * text, ...)
+void DrawString(int16 * screen, uint32 x, uint32 y, bool invert, const char * text, ...)
 {
 	char string[4096];
 	va_list arg;
@@ -62,7 +41,7 @@ void DrawText(int16 * screen, uint32 x, uint32 y, bool invert, const char * text
 	vsprintf(string, text, arg);
 	va_end(arg);
 
-	uint32 pitch = TOMGetSDLScreenPitch() / 2;		// Returns pitch in bytes but we need words...
+	uint32 pitch = GetSDLScreenPitch() / 2;			// Returns pitch in bytes but we need words...
 	uint32 length = strlen(string), address = x + (y * pitch);
 
 	for(uint32 i=0; i<length; i++)
@@ -86,60 +65,23 @@ void DrawText(int16 * screen, uint32 x, uint32 y, bool invert, const char * text
 //
 // Very very crude GUI file selector
 //
-#ifndef FILENAME_MAX
-#define FILENAME_MAX	2048
-#endif
 bool UserSelectFile(char * path, char * filename)
 {
 	extern int16 * backbuffer;
-	uint32 numFiles = CountROMFiles(path);
+	vector<string> fileList;
 
-	if (numFiles == 0)
-		return false;
+	// Read in the candidate files from the directory pointed to by "path"
 
-	char * names = (char *)malloc(numFiles * FILENAME_MAX);
-
-	if (names == NULL)
-	{
-		WriteLog("Could not allocate memory for %u files!\nAborting!\n", numFiles);
-		return false;
-	}
-
-	int i = 0;
 	DIR * dp = opendir(path);
 	dirent * de;
 
 	while ((de = readdir(dp)) != NULL)
 	{
 		char * ext = strrchr(de->d_name, '.');
+
 		if (ext != NULL)
-		{
 			if (stricmp(ext, ".zip") == 0 || stricmp(ext, ".jag") == 0)
-			{
-				// Do a QnD insertion sort...
-				// (Yeah, it's n^2/2 time, but there aren't that many items...)
-				uint32 pos = 0;
-
-				for(int k=0; k<i; k++)
-				{
-					if (stricmp(&names[k * FILENAME_MAX], de->d_name) < 0)
-						pos++;
-					else
-						break;
-				}
-
-				uint32 blockSize = (i - pos) * FILENAME_MAX;
-
-				if (blockSize)
-//This only works on Win32 for some reason...
-//					memcpy(&names[(pos + 1) * FILENAME_MAX], &names[pos * FILENAME_MAX], blockSize);
-					for(int k=blockSize-1; k>=0; k--)
-						names[((pos + 1) * FILENAME_MAX) + k] = names[(pos * FILENAME_MAX) + k];
-
-				strcpy(&names[pos * FILENAME_MAX], de->d_name);
-				i++;
-			}
-		}
+				fileList.push_back(string(de->d_name));
 	}
 
 	closedir(dp);
@@ -148,10 +90,12 @@ bool UserSelectFile(char * path, char * filename)
 
 	uint32 cursor = 0, startFile = 0;
 
-	if (numFiles > 1)	// Only go GUI if more than one possibility!
+	if (fileList.size() > 1)	// Only go GUI if more than one possibility!
 	{
+		sort(fileList.begin(), fileList.end());
+
 		bool done = false;
-		uint32 limit = (numFiles > 24 ? 24 : numFiles);
+		uint32 limit = (fileList.size() > 24 ? 24 : fileList.size());
 		SDL_Event event;
 
 		while (!done)
@@ -164,14 +108,14 @@ bool UserSelectFile(char * path, char * filename)
 				for(uint32 i=0; i<limit; i++)
 				{
 					bool invert = (cursor == i ? true : false);
-					char buf[41];
-					// Guarantee that we clip our strings to fit in the screen...
-					memcpy(buf, &names[(startFile + i) * FILENAME_MAX], 38);
-					buf[38] = 0;
-					DrawText(backbuffer, 0, i*8, invert, " %s ", buf);
+					// Clip our strings to guarantee that they fit on the screen...
+					string s = fileList[startFile + i];
+					if (s.length() > 38)
+						s[38] = 0;
+					DrawString(backbuffer, 0, i*8, invert, " %s ", s.c_str());
 				}
 
-				BlitBackbuffer();
+				RenderBackbuffer();
 
 				if (event.type == SDL_KEYDOWN)
 				{
@@ -183,7 +127,7 @@ bool UserSelectFile(char * path, char * filename)
 							cursor++;
 						else						// Otherwise, scroll the window...
 						{
-							if (cursor + startFile != numFiles - 1)
+							if (cursor + startFile != fileList.size() - 1)
 								startFile++;
 						}
 					}
@@ -214,9 +158,10 @@ bool UserSelectFile(char * path, char * filename)
 					{
 						// Advance cursor to filename with first letter pressed...
 						uint8 which = (key - SDLK_a) + 65;	// Convert key to A-Z char
-						for(uint32 i=0; i<numFiles; i++)
+
+						for(uint32 i=0; i<fileList.size(); i++)
 						{
-							if ((names[i * FILENAME_MAX] & 0xDF) == which)
+							if ((fileList[i][0] & 0xDF) == which)
 							{
 								cursor = i - startFile;
 								if (i > startFile + limit - 1)
@@ -235,42 +180,12 @@ bool UserSelectFile(char * path, char * filename)
 	}
 
 	strcpy(filename, path);
-	// Potential GPF here: If length of dir is zero, then this will cause a page fault!
-	if (path[strlen(path) - 1] != '/')
-		strcat(filename, "/");
-	strcat(filename, &names[(cursor + startFile) * FILENAME_MAX]);
-	free(names);
+
+	if (strlen(path) > 0)
+		if (path[strlen(path) - 1] != '/')
+			strcat(filename, "/");
+
+	strcat(filename, fileList[startFile + cursor].c_str());
 
 	return true;
-}
-
-//
-// Count # of possible ROM files in the current directory
-//
-uint32 CountROMFiles(char * path)
-{
-	uint32 numFiles = 0;
-	DIR * dp = opendir(path);
-
-	if (dp == NULL)
-	{
-		WriteLog("VJ: Could not open directory \"%s\"!\nAborting!\n", path);
-		return 0;
-	}
-	else
-	{
-		dirent * de;
-
-		while ((de = readdir(dp)) != NULL)
-		{
-			char * ext = strrchr(de->d_name, '.');
-			if (ext != NULL)
-				if (stricmp(ext, ".zip") == 0 || stricmp(ext, ".jag") == 0)
-					numFiles++;
-		}
-
-		closedir(dp);
-	}
-
-	return numFiles;
 }

@@ -244,8 +244,9 @@
 //	F02298            W   xxxxxxxx xxxxxxxx xxxxxxxx xxxxxxxx   B_Z0 - Z0
 //	------------------------------------------------------------
 
-#include <SDL.h>
+//#include <SDL.h>
 #include "tom.h"
+#include "video.h"
 #include "gpu.h"
 #include "objectp.h"
 #include "cry2rgb.h"
@@ -276,6 +277,12 @@
 #define VI			0x4E
 #define BG			0x58
 #define INT1		0xE0
+
+// Arbitrary video cutoff values (i.e., first/last visible spots on a TV, in HC ticks)
+/*#define LEFT_VISIBLE_HC		208
+#define RIGHT_VISIBLE_HC	1528//*/
+#define LEFT_VISIBLE_HC		208
+#define RIGHT_VISIBLE_HC	1488
 
 //This can be defined in the makefile as well...
 //(It's easier to do it here, though...)
@@ -340,6 +347,102 @@ render_xxx_scanline_fn * scanline_render_stretch[]=
 };
 
 render_xxx_scanline_fn * scanline_render[8];
+
+
+// Screen info for various games...
+/*
+Doom
+TOM: Horizontal Display End written by M68K: 1727
+TOM: Horizontal Display Begin 1 written by M68K: 123
+TOM: Vertical Display Begin written by M68K: 25
+TOM: Vertical Display End written by M68K: 2047
+TOM: Video Mode written by M68K: 0EC1. PWIDTH = 8, MODE = 16 BPP CRY, flags: BGEN (VC = 5)
+Also does PWIDTH = 4...
+Vertical resolution: 238 lines
+
+Rayman
+TOM: Horizontal Display End written by M68K: 1727
+TOM: Horizontal Display Begin 1 written by M68K: 123
+TOM: Vertical Display Begin written by M68K: 25
+TOM: Vertical Display End written by M68K: 2047
+TOM: Vertical Interrupt written by M68K: 507
+TOM: Video Mode written by M68K: 06C7. PWIDTH = 4, MODE = 16 BPP RGB, flags: BGEN (VC = 92)
+TOM: Horizontal Display Begin 1 written by M68K: 208
+TOM: Horizontal Display End written by M68K: 1670
+Display starts at 31, then 52!
+Vertical resolution: 238 lines
+
+Atari Karts
+TOM: Horizontal Display End written by M68K: 1727
+TOM: Horizontal Display Begin 1 written by M68K: 123
+TOM: Vertical Display Begin written by M68K: 25
+TOM: Vertical Display End written by M68K: 2047
+TOM: Video Mode written by GPU: 08C7. PWIDTH = 5, MODE = 16 BPP RGB, flags: BGEN (VC = 4)
+TOM: Video Mode written by GPU: 06C7. PWIDTH = 4, MODE = 16 BPP RGB, flags: BGEN (VC = 508)
+Display starts at 31 (PWIDTH = 4), 24 (PWIDTH = 5)
+
+Iron Soldier
+TOM: Vertical Interrupt written by M68K: 2047
+TOM: Video Mode written by M68K: 06C1. PWIDTH = 4, MODE = 16 BPP CRY, flags: BGEN (VC = 0)
+TOM: Horizontal Display End written by M68K: 1727
+TOM: Horizontal Display Begin 1 written by M68K: 123
+TOM: Vertical Display Begin written by M68K: 25
+TOM: Vertical Display End written by M68K: 2047
+TOM: Vertical Interrupt written by M68K: 507
+TOM: Video Mode written by M68K: 06C1. PWIDTH = 4, MODE = 16 BPP CRY, flags: BGEN (VC = 369)
+TOM: Video Mode written by M68K: 06C1. PWIDTH = 4, MODE = 16 BPP CRY, flags: BGEN (VC = 510)
+TOM: Video Mode written by M68K: 06C3. PWIDTH = 4, MODE = 24 BPP RGB, flags: BGEN (VC = 510)
+Display starts at 31
+Vertical resolution: 238 lines
+[Seems to be a problem between the horizontal positioning of the 16-bit CRY & 24-bit RGB]
+
+JagMania
+TOM: Horizontal Period written by M68K: 844 (+1*2 = 1690)
+TOM: Horizontal Blank Begin written by M68K: 1713
+TOM: Horizontal Blank End written by M68K: 125
+TOM: Horizontal Display End written by M68K: 1696
+TOM: Horizontal Display Begin 1 written by M68K: 166
+TOM: Vertical Period written by M68K: 523 (non-interlaced)
+TOM: Vertical Blank End written by M68K: 24
+TOM: Vertical Display Begin written by M68K: 46
+TOM: Vertical Display End written by M68K: 496
+TOM: Vertical Blank Begin written by M68K: 500
+TOM: Vertical Sync written by M68K: 517
+TOM: Vertical Interrupt written by M68K: 497
+TOM: Video Mode written by M68K: 04C1. PWIDTH = 3, MODE = 16 BPP CRY, flags: BGEN (VC = 270)
+Display starts at 55
+
+Double Dragon V
+TOM: Horizontal Display End written by M68K: 1727
+TOM: Horizontal Display Begin 1 written by M68K: 123
+TOM: Vertical Display Begin written by M68K: 25
+TOM: Vertical Display End written by M68K: 2047
+TOM: Vertical Interrupt written by M68K: 507
+TOM: Video Mode written by M68K: 06C7. PWIDTH = 4, MODE = 16 BPP RGB, flags: BGEN (VC = 9)
+
+Dino Dudes
+TOM: Horizontal Display End written by M68K: 1823
+TOM: Horizontal Display Begin 1 written by M68K: 45
+TOM: Vertical Display Begin written by M68K: 40
+TOM: Vertical Display End written by M68K: 2047
+TOM: Vertical Interrupt written by M68K: 491
+TOM: Video Mode written by M68K: 06C1. PWIDTH = 4, MODE = 16 BPP CRY, flags: BGEN (VC = 398)
+Display starts at 11 (123 - 45 = 78, 78 / 4 = 19 pixels to skip)
+Width is 417, so maybe width of 379 would be good (starting at 123, ending at 1639)
+Vertical resolution: 238 lines
+
+Flashback
+TOM: Horizontal Display End written by M68K: 1727
+TOM: Horizontal Display Begin 1 written by M68K: 188
+TOM: Vertical Display Begin written by M68K: 1
+TOM: Vertical Display End written by M68K: 2047
+TOM: Vertical Interrupt written by M68K: 483
+TOM: Video Mode written by M68K: 08C7. PWIDTH = 5, MODE = 16 BPP RGB, flags: BGEN (VC = 99)
+Width would be 303 with above scheme, but border width would be 13 pixels
+
+Trevor McFur
+Vertical resolution: 238 lines
+*/
 
 
 void tom_calc_cry_rgb_mix_lut(void)
@@ -421,6 +524,16 @@ void tom_render_16bpp_cry_rgb_mix_scanline(int16 * backbuffer)
 	uint16 width = tom_width;
 	uint8 * current_line_buffer = (uint8 *)&tom_ram_8[0x1800];
 	
+	//New stuff--restrict our drawing...
+	uint8 pwidth = ((GET16(tom_ram_8, VMODE) & PWIDTH) >> 9) + 1;
+	//NOTE: May have to check HDB2 as well!
+	int16 startPos = GET16(tom_ram_8, HDB1) - LEFT_VISIBLE_HC;	// Get start position in HC ticks
+	startPos /= pwidth;
+	if (startPos < 0)
+		current_line_buffer += 2 * -startPos;
+	else
+		backbuffer += 2 * startPos, width -= startPos;
+
 	while (width)
 	{
 		uint16 color = (*current_line_buffer++) << 8;
@@ -437,6 +550,16 @@ void tom_render_16bpp_cry_scanline(int16 * backbuffer)
 {
 	uint16 width = tom_width;
 	uint8 * current_line_buffer = (uint8 *)&tom_ram_8[0x1800];
+
+	//New stuff--restrict our drawing...
+	uint8 pwidth = ((GET16(tom_ram_8, VMODE) & PWIDTH) >> 9) + 1;
+	//NOTE: May have to check HDB2 as well!
+	int16 startPos = GET16(tom_ram_8, HDB1) - LEFT_VISIBLE_HC;	// Get start position in HC ticks
+	startPos /= pwidth;
+	if (startPos < 0)
+		current_line_buffer += 2 * -startPos;
+	else
+		backbuffer += 2 * startPos, width -= startPos;
 
 	while (width)
 	{
@@ -464,8 +587,20 @@ void tom_render_24bpp_scanline(int16 * backbuffer)
 	uint16 width = tom_width;
 	uint8 * current_line_buffer = (uint8 *)&tom_ram_8[0x1800];
 	
+	//New stuff--restrict our drawing...
+	uint8 pwidth = ((GET16(tom_ram_8, VMODE) & PWIDTH) >> 9) + 1;
+	//NOTE: May have to check HDB2 as well!
+	int16 startPos = GET16(tom_ram_8, HDB1) - LEFT_VISIBLE_HC;	// Get start position in HC ticks
+	startPos /= pwidth;
+	if (startPos < 0)
+		current_line_buffer += 4 * -startPos;
+	else
+		backbuffer += 2 * startPos, width -= startPos;
+
 	while (width)
 	{
+		// This is NOT a good 8 -> 5 bit RGB conversion! (It saturates values below 8
+		// to zero and throws away almost *half* the color resolution!)
 		uint16 green = (*current_line_buffer++) >> 3;
 		uint16 red = (*current_line_buffer++) >> 3;
 		current_line_buffer++;
@@ -502,6 +637,16 @@ void tom_render_16bpp_rgb_scanline(int16 * backbuffer)
 	uint16 width = tom_width;
 	uint8 * current_line_buffer = (uint8 *)&tom_ram_8[0x1800];
 	
+	//New stuff--restrict our drawing...
+	uint8 pwidth = ((GET16(tom_ram_8, VMODE) & PWIDTH) >> 9) + 1;
+	//NOTE: May have to check HDB2 as well!
+	int16 startPos = GET16(tom_ram_8, HDB1) - LEFT_VISIBLE_HC;	// Get start position in HC ticks
+	startPos /= pwidth;
+	if (startPos < 0)
+		current_line_buffer += 2 * -startPos;
+	else
+		backbuffer += 2 * startPos, width -= startPos;
+
 	while (width)
 	{
 		uint16 color = (*current_line_buffer++) << 8;
@@ -658,13 +803,6 @@ void tom_exec_scanline(int16 * backbuffer, int32 scanline, bool render)
 	}
 }
 
-uint32 TOMGetSDLScreenPitch(void)
-{
-	extern SDL_Surface * surface;
-
-	return surface->pitch;
-}
-
 //
 // TOM initialization
 //
@@ -726,11 +864,18 @@ uint32 tom_getVideoModeWidth(void)
 //	return width[(GET16(tom_ram_8, VMODE) & PWIDTH) >> 9];
 
 	// Now, we just calculate it...
-	uint16 hdb1 = GET16(tom_ram_8, HDB1), hde = GET16(tom_ram_8, HDE),
+/*	uint16 hdb1 = GET16(tom_ram_8, HDB1), hde = GET16(tom_ram_8, HDE),
 		hbb = GET16(tom_ram_8, HBB), pwidth = ((GET16(tom_ram_8, VMODE) & PWIDTH) >> 9) + 1;
 //	return ((hbb < hde ? hbb : hde) - hdb1) / pwidth;
 //Temporary, for testing Doom...
-	return ((hbb < hde ? hbb : hde) - hdb1) / (pwidth = 8 ? 4 : pwidth);
+	return ((hbb < hde ? hbb : hde) - hdb1) / (pwidth == 8 ? 4 : pwidth);*/
+
+	// To make it easier to make a quasi-fixed display size, we restrict the viewing
+	// area to an arbitrary range of the Horizontal Count.
+	uint16 pwidth = ((GET16(tom_ram_8, VMODE) & PWIDTH) >> 9) + 1;
+//	return (RIGHT_VISIBLE_HC - LEFT_VISIBLE_HC) / pwidth;
+//Temporary, for testing Doom...
+	return (RIGHT_VISIBLE_HC - LEFT_VISIBLE_HC) / (pwidth == 8 ? 4 : pwidth);
 
 // More speculating...
 // According to the JTRM, the number of potential pixels across is given by the
@@ -746,12 +891,14 @@ uint32 tom_getVideoModeWidth(void)
 // which to measure HBB & HDB1/2 against when rendering LBUF (i.e., if HDB1 is 20 ticks
 // to the right of the ALDL and PWIDTH is 4, then start writing the LBUF starting at
 // backbuffer + 5 pixels).
+
+// That's basically what we're doing now...!
 }
 
 // *** SPECULATION ***
 // It might work better to virtualize the height settings, i.e., set the vertical
 // height at 240 lines and clip using the VDB and VDE/VP registers...
-// Same with the width...
+// Same with the width... [Width is pretty much virtualized now.]
 
 uint32 tom_getVideoModeHeight(void)
 {
@@ -1109,35 +1256,24 @@ if (offset == HBE)
 	WriteLog("TOM: Horizontal Blank End written by %s: %u\n", whoName[who], data);
 if (offset == VMODE)
 	WriteLog("TOM: Video Mode written by %s: %04X. PWIDTH = %u, MODE = %s, flags:%s%s (VC = %u)\n", whoName[who], data, ((data >> 9) & 0x07) + 1, videoMode_to_str[(data & MODE) >> 1], (data & BGEN ? " BGEN" : ""), (data & VARMOD ? " VARMOD" : ""), GET16(tom_ram_8, VC));
-/*#define   MODE		0x0006		// Line buffer to video generator mode
-#define   BGEN		0x0080		// Background enable (CRY & RGB16 only)
-#define   VARMOD	0x0100		// Mixed CRY/RGB16 mode
-#define   PWIDTH	0x0E00		// Pixel width in video clock cycles (value written + 1)*/
 
 	// detect screen resolution changes
 //This may go away in the future, if we do the virtualized screen thing...
+//This may go away soon!
 	if ((offset >= 0x28) && (offset <= 0x4F))
 	{
 		uint32 width = tom_getVideoModeWidth(), height = tom_getVideoModeHeight();
 		tom_real_internal_width = width;
 
-//This looks like an attempt to render non-square pixels (though wrong...)
-/*		if (width == 640)
-		{
-			memcpy(scanline_render, scanline_render_stretch, sizeof(scanline_render));
-			width = 320;
-		}
-		else
-			memcpy(scanline_render, scanline_render_normal, sizeof(scanline_render));//*/
-		
 		if ((width != tom_width) || (height != tom_height))
 		{
-			extern SDL_Surface * surface, * mainSurface;
-			extern Uint32 mainSurfaceFlags;
-			static char window_title[256];
+//			extern SDL_Surface * surface, * mainSurface;
+//			extern Uint32 mainSurfaceFlags;
+//			static char window_title[256];
 			
 			tom_width = width, tom_height = height;
-			SDL_FreeSurface(surface);
+			ResizeScreen(tom_width, tom_height);
+/*			SDL_FreeSurface(surface);
 			surface = SDL_CreateRGBSurface(SDL_SWSURFACE, tom_width, tom_height,
 				16, 0x7C00, 0x03E0, 0x001F, 0);
 			if (surface == NULL)
@@ -1147,8 +1283,6 @@ if (offset == VMODE)
 			}
 
 			sprintf(window_title, "Virtual Jaguar (%i x %i)", (int)tom_width, (int)tom_height);
-//???Should we do this??? No!
-//	SDL_FreeSurface(mainSurface);
 			mainSurface = SDL_SetVideoMode(tom_width, tom_height, 16, mainSurfaceFlags);
 
 			if (mainSurface == NULL)
@@ -1157,7 +1291,7 @@ if (offset == VMODE)
 				exit(1);
 			}
 
-			SDL_WM_SetCaption(window_title, window_title);
+			SDL_WM_SetCaption(window_title, window_title);//*/
 		}
 	}
 }

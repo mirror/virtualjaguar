@@ -1,6 +1,7 @@
 #ifndef __JAGUAR_H__
 #define __JAGUAR_H__
 
+#include <string.h>	// Why??? (for memset, etc... Lazy!) Dunno why, but this just strikes me as wrong...
 #include "types.h"
 #include "log.h"
 #include "version.h"

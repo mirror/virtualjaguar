@@ -9,6 +9,7 @@
 #include <time.h>
 #include <SDL.h>
 #include "jaguar.h"
+#include "video.h"
 
 #define BUTTON_U		0
 #define BUTTON_D		1
@@ -35,7 +36,7 @@
 
 // Private function prototypes
 
-void main_screen_switch(void);
+//void main_screen_switch(void);
 
 // Global vars
 
@@ -58,28 +59,6 @@ int objectPtr = 0;
 bool startMemLog = false;
 
 
-void main_screen_switch(void)
-{
-	extern SDL_Surface * mainSurface;
-	extern Uint32 mainSurfaceFlags;
-	extern bool fullscreen;
-
-	fullscreen = !fullscreen;
-	mainSurfaceFlags &= ~SDL_FULLSCREEN;
-	if (fullscreen)
-		mainSurfaceFlags |= SDL_FULLSCREEN;
-
-	mainSurface = SDL_SetVideoMode(tom_width, tom_height, 16, mainSurfaceFlags);
-
-	if (mainSurface == NULL)
-	{
-		WriteLog("Joystick: SDL is unable to set the video mode: %s\n", SDL_GetError());
-		exit(1);
-	}
-
-	SDL_WM_SetCaption("Virtual Jaguar", "Virtual Jaguar");
-}
-
 void joystick_init(void)
 {
 	joystick_reset();
@@ -100,7 +79,7 @@ void joystick_exec(void)
 	iLeft = iRight = false;
 
 	if ((keystate[SDLK_LALT] || keystate[SDLK_RALT]) & keystate[SDLK_RETURN])
-		main_screen_switch();
+		ToggleFullscreen();
 
 	/* Added/Changed by SDLEMU (http://sdlemu.ngemu.com) */
 
