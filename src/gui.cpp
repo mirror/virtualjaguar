@@ -11,6 +11,7 @@
 #include <vector>
 #include <algorithm>
 #include "types.h"
+#include "settings.h"
 #include "tom.h"
 #include "video.h"
 #include "font1.h"
@@ -24,6 +25,33 @@ using namespace std;								// For STL stuff
 
 int mouseX, mouseY;
 
+uint16 mousePic[] = {
+	6, 8,
+
+	0x03E0,0x0000,0x0000,0x0000,0x0000,0x0000,		// +
+	0x0300,0x03E0,0x0000,0x0000,0x0000,0x0000,		// @+
+	0x0300,0x03E0,0x03E0,0x0000,0x0000,0x0000,		// @++
+	0x0300,0x0300,0x03E0,0x03E0,0x0000,0x0000,		// @@++
+	0x0300,0x0300,0x03E0,0x03E0,0x03E0,0x0000,		// @@+++
+	0x0300,0x0300,0x0300,0x03E0,0x03E0,0x03E0,		// @@@+++
+	0x0300,0x0300,0x0300,0x0000,0x0000,0x0000,		// @@@
+	0x0300,0x0000,0x0000,0x0000,0x0000,0x0000		// @
+/*
+	0xFFFF,0x0000,0x0000,0x0000,0x0000,0x0000,		// +
+	0xE318,0xFFFF,0x0000,0x0000,0x0000,0x0000,		// @+
+	0xE318,0xFFFF,0xFFFF,0x0000,0x0000,0x0000,		// @++
+	0xE318,0xE318,0xFFFF,0xFFFF,0x0000,0x0000,		// @@++
+	0xE318,0xE318,0xFFFF,0xFFFF,0xFFFF,0x0000,		// @@+++
+	0xE318,0xE318,0xE318,0xFFFF,0xFFFF,0xFFFF,		// @@@+++
+	0xE318,0xE318,0xE318,0x0000,0x0000,0x0000,		// @@@
+	0xE318,0x0000,0x0000,0x0000,0x0000,0x0000		// @
+*/
+};
+// 1 111 00 11 100 1 1100 -> F39C
+// 1 100 00 10 000 1 0000 -> C210
+// 1 110 00 11 000 1 1000 -> E318
+// 0 000 00 11 111 0 0000 -> 03E0
+// 0 000 00 11 000 0 0000 -> 0300
 
 void InitGUI(void)
 {
@@ -69,6 +97,29 @@ void DrawString(int16 * screen, uint32 x, uint32 y, bool invert, const char * te
 }
 
 //
+// Draw "picture"
+// Uses zero as transparent color
+//
+void DrawTransparentBitmap(int16 * screen, uint32 x, uint32 y, uint16 * bitmap)
+{
+	uint16 width = bitmap[0], height = bitmap[1];
+	bitmap += 2;
+
+	uint32 pitch = GetSDLScreenPitch() / 2;			// Returns pitch in bytes but we need words...
+	uint32 address = x + (y * pitch);
+
+	for(int yy=0; yy<height; yy++)
+	{
+		for(int xx=0; xx<width; xx++)
+		{
+				if (*bitmap && x + xx < pitch)		// NOTE: Still doesn't clip the Y val...
+					*(screen + address + xx + (yy * pitch)) = *bitmap;
+				bitmap++;
+		}
+	}
+}
+
+//
 // Very very crude GUI file selector
 //
 bool UserSelectFile(char * path, char * filename)
@@ -104,31 +155,14 @@ bool UserSelectFile(char * path, char * filename)
 		uint32 limit = (fileList.size() > 30 ? 30 : fileList.size());
 		SDL_Event event;
 
+		// Ensure that the GUI is drawn before any user input...
+		event.type = SDL_USEREVENT;
+		SDL_PushEvent(&event);
+
 		while (!done)
 		{
 			while (SDL_PollEvent(&event))
 			{
-				// Draw the GUI...
-//				memset(backbuffer, 0x11, tom_getVideoModeWidth() * tom_getVideoModeHeight() * 2);
-				memset(backbuffer, 0x11, tom_getVideoModeWidth() * 240 * 2);
-
-				for(uint32 i=0; i<limit; i++)
-				{
-					bool invert = (cursor == i ? true : false);
-					// Clip our strings to guarantee that they fit on the screen...
-					string s = fileList[startFile + i];
-					if (s.length() > 38)
-						s[38] = 0;
-					DrawString(backbuffer, 0, i*8, invert, " %s ", s.c_str());
-				}
-
-					uint32 pitch = GetSDLScreenPitch() / 2;	// Returns pitch in bytes but we need words...
-//					uint32 address = x + (y * pitch);
-					backbuffer[mouseX + (mouseY * pitch)] = 0xFFFF;
-
-
-				RenderBackbuffer();
-
 				if (event.type == SDL_KEYDOWN)
 				{
 					SDLKey key = event.key.keysym.sym;
@@ -155,9 +189,26 @@ bool UserSelectFile(char * path, char * filename)
 					}
 					if (key == SDLK_PAGEDOWN)
 					{
+						if (cursor != limit - 1)
+							cursor = limit - 1;
+						else
+						{
+							startFile += limit;
+							if (startFile > fileList.size() - limit)
+								startFile = fileList.size() - limit;
+						}
 					}
 					if (key == SDLK_PAGEUP)
 					{
+						if (cursor != 0)
+							cursor = 0;
+						else
+						{
+							if (startFile < limit)
+								startFile = 0;
+							else
+								startFile -= limit;
+						}
 					}
 					if (key == SDLK_RETURN)
 						done = true;
@@ -189,10 +240,35 @@ bool UserSelectFile(char * path, char * filename)
 				}
 				else if (event.type == SDL_MOUSEMOTION)
 				{
-					//Kludge: divide by two in order to display properly on our blown up
-					//        screen...
-					mouseX = event.motion.x / 2, mouseY = event.motion.y / 2;
+					mouseX = event.motion.x, mouseY = event.motion.y;
+					if (vjs.useOpenGL)
+						mouseX /= 2, mouseY /= 2;
 				}
+				else if (event.type == SDL_MOUSEBUTTONDOWN)
+				{
+					uint32 mx = event.button.x, my = event.button.y;
+					if (vjs.useOpenGL)
+						mx /= 2, my /= 2;
+					cursor = my / 8;
+				}
+
+				// Draw the GUI...
+//				memset(backbuffer, 0x11, tom_getVideoModeWidth() * tom_getVideoModeHeight() * 2);
+				memset(backbuffer, 0x11, tom_getVideoModeWidth() * 240 * 2);
+
+				for(uint32 i=0; i<limit; i++)
+				{
+					// Clip our strings to guarantee that they fit on the screen...
+					// (and strip off the extension too)
+					string s(fileList[startFile + i], 0, fileList[startFile + i].length() - 4);
+					if (s.length() > 38)
+						s[38] = 0;
+					DrawString(backbuffer, 0, i*8, (cursor == i ? true : false), " %s ", s.c_str());
+				}
+
+				DrawTransparentBitmap(backbuffer, mouseX, mouseY, mousePic);
+
+				RenderBackbuffer();
 			}
 		}
 	}
