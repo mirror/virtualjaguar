@@ -86,6 +86,9 @@ void DrawText(int16 * screen, uint32 x, uint32 y, bool invert, const char * text
 //
 // Very very crude GUI file selector
 //
+#ifndef FILENAME_MAX
+#define FILENAME_MAX	2048
+#endif
 bool UserSelectFile(char * path, char * filename)
 {
 	extern int16 * backbuffer;
@@ -94,7 +97,7 @@ bool UserSelectFile(char * path, char * filename)
 	if (numFiles == 0)
 		return false;
 
-	char * names = (char *)malloc(numFiles * 2048);
+	char * names = (char *)malloc(numFiles * FILENAME_MAX);
 
 	if (names == NULL)
 	{
@@ -110,8 +113,33 @@ bool UserSelectFile(char * path, char * filename)
 	{
 		char * ext = strrchr(de->d_name, '.');
 		if (ext != NULL)
-			if (strcmpi(ext, ".zip") == 0 || strcmpi(ext, ".jag") == 0)
-				strcpy(&names[i++ * 2048], de->d_name);
+		{
+			if (stricmp(ext, ".zip") == 0 || stricmp(ext, ".jag") == 0)
+			{
+				// Do a QnD insertion sort...
+				// (Yeah, it's n^2/2 time, but there aren't that many items...)
+				uint32 pos = 0;
+
+				for(int k=0; k<i; k++)
+				{
+					if (stricmp(&names[k * FILENAME_MAX], de->d_name) < 0)
+						pos++;
+					else
+						break;
+				}
+
+				uint32 blockSize = (i - pos) * FILENAME_MAX;
+
+				if (blockSize)
+//This only works on Win32 for some reason...
+//					memcpy(&names[(pos + 1) * FILENAME_MAX], &names[pos * FILENAME_MAX], blockSize);
+					for(int k=blockSize-1; k>=0; k--)
+						names[((pos + 1) * FILENAME_MAX) + k] = names[(pos * FILENAME_MAX) + k];
+
+				strcpy(&names[pos * FILENAME_MAX], de->d_name);
+				i++;
+			}
+		}
 	}
 
 	closedir(dp);
@@ -138,7 +166,7 @@ bool UserSelectFile(char * path, char * filename)
 					bool invert = (cursor == i ? true : false);
 					char buf[41];
 					// Guarantee that we clip our strings to fit in the screen...
-					memcpy(buf, &names[(startFile + i) * 2048], 38);
+					memcpy(buf, &names[(startFile + i) * FILENAME_MAX], 38);
 					buf[38] = 0;
 					DrawText(backbuffer, 0, i*8, invert, " %s ", buf);
 				}
@@ -169,12 +197,37 @@ bool UserSelectFile(char * path, char * filename)
 								startFile--;
 						}
 					}
+					if (key == SDLK_PAGEDOWN)
+					{
+					}
+					if (key == SDLK_PAGEUP)
+					{
+					}
 					if (key == SDLK_RETURN)
 						done = true;
 					if (key == SDLK_ESCAPE)
 					{
 						WriteLog("GUI: Aborting VJ by user request.\n");
 						return false;						// Bail out!
+					}
+					if (key >= SDLK_a && key <= SDLK_z)
+					{
+						// Advance cursor to filename with first letter pressed...
+						uint8 which = (key - SDLK_a) + 65;	// Convert key to A-Z char
+						for(uint32 i=0; i<numFiles; i++)
+						{
+							if ((names[i * FILENAME_MAX] & 0xDF) == which)
+							{
+								cursor = i - startFile;
+								if (i > startFile + limit - 1)
+									startFile = i - limit + 1,
+									cursor = limit - 1;
+								if (i < startFile)
+									startFile = i,
+									cursor = 0;
+								break;
+							}
+						}
 					}
 				}
 			}
@@ -185,7 +238,7 @@ bool UserSelectFile(char * path, char * filename)
 	// Potential GPF here: If length of dir is zero, then this will cause a page fault!
 	if (path[strlen(path) - 1] != '/')
 		strcat(filename, "/");
-	strcat(filename, &names[(cursor + startFile) * 2048]);
+	strcat(filename, &names[(cursor + startFile) * FILENAME_MAX]);
 	free(names);
 
 	return true;
@@ -212,7 +265,7 @@ uint32 CountROMFiles(char * path)
 		{
 			char * ext = strrchr(de->d_name, '.');
 			if (ext != NULL)
-				if (strcmpi(ext, ".zip") == 0 || strcmpi(ext, ".jag") == 0)
+				if (stricmp(ext, ".zip") == 0 || stricmp(ext, ".jag") == 0)
 					numFiles++;
 		}
 
