@@ -159,8 +159,9 @@ int main(int argc, char * argv[])
     }
 
 	// Set up SDL library
-	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_JOYSTICK | SDL_INIT_AUDIO | SDL_INIT_TIMER
-		| SDL_INIT_CDROM | SDL_INIT_NOPARACHUTE) < 0)
+	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_JOYSTICK | SDL_INIT_AUDIO | SDL_INIT_TIMER) < 0)
+//		| SDL_INIT_CDROM) < 0)
+//		| SDL_INIT_CDROM | SDL_INIT_NOPARACHUTE) < 0)
 	{
 		WriteLog("VJ: Could not initialize the SDL library: %s\n", SDL_GetError());
 		return -1;
@@ -197,7 +198,8 @@ WriteLog("Initializing GUI subsystem...\n");
 //	JaguarLoadCart(jaguar_mainRom, (haveCart ? argv[1] : vjs.ROMPath));
 //Need to find a better way to handle this crap...
 WriteLog("About to start GUI...\n");
-	GUIMain();
+//	GUIMain();
+	GUIMain(haveCart ? argv[1] : NULL);
 
 /*	jaguar_reset();
 	
@@ -278,7 +280,8 @@ WriteLog("About to start GUI...\n");
 	log_done();	
 
 	// Free SDL components last...!
-	SDL_QuitSubSystem(SDL_INIT_VIDEO | SDL_INIT_JOYSTICK | SDL_INIT_AUDIO | SDL_INIT_TIMER | SDL_INIT_CDROM);
+//	SDL_QuitSubSystem(SDL_INIT_VIDEO | SDL_INIT_JOYSTICK | SDL_INIT_AUDIO | SDL_INIT_TIMER | SDL_INIT_CDROM);
+	SDL_QuitSubSystem(SDL_INIT_VIDEO | SDL_INIT_JOYSTICK | SDL_INIT_AUDIO | SDL_INIT_TIMER);
 	SDL_Quit();
 
     return 0;
