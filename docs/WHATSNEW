@@ -1,5 +1,20 @@
+Virtual Jaguar v1.0.7 GCC/SDL
+-----------------------------
+
+* Better GUI support. Most options in the GUI work now, and more are expected
+  to be functional in the near future. [Shamus]
+* Fixed a few lingering blitter bugs (there are more to be found). This fixes
+  a few glitches in Cybermorph and Alien vs Predator. [Shamus]
+* Fixed an Object Processor scaled bitmap bug that caused incorrect
+  positioning of scaled bitmaps that started outside the line buffer, and
+  also fixed a problem that caused the OP to hang in certain situations. This
+  fixes Bubsy, International Sensible Soccer, and probably a few others.
+  [Shamus]
+
+
 Virtual Jaguar v1.0.6 GCC/SDL
 -----------------------------
+
 
 * Added support for gzipped ROM files. [Adam Green]
 * Added OpenGL support. Because of this, aspect ratios in the various

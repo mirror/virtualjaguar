@@ -13,10 +13,11 @@
 // External global variables
 
 //shouldn't these exist here??? Prolly.
-extern SDL_Surface * surface, * mainSurface;
-extern Uint32 mainSurfaceFlags;
-extern int16 * backbuffer;
-extern SDL_Joystick * joystick;
+//And now, they do! :-)
+SDL_Surface * surface, * mainSurface;
+Uint32 mainSurfaceFlags;
+int16 * backbuffer;
+SDL_Joystick * joystick;
 
 //
 // Prime SDL and create surfaces
@@ -102,6 +103,12 @@ bool InitVideo(void)
 		}
 	}
 
+	// Set up the backbuffer
+//To be safe, this should be 1280 * 625 * 2...
+//	backbuffer = (int16 *)malloc(845 * 525 * sizeof(int16));
+	backbuffer = (int16 *)malloc(1280 * 625 * sizeof(int16));
+	memset(backbuffer, 0x44, VIRTUAL_SCREEN_WIDTH * VIRTUAL_SCREEN_HEIGHT * sizeof(int16));
+
 	return true;
 }
 
@@ -117,6 +124,8 @@ void VideoDone(void)
 	SDL_FreeSurface(surface);
 	SDL_QuitSubSystem(SDL_INIT_VIDEO | SDL_INIT_JOYSTICK | SDL_INIT_AUDIO | SDL_INIT_TIMER);
 	SDL_Quit();
+
+	free(backbuffer);
 }
 
 //

@@ -872,6 +872,7 @@ if (effect_start)
 	WriteLog("JagExe: VP=%u, VI=%u, VDB=%u, VBB=%u CPU CPS=%u, GPU CPS=%u\n", vp, vi, vdb, vbb, M68KCyclesPerScanline, RISCCyclesPerScanline);
 }//*/
 
+//extern int start_logging;
 	for(uint16 i=0; i<vp; i++)
 	{
 		// Increment the horizontal count (why? RNG?)
@@ -893,12 +894,24 @@ if (effect_start)
 //		uint32 invalid_instruction_address = s68000exec(M68KCyclesPerScanline);
 //		if (invalid_instruction_address != 0x80000000)
 //			cd_bios_process(invalid_instruction_address);
+//if (start_logging)
+//	WriteLog("About to execute M68K...\n");
 		m68k_execute(M68KCyclesPerScanline);
 		// No CD handling... !!! FIX !!!
+//if (start_logging)
+//	WriteLog("About to execute CD BIOS...\n");
 		cd_bios_exec(i);	// NOTE: Ignores parameter...
+//if (start_logging)
+//	WriteLog("About to execute TOM's PIT...\n");
 		TOMExecPIT(RISCCyclesPerScanline);
+//if (start_logging)
+//	WriteLog("About to execute JERRY's PIT...\n");
 		jerry_pit_exec(RISCCyclesPerScanline);
+//if (start_logging)
+//	WriteLog("About to execute JERRY's SSI...\n");
 		jerry_i2s_exec(RISCCyclesPerScanline);
+//if (start_logging)
+//	WriteLog("About to execute GPU...\n");
 		gpu_exec(RISCCyclesPerScanline);
 
 		if (vjs.DSPEnabled)
@@ -908,6 +921,8 @@ if (effect_start)
 				DSPExec(RISCCyclesPerScanline);		// Ordinary non-pipelined DSP
 //			DSPExecComp(RISCCyclesPerScanline);		// Comparison core
 
+//if (start_logging)
+//	WriteLog("About to execute OP...\n");
 		TOMExecScanline(i, render);
 	}
 }

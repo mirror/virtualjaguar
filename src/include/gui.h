@@ -14,7 +14,11 @@ extern "C" {
 void InitGUI(void);
 void GUIDone(void);
 void DrawString(int16 * screen, uint32 x, uint32 y, bool invert, const char * text, ...);
-bool UserSelectFile(char * path, char * filename);
+//bool UserSelectFile(char * path, char * filename);
+bool GUIMain(void);
+
+uint32 JaguarLoadROM(uint8 * rom, char * path);
+void JaguarLoadCart(uint8 * mem, char * path);
 
 #ifdef __cplusplus
 }

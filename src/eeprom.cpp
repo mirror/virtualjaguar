@@ -39,14 +39,13 @@ uint16 jerry_ee_data = 0;
 uint16 jerry_ee_data_cnt = 16;
 uint16 jerry_writes_enabled = 0;
 uint16 jerry_ee_direct_jump = 0;
-FILE * jerry_ee_fp;
 static char eeprom_filename[MAX_PATH];
 static bool foundEEPROM = false;
 
 void eeprom_init(void)
 {
 	sprintf(eeprom_filename, "%s%08X.eep", vjs.EEPROMPath, (unsigned int)jaguar_mainRom_crc32);
-	jerry_ee_fp = fopen(eeprom_filename, "rb");
+	FILE * jerry_ee_fp = fopen(eeprom_filename, "rb");
 	if (jerry_ee_fp)
 	{
 		fread(eeprom_ram, 1, 128, jerry_ee_fp);
@@ -55,12 +54,7 @@ void eeprom_init(void)
 		foundEEPROM = true;
 	}
 	else
-	{
-		WriteLog("EEPROM: Creating %s\n", eeprom_filename);
-		jerry_ee_fp = fopen(eeprom_filename, "wb");
-		if (jerry_ee_fp == NULL)
-			WriteLog("EEPROM: Could not open/create %s!\n", eeprom_filename);
-	}
+		WriteLog("EEPROM: Could not open file \"%s\"!\n", eeprom_filename);
 }
 
 void eeprom_reset(void)
@@ -71,13 +65,18 @@ void eeprom_reset(void)
 
 void eeprom_done(void)
 {
-//Actually, is this necessary now that we write the file immediately upon write to EEPROM?
-//	EEPROMSave();
 }
 
 void EEPROMSave(void)
 {
-	jerry_ee_fp = fopen(eeprom_filename, "wb");
+	FILE * jerry_ee_fp = fopen(eeprom_filename, "wb");
+
+	if (jerry_ee_fp == NULL)
+	{
+		WriteLog("EEPROM: Could not create file \"%s!\"\n", eeprom_filename);
+		return;
+	}
+
 	fwrite(eeprom_ram, 1, 128, jerry_ee_fp);
 	fclose(jerry_ee_fp);
 }

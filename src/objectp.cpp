@@ -336,7 +336,7 @@ else
 			
 		uint64 p0 = op_load_phrase(op_pointer);
 		op_pointer += 8;
-if (scanline == tom_get_vdb() + 1 && op_start_log)
+if (scanline == tom_get_vdb() && op_start_log)
 //if (scanline == 215 && op_start_log)
 {
 WriteLog("%08X --> phrase %08X %08X", op_pointer - 8, (int)(p0>>32), (int)(p0&0xFFFFFFFF));
@@ -451,16 +451,16 @@ if (!inhibit)	// For OP testing only!
 //				if (height)
 					height--;
 
-				uint64 data = (p0 & 0xFFFFF80000000000) >> 40;
+				uint64 data = (p0 & 0xFFFFF80000000000LL) >> 40;
 				uint64 dwidth = (p1 & 0xFFC0000) >> 15;
 				data += dwidth;
 
-				p0 &= ~0xFFFFF80000FFC000;			// Mask out old data...
+				p0 &= ~0xFFFFF80000FFC000LL;		// Mask out old data...
 				p0 |= (uint64)height << 14;
 				p0 |= data << 40;
 				OPStorePhrase(oldOPP, p0);
 			}
-			op_pointer = (p0 & 0x000007FFFF000000) >> 21;
+			op_pointer = (p0 & 0x000007FFFF000000LL) >> 21;
 			break;
 		}
 		case OBJECT_TYPE_SCALE:
@@ -500,37 +500,88 @@ if (!inhibit)	// For OP testing only!
 				if (vscale == 0)
 					vscale = 0x20;					// OP bug??? Nope, it isn't...! Or is it?
 
-				remainder -= 0x20;					// 1.0f in [3.5] fixed point format
+/*extern int start_logging;
+if (start_logging)
+	WriteLog("--> Returned from scaled bitmap processing (rem=%02X, vscale=%02X)...\n", remainder, vscale);*/
+//Locks up here:
+//--> Returned from scaled bitmap processing (rem=20, vscale=80)...
+//There are other problems here, it looks like...
+/*
+OP: Scaled bitmap 4x? 4bpp at 38,? hscale=7C fpix=0 data=00075E28 pitch 1 hflipped=no dwidth=? (linked to 00071118) Transluency=no
+--> Returned from scaled bitmap processing (rem=50, vscale=7C)...
+OP: Scaled bitmap 4x? 4bpp at 38,? hscale=7C fpix=0 data=00075E28 pitch 1 hflipped=no dwidth=? (linked to 00071118) Transluency=no
+--> Returned from scaled bitmap processing (rem=30, vscale=7C)...
+OP: Scaled bitmap 4x? 4bpp at 38,? hscale=7C fpix=0 data=00075E28 pitch 1 hflipped=no dwidth=? (linked to 00071118) Transluency=no
+--> Returned from scaled bitmap processing (rem=10, vscale=7C)...
+OP: Scaled bitmap 4x? 4bpp at 36,? hscale=7E fpix=0 data=000756A8 pitch 1 hflipped=no dwidth=? (linked to 00073058) Transluency=no
+--> Returned from scaled bitmap processing (rem=00, vscale=7E)...
+OP: Scaled bitmap 4x? 4bpp at 34,? hscale=80 fpix=0 data=000756C8 pitch 1 hflipped=no dwidth=? (linked to 00073078) Transluency=no
+--> Returned from scaled bitmap processing (rem=00, vscale=80)...
+OP: Scaled bitmap 4x? 4bpp at 36,? hscale=7E fpix=0 data=000756C8 pitch 1 hflipped=no dwidth=? (linked to 00073058) Transluency=no
+--> Returned from scaled bitmap processing (rem=5E, vscale=7E)...
+OP: Scaled bitmap 4x? 4bpp at 34,? hscale=80 fpix=0 data=000756E8 pitch 1 hflipped=no dwidth=? (linked to 00073078) Transluency=no
+--> Returned from scaled bitmap processing (rem=60, vscale=80)...
+OP: Scaled bitmap 4x? 4bpp at 36,? hscale=7E fpix=0 data=000756C8 pitch 1 hflipped=no dwidth=? (linked to 00073058) Transluency=no
+--> Returned from scaled bitmap processing (rem=3E, vscale=7E)...
+OP: Scaled bitmap 4x? 4bpp at 34,? hscale=80 fpix=0 data=000756E8 pitch 1 hflipped=no dwidth=? (linked to 00073078) Transluency=no
+--> Returned from scaled bitmap processing (rem=40, vscale=80)...
+OP: Scaled bitmap 4x? 4bpp at 36,? hscale=7E fpix=0 data=000756C8 pitch 1 hflipped=no dwidth=? (linked to 00073058) Transluency=no
+--> Returned from scaled bitmap processing (rem=1E, vscale=7E)...
+OP: Scaled bitmap 4x? 4bpp at 34,? hscale=80 fpix=0 data=000756E8 pitch 1 hflipped=no dwidth=? (linked to 00073078) Transluency=no
+--> Returned from scaled bitmap processing (rem=20, vscale=80)...
+*/
+//Here's another problem:
+//    [hsc: 20, vsc: 20, rem: 00]
+// Since we're not checking for $E0 (but that's what we get from the above), we end
+// up repeating this scanline unnecessarily... !!! FIX !!! [DONE, but... still not quite
+// right. Either that, or the Accolade team that wrote Bubsy screwed up royal.]
+//Also note: $E0 = 7.0 which IS a legal vscale value...
+
 //				if (remainder & 0x80)				// I.e., it's negative
-				if ((remainder & 0x80) || remainder == 0)	// I.e., it's <= 0
+//				if ((remainder & 0x80) || remainder == 0)	// I.e., it's <= 0
+//				if ((remainder - 1) >= 0xE0)		// I.e., it's <= 0
+//				if ((remainder >= 0xE1) || remainder == 0)// I.e., it's <= 0
+//				if ((remainder >= 0xE1 && remainder <= 0xFF) || remainder == 0)// I.e., it's <= 0
+				if (remainder <= 0x20)				// I.e., it's <= 0
 				{
-					uint64 data = (p0 & 0xFFFFF80000000000) >> 40;
+					uint64 data = (p0 & 0xFFFFF80000000000LL) >> 40;
 					uint64 dwidth = (p1 & 0xFFC0000) >> 15;
 
 //					while (remainder & 0x80)
-					while ((remainder & 0x80) || remainder == 0)
+//					while ((remainder & 0x80) || remainder == 0)
+//					while ((remainder - 1) >= 0xE0)
+//					while ((remainder >= 0xE1) || remainder == 0)
+//					while ((remainder >= 0xE1 && remainder <= 0xFF) || remainder == 0)
+					while (remainder <= 0x20)
 					{
 						remainder += vscale;
+
 						if (height)
 							height--;
 
 						data += dwidth;
 					}
-					p0 &= ~0xFFFFF80000FFC000;		// Mask out old data...
+
+					p0 &= ~0xFFFFF80000FFC000LL;	// Mask out old data...
 					p0 |= (uint64)height << 14;
 					p0 |= data << 40;
 					OPStorePhrase(oldOPP, p0);
 				}
 
+				remainder -= 0x20;					// 1.0f in [3.5] fixed point format
+
+/*if (start_logging)
+	WriteLog("--> Finished writebacks...\n");*/
+
 //WriteLog(" [%08X%08X -> ", (uint32)(p2>>32), (uint32)(p2&0xFFFFFFFF));
-				p2 &= ~0x0000000000FF0000;
+				p2 &= ~0x0000000000FF0000LL;
 				p2 |= (uint64)remainder << 16;
 //WriteLog("%08X%08X]\n", (uint32)(p2>>32), (uint32)(p2&0xFFFFFFFF));
 				OPStorePhrase(oldOPP+16, p2);
 //remainder = (uint8)(p2 >> 16), vscale = (uint8)(p2 >> 8);
 //WriteLog(" [after]: rem=%02X, vscale=%02X\n", remainder, vscale);
 			}
-			op_pointer = (p0 & 0x000007FFFF000000) >> 21;
+			op_pointer = (p0 & 0x000007FFFF000000LL) >> 21;
 			break;
 		}
 		case OBJECT_TYPE_GPU:
@@ -1044,7 +1095,7 @@ if (firstPix)
 //#endif
 // We can ignore the RELEASE (high order) bit for now--probably forever...!
 //	uint8 flags = (p1 >> 45) & 0x0F;	// REFLECT, RMW, TRANS, RELEASE
-//Optimize: break these out to their own BOOL values
+//Optimize: break these out to their own BOOL values [DONE]
 	uint8 flags = (p1 >> 45) & 0x07;				// REFLECT (0), RMW (1), TRANS (2)
 	bool flagREFLECT = (flags & OPFLAG_REFLECT ? true : false),
 		flagRMW = (flags & OPFLAG_RMW ? true : false),
@@ -1071,9 +1122,13 @@ if (firstPix)
 	if (!render || iwidth == 0 || hscale == 0)
 		return;
 
+/*extern int start_logging;
+if (start_logging)
+	WriteLog("OP: Scaled bitmap %ix? %ibpp at %i,? hscale=%02X fpix=%i data=%08X pitch %i hflipped=%s dwidth=? (linked to %08X) Transluency=%s\n",
+		iwidth, op_bitmap_bit_depth[depth], xpos, hscale, firstPix, data, pitch, (flagREFLECT ? "yes" : "no"), op_pointer, (flagRMW ? "yes" : "no"));*/
 //#define OP_DEBUG_BMP
 //#ifdef OP_DEBUG_BMP
-//	WriteLog("bitmap %ix%i %ibpp at %i,%i firstpix=%i data=0x%.8x pitch %i hflipped=%s dwidth=%i (linked to 0x%.8x) Transluency=%s\n",
+//	WriteLog("OP: Scaled bitmap %ix%i %ibpp at %i,%i firstpix=%i data=0x%.8x pitch %i hflipped=%s dwidth=%i (linked to 0x%.8x) Transluency=%s\n",
 //		iwidth, height, op_bitmap_bit_depth[bitdepth], xpos, ypos, firstPix, ptr, pitch, (flags&OPFLAG_REFLECT ? "yes" : "no"), dwidth, op_pointer, (flags&OPFLAG_RMW ? "yes" : "no"));
 //#endif
 
@@ -1096,7 +1151,7 @@ if (firstPix)
 //  4. image sits on right edge and no REFLECT; starts in bounds but ends out of bounds.
 //Numbers 2 & 4 can be caught by checking the LBUF clip while in the inner loop,
 // numbers 1 & 3 are of concern.
-// This *indirectly* handles only cases 2 & 4! And is WRONG is REFLECT is set...!
+// This *indirectly* handles only cases 2 & 4! And is WRONG if REFLECT is set...!
 //	if (rightMargin < 0 || leftMargin > lbufWidth)
 
 // It might be easier to swap these (if REFLECTed) and just use XPOS down below...
@@ -1141,30 +1196,58 @@ if (firstPix)
 	DumpScaledObject(p0, p1, p2);
 }//*/
 //NOTE: I'm almost 100% sure that this is wrong... And it is! :-p
+
+//Try a simple example...
+// Let's say we have a 8 BPP scanline with an hscale of $80 (4). Our xpos is -10,
+// non-flipped. Pixels in the bitmap are XYZXYZXYZXYZXYZ.
+// Scaled up, they would be XXXXYYYYZZZZXXXXYYYYZZZZXXXXYYYYZZZZ...
+//
+// Normally, we would expect this in the line buffer:
+// ZZXXXXYYYYZZZZXXXXYYYYZZZZ...
+//
+// But instead we're getting:
+// XXXXYYYYZZZZXXXXYYYYZZZZ...
+//
+// or are we??? It would seem so, simply by virtue of the fact that we're NOT starting
+// on negative boundary--or are we? Hmm...
+// cw = 10, dcw = pcw = 10 / ([8 * 4 = 32] 32) = 0, sp = -10
+//
+// Let's try a real world example:
+//
+//OP: Scaled bitmap (70, 8 BPP, spp=28) sp (-400) < 0... [new sp=-8, cw=400, dcw=pcw=14]
+//OP: Scaled bitmap (6F, 8 BPP, spp=27) sp (-395) < 0... [new sp=-17, cw=395, dcw=pcw=14]
+//
+// Really, spp is 27.75 in the second case...
+// So... If we do 395 / 27.75, we get 14. Ok so far... If we scale that against the
+// start position (14 * 27.75), we get -6.5... NOT -17!
+
+//Now it seems we're working OK, at least for the first case...
+uint32 scaledPhrasePixelsUS = phraseWidthToPixels[depth] * hscale;
+
 	if (startPos < 0)			// Case #1: Begin out, end in, L to R
-/*		clippedWidth = 0 - startPos,
-		dataClippedWidth = phraseClippedWidth = clippedWidth / phraseWidthToPixels[depth],
-		startPos = 0 - (clippedWidth % phraseWidthToPixels[depth]);*/
-		clippedWidth = 0 - startPos,
-		dataClippedWidth = phraseClippedWidth = clippedWidth / scaledPhrasePixels,
-		startPos = 0 - (clippedWidth % scaledPhrasePixels);
+{
+extern int start_logging;
+if (start_logging)
+	WriteLog("OP: Scaled bitmap (%02X, %u BPP, spp=%u) start pos (%i) < 0...", hscale, op_bitmap_bit_depth[depth], scaledPhrasePixels, startPos);
+//		clippedWidth = 0 - startPos,
+		clippedWidth = (0 - startPos) << 5,
+//		dataClippedWidth = phraseClippedWidth = clippedWidth / scaledPhrasePixels,
+		dataClippedWidth = phraseClippedWidth = (clippedWidth / scaledPhrasePixelsUS) >> 5,
+//		startPos = 0 - (clippedWidth % scaledPhrasePixels);
+		startPos += (dataClippedWidth * scaledPhrasePixelsUS) >> 5;
+if (start_logging)
+	WriteLog(" [new sp=%i, cw=%i, dcw=pcw=%i]\n", startPos, clippedWidth, dataClippedWidth);
+}
 
 	if (endPos < 0)				// Case #2: Begin in, end out, R to L
-/*		clippedWidth = 0 - endPos,
-		phraseClippedWidth = clippedWidth / phraseWidthToPixels[depth];*/
 		clippedWidth = 0 - endPos,
 		phraseClippedWidth = clippedWidth / scaledPhrasePixels;
 
 	if (endPos > lbufWidth)		// Case #3: Begin in, end out, L to R
-/*		clippedWidth = endPos - lbufWidth,
-		phraseClippedWidth = clippedWidth / phraseWidthToPixels[depth];*/
 		clippedWidth = endPos - lbufWidth,
 		phraseClippedWidth = clippedWidth / scaledPhrasePixels;
 
 	if (startPos > lbufWidth)	// Case #4: Begin out, end in, R to L
-/*		clippedWidth = startPos - lbufWidth,
-		dataClippedWidth = phraseClippedWidth = clippedWidth / phraseWidthToPixels[depth],
-		startPos = lbufWidth + (clippedWidth % phraseWidthToPixels[depth]);*/
 		clippedWidth = startPos - lbufWidth,
 		dataClippedWidth = phraseClippedWidth = clippedWidth / scaledPhrasePixels,
 		startPos = lbufWidth + (clippedWidth % scaledPhrasePixels);
@@ -1190,8 +1273,10 @@ if (op_start_log && startPos == 13)
 	//       bitmap! This makes clipping & etc. MUCH, much easier...!
 //	uint32 lbufAddress = 0x1800 + (!in24BPPMode ? leftMargin * 2 : leftMargin * 4);
 //	uint32 lbufAddress = 0x1800 + (!in24BPPMode ? startPos * 2 : startPos * 4);
-	uint32 lbufAddress = 0x1800 + (!in24BPPMode ? startPos * 2 : startPos * 2);
+	uint32 lbufAddress = 0x1800 + startPos * 2;
 	uint8 * currentLineBuffer = &tom_ram_8[lbufAddress];
+uint8 * lineBufferLowerLimit = &tom_ram_8[0x1800],
+	* lineBufferUpperLimit = &tom_ram_8[0x1800 + 719];
 
 	// Render.
 
@@ -1378,6 +1463,10 @@ if (firstPix)
 					// This is the *only* correct use of endian-dependent code
 					// (i.e., mem-to-mem direct copying)!
 					*(uint16 *)currentLineBuffer = paletteRAM16[bits];
+/*				{
+					if (currentLineBuffer >= lineBufferLowerLimit && currentLineBuffer <= lineBufferUpperLimit)
+						*(uint16 *)currentLineBuffer = paletteRAM16[bits];
+				}*/
 				else
 					*currentLineBuffer = 
 						BLEND_CR(*currentLineBuffer, paletteRAM[bits << 1]),

@@ -1,7 +1,7 @@
 //
 // DAC (really, Synchronous Serial Interface) Handler
 //
-// by cal2
+// Original by Cal2
 // GCC/SDL port by Niels Wagenaar (Linux/WIN32) and Caz (BeOS)
 // Rewritten by James L. Hammons
 //
@@ -13,7 +13,7 @@
 
 //#define DEBUG_DAC
 
-#define BUFFER_SIZE		0x8000						// Make the DAC buffers 32K x 16 bits
+#define BUFFER_SIZE		0x10000						// Make the DAC buffers 64K x 16 bits
 
 // Jaguar memory locations
 
@@ -40,7 +40,7 @@ void SDLSoundCallback(void * userdata, Uint8 * buffer, int length);
 int GetCalculatedFrequency(void);
 
 //
-// Initialize the SDL sound system (?) (!)
+// Initialize the SDL sound system
 //
 void DACInit(void)
 {
@@ -49,7 +49,8 @@ void DACInit(void)
 	desired.freq = GetCalculatedFrequency();		// SDL will do conversion on the fly, if it can't get the exact rate. Nice!
 	desired.format = AUDIO_S16SYS;					// This uses the native endian (for portability)...
 	desired.channels = 2;
-	desired.samples = 4096;							// Let's try a 4K buffer (can always go lower)
+//	desired.samples = 4096;							// Let's try a 4K buffer (can always go lower)
+	desired.samples = 2048;							// Let's try a 2K buffer (can always go lower)
 	desired.callback = SDLSoundCallback;
 
 	if (SDL_OpenAudio(&desired, NULL) < 0)			// NULL means SDL guarantees what we want
@@ -73,7 +74,7 @@ void DACReset(void)
 }
 
 //
-// Close down the SDL sound subsystem (?) (!)
+// Close down the SDL sound subsystem
 //
 void DACDone(void)
 {
@@ -120,15 +121,15 @@ void SDLSoundCallback(void * userdata, Uint8 * buffer, int length)
 		// Actually, it's a bit more involved than this, but this is the general idea:
 //		memcpy(buffer, DACBuffer, length);
 		for(int i=0; i<numSamplesReady; i++)
-			// Could also use (as long as BUFFER_SIZE is a multiple of 2):
 			((uint16 *)buffer)[i] = DACBuffer[(LeftFIFOHeadPtr + i) % BUFFER_SIZE];
+			// Could also use (as long as BUFFER_SIZE is a multiple of 2):
 //			buffer[i] = DACBuffer[(LeftFIFOHeadPtr + i) & (BUFFER_SIZE - 1)];
 
 		LeftFIFOHeadPtr = (LeftFIFOHeadPtr + numSamplesReady) % BUFFER_SIZE;
 		RightFIFOHeadPtr = (RightFIFOHeadPtr + numSamplesReady) % BUFFER_SIZE;
 		// Could also use (as long as BUFFER_SIZE is a multiple of 2):
-//		LeftFIFOHeadPtr = (LeftFIFOHeadPtr + (numSamplesReady)) & (BUFFER_SIZE - 1);
-//		RightFIFOHeadPtr = (RightFIFOHeadPtr + (numSamplesReady)) & (BUFFER_SIZE - 1);
+//		LeftFIFOHeadPtr = (LeftFIFOHeadPtr + numSamplesReady) & (BUFFER_SIZE - 1);
+//		RightFIFOHeadPtr = (RightFIFOHeadPtr + numSamplesReady) & (BUFFER_SIZE - 1);
 //WriteLog("  -> Left/RightFIFOHeadPtr: %u/%u, Left/RightFIFOTailPtr: %u/%u\n", LeftFIFOHeadPtr, RightFIFOHeadPtr, LeftFIFOTailPtr, RightFIFOTailPtr);
 	}
 //Hmm. Seems that the SDL buffer isn't being starved by the DAC buffer...
@@ -141,7 +142,6 @@ void SDLSoundCallback(void * userdata, Uint8 * buffer, int length)
 //
 int GetCalculatedFrequency(void)
 {
-//	extern bool hardwareTypeNTSC;
 	int systemClockFrequency = (vjs.hardwareTypeNTSC ? RISC_CLOCK_RATE_NTSC : RISC_CLOCK_RATE_PAL);
 
 	// We divide by 32 here in order to find the frequency of 32 SCLKs in a row (transferring
@@ -163,41 +163,47 @@ void DACWriteWord(uint32 offset, uint16 data)
 {
 	if (offset == LTXD + 2)
 	{
-		if (LeftFIFOTailPtr + 2 != LeftFIFOHeadPtr)
-		{
-			SDL_LockAudio();						// Is it necessary to do this? Mebbe.
-			// We use a circular buffer 'cause it's easy. Note that the callback function
-			// takes care of dumping audio to the soundcard...! Also note that we're writing
-			// the samples in the buffer in an interleaved L/R format.
-			LeftFIFOTailPtr = (LeftFIFOTailPtr + 2) % BUFFER_SIZE;
-			DACBuffer[LeftFIFOTailPtr] = data;
-// Aaron's code does this, but I don't know why...
-//Flipping this bit makes the audio MUCH louder. Need to look at the amplitude of the
-//waveform to see if any massaging is needed here...
-//Looks like a cheap & dirty way to convert signed samples to unsigned...
-//			DACBuffer[LeftFIFOTailPtr] = data ^ 0x8000;
-			SDL_UnlockAudio();
-		}
-#ifdef DEBUG_DAC
-		else
-			WriteLog("DAC: Ran into FIFO's left tail pointer!\n");
-#endif
+		// Spin until buffer has been drained (for too fast processors!)...
+//Small problem--if Head == 0 and Tail == buffer end, then this will fail... !!! FIX !!!
+//[DONE]
+		// Also, we're taking advantage of the fact that the buffer is a multiple of two
+		// in this check...
+		while ((LeftFIFOTailPtr + 2) & (BUFFER_SIZE - 1) == LeftFIFOHeadPtr);
+
+		SDL_LockAudio();							// Is it necessary to do this? Mebbe.
+		// We use a circular buffer 'cause it's easy. Note that the callback function
+		// takes care of dumping audio to the soundcard...! Also note that we're writing
+		// the samples in the buffer in an interleaved L/R format.
+		LeftFIFOTailPtr = (LeftFIFOTailPtr + 2) % BUFFER_SIZE;
+		DACBuffer[LeftFIFOTailPtr] = data;
+		SDL_UnlockAudio();
 	}
 	else if (offset == RTXD + 2)
 	{
-		if (RightFIFOTailPtr + 2 != RightFIFOHeadPtr)
-		{
-			SDL_LockAudio();
-			RightFIFOTailPtr = (RightFIFOTailPtr + 2) % BUFFER_SIZE;
-			DACBuffer[RightFIFOTailPtr] = data;
-// Aaron's code does this, but I don't know why...
-//			DACBuffer[RightFIFOTailPtr] = data ^ 0x8000;
-			SDL_UnlockAudio();
-		}
-#ifdef DEBUG_DAC
+		// Spin until buffer has been drained (for too fast processors!)...
+//uint32 spin = 0;
+		while ((RightFIFOTailPtr + 2) & (BUFFER_SIZE - 1) == RightFIFOHeadPtr);
+/*		{
+spin++;
+if (spin == 0x10000000)
+{
+	WriteLog("\nStuck in right DAC spinlock! Tail=%u, Head=%u\nAborting!\n", RightFIFOTailPtr, RightFIFOHeadPtr);
+	log_done();
+	exit(0);
+}
+		}*/
+
+//This is wrong		if (RightFIFOTailPtr + 2 != RightFIFOHeadPtr)
+//		{
+		SDL_LockAudio();
+		RightFIFOTailPtr = (RightFIFOTailPtr + 2) % BUFFER_SIZE;
+		DACBuffer[RightFIFOTailPtr] = data;
+		SDL_UnlockAudio();
+//		}
+/*#ifdef DEBUG_DAC
 		else
 			WriteLog("DAC: Ran into FIFO's right tail pointer!\n");
-#endif
+#endif*/
 	}
 	else if (offset == SCLK + 2)					// Sample rate
 	{

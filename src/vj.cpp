@@ -10,13 +10,13 @@
 #include <unistd.h>
 #endif
 
-#include <dirent.h>									// POSIX, but should compile with linux & mingw...
+//#include <dirent.h>									// POSIX, but should compile with linux & mingw...
 #include <time.h>
 #include <SDL.h>
 #include "jaguar.h"
-#include "crc32.h"
-#include "zlib.h"
-#include "unzip.h"
+//#include "crc32.h"
+//#include "zlib.h"
+//#include "unzip.h"
 #include "video.h"
 #include "gui.h"
 #include "sdlemu_opengl.h"
@@ -27,9 +27,9 @@
 
 // Private function prototypes
 
-uint32 JaguarLoadROM(uint8 *, char *);
-void JaguarLoadCart(uint8 *, char *);
-int gzfilelength(gzFile gd);
+//uint32 JaguarLoadROM(uint8 *, char *);
+//void JaguarLoadCart(uint8 *, char *);
+//int gzfilelength(gzFile gd);
 
 // External variables
 
@@ -46,10 +46,11 @@ extern uint8 * jaguar_mainRom;
 //char jaguar_boot_dir[MAX_PATH];
 
 //These should go into video.cpp...
-SDL_Surface * surface, * mainSurface;
-int16 * backbuffer = NULL;
-SDL_Joystick * joystick;
-Uint32 mainSurfaceFlags = SDL_SWSURFACE;
+//And they will!
+//SDL_Surface * surface, * mainSurface;
+//int16 * backbuffer = NULL;
+//SDL_Joystick * joystick;
+//Uint32 mainSurfaceFlags = SDL_SWSURFACE;
 
 bool finished = false;
 bool showGUI = false;
@@ -71,7 +72,7 @@ int main(int argc, char * argv[])
     int32 nFrameskip = 0;							// Default: Show every frame
     int32 nFrame = 0;								// No. of Frame
 
-	printf("Virtual Jaguar GCC/SDL Portable Jaguar Emulator v1.0.6\n");
+	printf("Virtual Jaguar GCC/SDL Portable Jaguar Emulator v1.0.7\n");
 	printf("Based upon Virtual Jaguar core v1.0.0 by Cal2 of Potato emulation.\n");
 	printf("Written by Niels Wagenaar (Linux/WIN32), Caz (BeOS),\n");
 	printf("James L. Hammons (WIN32) and Adam Green (MacOS)\n");
@@ -174,7 +175,6 @@ int main(int argc, char * argv[])
 		}
     }
 
-//	getcwd(jaguar_boot_dir, 1024);
 	memory_init();
 	version_init();
 	version_display(log_get());
@@ -186,21 +186,16 @@ int main(int argc, char * argv[])
 
 	SET32(jaguar_mainRam, 0, 0x00200000);			// Set top of stack...
 
-	// Set up the backbuffer
-//To be safe, this should be 1280 * 625 * 2...
-//	backbuffer = (int16 *)malloc(845 * 525 * sizeof(int16));
-	backbuffer = (int16 *)malloc(1280 * 625 * sizeof(int16));
-	memset(backbuffer, 0x44, VIRTUAL_SCREEN_WIDTH * VIRTUAL_SCREEN_HEIGHT * sizeof(int16));
-
 	InitVideo();
 	InitGUI();
 
 	// Get the cartridge ROM (if passed in)
 	// Now with crunchy GUI goodness!
-//	JaguarLoadCart(jaguar_mainRom, (haveCart ? argv[1] : (char *)""));
-	JaguarLoadCart(jaguar_mainRom, (haveCart ? argv[1] : vjs.ROMPath));
+//	JaguarLoadCart(jaguar_mainRom, (haveCart ? argv[1] : vjs.ROMPath));
+//Need to find a better way to handle this crap...
+	GUIMain();
 
-	jaguar_reset();
+/*	jaguar_reset();
 	
 	totalFrames = 0;
 	startTime = clock();
@@ -265,7 +260,7 @@ int main(int argc, char * argv[])
 #ifdef SPEED_CONTROL
 		}
 #endif
-	}
+	}*/
 
 	int elapsedTime = clock() - startTime;
 	int fps = (1000 * totalFrames) / elapsedTime;
@@ -278,125 +273,4 @@ int main(int argc, char * argv[])
 	log_done();	
 
     return 0;
-}
-
-//
-// Generic ROM loading
-//
-uint32 JaguarLoadROM(uint8 * rom, char * path)
-{
-	uint32 romSize = 0;
-
-	char * ext = strrchr(path, '.');
-	if (ext != NULL)
-	{
-		WriteLog("VJ: Loading \"%s\"...", path);
-
-		if (stricmp(ext, ".zip") == 0)
-		{
-			// Handle ZIP file loading here...
-			WriteLog("(ZIPped)...");
-
-			if (load_zipped_file(0, 0, path, NULL, &rom, &romSize) == -1)
-			{
-				WriteLog("Failed!\n");
-				return 0;
-			}
-		}
-		else
-		{
-/*			FILE * fp = fopen(path, "rb");
-
-			if (fp == NULL)
-			{
-				WriteLog("Failed!\n");
-				return 0;
-			}
-
-			fseek(fp, 0, SEEK_END);
-			romSize = ftell(fp);
-			fseek(fp, 0, SEEK_SET);
-			fread(rom, 1, romSize, fp);
-			fclose(fp);*/
-
-			gzFile fp = gzopen(path, "rb");
-
-			if (fp == NULL)
-			{
-				WriteLog("Failed!\n");
-				return 0;
-			}
-
-			romSize = gzfilelength(fp);
-			gzseek(fp, 0, SEEK_SET);
-			gzread(fp, rom, romSize);
-			gzclose(fp);
-		}
-
-		WriteLog("OK (%i bytes)\n", romSize);
-	}
-
-	return romSize;
-}
-
-//
-// Jaguar cartridge ROM loading
-//
-void JaguarLoadCart(uint8 * mem, char * path)
-{
-	uint32 romSize = JaguarLoadROM(mem, path);
-
-	if (romSize == 0)
-	{
-		char newPath[2048];
-		WriteLog("VJ: Trying GUI...\n");
-
-//This is not *nix friendly for some reason...
-//		if (!UserSelectFile(path, newPath))
-		if (!UserSelectFile((strlen(path) == 0 ? (char *)"." : path), newPath))
-		{
-			WriteLog("VJ: Could not find valid ROM in directory \"%s\"...\nAborting!\n", path);
-			log_done();
-			exit(0);
-		}
-
-		romSize = JaguarLoadROM(mem, newPath);
-
-		if (romSize == 0)
-		{
-			WriteLog("VJ: Could not load ROM from file \"%s\"...\nAborting!\n", newPath);
-			log_done();
-			exit(0);
-		}
-	}
-
-	jaguar_mainRom_crc32 = crc32_calcCheckSum(jaguar_mainRom, romSize);
-	WriteLog("CRC: %08X\n", (unsigned int)jaguar_mainRom_crc32);
-	eeprom_init();
-}
-
-//
-// Get the length of a (possibly) gzipped file
-//
-int gzfilelength(gzFile gd)
-{
-   int size = 0, length = 0;
-   unsigned char buffer[0x10000];
-
-   gzrewind(gd);
-
-   do
-   {
-      // Read in chunks until EOF
-      size = gzread(gd, buffer, 0x10000);
-
-      if (size <= 0)
-      	break;
-
-      length += size;
-   }
-   while (!gzeof(gd));
-
-   gzrewind(gd);
-   return length;
 }

@@ -127,8 +127,14 @@ void joystick_exec(void)
 	if (keystate[vjs.p1KeyBindings[20]])
 		joypad_0_buttons[BUTTON_d] = 0x01;
 
+	extern bool debounceRunKey;
     if (keystate[SDLK_ESCAPE])
-    	finished = true;
+    {
+		if (!debounceRunKey)
+	    	finished = true;
+    }
+    else
+		debounceRunKey = false;
 
 	if (keystate[SDLK_TAB])
 	{

@@ -1,7 +1,7 @@
 //
 // Blitter core
 //
-// by cal2
+// by Cal2
 // GCC/SDL port by Niels Wagenaar (Linux/WIN32) and Caz (BeOS)
 // Cleanups/fixes by James L. Hammons
 //
@@ -442,9 +442,10 @@ Blit! (000B8250 <- 0012C3A0) count: 16 x 1, A1/2_FLAGS: 00014420/00012000 [cmd: 
 //						if (dstdata != READ_RDATA(PATTERNDATA, a1, REG(A1_FLAGS), a1_phrase_mode))
 							inhibit = 1;
 					}
+
 // This is DEFINITELY WRONG
-					if (a1_phrase_mode || a2_phrase_mode)
-						inhibit = !inhibit;
+//					if (a1_phrase_mode || a2_phrase_mode)
+//						inhibit = !inhibit;
 				}
 
 				if (CLIPA1)
@@ -593,8 +594,10 @@ Blit! (000B8250 <- 0012C3A0) count: 16 x 1, A1/2_FLAGS: 00014420/00012000 [cmd: 
 //						if (dstdata != READ_RDATA(PATTERNDATA, a2, REG(A2_FLAGS), a2_phrase_mode))
 							inhibit = 1;
 					}
-					if (a1_phrase_mode || a2_phrase_mode)
-						inhibit =! inhibit;
+
+// This is DEFINITELY WRONG
+//					if (a1_phrase_mode || a2_phrase_mode)
+//						inhibit = !inhibit;
 				}
 				
 				if (CLIPA1)
@@ -691,6 +694,28 @@ Blit! (000B8250 <- 0012C3A0) count: 16 x 1, A1/2_FLAGS: 00014420/00012000 [cmd: 
 				if (a1_phrase_mode)
 					colour_index = (colour_index + 1) & 0x03;
 			}
+		}
+
+		//New: Phrase mode taken into account! :-p
+		if (a1_phrase_mode)
+		{
+			// Bump the pointer to the next phrase boundary
+			// Even though it works, this is crappy... Clean it up!
+			uint32 size = 64 / a1_psize;
+			uint32 newx = (a1_x >> 16) / size;
+			uint32 newxrem = (a1_x >> 16) % size;
+			a1_x &= 0x0000FFFF;
+			a1_x |= (((newx + (newxrem == 0 ? 0 : 1)) * size) & 0xFFFF) << 16;
+		}
+		if (a2_phrase_mode)
+		{
+			// Bump the pointer to the next phrase boundary
+			// Even though it works, this is crappy... Clean it up!
+			uint32 size = 64 / a1_psize;
+			uint32 newx = (a2_x >> 16) / size;
+			uint32 newxrem = (a2_x >> 16) % size;
+			a2_x &= 0x0000FFFF;
+			a2_x |= (((newx + (newxrem == 0 ? 0 : 1)) * size) & 0xFFFF) << 16;
 		}
 
 		a1_x += a1_step_x;
@@ -839,7 +864,7 @@ void blitter_blit(uint32 cmd)
 		break;
 //This really isn't a valid bit combo for A2... Shouldn't this cause the blitter to just say no?
 	case XADDINC:
-WriteLog("BLIT: Asked to used invalid bit combo for A2...\n");
+WriteLog("BLIT: Asked to use invalid bit combo (XADDINC) for A2...\n");
 		// add the contents of the increment register
 		// since there is no register for a2 we just add 1
 //Let's do nothing, since it's not listed as a valid bit combo...
@@ -1048,6 +1073,104 @@ WriteLog("BLIT: Asked to used invalid bit combo for A2...\n");
 	}	
 #endif
 
+//NOTE: Pitch is ignored!
+
+//This *might* be the altimeter blits (they are)...
+//On captured screen, x-pos for black (inner) is 259, for pink is 257
+//Black is short by 3, pink is short by 1...
+/*
+Blit! (00110000 <- 000BF010) count: 9 x 31, A1/2_FLAGS: 000042E2/00010020 [cmd: 00010200]
+ CMD -> src:  dst:  misc:  a1ctl: UPDA1  mode:  ity: PATDSEL z-op:  op: LFU_CLEAR ctrl: 
+  A1 -> pitch: 4 phrases, depth: 16bpp, z-off: 3, width: 320 (21), addctl: XADDPHR YADD0 XSIGNADD YSIGNADD
+  A2 -> pitch: 1 phrases, depth: 16bpp, z-off: 0, width: 1 (00), addctl: XADDPIX YADD0 XSIGNADD YSIGNADD
+        A1 x/y: 262/124, A2 x/y: 128/0
+Blit! (00110000 <- 000BF010) count: 5 x 38, A1/2_FLAGS: 000042E2/00010020 [cmd: 00010200]
+ CMD -> src:  dst:  misc:  a1ctl: UPDA1  mode:  ity: PATDSEL z-op:  op: LFU_CLEAR ctrl: 
+  A1 -> pitch: 4 phrases, depth: 16bpp, z-off: 3, width: 320 (21), addctl: XADDPHR YADD0 XSIGNADD YSIGNADD
+  A2 -> pitch: 1 phrases, depth: 16bpp, z-off: 0, width: 1 (00), addctl: XADDPIX YADD0 XSIGNADD YSIGNADD
+        A1 x/y: 264/117, A2 x/y: 407/0
+
+Blit! (00110000 <- 000BF010) count: 9 x 23, A1/2_FLAGS: 000042E2/00010020 [cmd: 00010200]
+ CMD -> src:  dst:  misc:  a1ctl: UPDA1  mode:  ity: PATDSEL z-op:  op: LFU_CLEAR ctrl: 
+  A1 step values: -10 (X), 1 (Y)
+  A1 -> pitch: 4(2) phrases, depth: 16bpp, z-off: 3, width: 320 (21), addctl: XADDPHR YADD0 XSIGNADD YSIGNADD
+  A2 -> pitch: 1(0) phrases, depth: 16bpp, z-off: 0, width: 1 (00), addctl: XADDPIX YADD0 XSIGNADD YSIGNADD
+        A1 x/y: 262/132, A2 x/y: 129/0
+Blit! (00110000 <- 000BF010) count: 5 x 27, A1/2_FLAGS: 000042E2/00010020 [cmd: 00010200]
+ CMD -> src:  dst:  misc:  a1ctl: UPDA1  mode:  ity: PATDSEL z-op:  op: LFU_CLEAR ctrl: 
+  A1 step values: -8 (X), 1 (Y)
+  A1 -> pitch: 4(2) phrases, depth: 16bpp, z-off: 3, width: 320 (21), addctl: XADDPHR YADD0 XSIGNADD YSIGNADD
+  A2 -> pitch: 1(0) phrases, depth: 16bpp, z-off: 0, width: 1 (00), addctl: XADDPIX YADD0 XSIGNADD YSIGNADD
+        A1 x/y: 264/128, A2 x/y: 336/0
+
+  264v       vCursor ends up here...
+     xxxxx...`
+     111122223333
+
+262v         vCursor ends up here...
+   xxxxxxxxx.'
+ 1111222233334444
+
+Fixed! Now for more:
+
+; This looks like the ship icon in the upper left corner...
+
+Blit! (00110000 <- 0010B2A8) count: 11 x 12, A1/2_FLAGS: 000042E2/00000020 [cmd: 09800609]
+ CMD -> src: SRCEN  dst: DSTEN  misc:  a1ctl: UPDA1 UPDA2 mode:  ity:  z-op:  op: LFU_REPLACE ctrl: DCOMPEN 
+  A1 step values: -12 (X), 1 (Y)
+  A2 step values: 0 (X), 0 (Y) [mask (unused): 00000000 - FFFFFFFF/FFFFFFFF]
+  A1 -> pitch: 4 phrases, depth: 16bpp, z-off: 3, width: 320 (21), addctl: XADDPHR YADD0 XSIGNADD YSIGNADD
+  A2 -> pitch: 1 phrases, depth: 16bpp, z-off: 0, width: 1 (00), addctl: XADDPHR YADD0 XSIGNADD YSIGNADD
+        A1 x/y: 20/24, A2 x/y: 5780/0
+
+Also fixed!
+
+More (not sure this is a blitter problem as much as it's a GPU problem):
+All but the "M" are trashed...
+This does *NOT* look like a blitter problem, as it's rendering properly...
+
+; D
+
+Blit! (00110000 <- 0010B2A8) count: 12 x 12, A1/2_FLAGS: 000042E2/00000020 [cmd: 09800609]
+ CMD -> src: SRCEN  dst: DSTEN  misc:  a1ctl: UPDA1 UPDA2 mode:  ity:  z-op:  op: LFU_REPLACE ctrl: DCOMPEN 
+  A1 step values: -14 (X), 1 (Y)
+  A2 step values: -4 (X), 0 (Y) [mask (unused): 00000000 - FFFFFFFF/FFFFFFFF]
+  A1 -> pitch: 4 phrases, depth: 16bpp, z-off: 3, width: 320 (21), addctl: XADDPHR YADD0 XSIGNADD YSIGNADD
+  A2 -> pitch: 1 phrases, depth: 16bpp, z-off: 0, width: 1 (00), addctl: XADDPHR YADD0 XSIGNADD YSIGNADD
+        A1 x/y: 134/144, A2 x/y: 2516/0
+;129,146: +5,-2
+
+; E
+
+Blit! (00110000 <- 0010B2A8) count: 12 x 12, A1/2_FLAGS: 000042E2/00000020 [cmd: 09800609]
+ CMD -> src: SRCEN  dst: DSTEN  misc:  a1ctl: UPDA1 UPDA2 mode:  ity:  z-op:  op: LFU_REPLACE ctrl: DCOMPEN 
+  A1 step values: -13 (X), 1 (Y)
+  A2 step values: -4 (X), 0 (Y) [mask (unused): 00000000 - FFFFFFFF/FFFFFFFF]
+  A1 -> pitch: 4 phrases, depth: 16bpp, z-off: 3, width: 320 (21), addctl: XADDPHR YADD0 XSIGNADD YSIGNADD
+  A2 -> pitch: 1 phrases, depth: 16bpp, z-off: 0, width: 1 (00), addctl: XADDPHR YADD0 XSIGNADD YSIGNADD
+        A1 x/y: 147/144, A2 x/y: 2660/0
+
+; M
+
+Blit! (00110000 <- 0010B2A8) count: 12 x 12, A1/2_FLAGS: 000042E2/00000020 [cmd: 09800609]
+ CMD -> src: SRCEN  dst: DSTEN  misc:  a1ctl: UPDA1 UPDA2 mode:  ity:  z-op:  op: LFU_REPLACE ctrl: DCOMPEN 
+  A1 step values: -12 (X), 1 (Y)
+  A2 step values: 0 (X), 0 (Y) [mask (unused): 00000000 - FFFFFFFF/FFFFFFFF]
+  A1 -> pitch: 4 phrases, depth: 16bpp, z-off: 3, width: 320 (21), addctl: XADDPHR YADD0 XSIGNADD YSIGNADD
+  A2 -> pitch: 1 phrases, depth: 16bpp, z-off: 0, width: 1 (00), addctl: XADDPHR YADD0 XSIGNADD YSIGNADD
+        A1 x/y: 160/144, A2 x/y: 3764/0
+
+; O
+
+Blit! (00110000 <- 0010B2A8) count: 12 x 12, A1/2_FLAGS: 000042E2/00000020 [cmd: 09800609]
+ CMD -> src: SRCEN  dst: DSTEN  misc:  a1ctl: UPDA1 UPDA2 mode:  ity:  z-op:  op: LFU_REPLACE ctrl: DCOMPEN 
+  A1 step values: -15 (X), 1 (Y)
+  A2 step values: -4 (X), 0 (Y) [mask (unused): 00000000 - FFFFFFFF/FFFFFFFF]
+  A1 -> pitch: 4 phrases, depth: 16bpp, z-off: 3, width: 320 (21), addctl: XADDPHR YADD0 XSIGNADD YSIGNADD
+  A2 -> pitch: 1 phrases, depth: 16bpp, z-off: 0, width: 1 (00), addctl: XADDPHR YADD0 XSIGNADD YSIGNADD
+        A1 x/y: 173/144, A2 x/y: 4052/0
+
+*/
 extern int blit_start_log;
 extern int op_start_log;
 if (blit_start_log)
@@ -1080,10 +1203,11 @@ if (blit_start_log)
 	WriteLog("op: %s ", opStr[(cmd >> 21) & 0x0F]);
 	WriteLog("ctrl: %s%s%s%s%s%s\n", (cmd & 0x02000000 ? "CMPDST " : ""), (cmd & 0x04000000 ? "BCOMPEN " : ""), (cmd & 0x08000000 ? "DCOMPEN " : ""), (cmd & 0x10000000 ? "BKGWREN " : ""), (cmd & 0x20000000 ? "BUSHI " : ""), (cmd & 0x40000000 ? "SRCSHADE" : ""));
 
+	if (UPDA1)
+		WriteLog("  A1 step values: %d (X), %d (Y)\n", a1_step_x >> 16, a1_step_y >> 16);
+
 	if (UPDA2)
-	{
 		WriteLog("  A2 step values: %d (X), %d (Y) [mask (%sused): %08X - %08X/%08X]\n", a2_step_x >> 16, a2_step_y >> 16, (a2f & 0x8000 ? "" : "un"), REG(A2_MASK), a2_mask_x, a2_mask_y);
-	}
 
 	WriteLog("  A1 -> pitch: %d phrases, depth: %s, z-off: %d, width: %d (%02X), addctl: %s %s %s %s\n", 1 << p1, bppStr[d1], zo1, iw1, w1, ctrlStr[ac1&0x03], (ac1&0x04 ? "YADD1" : "YADD0"), (ac1&0x08 ? "XSIGNSUB" : "XSIGNADD"), (ac1&0x10 ? "YSIGNSUB" : "YSIGNADD"));
 	WriteLog("  A2 -> pitch: %d phrases, depth: %s, z-off: %d, width: %d (%02X), addctl: %s %s %s %s\n", 1 << p2, bppStr[d2], zo2, iw2, w2, ctrlStr[ac2&0x03], (ac2&0x04 ? "YADD1" : "YADD0"), (ac2&0x08 ? "XSIGNSUB" : "XSIGNADD"), (ac2&0x10 ? "YSIGNSUB" : "YSIGNADD"));

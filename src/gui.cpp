@@ -15,19 +15,33 @@
 #include "tom.h"
 #include "video.h"
 #include "font1.h"
+#include "crc32.h"
+#include "zlib.h"
+#include "unzip.h"
 #include "gui.h"
 
 using namespace std;								// For STL stuff
 
 // Private function prototypes
 
+class Window;										// Forward declaration...
+
 void DrawTransparentBitmap(int16 * screen, uint32 x, uint32 y, uint16 * bitmap);
 void DrawStringTrans(int16 * screen, uint32 x, uint32 y, uint16 color, uint8 opacity, const char * text, ...);
 void DrawStringOpaque(int16 * screen, uint32 x, uint32 y, uint16 color1, uint16 color2, const char * text, ...);
-void LoadROM(void);
-void RunEmu(void);
-void Quit(void);
-void About(void);
+Window * LoadROM(void);
+Window * ResetJaguar(void);
+Window * RunEmu(void);
+Window * Quit(void);
+Window * About(void);
+
+int gzfilelength(gzFile gd);
+
+// External variables
+
+extern uint8 * jaguar_mainRam;
+extern uint8 * jaguar_bootRom;
+extern uint8 * jaguar_mainRom;
 
 // Local global variables
 
@@ -73,11 +87,41 @@ uint16 closeBox[] = {
 	0x0000,0x0217,0x0217,0x0217,0x0217,0x0217,0x0000		//  .....
 };
 
+uint16 upArrowBox[] = {
+	8, 8,
+
+	0x4B5E,0x4B5E,0x4B5E,0x4B5E,0x4B5E,0x4B5E,0x4B5E,0x4B5E,		// ++++++++
+	0x4B5E,0x0000,0x0000,0xFFFF,0xFFFF,0x0000,0x0000,0x0217,		// +  @@  .
+	0x4B5E,0x0000,0xFFFF,0xFFFF,0xFFFF,0xFFFF,0x0000,0x0217,		// + @@@@ .
+	0x4B5E,0xFFFF,0xFFFF,0xFFFF,0xFFFF,0xFFFF,0xFFFF,0x0217,		// +@@@@@@.
+	0x4B5E,0x0000,0x0000,0xFFFF,0xFFFF,0x0000,0x0000,0x0217,		// +  @@  .
+	0x4B5E,0x0000,0x0000,0xFFFF,0xFFFF,0x0000,0x0000,0x0217,		// +  @@  .
+	0x4B5E,0x0000,0x0000,0xFFFF,0xFFFF,0x0000,0x0000,0x0217,		// +  @@  .
+	0x0217,0x0217,0x0217,0x0217,0x0217,0x0217,0x0217,0x0217			// ........
+};
+
+uint16 downArrowBox[] = {
+	8, 8,
+
+	0x4B5E,0x4B5E,0x4B5E,0x4B5E,0x4B5E,0x4B5E,0x4B5E,0x4B5E,		// ++++++++
+	0x4B5E,0x0000,0x0000,0xFFFF,0xFFFF,0x0000,0x0000,0x0217,		// +  @@  .
+	0x4B5E,0x0000,0x0000,0xFFFF,0xFFFF,0x0000,0x0000,0x0217,		// +  @@  .
+	0x4B5E,0x0000,0x0000,0xFFFF,0xFFFF,0x0000,0x0000,0x0217,		// +  @@  .
+	0x4B5E,0xFFFF,0xFFFF,0xFFFF,0xFFFF,0xFFFF,0xFFFF,0x0217,		// +@@@@@@.
+	0x4B5E,0x0000,0xFFFF,0xFFFF,0xFFFF,0xFFFF,0x0000,0x0217,		// + @@@@ .
+	0x4B5E,0x0000,0x0000,0xFFFF,0xFFFF,0x0000,0x0000,0x0217,		// +  @@  .
+	0x0217,0x0217,0x0217,0x0217,0x0217,0x0217,0x0217,0x0217			// ........
+};
+
 char separator[] = "--------------------------------------------------------";
+
+uint16 background[1280 * 240];
 
 //
 // Local GUI classes
 //
+
+enum { WINDOW_CLOSE, MENU_ITEM_CHOSEN };
 
 class Element
 {
@@ -88,6 +132,7 @@ class Element
 		virtual void HandleMouseMove(uint32 x, uint32 y) = 0;
 		virtual void HandleMouseButton(uint32 x, uint32 y, bool mouseDown) = 0;
 		virtual void Draw(uint32, uint32) = 0;
+		virtual void Notify(Element *) = 0;
 //Needed?		virtual ~Element() = 0;
 //We're not allocating anything in the base class, so the answer would be NO.
 		bool Inside(uint32 x, uint32 y);
@@ -116,24 +161,35 @@ class Button: public Element
 	public:
 		Button(uint32 x = 0, uint32 y = 0, uint32 w = 0, uint32 h = 0): Element(x, y, w, h),
 			activated(false), clicked(false), inside(false), fgColor(0xFFFF),
-			bgColor(0x03E0), pic(NULL) {}
+			bgColor(0x03E0), pic(NULL), elementToTell(NULL) {}
 		Button(uint32 x, uint32 y, uint32 w, uint32 h, uint16 * p): Element(x, y, w, h),
 			activated(false), clicked(false), inside(false), fgColor(0xFFFF),
-			bgColor(0x03E0), pic(p) {}
+			bgColor(0x03E0), pic(p), elementToTell(NULL) {}
+		Button(uint32 x, uint32 y, uint16 * p): Element(x, y, 0, 0),
+			activated(false), clicked(false), inside(false), fgColor(0xFFFF),
+			bgColor(0x03E0), pic(p), elementToTell(NULL)
+			{ if (pic) extents.w = pic[0], extents.h = pic[1]; }
 		Button(uint32 x, uint32 y, uint32 w, uint32 h, string s): Element(x, y, w, h),
 			activated(false), clicked(false), inside(false), fgColor(0xFFFF),
-			bgColor(0x03E0), pic(NULL), text(s) {}
+			bgColor(0x03E0), pic(NULL), text(s), elementToTell(NULL) {}
+		Button(uint32 x, uint32 y, string s): Element(x, y, 0, 8),
+			activated(false), clicked(false), inside(false), fgColor(0xFFFF),
+			bgColor(0x03E0), pic(NULL), text(s), elementToTell(NULL)
+			{ extents.w = s.length() * 8; }
 		virtual void HandleKey(SDLKey key) {}
 		virtual void HandleMouseMove(uint32 x, uint32 y);
 		virtual void HandleMouseButton(uint32 x, uint32 y, bool mouseDown);
 		virtual void Draw(uint32 offsetX = 0, uint32 offsetY = 0);
+		virtual void Notify(Element *) {}
 		bool ButtonClicked(void) { return activated; }
+		void SetNotificationElement(Element * e) { elementToTell = e; }
 
 	protected:
 		bool activated, clicked, inside;
 		uint16 fgColor, bgColor;
 		uint16 * pic;
 		string text;
+		Element * elementToTell;
 };
 
 void Button::HandleMouseMove(uint32 x, uint32 y)
@@ -149,7 +205,13 @@ void Button::HandleMouseButton(uint32 x, uint32 y, bool mouseDown)
 			clicked = true;
 
 		if (clicked && !mouseDown)
+		{
 			clicked = false, activated = true;
+
+			// Send a message that we're activated (if there's someone to tell, that is)
+			if (elementToTell)
+				elementToTell->Notify(this);
+		}
 	}
 	else
 		clicked = activated = false;
@@ -170,41 +232,65 @@ void Button::Draw(uint32 offsetX/*= 0*/, uint32 offsetY/*= 0*/)
 		}
 	}
 
-//WriteLog("Button::Draw [%08X]\n", this);
 	if (pic != NULL)
-//{
-//WriteLog("--> Button: About to draw pic [%08X].\n", pic);
 		DrawTransparentBitmap(screenBuffer, extents.x + offsetX, extents.y + offsetY, pic);
-//}
 
 	if (text.length() > 0)
-//{
-//WriteLog("--> Button: About to draw string [%s].\n", text.c_str());
 		DrawString(screenBuffer, extents.x + offsetX, extents.y + offsetY, false, "%s", text.c_str());
-//}
 }
 
 class Window: public Element
 {
 	public:
-		Window(uint32 x = 0, uint32 y = 0, uint32 w = 0, uint32 h = 0):	Element(x, y, w, h),
-			/*clicked(false), inside(false),*/ fgColor(0x4FF0), bgColor(0xFE10),
-			close(w - 8, 1, 7, 7, closeBox) { list.push_back(&close); }
-		virtual void HandleKey(SDLKey key) {}
+/*		Window(uint32 x = 0, uint32 y = 0, uint32 w = 0, uint32 h = 0):	Element(x, y, w, h),
+			fgColor(0x4FF0), bgColor(0xFE10)
+			{ close = new Button(w - 8, 1, closeBox); list.push_back(close); }*/
+		Window(uint32 x = 0, uint32 y = 0, uint32 w = 0, uint32 h = 0,
+			void (* f)(Element *) = NULL): Element(x, y, w, h),
+			/*clicked(false), inside(false),*/ fgColor(0x4FF0), bgColor(0x1E10),
+			handler(f)
+			{ close = new Button(w - 8, 1, closeBox); list.push_back(close);
+			  close->SetNotificationElement(this); }
+		virtual ~Window();
+		virtual void HandleKey(SDLKey key);
 		virtual void HandleMouseMove(uint32 x, uint32 y);
 		virtual void HandleMouseButton(uint32 x, uint32 y, bool mouseDown);
 		virtual void Draw(uint32 offsetX = 0, uint32 offsetY = 0);
+		virtual void Notify(Element * e);
 		void AddElement(Element * e);
-		bool WindowActive(void) { return !close.ButtonClicked(); }
+//		bool WindowActive(void) { return true; }//return !close->ButtonClicked(); }
 
 	protected:
 //		bool clicked, inside;
 		uint16 fgColor, bgColor;
-		Button close;
+		void (* handler)(Element *);
+		Button * close;
 //We have to use a list of Element *pointers* because we can't make a list that will hold
 //all the different object types in the same list...
 		vector<Element *> list;
 };
+
+Window::~Window()
+{
+	for(uint32 i=0; i<list.size(); i++)
+		if (list[i])
+			delete list[i];
+}
+
+void Window::HandleKey(SDLKey key)
+{
+	if (key == SDLK_ESCAPE)
+	{
+		SDL_Event event;
+		event.type = SDL_USEREVENT, event.user.code = WINDOW_CLOSE;
+		SDL_PushEvent(&event);
+	}
+
+	// Handle the items this window contains...
+	for(uint32 i=0; i<list.size(); i++)
+		// Make coords relative to upper right corner of this window...
+		list[i]->HandleKey(key);
+}
 
 void Window::HandleMouseMove(uint32 x, uint32 y)
 {
@@ -246,6 +332,16 @@ void Window::AddElement(Element * e)
 	list.push_back(e);
 }
 
+void Window::Notify(Element * e)
+{
+	if (e == close)
+	{
+		SDL_Event event;
+		event.type = SDL_USEREVENT, event.user.code = WINDOW_CLOSE;
+		SDL_PushEvent(&event);
+	}
+}
+
 class Text: public Element
 {
 	public:
@@ -257,6 +353,7 @@ class Text: public Element
 		virtual void HandleMouseMove(uint32 x, uint32 y) {}
 		virtual void HandleMouseButton(uint32 x, uint32 y, bool mouseDown) {}
 		virtual void Draw(uint32 offsetX = 0, uint32 offsetY = 0);
+		virtual void Notify(Element *) {}
 
 	protected:
 		uint16 fgColor, bgColor;
@@ -269,14 +366,305 @@ void Text::Draw(uint32 offsetX/*= 0*/, uint32 offsetY/*= 0*/)
 		DrawString(screenBuffer, extents.x + offsetX, extents.y + offsetY, false, "%s", text.c_str());
 }
 
+class ListBox: public Element
+//class ListBox: public Window
+{
+	public:
+//		ListBox(uint32 x = 0, uint32 y = 0, uint32 w = 0, uint32 h = 0): Element(x, y, w, h),
+		ListBox(uint32 x = 0, uint32 y = 0, uint32 w = 0, uint32 h = 0);//: Window(x, y, w, h),
+//		windowPtr(0), cursor(0), limit(0), charWidth((w / 8) - 1), charHeight(h / 8),
+//		elementToTell(NULL), upArrow(w - 8, 0, upArrowBox),
+//		downArrow(w - 8, h - 8, downArrowBox), upArrow2(w - 8, h - 16, upArrowBox) {}
+		virtual void HandleKey(SDLKey key);
+		virtual void HandleMouseMove(uint32 x, uint32 y);
+		virtual void HandleMouseButton(uint32 x, uint32 y, bool mouseDown);
+		virtual void Draw(uint32 offsetX = 0, uint32 offsetY = 0);
+		virtual void Notify(Element * e);
+		void SetNotificationElement(Element * e) { elementToTell = e; }
+		void AddItem(string s);
+		string GetSelectedItem(void);
+
+	protected:
+		uint32 windowPtr, cursor, limit;
+		uint32 charWidth, charHeight;				// Box width/height in characters
+		Element * elementToTell;
+		Button upArrow, downArrow, upArrow2;
+		vector<string> item;
+};
+
+ListBox::ListBox(uint32 x, uint32 y, uint32 w, uint32 h): Element(x, y, w, h),
+	windowPtr(0), cursor(0), limit(0), charWidth((w / 8) - 1), charHeight(h / 8),
+	elementToTell(NULL), upArrow(w - 8, 0, upArrowBox),
+	downArrow(w - 8, h - 8, downArrowBox), upArrow2(w - 8, h - 16, upArrowBox)
+{
+	upArrow.SetNotificationElement(this);
+	downArrow.SetNotificationElement(this);
+	upArrow2.SetNotificationElement(this);
+	extents.w -= 8;									// Make room for scrollbar...
+}
+
+void ListBox::HandleKey(SDLKey key)
+{
+	if (key == SDLK_DOWN)
+	{
+		if (cursor != limit - 1)	// Cursor is within its window
+			cursor++;
+		else						// Otherwise, scroll the window...
+		{
+			if (cursor + windowPtr != item.size() - 1)
+				windowPtr++;
+		}
+	}
+	else if (key == SDLK_UP)
+	{
+		if (cursor != 0)
+			cursor--;
+		else
+		{
+			if (windowPtr != 0)
+				windowPtr--;
+		}
+	}
+	else if (key == SDLK_PAGEDOWN)
+	{
+		if (cursor != limit - 1)
+			cursor = limit - 1;
+		else
+		{
+			windowPtr += limit;
+			if (windowPtr > item.size() - limit)
+				windowPtr = item.size() - limit;
+		}
+	}
+	else if (key == SDLK_PAGEUP)
+	{
+		if (cursor != 0)
+			cursor = 0;
+		else
+		{
+			if (windowPtr < limit)
+				windowPtr = 0;
+			else
+				windowPtr -= limit;
+		}
+	}
+//How to handle these???
+/*	if (key == SDLK_RETURN)
+		done = true;
+	if (key == SDLK_ESCAPE)
+	{
+		WriteLog("GUI: Aborting VJ by user request.\n");
+		return false;						// Bail out!
+	}*/
+	else if (key >= SDLK_a && key <= SDLK_z)
+	{
+		// Advance cursor to filename with first letter pressed...
+		uint8 which = (key - SDLK_a) + 65;	// Convert key to A-Z char
+
+		for(uint32 i=0; i<item.size(); i++)
+		{
+			if ((item[i][0] & 0xDF) == which)
+			{
+				cursor = i - windowPtr;
+				if (i > windowPtr + limit - 1)
+					windowPtr = i - limit + 1,
+					cursor = limit - 1;
+				if (i < windowPtr)
+					windowPtr = i,
+					cursor = 0;
+				break;
+			}
+		}
+	}
+}
+
+void ListBox::HandleMouseMove(uint32 x, uint32 y)
+{
+	upArrow.HandleMouseMove(x - extents.x, y - extents.y);
+	downArrow.HandleMouseMove(x - extents.x, y - extents.y);
+	upArrow2.HandleMouseMove(x - extents.x, y - extents.y);
+}
+
+void ListBox::HandleMouseButton(uint32 x, uint32 y, bool mouseDown)
+{
+	if (Inside(x, y) && mouseDown)
+	{
+		// Why do we have to do this??? (- extents.y?)
+		// I guess it's because only the Window class has offsetting implemented...
+		cursor = (y - extents.y) / 8;
+	}
+
+	upArrow.HandleMouseButton(x - extents.x, y - extents.y, mouseDown);
+	downArrow.HandleMouseButton(x - extents.x, y - extents.y, mouseDown);
+	upArrow2.HandleMouseButton(x - extents.x, y - extents.y, mouseDown);
+}
+
+void ListBox::Draw(uint32 offsetX/*= 0*/, uint32 offsetY/*= 0*/)
+{
+	for(uint32 i=0; i<limit; i++)
+	{
+		// Strip off the extension
+		// (extension stripping should be an option, not default!)
+		string s(item[windowPtr + i], 0, item[windowPtr + i].length() - 4);
+		DrawString(screenBuffer, extents.x + offsetX, extents.y + offsetY + i*8,
+			(cursor == i ? true : false), "%-*.*s", charWidth, charWidth, s.c_str());
+	}
+
+	upArrow.Draw(extents.x + offsetX, extents.y + offsetY);
+	downArrow.Draw(extents.x + offsetX, extents.y + offsetY);
+	upArrow2.Draw(extents.x + offsetX, extents.y + offsetY);
+
+	uint32 sbHeight = extents.h - 24,
+		thumb = (uint32)(((float)limit / (float)item.size()) * (float)sbHeight),
+		thumbStart = (uint32)(((float)windowPtr / (float)item.size()) * (float)sbHeight);
+
+	for(uint32 y=extents.y+offsetY+8; y<extents.y+offsetY+extents.h-16; y++)
+	{
+//		for(uint32 x=extents.x+offsetX+extents.w-8; x<extents.x+offsetX+extents.w; x++)
+		for(uint32 x=extents.x+offsetX+extents.w; x<extents.x+offsetX+extents.w+8; x++)
+		{
+			if (y >= thumbStart + (extents.y+offsetY+8) && y < thumbStart + thumb + (extents.y+offsetY+8))
+				screenBuffer[x + (y * pitch)] = 0xFFFF;
+			else
+				screenBuffer[x + (y * pitch)] = 0x0000;
+		}
+	}
+}
+
+void ListBox::Notify(Element * e)
+{
+	if (e == &upArrow || e == &upArrow2)
+	{
+		if (windowPtr != 0)
+		{
+			windowPtr--;
+
+			if (cursor < limit - 1)
+				cursor++;
+		}
+	}
+	else if (e == &downArrow)
+	{
+		if (windowPtr < item.size() - limit)
+		{
+			windowPtr++;
+
+			if (cursor != 0)
+				cursor--;
+		}
+	}
+}
+
+void ListBox::AddItem(string s)
+{
+	item.push_back(s);
+	limit = (item.size() > charHeight ? charHeight : item.size());
+//WriteLog("ListBox: Adding item [%s], limit = %u...\n", s.c_str(), limit);
+
+	//Do this *every* time?
+	sort(item.begin(), item.end());
+}
+
+string ListBox::GetSelectedItem(void)
+{
+	return item[windowPtr + cursor];
+}
+
+class FileList: public Window
+{
+	public:
+		FileList(uint32 x = 0, uint32 y = 0, uint32 w = 0, uint32 h = 0);
+		virtual ~FileList() {}
+		virtual void HandleKey(SDLKey key);
+		virtual void HandleMouseMove(uint32 x, uint32 y) { Window::HandleMouseMove(x, y); }
+		virtual void HandleMouseButton(uint32 x, uint32 y, bool mouseDown) { Window::HandleMouseButton(x, y, mouseDown); }
+		virtual void Draw(uint32 offsetX = 0, uint32 offsetY = 0) { Window::Draw(offsetX, offsetY); }
+		virtual void Notify(Element * e);
+
+	protected:
+		ListBox * files;
+		Button * load;
+};
+
+//Need 4 buttons, one scrollbar...
+FileList::FileList(uint32 x, uint32 y, uint32 w, uint32 h): Window(x, y, w, h)
+{
+	files = new ListBox(8, 8, w - 16, h - 32);
+	AddElement(files);
+	load = new Button(8, h - 16, " Load ");
+	AddElement(load);
+	load->SetNotificationElement(this);
+
+//	DIR * dp = opendir(path);
+	DIR * dp = opendir(vjs.ROMPath);
+	dirent * de;
+
+	while ((de = readdir(dp)) != NULL)
+	{
+		char * ext = strrchr(de->d_name, '.');
+
+		if (ext != NULL)
+			if (stricmp(ext, ".zip") == 0 || stricmp(ext, ".jag") == 0)
+				files->AddItem(string(de->d_name));
+	}
+
+	closedir(dp);
+}
+
+void FileList::HandleKey(SDLKey key)
+{
+	if (key == SDLK_RETURN)
+		Notify(load);
+	else
+		Window::HandleKey(key);
+}
+
+void FileList::Notify(Element * e)
+{
+	if (e == load)
+	{
+		char filename[MAX_PATH];
+		strcpy(filename, vjs.ROMPath);
+
+		if (strlen(filename) > 0)
+			if (filename[strlen(filename) - 1] != '/')
+				strcat(filename, "/");
+
+		strcat(filename, files->GetSelectedItem().c_str());
+
+		uint32 romSize = JaguarLoadROM(jaguar_mainRom, filename);
+
+		if (romSize == 0)
+//We need better error checking here... !!! FIX !!!
+			WriteLog("VJ: Could not load ROM from file \"%s\"...", files->GetSelectedItem().c_str());
+		else
+		{
+			jaguar_mainRom_crc32 = crc32_calcCheckSum(jaguar_mainRom, romSize);
+			WriteLog("CRC: %08X\n", (unsigned int)jaguar_mainRom_crc32);
+			eeprom_init();
+
+			SDL_Event event;
+			event.type = SDL_USEREVENT, event.user.code = WINDOW_CLOSE;
+			SDL_PushEvent(&event);
+
+			event.type = SDL_USEREVENT, event.user.code = MENU_ITEM_CHOSEN;
+			event.user.data1 = (void *)ResetJaguar;
+		    SDL_PushEvent(&event);
+		}
+	}
+	else
+		Window::Notify(e);
+}
+
+
 struct NameAction
 {
 	string name;
-	void (* action)(void);
-	bool isWindow;
+	Window * (* action)(void);
+	SDLKey hotKey;
 
-	NameAction(string n, void (* a)(void) = NULL, bool w = false): name(n), action(a),
-		isWindow(w) {}
+	NameAction(string n, Window * (* a)(void) = NULL, SDLKey k = SDLK_UNKNOWN): name(n),
+		action(a), hotKey(k) {}
 };
 
 class MenuItems
@@ -298,24 +686,18 @@ class Menu: public Element
 	public:
 		Menu(uint32 x = 0, uint32 y = 0, uint32 w = 0, uint32 h = 8,
 			uint16 fgc = 0x1CFF, uint16 bgc = 0x000F, uint16 fgch = 0x421F,
-			uint16 bgch = 0x1CFF): Element(x, y, w, h), clicked(false), inside(0),
-			insidePopup(0), fgColor(fgc), bgColor(bgc), fgColorHL(fgch), bgColorHL(bgch),
-			menuChosen(-1), menuItemChosen(-1) {}
-//			{ extents.x = x, extents.y = y, extents.w = w, extents.h = h; }
+			uint16 bgch = 0x1CFF): Element(x, y, w, h), activated(false), clicked(false),
+			inside(0), insidePopup(0), fgColor(fgc), bgColor(bgc), fgColorHL(fgch),
+			bgColorHL(bgch), menuChosen(-1), menuItemChosen(-1) {}
 		virtual void HandleKey(SDLKey key);
 		virtual void HandleMouseMove(uint32 x, uint32 y);
 		virtual void HandleMouseButton(uint32 x, uint32 y, bool mouseDown);
 		virtual void Draw(uint32 offsetX = 0, uint32 offsetY = 0);
+		virtual void Notify(Element *) {}
 		void Add(MenuItems mi);
-		//This is wrong. !!! FIX !!!
-		bool ItemChosen(void) { return (clicked && insidePopup); }
-		//This is bad... !!! FIX !!!
-		NameAction & GetItem(void)
-//		 { if (ItemChosen()) return itemList[menuChosen].item[menuItemChosen]; return NULL; }
-			{ return itemList[menuChosen].item[menuItemChosen]; }
 
 	protected:
-		bool clicked;
+		bool activated, clicked;
 		uint32 inside, insidePopup;
 		uint16 fgColor, bgColor, fgColorHL, bgColorHL;
 		int menuChosen, menuItemChosen;
@@ -324,8 +706,25 @@ class Menu: public Element
 		vector<MenuItems> itemList;
 };
 
-void Menu::HandleKey(SDLKey Key)
+void Menu::HandleKey(SDLKey key)
 {
+	for(uint32 i=0; i<itemList.size(); i++)
+	{
+		for(uint32 j=0; j<itemList[i].item.size(); j++)
+		{
+			if (itemList[i].item[j].hotKey == key)
+			{
+				SDL_Event event;
+				event.type = SDL_USEREVENT;
+				event.user.code = MENU_ITEM_CHOSEN;
+				event.user.data1 = (void *)itemList[i].item[j].action;
+	    		SDL_PushEvent(&event);
+
+				clicked = false, menuChosen = menuItemChosen = -1;
+				break;
+			}
+		}
+	}
 }
 
 void Menu::HandleMouseMove(uint32 x, uint32 y)
@@ -380,20 +779,26 @@ void Menu::HandleMouseButton(uint32 x, uint32 y, bool mouseDown)
 	{
 		if (insidePopup && !mouseDown)				// I.e., mouse-button-up
 		{
+			activated = true;
 			if (itemList[menuChosen].item[menuItemChosen].action != NULL)
 			{
-				itemList[menuChosen].item[menuItemChosen].action();
+//				itemList[menuChosen].item[menuItemChosen].action();
+				SDL_Event event;
+				event.type = SDL_USEREVENT;
+				event.user.code = MENU_ITEM_CHOSEN;
+				event.user.data1 = (void *)itemList[menuChosen].item[menuItemChosen].action;
+			    SDL_PushEvent(&event);
 
 				clicked = false, menuChosen = menuItemChosen = -1;
 
-				SDL_Event event;
+/*				SDL_Event event;
 				while (SDL_PollEvent(&event));		// Flush the event queue...
 				event.type = SDL_MOUSEMOTION;
 				int mx, my;
 				SDL_GetMouseState(&mx, &my);
 				event.motion.x = mx, event.motion.y = my;
 			    SDL_PushEvent(&event);				// & update mouse position...!
-			}
+*/			}
 		}
 
 		if (!inside && !insidePopup && mouseDown)
@@ -466,6 +871,7 @@ class RootWindow: public Window
 		virtual void HandleMouseMove(uint32 x, uint32 y) {}
 		virtual void HandleMouseButton(uint32 x, uint32 y, bool mouseDown) {}
 		virtual void Draw(uint32 offsetX = 0, uint32 offsetY = 0) {}
+		virtual void Notify(Element *) {}
 
 	private:
 		Menu * menu;
@@ -591,7 +997,7 @@ void DrawStringTrans(int16 * screen, uint32 x, uint32 y, uint16 color, uint8 tra
 
 //This could be sped up by using a table of 5 + 5 + 5 bits (32 levels transparency -> 32768 entries)
 //Here we've modified it to have 33 levels of transparency (could have any # we want!)
-//because dividing by 32 is faster than dividing by 31!
+//because dividing by 32 is faster than dividing by 31...!
 					uint8 invTrans = 32 - trans;
 					uint16 bRed = (eRed * trans + nRed * invTrans) / 32;
 					uint16 bGreen = (eGreen * trans + nGreen * invTrans) / 32;
@@ -618,25 +1024,19 @@ bool GUIMain(void)
 	extern int16 * backbuffer;
 	bool done = false;
 	SDL_Event event;
+	Window * mainWindow = NULL;
 
 	// Set up the GUI classes...
 	Element::SetScreenAndPitch(backbuffer, GetSDLScreenPitch() / 2);
 
-	Button closeButton(45, 90, 16, 16);
-	Window someWindow(15, 16, 60, 60);
-	Button button1(50, 15, 9, 9), button2(10, 10, 8, 8), button3(25, 48, 32, 8, " Ok ");
-	someWindow.AddElement(&button1);
-	someWindow.AddElement(&button2);
-	someWindow.AddElement(&button3);
-
-	Menu mainMenu;//(0, 160);
+	Menu mainMenu;
 	MenuItems mi;
 	mi.title = "File";
 	mi.item.push_back(NameAction("Load...", LoadROM));
-	mi.item.push_back(NameAction("Reset"));
-	mi.item.push_back(NameAction("Run", RunEmu));
+	mi.item.push_back(NameAction("Reset", ResetJaguar));
+	mi.item.push_back(NameAction("Run", RunEmu, SDLK_ESCAPE));
 	mi.item.push_back(NameAction(""));
-	mi.item.push_back(NameAction("Quit", Quit));
+	mi.item.push_back(NameAction("Quit", Quit, SDLK_q));
 	mainMenu.Add(mi);
 	mi.title = "Settings";
 	mi.item.clear();
@@ -644,9 +1044,9 @@ bool GUIMain(void)
 	mi.item.push_back(NameAction("Audio..."));
 	mi.item.push_back(NameAction("Misc..."));
 	mainMenu.Add(mi);
-	mi.title = "Options";
+	mi.title = "Info";
 	mi.item.clear();
-	mi.item.push_back(NameAction("About..."));
+	mi.item.push_back(NameAction("About...", About));
 	mainMenu.Add(mi);
 
 	bool showMouse = true;
@@ -654,21 +1054,53 @@ bool GUIMain(void)
 //This is crappy!!! !!! FIX !!!
 	jaguar_reset();
 
+	// Set up our background save...
+	memset(background, 0x11, tom_getVideoModeWidth() * 240 * 2);
+
 	while (!done)
 	{
 		while (SDL_PollEvent(&event))
 		{
-			if (event.type == SDL_ACTIVEEVENT)
+			if (event.type == SDL_USEREVENT)
+			{
+				if (event.user.code == WINDOW_CLOSE)
+				{
+					delete mainWindow;
+					mainWindow = NULL;
+				}
+				else if (event.user.code == MENU_ITEM_CHOSEN)
+				{
+					// Confused? Let me enlighten... What we're doing here is casting
+					// data1 as a pointer to a function which returns a Window pointer and
+					// which takes no parameters (the "(Window *(*)(void))" part), then
+					// derefencing it (the "*" in front of that) in order to call the
+					// function that it points to. Clear as mud? Yeah, I hate function
+					// pointers too, but what else are you gonna do?
+					mainWindow = (*(Window *(*)(void))event.user.data1)();
+
+					while (SDL_PollEvent(&event));	// Flush the event queue...
+					event.type = SDL_MOUSEMOTION;
+					int mx, my;
+					SDL_GetMouseState(&mx, &my);
+					event.motion.x = mx, event.motion.y = my;
+				    SDL_PushEvent(&event);			// & update mouse position...!
+
+					mouseX = mx, mouseY = my;		// This prevents "mouse flash"...
+					if (vjs.useOpenGL)
+						mouseX /= 2, mouseY /= 2;
+				}
+			}
+			else if (event.type == SDL_ACTIVEEVENT)
 			{
 				if (event.active.state == SDL_APPMOUSEFOCUS)
 					showMouse = (event.active.gain ? true : false);
 			}
-			if (event.type == SDL_KEYDOWN)
+			else if (event.type == SDL_KEYDOWN)
 			{
-				closeButton.HandleKey(event.key.keysym.sym);
-				if (someWindow.WindowActive())
-					someWindow.HandleKey(event.key.keysym.sym);
-				mainMenu.HandleKey(event.key.keysym.sym);
+				if (mainWindow)
+					mainWindow->HandleKey(event.key.keysym.sym);
+				else
+					mainMenu.HandleKey(event.key.keysym.sym);
 			}
 			else if (event.type == SDL_MOUSEMOTION)
 			{
@@ -677,10 +1109,10 @@ bool GUIMain(void)
 				if (vjs.useOpenGL)
 					mouseX /= 2, mouseY /= 2;
 
-				closeButton.HandleMouseMove(mouseX, mouseY);
-				if (someWindow.WindowActive())
-					someWindow.HandleMouseMove(mouseX, mouseY);
-				mainMenu.HandleMouseMove(mouseX, mouseY);
+				if (mainWindow)
+					mainWindow->HandleMouseMove(mouseX, mouseY);
+				else
+					mainMenu.HandleMouseMove(mouseX, mouseY);
 			}
 			else if (event.type == SDL_MOUSEBUTTONDOWN)
 			{
@@ -689,10 +1121,10 @@ bool GUIMain(void)
 				if (vjs.useOpenGL)
 					mx /= 2, my /= 2;
 
-				closeButton.HandleMouseButton(mx, my, true);
-				if (someWindow.WindowActive())
-					someWindow.HandleMouseButton(mx, my, true);
-				mainMenu.HandleMouseButton(mx, my, true);
+				if (mainWindow)
+					mainWindow->HandleMouseButton(mx, my, true);
+				else
+					mainMenu.HandleMouseButton(mx, my, true);
 			}
 			else if (event.type == SDL_MOUSEBUTTONUP)
 			{
@@ -701,22 +1133,22 @@ bool GUIMain(void)
 				if (vjs.useOpenGL)
 					mx /= 2, my /= 2;
 
-				closeButton.HandleMouseButton(mx, my, false);
-				if (someWindow.WindowActive())
-					someWindow.HandleMouseButton(mx, my, false);
-				mainMenu.HandleMouseButton(mx, my, false);
+				if (mainWindow)
+					mainWindow->HandleMouseButton(mx, my, false);
+				else
+					mainMenu.HandleMouseButton(mx, my, false);
 			}
 
 			// Draw the GUI...
 // The way we do things here is kinda stupid (redrawing the screen every frame), but
 // it's simple. Perhaps there may be a reason down the road to be more selective with
 // our clearing, but for now, this will suffice.
-			memset(backbuffer, 0x11, tom_getVideoModeWidth() * 240 * 2);
+//			memset(backbuffer, 0x11, tom_getVideoModeWidth() * 240 * 2);
+			memcpy(backbuffer, background, tom_getVideoModeWidth() * 240 * 2);
 
-			closeButton.Draw();
-			if (someWindow.WindowActive())
-				someWindow.Draw();
 			mainMenu.Draw();
+			if (mainWindow)
+				mainWindow->Draw();
 
 			if (showMouse)
 				DrawTransparentBitmap(backbuffer, mouseX, mouseY, mousePic);
@@ -731,11 +1163,21 @@ bool GUIMain(void)
 //
 // GUI "action" functions
 //
-void LoadROM(void)
+Window * LoadROM(void)
 {
+	FileList * fileList = new FileList(8, 16, 304, 216);
+
+	return (Window *)fileList;
 }
 
-void RunEmu(void)
+Window * ResetJaguar(void)
+{
+	jaguar_reset();
+	return RunEmu();
+}
+
+bool debounceRunKey = true;
+Window * RunEmu(void)
 {
 //This is crappy... !!! FIX !!!
 	extern int16 * backbuffer;
@@ -747,6 +1189,8 @@ void RunEmu(void)
 	bool showMessage = true;
 	uint32 showMsgFrames = 60;
 	uint8 transparency = 0;
+	// Pass a message to the "joystick" code to debounce the ESC key...
+	debounceRunKey = true;
 
 	while (!finished)
 	{
@@ -757,6 +1201,11 @@ void RunEmu(void)
 //extern bool doDSPDis;
 //if (totalFrames == 373)
 //	doDSPDis = true;
+
+//This sucks... !!! FIX !!!
+		joystick_exec();
+		if (finished)
+			break;
 
 		// Some QnD GUI stuff here...
 		if (showGUI)
@@ -789,64 +1238,46 @@ void RunEmu(void)
 		}
 		else
 			nFrame++;
-
-		joystick_exec();
 	}
+
+	// Reset the pitch, since it may have been changed in-game...
+	Element::SetScreenAndPitch(backbuffer, GetSDLScreenPitch() / 2);
+
+	// Save the background for the GUI...
+//	memcpy(background, backbuffer, tom_getVideoModeWidth() * 240 * 2);
+	// In this case, we squash the color to monochrome, then force it to blue + green...
+	for(uint32 i=0; i<tom_getVideoModeWidth() * 240; i++)
+	{
+		uint16 word = backbuffer[i];
+		uint8 r = (word >> 10) & 0x1F, g = (word >> 5) & 0x1F, b = word & 0x1F;
+		word = ((r + g + b) / 3) & 0x001F;
+		word = (word << 5) | word;
+		background[i] = word;
+	}
+
+	return NULL;
 }
 
-void Quit(void)
+Window * Quit(void)
 {
 	WriteLog("GUI: Quitting due to user request.\n");
 	log_done();
 	exit(0);
+
+	return NULL;									// We never get here...
 }
 
-void About(void)
+Window * About(void)
 {
-	extern int16 * backbuffer;
-	SDL_Event event;
-	uint16 * bgSave = (uint16 *)malloc(tom_getVideoModeWidth() * 240 * 2);
-	memcpy(bgSave, backbuffer, tom_getVideoModeWidth() * 240 * 2);
+	Window * window = new Window(8, 16, 304, 160);
+	window->AddElement(new Text(8, 8, "Virtual Jaguar 1.0.7"));
+	window->AddElement(new Text(8, 24, "Coders:"));
+	window->AddElement(new Text(16, 32, "Niels Wagenaar (nwagenaar)"));
+	window->AddElement(new Text(16, 40, "Caz"));
+	window->AddElement(new Text(16, 48, "James L. Hammons (shamus)"));
+	window->AddElement(new Text(16, 56, "Adam Green"));
 
-	bool done = false;
-	while (!done)
-	{
-		while (SDL_PollEvent(&event))
-		{
-			if (event.type == SDL_KEYDOWN)
-			{
-				if (event.key.keysym.sym == SDLK_ESCAPE || event.key.keysym.sym == SDLK_RETURN)
-					done = true;
-			}
-			else if (event.type == SDL_MOUSEMOTION)
-			{
-				mouseX = event.motion.x, mouseY = event.motion.y;
-				if (vjs.useOpenGL)
-					mouseX /= 2, mouseY /= 2;
-			}
-			else if (event.type == SDL_MOUSEBUTTONDOWN)
-			{
-				uint32 mx = event.button.x, my = event.button.y;
-				if (vjs.useOpenGL)
-					mx /= 2, my /= 2;
-
-				done = true;
-			}
-
-			// Draw "About" box
-			memcpy(backbuffer, bgSave, tom_getVideoModeWidth() * 240 * 2);
-
-			DrawStringOpaque(backbuffer, 64, 64, 0x1CFF, 0x000F, "                              ");
-			DrawStringOpaque(backbuffer, 64, 72, 0x1CFF, 0x000F, " Virtual Jaguar by JLH & crew ");
-			DrawStringOpaque(backbuffer, 64, 80, 0x1CFF, 0x000F, "                              ");
-
-			DrawTransparentBitmap(backbuffer, mouseX, mouseY, mousePic);
-
-			RenderBackbuffer();
-		}
-	}
-
-	free(bgSave);
+	return window;
 }
 
 //
@@ -875,10 +1306,10 @@ void DrawTransparentBitmap(int16 * screen, uint32 x, uint32 y, uint16 * bitmap)
 //
 // Very very crude GUI file selector
 //
-bool UserSelectFile(char * path, char * filename)
+/*bool UserSelectFile(char * path, char * filename)
 {
 //Testing...
-//GUIMain();
+GUIMain();
 	
 	extern int16 * backbuffer;
 	vector<string> fileList;
@@ -1041,4 +1472,126 @@ bool UserSelectFile(char * path, char * filename)
 	strcat(filename, fileList[startFile + cursor].c_str());
 
 	return true;
+}*/
+
+//
+// Generic ROM loading
+//
+uint32 JaguarLoadROM(uint8 * rom, char * path)
+{
+	uint32 romSize = 0;
+
+	char * ext = strrchr(path, '.');
+	if (ext != NULL)
+	{
+		WriteLog("VJ: Loading \"%s\"...", path);
+
+		if (stricmp(ext, ".zip") == 0)
+		{
+			// Handle ZIP file loading here...
+			WriteLog("(ZIPped)...");
+
+			if (load_zipped_file(0, 0, path, NULL, &rom, &romSize) == -1)
+			{
+				WriteLog("Failed!\n");
+				return 0;
+			}
+		}
+		else
+		{
+/*			FILE * fp = fopen(path, "rb");
+
+			if (fp == NULL)
+			{
+				WriteLog("Failed!\n");
+				return 0;
+			}
+
+			fseek(fp, 0, SEEK_END);
+			romSize = ftell(fp);
+			fseek(fp, 0, SEEK_SET);
+			fread(rom, 1, romSize, fp);
+			fclose(fp);*/
+
+			gzFile fp = gzopen(path, "rb");
+
+			if (fp == NULL)
+			{
+				WriteLog("Failed!\n");
+				return 0;
+			}
+
+			romSize = gzfilelength(fp);
+			gzseek(fp, 0, SEEK_SET);
+			gzread(fp, rom, romSize);
+			gzclose(fp);
+		}
+
+		WriteLog("OK (%i bytes)\n", romSize);
+	}
+
+	return romSize;
+}
+
+//
+// Jaguar cartridge ROM loading
+//
+void JaguarLoadCart(uint8 * mem, char * path)
+{
+	uint32 romSize = JaguarLoadROM(mem, path);
+
+	if (romSize == 0)
+	{
+/*		char newPath[2048];
+		WriteLog("VJ: Trying GUI...\n");
+
+//This is not *nix friendly for some reason...
+//		if (!UserSelectFile(path, newPath))
+		if (!UserSelectFile((strlen(path) == 0 ? (char *)"." : path), newPath))
+		{
+			WriteLog("VJ: Could not find valid ROM in directory \"%s\"...\nAborting!\n", path);
+			log_done();
+			exit(0);
+		}
+
+		romSize = JaguarLoadROM(mem, newPath);
+*/
+		if (romSize == 0)
+		{
+//			WriteLog("VJ: Could not load ROM from file \"%s\"...\nAborting!\n", newPath);
+			WriteLog("VJ: Could not load ROM from file \"%s\"...\nAborting!\n", path);
+			log_done();
+			exit(0);
+		}
+	}
+
+	jaguar_mainRom_crc32 = crc32_calcCheckSum(jaguar_mainRom, romSize);
+	WriteLog("CRC: %08X\n", (unsigned int)jaguar_mainRom_crc32);
+	eeprom_init();
+}
+
+//
+// Get the length of a (possibly) gzipped file
+//
+int gzfilelength(gzFile gd)
+{
+   int size = 0, length = 0;
+   unsigned char buffer[0x10000];
+
+   gzrewind(gd);
+
+   do
+   {
+      // Read in chunks until EOF
+      size = gzread(gd, buffer, 0x10000);
+
+      if (size <= 0)
+      	break;
+
+      length += size;
+   }
+   while (!gzeof(gd));
+
+   gzrewind(gd);
+   return length;
 }

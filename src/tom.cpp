@@ -281,6 +281,8 @@
 #define BG			0x58
 #define INT1		0xE0
 
+//NOTE: These arbitrary cutoffs are NOT taken into account for PAL jaguar screens. !!! FIX !!!
+
 // Arbitrary video cutoff values (i.e., first/last visible spots on a TV, in HC ticks)
 /*#define LEFT_VISIBLE_HC		208
 #define RIGHT_VISIBLE_HC	1528//*/
