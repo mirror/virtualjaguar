@@ -18,7 +18,8 @@ void DrawString(int16 * screen, uint32 x, uint32 y, bool invert, const char * te
 bool GUIMain(void);
 
 uint32 JaguarLoadROM(uint8 * rom, char * path);
-void JaguarLoadCart(uint8 * mem, char * path);
+//void JaguarLoadCart(uint8 * mem, char * path);
+bool JaguarLoadFile(char * path);
 
 #ifdef __cplusplus
 }
