@@ -12,6 +12,25 @@
 #
 
 echo
+echo -n "*** Checking compilation environment... "
+
+# Check for SDL
+
+if [ "`which sdl-config`" = "" ]; then
+
+	echo
+	echo
+	echo "It seems that you don't have the SDL development libraries installed. If you"
+	echo "have installed them, make sure that the sdl-config file is somewhere in your"
+	echo "path and is executable."
+
+	exit 1
+
+fi
+
+echo -n "OK"
+
+echo
 echo -n "*** Compiling Virtual Jaguar for "
 
 # Check the OS type...
