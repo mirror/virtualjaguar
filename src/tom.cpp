@@ -703,19 +703,19 @@ void tom_done(void)
 uint32 tom_getVideoModeWidth(void)
 {
 	//These widths are pretty bogus. Should use HDB1/2 & HDE/HBB & PWIDTH to calc the width...
-	uint32 width[8] = { 1330, 665, 443, 332, 266, 222, 190, 166 };
+//	uint32 width[8] = { 1330, 665, 443, 332, 266, 222, 190, 166 };
 //Temporary, for testing Doom...
 //	uint32 width[8] = { 1330, 665, 443, 332, 266, 222, 190, 332 };
 
 	// Note that the following PWIDTH values have the following pixel aspect ratios:
-	// PWIDTH = 1 -> 0.25:1 pixels (X:Y ratio)
-	// PWIDTH = 2 -> 0.50:1 pixels
-	// PWIDTH = 3 -> 0.75:1 pixels
-	// PWIDTH = 4 -> 1.00:1 pixels
-	// PWIDTH = 5 -> 1.25:1 pixels
-	// PWIDTH = 6 -> 1.50:1 pixels
-	// PWIDTH = 7 -> 1.75:1 pixels
-	// PWIDTH = 8 -> 2.00:1 pixels
+	// PWIDTH = 1 -> 0.25:1 (1:4) pixels (X:Y ratio)
+	// PWIDTH = 2 -> 0.50:1 (1:2) pixels
+	// PWIDTH = 3 -> 0.75:1 (3:4) pixels
+	// PWIDTH = 4 -> 1.00:1 (1:1) pixels
+	// PWIDTH = 5 -> 1.25:1 (5:4) pixels
+	// PWIDTH = 6 -> 1.50:1 (3:2) pixels
+	// PWIDTH = 7 -> 1.75:1 (7:4) pixels
+	// PWIDTH = 8 -> 2.00:1 (2:1) pixels
 
 	// Also note that the JTRM says that PWIDTH of 4 gives pixels that are "about" square--
 	// this implies that the other modes have pixels that are *not* square!
@@ -728,7 +728,9 @@ uint32 tom_getVideoModeWidth(void)
 	// Now, we just calculate it...
 	uint16 hdb1 = GET16(tom_ram_8, HDB1), hde = GET16(tom_ram_8, HDE),
 		hbb = GET16(tom_ram_8, HBB), pwidth = ((GET16(tom_ram_8, VMODE) & PWIDTH) >> 9) + 1;
-	return ((hbb < hde ? hbb : hde) - hdb1) / pwidth;
+//	return ((hbb < hde ? hbb : hde) - hdb1) / pwidth;
+//Temporary, for testing Doom...
+	return ((hbb < hde ? hbb : hde) - hdb1) / (pwidth = 8 ? 4 : pwidth);
 
 // More speculating...
 // According to the JTRM, the number of potential pixels across is given by the
