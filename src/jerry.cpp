@@ -233,7 +233,7 @@ void jerry_reset_timer_2(void)
 //		WriteLog("jerry: reseting timer 2 to 0x%.8x (%i)\n",jerry_timer_2_counter,jerry_timer_2_counter);
 }
 
-void jerry_pit_exec(uint32 cycles)
+void JERRYExecPIT(uint32 cycles)
 {
 	if (jerry_timer_1_counter)
 		jerry_timer_1_counter -= cycles;
