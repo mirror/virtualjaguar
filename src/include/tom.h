@@ -25,7 +25,8 @@ uint16 TOMReadWord(uint32 offset, uint32 who = UNKNOWN);
 void TOMWriteByte(uint32 offset, uint8 data, uint32 who = UNKNOWN);
 void TOMWriteWord(uint32 offset, uint16 data, uint32 who = UNKNOWN);
 
-void tom_exec_scanline(int16 * backbuffer, int32 scanline, bool render);
+//void TOMExecScanline(int16 * backbuffer, int32 scanline, bool render);
+void TOMExecScanline(uint16 scanline, bool render);
 uint32 tom_getVideoModeWidth(void);
 uint32 tom_getVideoModeHeight(void);
 uint8 tom_getVideoMode(void);
@@ -38,15 +39,16 @@ uint16 tom_get_vdb(void);
 int	tom_irq_enabled(int irq);
 uint16 tom_irq_control_reg(void);
 void tom_set_irq_latch(int irq, int enabled);
-void tom_pit_exec(uint32 cycles);
+void TOMExecPIT(uint32 cycles);
 void tom_set_pending_jerry_int(void);
 void tom_set_pending_timer_int(void);
 void tom_set_pending_object_int(void);
 void tom_set_pending_gpu_int(void);
 void tom_set_pending_video_int(void);
-void tom_reset_timer(void);
+void TOMResetPIT(void);
 
-uint32 TOMGetSDLScreenPitch(void);
+//uint32 TOMGetSDLScreenPitch(void);
+void TOMResetBackbuffer(int16 * backbuffer);
 
 // Exported variables
 
