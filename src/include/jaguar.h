@@ -31,7 +31,6 @@ extern char * whoName[9];
 
 void jaguar_init(void);
 void jaguar_reset(void);
-//void jaguar_reset_handler(void);
 void jaguar_done(void);
 
 uint8 JaguarReadByte(uint32 offset, uint32 who = UNKNOWN);
@@ -44,7 +43,6 @@ void JaguarWriteLong(uint32 offset, uint32 data, uint32 who = UNKNOWN);
 uint32 jaguar_interrupt_handler_is_valid(uint32 i);
 void jaguar_dasm(uint32 offset, uint32 qt);
 
-//New stuff...
 void JaguarExecute(int16 * backbuffer, bool render);
 
 // Some handy macros to help converting native endian to big endian (jaguar native)

@@ -403,6 +403,8 @@ void dsp_build_branch_condition_table(void)
 
 uint8 DSPReadByte(uint32 offset, uint32 who/*=UNKNOWN*/)
 {
+	if (offset >= 0xF1A000 && offset <= 0xF1A0FF)
+		WriteLog("DSP: ReadByte--Attempt to read from DSP register file by %s!\n", whoName[who]);
 // battlemorph
 //	if ((offset==0xF1CFE0)||(offset==0xF1CFE2))
 //		return(0xffff);
@@ -437,6 +439,8 @@ uint8 DSPReadByte(uint32 offset, uint32 who/*=UNKNOWN*/)
 
 uint16 DSPReadWord(uint32 offset, uint32 who/*=UNKNOWN*/)
 {
+	if (offset >= 0xF1A000 && offset <= 0xF1A0FF)
+		WriteLog("DSP: ReadWord--Attempt to read from DSP register file by %s!\n", whoName[who]);
 	//???
 	offset &= 0xFFFFFFFE;
 	// jaguar cd bios
@@ -504,6 +508,9 @@ uint16 DSPReadWord(uint32 offset, uint32 who/*=UNKNOWN*/)
 
 uint32 DSPReadLong(uint32 offset, uint32 who/*=UNKNOWN*/)
 {
+	if (offset >= 0xF1A000 && offset <= 0xF1A0FF)
+		WriteLog("DSP: ReadLong--Attempt to read from DSP register file by %s!\n", whoName[who]);
+
 	// ??? WHY ???
 	offset &= 0xFFFFFFFC;
 /*if (offset == 0xF1BCF4)
@@ -548,6 +555,9 @@ uint32 DSPReadLong(uint32 offset, uint32 who/*=UNKNOWN*/)
 
 void DSPWriteByte(uint32 offset, uint8 data, uint32 who/*=UNKNOWN*/)
 {
+	if (offset >= 0xF1A000 && offset <= 0xF1A0FF)
+		WriteLog("DSP: WriteByte--Attempt to write to DSP register file by %s!\n", whoName[who]);
+
 	if ((offset >= DSP_WORK_RAM_BASE) && (offset < DSP_WORK_RAM_BASE+0x2000))
 	{
 		offset -= DSP_WORK_RAM_BASE;
@@ -584,6 +594,8 @@ void DSPWriteByte(uint32 offset, uint8 data, uint32 who/*=UNKNOWN*/)
 
 void DSPWriteWord(uint32 offset, uint16 data, uint32 who/*=UNKNOWN*/)
 {
+	if (offset >= 0xF1A000 && offset <= 0xF1A0FF)
+		WriteLog("DSP: WriteWord--Attempt to write to DSP register file by %s!\n", whoName[who]);
 	offset &= 0xFFFFFFFE;
 /*if (offset == 0xF1BCF4)
 {
@@ -628,8 +640,11 @@ void DSPWriteWord(uint32 offset, uint16 data, uint32 who/*=UNKNOWN*/)
 	JaguarWriteWord(offset, data, who);
 }
 
+//bool badWrite = false;
 void DSPWriteLong(uint32 offset, uint32 data, uint32 who/*=UNKNOWN*/)
 {
+	if (offset >= 0xF1A000 && offset <= 0xF1A0FF)
+		WriteLog("DSP: WriteLong--Attempt to write to DSP register file by %s!\n", whoName[who]);
 	// ??? WHY ???
 	offset &= 0xFFFFFFFC;
 /*if (offset == 0xF1BCF4)
@@ -677,7 +692,9 @@ void DSPWriteLong(uint32 offset, uint32 data, uint32 who/*=UNKNOWN*/)
 			dsp_matrix_control = data;
 			break;
 		case 0x08:
-			dsp_pointer_to_matrix = data;
+			// According to JTRM, only lines 2-11 are adressable, the rest being
+			// hardwired to $F1Bxxx.
+			dsp_pointer_to_matrix = 0xF1B000 | (data & 0x000FFC);
 			break;
 		case 0x0C:
 			dsp_data_organization = data;
@@ -708,7 +725,7 @@ void DSPWriteLong(uint32 offset, uint32 data, uint32 who/*=UNKNOWN*/)
 			// Check for CPU -> DSP interrupt
 			if (data & DSPINT0)
 			{
-//				WriteLog("DSP: CPU -> DSP interrupt\n");
+				WriteLog("DSP: CPU -> DSP interrupt\n");
 				m68k_end_timeslice();
 				gpu_releaseTimeslice();
 				DSPSetIRQLine(DSPIRQ_CPU, ASSERT_LINE);
@@ -766,6 +783,8 @@ WriteLog("\n");
 //We don't have to break this up like this! We CAN do 32 bit writes!
 //	JaguarWriteWord(offset, (data>>16) & 0xFFFF, DSP);
 //	JaguarWriteWord(offset+2, data & 0xFFFF, DSP);
+//if (offset > 0xF1FFFF)
+//	badWrite = true;
 	JaguarWriteLong(offset, data, who);
 }
 
@@ -1001,10 +1020,17 @@ void DSPExec(int32 cycles)
 
 	while (cycles > 0 && DSP_RUNNING)
 	{
-if (dsp_pc == 0xF1B5D8)
+/*if (badWrite)
 {
-	WriteLog("DSP: At $F1B4D8--R15 = %08X at %u ms%s...\n", dsp_reg[15], SDL_GetTicks(), (dsp_flags & IMASK ? " (inside interrupt)" : ""));
-}
+	WriteLog("\nDSP: Encountered bad write in Atari Synth module. PC=%08X, R15=%08X\n", dsp_pc, dsp_reg[15]);
+	for(int i=0; i<80; i+=4)
+		WriteLog("     %08X: %08X\n", dsp_reg[15]+i, JaguarReadLong(dsp_reg[15]+i));
+	WriteLog("\n");
+}//*/
+/*if (dsp_pc == 0xF1B55E)
+{
+	WriteLog("DSP: At $F1B55E--R15 = %08X at %u ms%s...\n", dsp_reg[15], SDL_GetTicks(), (dsp_flags & IMASK ? " (inside interrupt)" : ""));
+}//*/
 /*if (dsp_pc == 0xF1B7D2)	// Start here???
 	doDSPDis = true;
 pcQueue[ptrPCQ++] = dsp_pc;
@@ -1320,7 +1346,7 @@ static void dsp_opcode_store_r14_indexed(void)
 	if (doDSPDis)
 		WriteLog("%06X: STORE  R%02u, (R14+$%02X) [NCZ:%u%u%u, R%02u=%08X, R14+$%02X=%08X]\n", dsp_pc-2, IMM_2, dsp_convert_zero[IMM_1] << 2, dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_2, RN, dsp_convert_zero[IMM_1] << 2, dsp_reg[14]+(dsp_convert_zero[IMM_1] << 2));
 #endif
-	DSPWriteLong(dsp_reg[15] + (dsp_convert_zero[IMM_1] << 2), RN, DSP);
+	DSPWriteLong(dsp_reg[14] + (dsp_convert_zero[IMM_1] << 2), RN, DSP);
 }
 
 static void dsp_opcode_store_r15_indexed(void)

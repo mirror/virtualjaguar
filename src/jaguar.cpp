@@ -13,7 +13,8 @@
 
 #define CPU_DEBUG
 //Do this in makefile??? Yes! Could, but it's easier to define here...
-//#define LOG_UNMAPPED_MEMORY_ACCESSES
+#define LOG_UNMAPPED_MEMORY_ACCESSES
+#define CPU_DEBUG_MEMORY
 
 // Private function prototypes
 
@@ -26,6 +27,11 @@ void M68K_show_context(void);
 // External variables
 
 extern bool hardwareTypeNTSC;				// Set to false for PAL
+#ifdef CPU_DEBUG_MEMORY
+extern bool startMemLog;					// Set by "e" key
+extern int effect_start;
+extern int effect_start2, effect_start3, effect_start4, effect_start5, effect_start6;
+#endif
 
 // Memory debugging identifiers
 
@@ -43,14 +49,52 @@ uint32 jaguar_mainRom_crc32;
 /*static*/ uint8 * jaguar_mainRam = NULL;
 /*static*/ uint8 * jaguar_bootRom = NULL;
 /*static*/ uint8 * jaguar_mainRom = NULL;
-
+#ifdef CPU_DEBUG_MEMORY
+uint8 writeMemMax[0x400000], writeMemMin[0x400000];
+uint8 readMem[0x400000];
+uint32 returnAddr[4000], raPtr = 0xFFFFFFFF;
+#endif
 
 //
 // Callback function to detect illegal instructions
 //
+//void GPUDumpDisassembly(void);
+//void GPUDumpRegisters(void);
 void M68KInstructionHook(void)
 {
 	uint32 m68kPC = m68k_get_reg(NULL, M68K_REG_PC);
+/*	if (m68kPC == 0x8D0E48 && effect_start5)
+	{
+		WriteLog("\nM68K: At collision detection code. Exiting!\n\n");
+		GPUDumpRegisters();
+		GPUDumpDisassembly();
+		log_done();
+		exit(0);
+	}//*/
+/*	uint16 opcode = JaguarReadWord(m68kPC);
+	if (opcode == 0x4E75)	// RTS
+	{
+		if (startMemLog)
+//			WriteLog("Jaguar: Returning from subroutine to %08X\n", JaguarReadLong(m68k_get_reg(NULL, M68K_REG_A7)));
+		{
+			uint32 addr = JaguarReadLong(m68k_get_reg(NULL, M68K_REG_A7));
+			bool found = false;
+			if (raPtr != 0xFFFFFFFF)
+			{
+				for(uint32 i=0; i<=raPtr; i++)
+				{
+					if (returnAddr[i] == addr)
+					{
+						found = true;
+						break;
+					}
+				}
+			}
+
+			if (!found)
+				returnAddr[++raPtr] = addr;
+		}
+	}//*/
 
 /*	static char buffer[2048];
 	m68k_disassemble(buffer, m68kPC, M68K_CPU_TYPE_68000);
@@ -67,7 +111,7 @@ void M68KInstructionHook(void)
 			WriteLog("\tA%i = %08X\n", i-M68K_REG_A0, m68k_get_reg(NULL, (m68k_register_t)i));
 	}*/
 
-	if (!m68k_is_valid_instruction(JaguarReadWord(m68kPC), M68K_CPU_TYPE_68000))
+	if (!m68k_is_valid_instruction(m68k_read_memory_16(m68kPC), M68K_CPU_TYPE_68000))
 	{
 		WriteLog("\nM68K encountered an illegal instruction at %08X!!!\n\nAborting!\n", m68kPC);
 		uint32 topOfStack = m68k_get_reg(NULL, M68K_REG_A7);
@@ -102,6 +146,13 @@ int irq_ack_handler(int level)
 
 unsigned int m68k_read_memory_8(unsigned int address)
 {
+#ifdef CPU_DEBUG_MEMORY
+	if ((address >= 0x000000) && (address <= 0x3FFFFF))
+	{
+		if (startMemLog)
+			readMem[address] = 1;
+	}
+#endif
 //WriteLog("[RM8] Addr: %08X\n", address);
 	unsigned int retVal = 0;
 
@@ -128,6 +179,37 @@ void gpu_dump_registers(void);
 
 unsigned int m68k_read_memory_16(unsigned int address)
 {
+#ifdef CPU_DEBUG_MEMORY
+/*	if ((address >= 0x000000) && (address <= 0x3FFFFE))
+	{
+		if (startMemLog)
+			readMem[address] = 1, readMem[address + 1] = 1;
+	}//*/
+/*	if (effect_start && (address >= 0x8064FC && address <= 0x806501))
+	{
+		return 0x4E71;	// NOP
+	}
+	if (effect_start2 && (address >= 0x806502 && address <= 0x806507))
+	{
+		return 0x4E71;	// NOP
+	}
+	if (effect_start3 && (address >= 0x806512 && address <= 0x806517))
+	{
+		return 0x4E71;	// NOP
+	}
+	if (effect_start4 && (address >= 0x806524 && address <= 0x806527))
+	{
+		return 0x4E71;	// NOP
+	}
+	if (effect_start5 && (address >= 0x80653E && address <= 0x806543)) //Collision detection!
+	{
+		return 0x4E71;	// NOP
+	}
+	if (effect_start6 && (address >= 0x806544 && address <= 0x806547))
+	{
+		return 0x4E71;	// NOP
+	}//*/
+#endif
 //WriteLog("[RM16] Addr: %08X\n", address);
 /*if (m68k_get_reg(NULL, M68K_REG_PC) == 0x00005FBA)
 //	for(int i=0; i<10000; i++)
@@ -181,6 +263,18 @@ unsigned int m68k_read_memory_32(unsigned int address)
 
 void m68k_write_memory_8(unsigned int address, unsigned int value)
 {
+#ifdef CPU_DEBUG_MEMORY
+	if ((address >= 0x000000) && (address <= 0x3FFFFF))
+	{
+		if (startMemLog)
+		{
+			if (value > writeMemMax[address])
+				writeMemMax[address] = value;
+			if (value < writeMemMin[address])
+				writeMemMin[address] = value;
+		}
+	}
+#endif
 //if ((address >= 0x1FF020 && address <= 0x1FF03F) || (address >= 0x1FF820 && address <= 0x1FF83F))
 //	WriteLog("M68K: Writing %02X at %08X\n", value, address);
 //WriteLog("[WM8  PC=%08X] Addr: %08X, val: %02X\n", m68k_get_reg(NULL, M68K_REG_PC), address, value);
@@ -198,6 +292,25 @@ void m68k_write_memory_8(unsigned int address, unsigned int value)
 
 void m68k_write_memory_16(unsigned int address, unsigned int value)
 {
+#ifdef CPU_DEBUG_MEMORY
+	if ((address >= 0x000000) && (address <= 0x3FFFFE))
+	{
+		if (startMemLog)
+		{
+			uint8 hi = value >> 8, lo = value & 0xFF;
+
+			if (hi > writeMemMax[address])
+				writeMemMax[address] = hi;
+			if (hi < writeMemMin[address])
+				writeMemMin[address] = hi;
+
+			if (lo > writeMemMax[address+1])
+				writeMemMax[address+1] = lo;
+			if (lo < writeMemMin[address+1])
+				writeMemMin[address+1] = lo;
+		}
+	}
+#endif
 //if ((address >= 0x1FF020 && address <= 0x1FF03F) || (address >= 0x1FF820 && address <= 0x1FF83F))
 //	WriteLog("M68K: Writing %04X at %08X\n", value, address);
 //WriteLog("[WM16 PC=%08X] Addr: %08X, val: %04X\n", m68k_get_reg(NULL, M68K_REG_PC), address, value);
@@ -206,7 +319,7 @@ void m68k_write_memory_16(unsigned int address, unsigned int value)
 //if (address >= 0x0E75D0 && address <= 0x0E75E7)
 //	WriteLog("M68K: Writing %04X at %08X, M68K PC=%08X\n", value, address, m68k_get_reg(NULL, M68K_REG_PC));
 /*extern uint32 totalFrames;
-/*if (address == 0xF02114)
+if (address == 0xF02114)
 	WriteLog("M68K: Writing to GPU_CTRL (frame:%u)... [M68K PC:%08X]\n", totalFrames, m68k_get_reg(NULL, M68K_REG_PC));
 if (address == 0xF02110)
 	WriteLog("M68K: Writing to GPU_PC (frame:%u)... [M68K PC:%08X]\n", totalFrames, m68k_get_reg(NULL, M68K_REG_PC));//*/
@@ -502,6 +615,11 @@ void JaguarWriteLong(uint32 offset, uint32 data, uint32 who/*=UNKNOWN*/)
 //
 void jaguar_init(void)
 {
+#ifdef CPU_DEBUG_MEMORY
+	memset(readMem, 0x00, 0x400000);
+	memset(writeMemMin, 0xFF, 0x400000);
+	memset(writeMemMax, 0x00, 0x400000);
+#endif
 	memory_malloc_secure((void **)&jaguar_mainRam, 0x400000, "Jaguar 68K CPU RAM");
 	memory_malloc_secure((void **)&jaguar_bootRom, 0x040000, "Jaguar 68K CPU BIOS ROM");
 	memory_malloc_secure((void **)&jaguar_mainRom, 0x600000, "Jaguar 68K CPU ROM");
@@ -526,6 +644,47 @@ void jaguar_init(void)
 
 void jaguar_done(void)
 {
+#ifdef CPU_DEBUG_MEMORY
+/*	WriteLog("\n\nM68000 disassembly at $8D0D44 (collision routine!)...\n");
+	jaguar_dasm(0x8D0D44, 5000);
+	WriteLog("\n");//*/
+/*	WriteLog("\n\nM68000 disassembly at $806300 (look @ $806410)...\n");
+	jaguar_dasm(0x806300, 5000);
+	WriteLog("\n");//*/
+
+/*	WriteLog("\nJaguar: Memory Usage Stats (return addresses)\n\n");
+
+	for(uint32 i=0; i<=raPtr; i++)
+	{
+		WriteLog("\t%08X\n", returnAddr[i]);
+		WriteLog("M68000 disassembly at $%08X...\n", returnAddr[i] - 16);
+		jaguar_dasm(returnAddr[i] - 16, 16);
+		WriteLog("\n");
+	}
+	WriteLog("\n");//*/
+
+/*	int start = 0, end = 0;
+	bool endTriggered = false, startTriggered = false;
+	for(int i=0; i<0x400000; i++)
+	{
+		if (readMem[i] && writeMemMin[i] != 0xFF && writeMemMax != 0x00)
+		{
+			if (!startTriggered)
+				startTriggered = true, endTriggered = false, start = i;
+
+			WriteLog("\t\tMin/Max @ %06X: %u/%u\n", i, writeMemMin[i], writeMemMax[i]);
+		}
+		else
+		{
+			if (!endTriggered)
+			{
+				end = i - 1, endTriggered = true, startTriggered = false;
+				WriteLog("\tMemory range accessed: %06X - %06X\n", start, end);
+			}
+		}
+	}
+	WriteLog("\n");//*/
+#endif
 //#ifdef CPU_DEBUG
 //	for(int i=M68K_REG_A0; i<=M68K_REG_A7; i++)
 //		WriteLog("\tA%i = 0x%.8x\n", i-M68K_REG_A0, m68k_get_reg(NULL, (m68k_register_t)i));
@@ -548,6 +707,11 @@ void jaguar_done(void)
 /*	WriteLog("\n\nM68000 disassembly at $802B00 (look @ $802B5E)...\n");
 	jaguar_dasm(0x802B00, 500);
 	WriteLog("\n");//*/
+
+/*	WriteLog("\n\nM68000 disassembly at $8099F8...\n");
+	jaguar_dasm(0x809900, 500);
+	WriteLog("\n");//*/
+//8099F8
 
 //	WriteLog("Jaguar: CD BIOS version %04X\n", JaguarReadWord(0x3004));
 	WriteLog("Jaguar: Interrupt enable = %02X\n", TOMReadByte(0xF000E1) & 0x1F);
@@ -600,11 +764,6 @@ void jaguar_reset(void)
 	WriteLog("\t68K PC=%06X SP=%08X\n", m68k_get_reg(NULL, M68K_REG_PC), m68k_get_reg(NULL, M68K_REG_A7));
 }
 
-/*unused
-void jaguar_reset_handler(void)
-{
-}*/
-
 //
 // Main Jaguar execution loop (1 frame)
 //
@@ -654,8 +813,6 @@ if (effect_start)
 //		uint32 invalid_instruction_address = s68000exec(M68KCyclesPerScanline);
 //		if (invalid_instruction_address != 0x80000000)
 //			cd_bios_process(invalid_instruction_address);
-		// These are divided by 2 because we're executing *half* lines...!
-		// Err, this is *already* accounted for in jaguar_init...!
 		m68k_execute(M68KCyclesPerScanline);
 		// No CD handling... !!! FIX !!!
 		cd_bios_exec(i);	// NOTE: Ignores parameter...

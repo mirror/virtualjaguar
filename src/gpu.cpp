@@ -1,7 +1,7 @@
 //
 // GPU Core
 //
-// by cal2
+// by Cal2
 // GCC/SDL port by Niels Wagenaar (Linux/WIN32) and Caz (BeOS)
 // Cleanups, endian wrongness, and bad ASM amelioration by James L. Hammons
 // Note: Endian wrongness probably stems from the MAME origins of this emu and
@@ -17,7 +17,7 @@
 //#define GPU_DEBUG
 
 // For GPU dissasembly...
-/*
+
 #define GPU_DIS_ABS
 #define GPU_DIS_ADD
 #define GPU_DIS_ADDC
@@ -145,6 +145,11 @@ GPU opcodes use (BIOS flying ATARI logo):
 #define REGPAGE			0x4000
 #define DMAEN			0x8000
 
+// External global variables
+
+extern int start_logging;
+extern int gpu_start_log;
+
 // Private function prototypes
 
 void GPUUpdateRegisterBanks(void);
@@ -152,11 +157,6 @@ void GPUUpdateRegisterBanks(void);
 void GPUDumpDisassembly(void);
 void GPUDumpRegisters(void);
 void GPUDumpMemory(void);
-
-// External global variables
-
-extern int start_logging;
-extern int gpu_start_log;
 
 static void gpu_opcode_add(void);
 static void gpu_opcode_addc(void);
@@ -384,6 +384,9 @@ void build_branch_condition_table(void)
 //
 uint8 GPUReadByte(uint32 offset, uint32 who/*=UNKNOWN*/)
 {
+	if (offset >= 0xF02000 && offset <= 0xF020FF)
+		WriteLog("GPU: ReadByte--Attempt to read from GPU register file by %s!\n", whoName[who]);
+
 	if ((offset >= GPU_WORK_RAM_BASE) && (offset < GPU_WORK_RAM_BASE+0x1000))
 		return gpu_ram_8[offset & 0xFFF];
 	else if ((offset >= GPU_CONTROL_RAM_BASE) && (offset < GPU_CONTROL_RAM_BASE+0x20))
@@ -408,6 +411,9 @@ uint8 GPUReadByte(uint32 offset, uint32 who/*=UNKNOWN*/)
 //
 uint16 GPUReadWord(uint32 offset, uint32 who/*=UNKNOWN*/)
 {
+	if (offset >= 0xF02000 && offset <= 0xF020FF)
+		WriteLog("GPU: ReadWord--Attempt to read from GPU register file by %s!\n", whoName[who]);
+
 	if ((offset >= GPU_WORK_RAM_BASE) && (offset < GPU_WORK_RAM_BASE+0x1000))
 	{
 		offset &= 0xFFF;
@@ -441,6 +447,9 @@ WriteLog("[GPUR16] --> Possible GPU RAM mirror access by %s!", whoName[who]);
 //
 uint32 GPUReadLong(uint32 offset, uint32 who/*=UNKNOWN*/)
 {
+	if (offset >= 0xF02000 && offset <= 0xF020FF)
+		WriteLog("GPU: ReadLong--Attempt to read from GPU register file by %s!\n", whoName[who]);
+
 //	if ((offset >= GPU_WORK_RAM_BASE) && (offset < GPU_WORK_RAM_BASE + 0x1000))
 	if ((offset >= GPU_WORK_RAM_BASE) && (offset <= GPU_WORK_RAM_BASE + 0x0FFC))
 	{
@@ -498,6 +507,9 @@ if (offset >= 0xF0B000 && offset <= 0xF0BFFF)
 //
 void GPUWriteByte(uint32 offset, uint8 data, uint32 who/*=UNKNOWN*/)
 {
+	if (offset >= 0xF02000 && offset <= 0xF020FF)
+		WriteLog("GPU: WriteByte--Attempt to write to GPU register file by %s!\n", whoName[who]);
+
 	if ((offset >= GPU_WORK_RAM_BASE) && (offset <= GPU_WORK_RAM_BASE + 0x0FFF))
 	{
 		gpu_ram_8[offset & 0xFFF] = data;
@@ -536,6 +548,9 @@ void GPUWriteByte(uint32 offset, uint8 data, uint32 who/*=UNKNOWN*/)
 //
 void GPUWriteWord(uint32 offset, uint16 data, uint32 who/*=UNKNOWN*/)
 {
+	if (offset >= 0xF02000 && offset <= 0xF020FF)
+		WriteLog("GPU: WriteWord--Attempt to write to GPU register file by %s!\n", whoName[who]);
+
 	if ((offset >= GPU_WORK_RAM_BASE) && (offset <= GPU_WORK_RAM_BASE + 0x0FFE))
 	{
 		gpu_ram_8[offset & 0xFFF] = (data>>8) & 0xFF;
@@ -601,13 +616,16 @@ void GPUWriteWord(uint32 offset, uint16 data, uint32 who/*=UNKNOWN*/)
 //
 void GPUWriteLong(uint32 offset, uint32 data, uint32 who/*=UNKNOWN*/)
 {
+	if (offset >= 0xF02000 && offset <= 0xF020FF)
+		WriteLog("GPU: WriteLong--Attempt to write to GPU register file by %s!\n", whoName[who]);
+
 //	if ((offset >= GPU_WORK_RAM_BASE) && (offset < GPU_WORK_RAM_BASE + 0x1000))
 	if ((offset >= GPU_WORK_RAM_BASE) && (offset <= GPU_WORK_RAM_BASE + 0x0FFC))
 	{
 #ifdef GPU_DEBUG
 		if (offset & 0x03)
 		{
-			WriteLog("GPU: Write32--unaligned write @ %08X [%08X]\n", offset, data);
+			WriteLog("GPU: Write32--unaligned write @ %08X [%08X] by %s\n", offset, data, whoName[who]);
 			GPUDumpRegisters();
 		}
 #endif	// GPU_DEBUG
@@ -651,7 +669,7 @@ void GPUWriteLong(uint32 offset, uint32 data, uint32 who/*=UNKNOWN*/)
 			gpu_matrix_control = data;
 			break;
 		case 0x08:
-			// Can only point to long aligned addresses
+			// This can only point to long aligned addresses
 			gpu_pointer_to_matrix = data & 0xFFFFFFFC;
 			break;
 		case 0x0C:
@@ -699,7 +717,6 @@ WriteLog("GPU: %s setting GPU PC to %08X %s\n", whoName[who], gpu_pc, (GPU_RUNNI
 			{
 				//WriteLog("asked to perform a single step (single step is %senabled)\n",(data&0x8)?"":"not ");
 			}
-//			gpu_control = (gpu_control & 0x107C0) | (data & (~0x107C0));
 			gpu_control = (gpu_control & 0xF7C0) | (data & (~0xF7C0));
 
 			// if gpu wasn't running but is now running, execute a few cycles
@@ -727,6 +744,93 @@ WriteLog("\n");
 #endif	// GPU_DEBUG
 //if (GPU_RUNNING)
 //	GPUDumpDisassembly();
+/*if (GPU_RUNNING)
+{
+	if (gpu_pc == 0xF035D8)
+	{
+//		GPUDumpDisassembly();
+//		log_done();
+//		exit(1);
+		gpu_control &= 0xFFFFFFFE;	// Don't run it and let's see what happens!
+//Hmm. Seems to lock up when going into the demo...
+//Try to disable the collision altogether!
+	}
+}//*/
+extern int effect_start5;
+static bool finished = false;
+//if (GPU_RUNNING && effect_start5 && !finished)
+if (GPU_RUNNING && effect_start5 && gpu_pc == 0xF035D8)
+{
+	// Let's do a dump of $6528!
+/*	uint32 numItems = JaguarReadWord(0x6BD6);
+	WriteLog("\nDump of $6528: %u items.\n\n", numItems);
+	for(int i=0; i<numItems*3*4; i+=3*4)
+	{
+		WriteLog("\t%04X: %08X %08X %08X -> ", 0x6528+i, JaguarReadLong(0x6528+i),
+			JaguarReadLong(0x6528+i+4), JaguarReadLong(0x6528+i+8));
+		uint16 link = JaguarReadWord(0x6528+i+8+2);
+		for(int j=0; j<40; j+=4)
+			WriteLog("%08X ", JaguarReadLong(link + j));
+		WriteLog("\n");
+	}
+	WriteLog("\n");//*/
+	// Let's try a manual blit here...
+//This isn't working the way it should! !!! FIX !!!
+//Err, actually, it is.
+// NOW, it works right! Problem solved!!! It's a blitter bug!
+/*	uint32 src = 0x4D54, dst = 0xF03000, width = 10 * 4;
+	for(int y=0; y<127; y++)
+	{
+		for(int x=0; x<2; x++)
+		{
+			JaguarWriteLong(dst, JaguarReadLong(src));
+			
+			src += 4;
+			dst += 4;
+		}
+		src += width - (2 * 4);
+	}//*/
+/*	finished = true;
+	doGPUDis = true;
+	WriteLog("\nGPU: About to execute collision detection code.\n\n");//*/
+
+/*	WriteLog("\nGPU: About to execute collision detection code. Data @ 4D54:\n\n");
+	int count = 0;
+	for(int i=0x004D54; i<0x004D54+2048; i++)
+	{
+		WriteLog("%02X ", JaguarReadByte(i));
+		count++;
+		if (count == 32)
+		{
+			count = 0;
+			WriteLog("\n");
+		}
+	}
+	WriteLog("\n\nData @ F03000:\n\n");
+	count = 0;
+	for(int i=0xF03000; i<0xF03200; i++)
+	{
+		WriteLog("%02X ", JaguarReadByte(i));
+		count++;
+		if (count == 32)
+		{
+			count = 0;
+			WriteLog("\n");
+		}
+	}
+	WriteLog("\n\n");
+	log_done();
+	exit(0);//*/
+}
+//if (!GPU_RUNNING)
+//	doGPUDis = false;
+/*if (!GPU_RUNNING && finished)
+{
+	WriteLog("\nGPU: Finished collision detection code. Exiting!\n\n");
+	GPUDumpRegisters();
+	log_done();
+	exit(0);
+}//*/
 			// (?) If we're set running by the M68K (or DSP?) then end its timeslice to
 			// allow the GPU a chance to run...
 			// Yes! This partially fixed Trevor McFur...
@@ -938,7 +1042,7 @@ void GPUDumpMemory(void)
 
 void gpu_done(void)
 { 
-	WriteLog("GPU: stopped at PC=%08X (GPU %s running)\n", (unsigned int)gpu_pc, GPU_RUNNING ? "was" : "wasn't");
+	WriteLog("GPU: Stopped at PC=%08X (GPU %s running)\n", (unsigned int)gpu_pc, GPU_RUNNING ? "was" : "wasn't");
 
 	// Get the interrupt latch & enable bits 
 	uint8 bits = (gpu_control >> 6) & 0x1F, mask = (gpu_flags >> 4) & 0x1F;
@@ -946,15 +1050,6 @@ void gpu_done(void)
 
 	GPUDumpRegisters();
 	GPUDumpDisassembly();
-
-/*	WriteLog("---[GPU code at %08X]---------------------------\n", gpu_pc);
-	j = gpu_pc - 64;
-	for(int i=0; i<4096; i++)
-	{
-		uint32 oldj = j;
-		j += dasmjag(JAGUAR_GPU, buffer, j);
-		WriteLog("\t%08X: %s\n", oldj, buffer);
-	}*/
 
 	WriteLog("\nGPU opcodes use:\n");
 	for(int i=0; i<64; i++)
@@ -1132,7 +1227,7 @@ if (gpu_start_log)
 	WriteLog("(RM=%08X, RN=%08X)\n", RM, RN);//*/
 if ((gpu_pc < 0xF03000 || gpu_pc > 0xF03FFF) && !tripwire)
 {
-	WriteLog("GPU: Executing outside local RAM!\n");
+	WriteLog("GPU: Executing outside local RAM! GPU_PC: %08X\n", gpu_pc);
 	tripwire = true;
 }
 	}
