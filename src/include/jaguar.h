@@ -46,4 +46,9 @@ void jaguar_long_write(unsigned offset, unsigned data);
 uint32 jaguar_interrupt_handler_is_valid(uint32 i);
 void jaguar_dasm(uint32 offset, uint32 qt);
 
+//Temp debug stuff
+
+void DumpMainMemory(void);
+uint8 * GetRamPtr(void);
+
 #endif	// #ifndef __JAGUAR_H__

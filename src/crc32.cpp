@@ -1,13 +1,14 @@
-//////////////////////////////////////////////////////////////////////////////
 //
-//////////////////////////////////////////////////////////////////////////////
+// CRC support
 //
+// by cal2
+// GCC/SDL port by Niels Wagenaar (Linux/WIN32) and Caz (BeOS)
+// Cleanups by James L. Hammons
 //
-//
-//////////////////////////////////////////////////////////////////////////////
+
 #include <stdio.h>
 #include <stdlib.h>
-#include "include/crc32.h"
+#include "crc32.h"
 
 unsigned long crctable[256] =
 {
@@ -77,42 +78,26 @@ unsigned long crctable[256] =
 	0xB40BBE37L, 0xC30C8EA1L, 0x5A05DF1BL, 0x2D02EF8DL
 };
 
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
-static unsigned long update_crc(unsigned char *p, unsigned long crc, int reclen)
-{
-	int i;
 
-	for (i = 0; i < reclen; i++)
+static unsigned long update_crc(unsigned char * p, unsigned long crc, int reclen)
+{
+	for(int i=0; i<reclen; i++)
 		crc = crctable[(crc ^ *p++) & 0xFFL] ^ (crc >> 8);
 
-	return (crc);
+	return crc;
 }
 
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
-int crc32_calcCheckSum(unsigned char *data, unsigned int length)
+int crc32_calcCheckSum(unsigned char * data, unsigned int length)
 {
-	int sum;
+/*	int sum;
 	int Xor;
 	unsigned int i;
-	int j;
-
+	int j;*/
             
-    return(update_crc(data, 0xFFFFFFFFL, length)^0xFFFFFFFFL);
-	sum = 0;
-	Xor = 0;
+    return update_crc(data, 0xFFFFFFFFL, length) ^ 0xFFFFFFFFL;
 
+/*	sum = 0;
+	Xor = 0;
 
 	for (i = 0;i < length;i+=2)
 	{
@@ -121,5 +106,5 @@ int crc32_calcCheckSum(unsigned char *data, unsigned int length)
 		Xor ^= j;
 	}
 	sum = ((sum & 0xffff) << 16) | (Xor & 0xffff);
-	return sum;
+	return sum;*/
 }

@@ -199,7 +199,8 @@ class Console: public Surface
 		{
 			Uint32 flags = SDL_SWSURFACE;
 
-			if (SDL_Init(SDL_INIT_VIDEO|SDL_INIT_JOYSTICK | SDL_INIT_AUDIO | SDL_INIT_TIMER) < 0)
+//Testing			if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_JOYSTICK | SDL_INIT_AUDIO | SDL_INIT_TIMER) < 0)
+			if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_JOYSTICK | SDL_INIT_AUDIO | SDL_INIT_TIMER | SDL_INIT_NOPARACHUTE) < 0)
 				throw Error(SDL_GetError());
 
 		    const SDL_VideoInfo * info = SDL_GetVideoInfo(); // Let us get proper info about the platform.

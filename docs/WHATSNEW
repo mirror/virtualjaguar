@@ -1,3 +1,16 @@
+Virtual Jaguar v1.0.3 GCC/SDL - source only release
+------------------------------------------------------
+
+* Converted GNU assembly in the GPU core to C code -- Rayman and
+  Alien vs Predator work again. :-)
+* Removed closed source Starscream and replaced it with the open source
+  Musashi core. Because of this, VJ runs a little faster now. :-)
+* Various cleanups to the source files (still lots of work to do!)
+
+NOTE: Tested only on WIN32 platform!
+
+1.0.1 - 1.0.2 - Unreleased, mostly for testing/finding bugs
+
 Virtual Jaguar v1.0.0 GCC/SDL - initial source release
 ------------------------------------------------------
 
