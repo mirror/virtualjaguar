@@ -1,0 +1,52 @@
+Virtual Jaguar v1.0.0 GCC/SDL release INSTALL
+---------------------------------------------
+
+- Requirements :
+
+To compile Virtual Jaguar you need to check if you have the minimum
+requirements for compiling the sources :
+
+- GCC v2.95 of v3.x;
+- SDL v1.2.5 or higher;
+- nasm v0.98.x or higher;
+- supported OS (BeOS, Linux, FreeBSD and WIN32 through mingw);
+  other OS' may work to but you may need to change some items
+  in the Makefile(s).
+
+Optionally you need a Atari Jaguar (CD) boot ROM which is available
+on the Internet. We can't include the boot ROM since it's still
+copyrighted.
+
+Also, I would recommend that you have at least 20MB of free space.
+The .o's can be quite big and the binary is likely to be about a
+1.5MB in size (with UPX or strip this could downsize to about 800K).
+
+- Compiling  :
+
+If you sure you have the minimum software requirements, you can safely
+compile Virtual Jaguar v1.0.0 GCC/SDL release by doing the following :
+
+1) On UN*X systems first do the command : sh ./fix-unix.sh
+2) Go to the src/star026c directory and start on of the scripts :
+
+   ./build_s68000.win32 (for WIN32 systems with mingw)
+   ./build_s68000.unix  (for UN*X  systems with gcc)
+
+3) After the generation of the 68000.o file, you can now compile the
+   program with the following commands :
+
+   make -f Makefile.win32 (for WIN32 systems with mingw)
+   make -f Makefile.unix  (for UN*X  systems with gcc)
+
+4) Optionally you can manually strip jag_em[.exe] to downsize the binary.
+
+ 
+That's it! You're done! You can now start the emulator with ./jag_em[.exe].
+See the output for more details or consult the docs/README for more info.
+
+For more info, go to http://sdlemu.ngemu.com or send use an e-mail to the
+following e-mail address : sdlemu AT ngemu DOT com.
+
+SDLEMU
+
+
