@@ -58,7 +58,7 @@ void eeprom_init(void)
 {
 	static char eeprom_filename[1024];
 
-	sprintf(eeprom_filename, "%s\\%s%08X.eep", jaguar_boot_dir, jaguar_eeproms_path, (unsigned int)jaguar_mainRom_crc32);
+	sprintf(eeprom_filename, "%s/%s%08X.eep", jaguar_boot_dir, jaguar_eeproms_path, (unsigned int)jaguar_mainRom_crc32);
 	jerry_ee_fp = fopen(eeprom_filename, "rb");
 	if (jerry_ee_fp)
 	{
