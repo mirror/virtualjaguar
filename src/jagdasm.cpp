@@ -68,98 +68,96 @@ unsigned dasmjag(int dsp_type, char * buffer, unsigned pc)
 	pc += 2;
 	switch (op >> 10)
 	{
-		case 0:		sprintf(buffer, "add     r%d,r%d", reg1, reg2);					break;
-		case 1:		sprintf(buffer, "addc    r%d,r%d", reg1, reg2);					break;
-		case 2:		sprintf(buffer, "addq    $%x,r%d", convert_zero[reg1], reg2);	break;
-		case 3:		sprintf(buffer, "addqt   $%x,r%d", convert_zero[reg1], reg2);	break;
-		case 4:		sprintf(buffer, "sub     r%d,r%d", reg1, reg2);					break;
-		case 5:		sprintf(buffer, "subc    r%d,r%d", reg1, reg2);					break;
-		case 6:		sprintf(buffer, "subq    $%x,r%d", convert_zero[reg1], reg2);	break;
-		case 7:		sprintf(buffer, "subqt   $%x,r%d", convert_zero[reg1], reg2);	break;
-		case 8:		sprintf(buffer, "neg     r%d", reg2);							break;
-		case 9:		sprintf(buffer, "and     r%d,r%d", reg1, reg2);					break;
-		case 10:	sprintf(buffer, "or      r%d,r%d", reg1, reg2);					break;
-		case 11:	sprintf(buffer, "xor     r%d,r%d", reg1, reg2);					break;
-		case 12:	sprintf(buffer, "not     r%d", reg2);							break;
-		case 13:	sprintf(buffer, "btst    $%x,r%d", reg1, reg2);					break;
-		case 14:	sprintf(buffer, "bset    $%x,r%d", reg1, reg2);					break;
-		case 15:	sprintf(buffer, "bclr    $%x,r%d", reg1, reg2);					break;
-		case 16:	sprintf(buffer, "mult    r%d,r%d", reg1, reg2);					break;
-		case 17:	sprintf(buffer, "imult   r%d,r%d", reg1, reg2);					break;
-		case 18:	sprintf(buffer, "imultn  r%d,r%d", reg1, reg2);					break;
-		case 19:	sprintf(buffer, "resmac  r%d", reg2);							break;
-		case 20:	sprintf(buffer, "imacn   r%d,r%d", reg1, reg2);					break;
-		case 21:	sprintf(buffer, "div     r%d,r%d", reg1, reg2);					break;
-		case 22:	sprintf(buffer, "abs     r%d", reg2);							break;
-		case 23:	sprintf(buffer, "sh      r%d,r%d", reg1, reg2);					break;
-		case 24:	sprintf(buffer, "shlq    $%x,r%d", 32 - convert_zero[reg1], reg2);	break;
-		case 25:	sprintf(buffer, "shrq    $%x,r%d", convert_zero[reg1], reg2);	break;
-		case 26:	sprintf(buffer, "sha     r%d,r%d", reg1, reg2);					break;
-		case 27:	sprintf(buffer, "sharq   $%x,r%d", convert_zero[reg1], reg2);	break;
-		case 28:	sprintf(buffer, "ror     r%d,r%d", reg1, reg2);					break;
-		case 29:	sprintf(buffer, "rorq    $%x,r%d", convert_zero[reg1], reg2);	break;
-		case 30:	sprintf(buffer, "cmp     r%d,r%d", reg1, reg2);					break;
-		case 31:	sprintf(buffer, "cmpq    %s,r%d", signed_16bit((INT16)(reg1 << 11) >> 11), reg2);break;
+		case 0:		sprintf(buffer, "ADD     R%02d,R%02d", reg1, reg2);					break;
+		case 1:		sprintf(buffer, "ADDC    R%02d,R%02d", reg1, reg2);					break;
+		case 2:		sprintf(buffer, "ADDQ    $%X,R%02d", convert_zero[reg1], reg2);	break;
+		case 3:		sprintf(buffer, "ADDQT   $%X,R%02d", convert_zero[reg1], reg2);	break;
+		case 4:		sprintf(buffer, "SUB     R%02d,R%02d", reg1, reg2);					break;
+		case 5:		sprintf(buffer, "SUBC    R%02d,R%02d", reg1, reg2);					break;
+		case 6:		sprintf(buffer, "SUBQ    $%X,R%02d", convert_zero[reg1], reg2);	break;
+		case 7:		sprintf(buffer, "SUBQT   $%X,R%02d", convert_zero[reg1], reg2);	break;
+		case 8:		sprintf(buffer, "NEG     R%02d", reg2);							break;
+		case 9:		sprintf(buffer, "AND     R%02d,R%02d", reg1, reg2);					break;
+		case 10:	sprintf(buffer, "OR      R%02d,R%02d", reg1, reg2);					break;
+		case 11:	sprintf(buffer, "XOR     R%02d,R%02d", reg1, reg2);					break;
+		case 12:	sprintf(buffer, "NOT     R%02d", reg2);							break;
+		case 13:	sprintf(buffer, "BTST    $%X,R%02d", reg1, reg2);					break;
+		case 14:	sprintf(buffer, "BSET    $%X,R%02d", reg1, reg2);					break;
+		case 15:	sprintf(buffer, "BCLR    $%X,R%02d", reg1, reg2);					break;
+		case 16:	sprintf(buffer, "MULT    R%02d,R%02d", reg1, reg2);					break;
+		case 17:	sprintf(buffer, "IMULT   R%02d,R%02d", reg1, reg2);					break;
+		case 18:	sprintf(buffer, "IMULTN  R%02d,R%02d", reg1, reg2);					break;
+		case 19:	sprintf(buffer, "RESMAC  R%02d", reg2);							break;
+		case 20:	sprintf(buffer, "IMACN   R%02d,R%02d", reg1, reg2);					break;
+		case 21:	sprintf(buffer, "DIV     R%02d,R%02d", reg1, reg2);					break;
+		case 22:	sprintf(buffer, "ABS     R%02d", reg2);							break;
+		case 23:	sprintf(buffer, "SH      R%02d,R%02d", reg1, reg2);					break;
+		case 24:	sprintf(buffer, "SHLQ    $%X,R%02d", 32 - convert_zero[reg1], reg2);	break;
+		case 25:	sprintf(buffer, "SHRQ    $%X,R%02d", convert_zero[reg1], reg2);	break;
+		case 26:	sprintf(buffer, "SHA     R%02d,R%02d", reg1, reg2);					break;
+		case 27:	sprintf(buffer, "SHARQ   $%X,R%02d", convert_zero[reg1], reg2);	break;
+		case 28:	sprintf(buffer, "ROR     R%02d,R%02d", reg1, reg2);					break;
+		case 29:	sprintf(buffer, "RORQ    $%X,R%02d", convert_zero[reg1], reg2);	break;
+		case 30:	sprintf(buffer, "CMP     R%02d,R%02d", reg1, reg2);					break;
+		case 31:	sprintf(buffer, "CMPQ    %s,R%02d", signed_16bit((INT16)(reg1 << 11) >> 11), reg2);break;
 		case 32:	if (dsp_type == JAGUAR_GPU)
-					sprintf(buffer, "sat8    r%d", reg2);
+						sprintf(buffer, "SAT8    R%02d", reg2);
 					else
-					sprintf(buffer, "subqmod $%x,r%d", convert_zero[reg1], reg2);
+						sprintf(buffer, "SUBQMOD $%X,R%02d", convert_zero[reg1], reg2);
 					break;
 		case 33:	if (dsp_type == JAGUAR_GPU)
-					sprintf(buffer, "sat16   r%d", reg2);
+						sprintf(buffer, "SAT16   R%02d", reg2);
 					else
-					sprintf(buffer, "sat16s  r%d", reg2);
+						sprintf(buffer, "SAT16S  R%02d", reg2);
 					break;
-		case 34:	sprintf(buffer, "move    r%d,r%d", reg1, reg2);					break;
-		case 35:	sprintf(buffer, "moveq   %d,r%d", reg1, reg2);					break;
-		case 36:	sprintf(buffer, "moveta  r%d,r%d", reg1, reg2);					break;
-		case 37:	sprintf(buffer, "movefa  r%d,r%d", reg1, reg2);					break;
-		case 38:	sprintf(buffer, "movei   $%x,r%d", ROPCODE(pc) | (ROPCODE(pc+2)<<16), reg2); size = 6; break;
-		case 39:	sprintf(buffer, "loadb   (r%d),r%d", reg1, reg2);					break;
-		case 40:	sprintf(buffer, "loadw   (r%d),r%d", reg1, reg2);					break;
-		case 41:	sprintf(buffer, "load    (r%d),r%d", reg1, reg2);					break;
+		case 34:	sprintf(buffer, "MOVE    R%02d,R%02d", reg1, reg2);					break;
+		case 35:	sprintf(buffer, "MOVEQ   %d,R%02d", reg1, reg2);					break;
+		case 36:	sprintf(buffer, "MOVETA  R%02d,R%02d", reg1, reg2);					break;
+		case 37:	sprintf(buffer, "MOVEFA  R%02d,R%02d", reg1, reg2);					break;
+		case 38:	sprintf(buffer, "MOVEI   $%08X,R%02d", ROPCODE(pc) | (ROPCODE(pc+2)<<16), reg2); size = 6; break;
+		case 39:	sprintf(buffer, "LOADB   (R%02d),R%02d", reg1, reg2);					break;
+		case 40:	sprintf(buffer, "LOADW   (R%02d),R%02d", reg1, reg2);					break;
+		case 41:	sprintf(buffer, "LOAD    (R%02d),R%02d", reg1, reg2);					break;
 		case 42:	if (dsp_type == JAGUAR_GPU)
-					sprintf(buffer, "loadp   (r%d),r%d", reg1, reg2);
+						sprintf(buffer, "LOADP   (R%02d),R%02d", reg1, reg2);
 					else
-					sprintf(buffer, "sat32s  r%d", reg2);
+						sprintf(buffer, "SAT32S  R%02d", reg2);
 					break;
-		case 43:	sprintf(buffer, "load    (r14+$%x),r%d", convert_zero[reg1]*4, reg2);break;
-		case 44:	sprintf(buffer, "load    (r15+$%x),r%d", convert_zero[reg1]*4, reg2);break;
-		case 45:	sprintf(buffer, "storeb  r%d,(r%d)", reg2, reg1);				break;
-		case 46:	sprintf(buffer, "storew  r%d,(r%d)", reg2, reg1);				break;
-		case 47:	sprintf(buffer, "store   r%d,(r%d)", reg2, reg1);					break;
+		case 43:	sprintf(buffer, "LOAD    (R14+$%X),R%02d", convert_zero[reg1]*4, reg2);break;
+		case 44:	sprintf(buffer, "LOAD    (R15+$%X),R%02d", convert_zero[reg1]*4, reg2);break;
+		case 45:	sprintf(buffer, "STOREB  R%02d,(R%02d)", reg2, reg1);				break;
+		case 46:	sprintf(buffer, "STOREW  R%02d,(R%02d)", reg2, reg1);				break;
+		case 47:	sprintf(buffer, "STORE   R%02d,(R%02d)", reg2, reg1);					break;
 		case 48:	if (dsp_type == JAGUAR_GPU)
-					sprintf(buffer, "storep  r%d,(r%d)", reg2, reg1);
+						sprintf(buffer, "STOREP  R%02d,(R%02d)", reg2, reg1);
 					else
-					sprintf(buffer, "mirror  r%d", reg2);
+						sprintf(buffer, "MIRROR  R%02d", reg2);
 					break;
-		case 49:	sprintf(buffer, "store   r%d,(r14+$%x)", reg2, convert_zero[reg1]*4);break;
-		case 50:	sprintf(buffer, "store   r%d,(r15+$%x)", reg2, convert_zero[reg1]*4);break;
-		case 51:	sprintf(buffer, "move    pc,r%d", reg2);							break;
-		case 52:	sprintf(buffer, "jump    %s(r%d)", condition[reg2], reg1);			break;
-		case 53:	sprintf(buffer, "jr      %s%08X", condition[reg2], pc + ((INT8)(reg1 << 3) >> 2)); break;
-		case 54:	sprintf(buffer, "mmult   r%d,r%d", reg1, reg2);					break;
-		case 55:	sprintf(buffer, "mtoi    r%d,r%d", reg1, reg2);					break;
-		case 56:	sprintf(buffer, "normi   r%d,r%d", reg1, reg2);					break;
-		case 57:	sprintf(buffer, "nop");											break;
-		case 58:	sprintf(buffer, "load    (r14+r%d),r%d", reg1, reg2);				break;
-		case 59:	sprintf(buffer, "load    (r15+r%d),r%d", reg1, reg2);				break;
-		case 60:	sprintf(buffer, "store   r%d,(r14+r%d)", reg2, reg1);				break;
-		case 61:	sprintf(buffer, "store   r%d,(r15+r%d)", reg2, reg1);				break;
+		case 49:	sprintf(buffer, "STORE   R%02d,(R14+$%X)", reg2, convert_zero[reg1]*4);break;
+		case 50:	sprintf(buffer, "STORE   R%02d,(R15+$%X)", reg2, convert_zero[reg1]*4);break;
+		case 51:	sprintf(buffer, "MOVE    PC,R%02d", reg2);							break;
+		case 52:	sprintf(buffer, "JUMP    %s(R%02d)", condition[reg2], reg1);			break;
+		case 53:	sprintf(buffer, "JR      %s%08X", condition[reg2], pc + ((INT8)(reg1 << 3) >> 2)); break;
+		case 54:	sprintf(buffer, "MMULT   R%02d,R%02d", reg1, reg2);					break;
+		case 55:	sprintf(buffer, "MTOI    R%02d,R%02d", reg1, reg2);					break;
+		case 56:	sprintf(buffer, "NORMI   R%02d,R%02d", reg1, reg2);					break;
+		case 57:	sprintf(buffer, "NOP");											break;
+		case 58:	sprintf(buffer, "LOAD    (R14+R%02d),R%02d", reg1, reg2);				break;
+		case 59:	sprintf(buffer, "LOAD    (R15+R%02d),R%02d", reg1, reg2);				break;
+		case 60:	sprintf(buffer, "STORE   R%02d,(R14+R%02d)", reg2, reg1);				break;
+		case 61:	sprintf(buffer, "STORE   R%02d,(R15+R%02d)", reg2, reg1);				break;
 		case 62:	if (dsp_type == JAGUAR_GPU)
-					sprintf(buffer, "sat24   r%d", reg2);
+						sprintf(buffer, "SAT24   R%02d", reg2);
 					else
-					sprintf(buffer, "illegal");
+						sprintf(buffer, "illegal");
 					break;
 		case 63:	if (dsp_type == JAGUAR_GPU)
-					sprintf(buffer, reg1 ? 
-					                "unpack  r%d" : 
-					                "pack    r%d", reg2);
+						sprintf(buffer, (reg1 ? "UNPACK  R%02d" : "PACK    R%02d"), reg2);
 					else
-					sprintf(buffer, "addqmod $%x,r%d", convert_zero[reg1], reg2);
+						sprintf(buffer, "ADDQMOD $%X,R%02d", convert_zero[reg1], reg2);
 					break;
 	}
-	sprintf(buffer,"%s (%04X)", buffer, op);
+	sprintf(buffer,"%-24s (%04X)", buffer, op);
 
 	return size;
 }
