@@ -1,4 +1,4 @@
-#!/bin/sh
+#! /bin/sh
 
 #
 # Compile script for Virtual Jaguar GCC/SDL Portable Jaguar Emulator
@@ -6,7 +6,7 @@
 # under the sun...
 #
 # by James L. Hammons
-# 
+#
 # If you have any parameters that you want to pass through to make, then
 # simply add them to the 'compile' command line as if 'compile' were make.
 #
@@ -58,3 +58,11 @@ export SYSTYPE EXESUFFIX GLLIB ICON SDLLIBTYPE
 # Yes, you can pass through parameters to make...
 
 make $@
+
+if [ $? -eq 0 ]; then
+
+	echo
+	echo "*** Looks like it compiled OK... Give it a whirl!"
+	echo
+
+fi
