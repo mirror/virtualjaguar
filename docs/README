@@ -50,14 +50,14 @@ More information about SDL can be found at http://www.libsdl.org.
 - Using Virtual Jaguar GCC/SDL
 
 After compiling the binary (see INSTALL) you can now run original Atari Jaguar
-games. These games are distributed on cartridges and can there for not be used
-on a P.C. To use these games on Virtual Jaguar GCC/SDL you need to get ROM
-images. Besides that ROM images from Commercial games you must also obtain the
-Atari Jaguar (CD) boot ROM which you must copy to the BIOS directory. 
-For legal issues concerning ROM images please consult the DISCLAIMER at the
-beginning of this file.
+games. These games are distributed on cartridges and can there for cannot be
+used on a P.C. To use these games on Virtual Jaguar GCC/SDL you need to get ROM
+images. Besides the ROM images from commercial games you must also obtain the
+Atari Jaguar (CD) boot ROM which you must copy to the BIOS directory. For legal
+issues concerning ROM images please consult the DISCLAIMER at the beginning of
+this file.
 
-After obtaining the Atari Jaguar (CD) boot ROM and several ROM's you can now
+After obtaining the Atari Jaguar (CD) boot ROM and several ROMs you can now
 use Virtual Jaguar using the following command:
 
 ./vj [romfile] [-switches]
@@ -73,8 +73,8 @@ files, then you can type
 and Virtual Jaguar will pull up a simple file selector to allow you to choose
 which ROM file you want to use.
 
-This emulator also emulates the Atari Jaguar Analog gamepads. By using the
-following keyboard or joystick settings you can (possibly) play the game:
+This emulator also emulates the Atari Jaguar gamepads. By using the following
+keyboard or joystick settings you can (possibly) play a given game:
 
 Atari Button C       : Z or joystick button 3
 Atari Button B       : X or joystick button 2
@@ -86,11 +86,12 @@ Atari UP             : UP    or joystick UP
 Atari DOWN           : DOWN  or joystick DOWN
 Atari LEFT           : LEFT  or joystick LEFT
 Atari RIGHT          : RIGHT or joystick RIGHT
-Atari *, # are not mapped yet!
+Atari #              : Keypad /
+Atari *              : Keypad *
 
 With ESC you can easily stop Virtual Jaguar GCC/SDL which will get you back
-to you command prompt. If you want to change the key layout, simply hack the
-src/joystick.cpp and change the keys :)
+to you command prompt. If you want to change the key layout, simply edit the
+vj.cfg file and change the keys :)
 
 - Finally
 

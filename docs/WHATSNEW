@@ -3,8 +3,17 @@ Virtual Jaguar v1.0.6 GCC/SDL
 
 * Added support for gzip files. [Adam Green]
 * Added OpenGL support. Because of this, aspect ratios in the various
-  graphic modes should be correct now. Thanks to Niels for enlightenment in
-  this area. :-) [Shamus]
+  graphic modes should be correct now. Thanks goes to Niels for enlightenment
+  in this area. :-) [Shamus]
+* Moved all platform specific video code to video.cpp. This should make it
+  easier to add functionality to the video subsystem without having to chase
+  code around in places where it didn't belong. [Shamus]
+* Key bindings are now customizable. [Shamus]
+* VJ now uses a config file (vj.cfg) for commonly used settings. Settings in
+  the config file can still be overridden by command line switches. [Shamus]
+* Preliminary GUI mouse support. [Shamus]
+* Fixed an off-by-one bug in the Object Processor when dealing with scaled
+  bitmap objects. [Shamus]
 
 
 Virtual Jaguar v1.0.5 GCC/SDL
