@@ -44,7 +44,7 @@ void JaguarWriteLong(uint32 offset, uint32 data, uint32 who = UNKNOWN);
 uint32 jaguar_interrupt_handler_is_valid(uint32 i);
 void jaguar_dasm(uint32 offset, uint32 qt);
 
-void JaguarExecute(int16 * backbuffer, bool render);
+void JaguarExecute(uint32 * backbuffer, bool render);
 
 // Some handy macros to help converting native endian to big endian (jaguar native)
 // & vice versa

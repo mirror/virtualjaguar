@@ -317,27 +317,28 @@ static int32 tom_timer_counter;
 uint16 tom_jerry_int_pending, tom_timer_int_pending, tom_object_int_pending,
 	tom_gpu_int_pending, tom_video_int_pending;
 uint16 * tom_cry_rgb_mix_lut;
-int16 * TOMBackbuffer;
+//int16 * TOMBackbuffer;
+uint32 * TOMBackbuffer;
 
 static char * videoMode_to_str[8] =
 	{ "16 BPP CRY", "24 BPP RGB", "16 BPP DIRECT", "16 BPP RGB",
 	  "Mixed mode", "24 BPP RGB", "16 BPP DIRECT", "16 BPP RGB" };
 
-typedef void (render_xxx_scanline_fn)(int16 *);
+typedef void (render_xxx_scanline_fn)(uint32 *);
 
 // Private function prototypes
 
-void tom_render_16bpp_cry_scanline(int16 * backbuffer);
-void tom_render_24bpp_scanline(int16 * backbuffer);
-void tom_render_16bpp_direct_scanline(int16 * backbuffer);
-void tom_render_16bpp_rgb_scanline(int16 * backbuffer);
-void tom_render_16bpp_cry_rgb_mix_scanline(int16 * backbuffer);
+void tom_render_16bpp_cry_scanline(uint32 * backbuffer);
+void tom_render_24bpp_scanline(uint32 * backbuffer);
+void tom_render_16bpp_direct_scanline(uint32 * backbuffer);
+void tom_render_16bpp_rgb_scanline(uint32 * backbuffer);
+void tom_render_16bpp_cry_rgb_mix_scanline(uint32 * backbuffer);
 
-void tom_render_16bpp_cry_stretch_scanline(int16 * backbuffer);
-void tom_render_24bpp_stretch_scanline(int16 * backbuffer);
-void tom_render_16bpp_direct_stretch_scanline(int16 * backbuffer);
-void tom_render_16bpp_rgb_stretch_scanline(int16 * backbuffer);
-void tom_render_16bpp_cry_rgb_mix_stretch_scanline(int16 * backbuffer);
+void tom_render_16bpp_cry_stretch_scanline(uint32 * backbuffer);
+void tom_render_24bpp_stretch_scanline(uint32 * backbuffer);
+void tom_render_16bpp_direct_stretch_scanline(uint32 * backbuffer);
+void tom_render_16bpp_rgb_stretch_scanline(uint32 * backbuffer);
+void tom_render_16bpp_cry_rgb_mix_stretch_scanline(uint32 * backbuffer);
 
 render_xxx_scanline_fn * scanline_render_normal[]=
 {
@@ -536,8 +537,39 @@ Trevor McFur
 Vertical resolution: 238 lines
 */
 
+uint32 RGB16ToRGB32[0x10000];
+uint32 CRY16ToRGB32[0x10000];
+uint32 MIX16ToRGB32[0x10000];
 
-void tom_calc_cry_rgb_mix_lut(void)
+void TOMFillLookupTables(void)
+{
+	for(uint32 i=0; i<0x10000; i++)
+		RGB16ToRGB32[i] = 0xFF000000
+			| ((i & 0xF100) >> 8)  | ((i & 0xE000) >> 13)
+			| ((i & 0x07C0) << 13) | ((i & 0x0700) << 8)
+			| ((i & 0x003F) << 10) | ((i & 0x0030) << 4);
+
+
+	for(uint32 i=0; i<0x10000; i++)
+	{
+		uint32 chrm = (i & 0xF000) >> 12,
+			chrl = (i & 0x0F00) >> 8,
+			y = (i & 0x00FF);
+				
+		uint32 r = (((uint32)redcv[chrm][chrl]) * y) >> 8,
+			g = (((uint32)greencv[chrm][chrl]) * y) >> 8,
+			b = (((uint32)bluecv[chrm][chrl]) * y) >> 8;
+		
+		CRY16ToRGB32[i] = 0xFF000000 | (b << 16) | (g << 8) | r;
+		MIX16ToRGB32[i] = CRY16ToRGB32[i];
+	}
+
+	for(uint32 i=0; i<0x10000; i++)
+		if (i & 0x01)
+			MIX16ToRGB32[i] = RGB16ToRGB32[i];
+}
+
+/*void tom_calc_cry_rgb_mix_lut(void)
 {
 	for (uint32 i=0; i<0x10000; i++)
 	{
@@ -561,7 +593,7 @@ void tom_calc_cry_rgb_mix_lut(void)
 
 		tom_cry_rgb_mix_lut[i] = color;
 	}
-}
+}*/
 
 void tom_set_pending_jerry_int(void)
 {
@@ -610,8 +642,9 @@ uint16 tom_get_vdb(void)
 //
 // 16 BPP CRY/RGB mixed mode rendering
 //
-void tom_render_16bpp_cry_rgb_mix_scanline(int16 * backbuffer)
+void tom_render_16bpp_cry_rgb_mix_scanline(uint32 * backbuffer)
 {
+//CHANGED TO 32BPP RENDERING
 	uint16 width = tom_width;
 	uint8 * current_line_buffer = (uint8 *)&tom_ram_8[0x1800];
 	
@@ -627,13 +660,15 @@ void tom_render_16bpp_cry_rgb_mix_scanline(int16 * backbuffer)
 //This case doesn't properly handle the "start on the right side of virtual screen" case
 //Dunno why--looks Ok...
 //What *is* for sure wrong is that it doesn't copy the linebuffer's BG pixels...
+//This should likely be 4 instead of 2 (?--not sure)
 		backbuffer += 2 * startPos, width -= startPos;
 
 	while (width)
 	{
 		uint16 color = (*current_line_buffer++) << 8;
 		color |= *current_line_buffer++;
-		*backbuffer++ = tom_cry_rgb_mix_lut[color];
+//		*backbuffer++ = tom_cry_rgb_mix_lut[color];
+		*backbuffer++ = MIX16ToRGB32[color];
 		width--;
 	}
 }
@@ -641,8 +676,9 @@ void tom_render_16bpp_cry_rgb_mix_scanline(int16 * backbuffer)
 //
 // 16 BPP CRY mode rendering
 //
-void tom_render_16bpp_cry_scanline(int16 * backbuffer)
+void tom_render_16bpp_cry_scanline(uint32 * backbuffer)
 {
+//CHANGED TO 32BPP RENDERING
 	uint16 width = tom_width;
 	uint8 * current_line_buffer = (uint8 *)&tom_ram_8[0x1800];
 
@@ -654,22 +690,14 @@ void tom_render_16bpp_cry_scanline(int16 * backbuffer)
 	if (startPos < 0)
 		current_line_buffer += 2 * -startPos;
 	else
+//This should likely be 4 instead of 2 (?--not sure)
 		backbuffer += 2 * startPos, width -= startPos;
 
 	while (width)
 	{
 		uint16 color = (*current_line_buffer++) << 8;
 		color |= *current_line_buffer++;
-		
-		uint32 chrm = (color & 0xF000) >> 12,
-			chrl = (color & 0x0F00) >> 8,
-			y = (color & 0x00FF);
-				
-		uint16 red   = (((uint32)redcv[chrm][chrl]) * y) >> 11,
-			green = (((uint32)greencv[chrm][chrl]) * y) >> 11,
-			blue  = (((uint32)bluecv[chrm][chrl]) * y) >> 11;
-		
-		*backbuffer++ = (red << 10) | (green << 5) | blue;
+		*backbuffer++ = CRY16ToRGB32[color];
 		width--;
 	}
 }
@@ -677,8 +705,9 @@ void tom_render_16bpp_cry_scanline(int16 * backbuffer)
 //
 // 24 BPP mode rendering
 //
-void tom_render_24bpp_scanline(int16 * backbuffer)
+void tom_render_24bpp_scanline(uint32 * backbuffer)
 {
+//CHANGED TO 32BPP RENDERING
 	uint16 width = tom_width;
 	uint8 * current_line_buffer = (uint8 *)&tom_ram_8[0x1800];
 	
@@ -690,17 +719,16 @@ void tom_render_24bpp_scanline(int16 * backbuffer)
 	if (startPos < 0)
 		current_line_buffer += 4 * -startPos;
 	else
+//This should likely be 4 instead of 2 (?--not sure)
 		backbuffer += 2 * startPos, width -= startPos;
 
 	while (width)
 	{
-		// This is NOT a good 8 -> 5 bit RGB conversion! (It saturates values below 8
-		// to zero and throws away almost *half* the color resolution!)
-		uint16 green = (*current_line_buffer++) >> 3;
-		uint16 red = (*current_line_buffer++) >> 3;
+		uint32 g = *current_line_buffer++;
+		uint32 r = *current_line_buffer++;
 		current_line_buffer++;
-		uint16 blue = (*current_line_buffer++) >> 3;
-		*backbuffer++ = (red << 10) | (green << 5) | blue;
+		uint32 b = *current_line_buffer++;
+		*backbuffer++ = 0xFF000000 | (b << 16) | (g << 8) | r;
 		width--;
 	}
 }
@@ -710,7 +738,7 @@ void tom_render_24bpp_scanline(int16 * backbuffer)
 //
 // 16 BPP direct mode rendering
 //
-void tom_render_16bpp_direct_scanline(int16 * backbuffer)
+void tom_render_16bpp_direct_scanline(uint32 * backbuffer)
 {
 	uint16 width = tom_width;
 	uint8 * current_line_buffer = (uint8 *)&tom_ram_8[0x1800];
@@ -727,8 +755,11 @@ void tom_render_16bpp_direct_scanline(int16 * backbuffer)
 //
 // 16 BPP RGB mode rendering
 //
-void tom_render_16bpp_rgb_scanline(int16 * backbuffer)
+void tom_render_16bpp_rgb_scanline(uint32 * backbuffer)
 {
+//CHANGED TO 32BPP RENDERING
+	// 16 BPP RGB: 0-5 green, 6-10 blue, 11-15 red
+
 	uint16 width = tom_width;
 	uint8 * current_line_buffer = (uint8 *)&tom_ram_8[0x1800];
 	
@@ -737,25 +768,28 @@ void tom_render_16bpp_rgb_scanline(int16 * backbuffer)
 	//NOTE: May have to check HDB2 as well!
 	int16 startPos = GET16(tom_ram_8, HDB1) - (vjs.hardwareTypeNTSC ? LEFT_VISIBLE_HC : LEFT_VISIBLE_HC_PAL);	// Get start position in HC ticks
 	startPos /= pwidth;
+
 	if (startPos < 0)
 		current_line_buffer += 2 * -startPos;
 	else
+//This should likely be 4 instead of 2 (?--not sure)
 		backbuffer += 2 * startPos, width -= startPos;
 
 	while (width)
 	{
-		uint16 color = (*current_line_buffer++) << 8;
-		color = (color | *current_line_buffer++) >> 1;
-		color = (color&0x7C00) | ((color&0x03E0) >> 5) | ((color&0x001F) << 5);
-		*backbuffer++ = color;
+		uint32 color = (*current_line_buffer++) << 8;
+		color |= *current_line_buffer++;
+		*backbuffer++ = RGB16ToRGB32[color];
 		width--;
 	}
 }
 
-// This stuff may just go away by itself, especially if we do some
-// good old OpenGL goodness...
+/////////////////////////////////////////////////////////////////////
+// This stuff may just go away by itself, especially if we do some //
+// good old OpenGL goodness...                                     //
+/////////////////////////////////////////////////////////////////////
 
-void tom_render_16bpp_cry_rgb_mix_stretch_scanline(int16 *backbuffer)
+void tom_render_16bpp_cry_rgb_mix_stretch_scanline(uint32 *backbuffer)
 {
 	uint16 width=tom_width;
 	uint8 *current_line_buffer=(uint8*)&tom_ram_8[0x1800];
@@ -772,7 +806,7 @@ void tom_render_16bpp_cry_rgb_mix_stretch_scanline(int16 *backbuffer)
 	}
 }
 
-void tom_render_16bpp_cry_stretch_scanline(int16 *backbuffer)
+void tom_render_16bpp_cry_stretch_scanline(uint32 *backbuffer)
 {
 	uint32 chrm, chrl, y;
 
@@ -816,7 +850,7 @@ void tom_render_16bpp_cry_stretch_scanline(int16 *backbuffer)
 	}
 }
 
-void tom_render_24bpp_stretch_scanline(int16 *backbuffer)
+void tom_render_24bpp_stretch_scanline(uint32 *backbuffer)
 {
 	uint16 width=tom_width;
 	uint8 *current_line_buffer=(uint8*)&tom_ram_8[0x1800];
@@ -836,7 +870,7 @@ void tom_render_24bpp_stretch_scanline(int16 *backbuffer)
 	}
 }
 
-void tom_render_16bpp_direct_stretch_scanline(int16 *backbuffer)
+void tom_render_16bpp_direct_stretch_scanline(uint32 *backbuffer)
 {
 	uint16 width=tom_width;
 	uint8 *current_line_buffer=(uint8*)&tom_ram_8[0x1800];
@@ -853,7 +887,7 @@ void tom_render_16bpp_direct_stretch_scanline(int16 *backbuffer)
 	}
 }
 
-void tom_render_16bpp_rgb_stretch_scanline(int16 *backbuffer)
+void tom_render_16bpp_rgb_stretch_scanline(uint32 *backbuffer)
 {
 	uint16 width=tom_width;
 	uint8 *current_line_buffer=(uint8*)&tom_ram_8[0x1800];
@@ -878,7 +912,7 @@ void tom_render_16bpp_rgb_stretch_scanline(int16 *backbuffer)
 	}
 }
 
-void TOMResetBackbuffer(int16 * backbuffer)
+void TOMResetBackbuffer(uint32 * backbuffer)
 {
 	TOMBackbuffer = backbuffer;
 }
@@ -923,15 +957,19 @@ uint16 topVisible = (vjs.hardwareTypeNTSC ? TOP_VISIBLE_VC : TOP_VISIBLE_VC_PAL)
 		else
 		{
 			// If outside of VDB & VDE, then display the border color
-			int16 * currentLineBuffer = TOMBackbuffer;
+/*			int16 * currentLineBuffer = TOMBackbuffer;
 			uint8 g = tom_ram_8[BORD1], r = tom_ram_8[BORD1 + 1], b = tom_ram_8[BORD2 + 1];
-			uint16 pixel = ((r & 0xF8) << 7) | ((g & 0xF8) << 2) | (b >> 3);
+			uint16 pixel = ((r & 0xF8) << 7) | ((g & 0xF8) << 2) | (b >> 3);//*/
+			uint32 * currentLineBuffer = TOMBackbuffer;
+			uint8 g = tom_ram_8[BORD1], r = tom_ram_8[BORD1 + 1], b = tom_ram_8[BORD2 + 1];
+			uint32 pixel = 0xFF000000 | (b << 16) | (g << 8) | r;
 
 			for(uint32 i=0; i<tom_width; i++)
 				*currentLineBuffer++ = pixel;
 		}
 
-		TOMBackbuffer += GetSDLScreenPitch() / 2;	// Returns bytes, but we need words
+//		TOMBackbuffer += GetSDLScreenPitch() / 2;	// Returns bytes, but we need words
+		TOMBackbuffer += GetSDLScreenPitch() / 4;	// Returns bytes, but we need dwords
 	}
 }
 
@@ -949,7 +987,8 @@ void tom_init(void)
 	tom_reset();
 	// Setup the non-stretchy scanline rendering...
 	memcpy(scanline_render, scanline_render_normal, sizeof(scanline_render));
-	tom_calc_cry_rgb_mix_lut();
+//	tom_calc_cry_rgb_mix_lut();
+	TOMFillLookupTables();
 }
 
 void tom_done(void)

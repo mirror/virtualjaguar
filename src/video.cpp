@@ -15,7 +15,8 @@
 //And now, they do! :-)
 SDL_Surface * surface, * mainSurface;
 Uint32 mainSurfaceFlags;
-int16 * backbuffer;
+//int16 * backbuffer;
+uint32 * backbuffer;
 SDL_Joystick * joystick;
 
 // One of the reasons why OpenGL is slower then normal SDL rendering, is because
@@ -25,7 +26,7 @@ SDL_Joystick * joystick;
 // [Shamus] This isn't the case. OpenGL is slower because 60 frames a second is a
 //          lot of data to pump through the system. In any case, frameskip is probably
 //          a good idea for now, since most systems are probably too slow to run at
-//           60 FPS. But doing so will have some nasty side effects in some games.
+//          60 FPS. But doing so will have some nasty side effects in some games.
 //          You have been warned!
 
 int frame_ticker = vjs.frameSkip;
@@ -64,7 +65,7 @@ bool InitVideo(void)
 	if (vjs.fullscreen)
 		mainSurfaceFlags |= SDL_FULLSCREEN;
 
-	if (!vjs.useOpenGL)
+/*	if (!vjs.useOpenGL)
 //		mainSurface = SDL_SetVideoMode(VIRTUAL_SCREEN_WIDTH, VIRTUAL_SCREEN_HEIGHT_NTSC, 16, mainSurfaceFlags);
 		mainSurface = SDL_SetVideoMode(VIRTUAL_SCREEN_WIDTH,
 			(vjs.hardwareTypeNTSC ? VIRTUAL_SCREEN_HEIGHT_NTSC : VIRTUAL_SCREEN_HEIGHT_PAL),
@@ -74,7 +75,19 @@ bool InitVideo(void)
 		// This way we have good scaling functionality and when the screen is resized
 		// because of the NTSC <-> PAL resize, we only have to re-create the texture
 		// instead of initializing the entire OpenGL texture en screens.
-		mainSurface = SDL_SetVideoMode(640, 480, 16, mainSurfaceFlags);
+		mainSurface = SDL_SetVideoMode(640, 480, 16, mainSurfaceFlags);//*/
+//24BPP
+	if (!vjs.useOpenGL)
+//		mainSurface = SDL_SetVideoMode(VIRTUAL_SCREEN_WIDTH, VIRTUAL_SCREEN_HEIGHT_NTSC, 16, mainSurfaceFlags);
+		mainSurface = SDL_SetVideoMode(VIRTUAL_SCREEN_WIDTH,
+			(vjs.hardwareTypeNTSC ? VIRTUAL_SCREEN_HEIGHT_NTSC : VIRTUAL_SCREEN_HEIGHT_PAL),
+			32, mainSurfaceFlags);
+	else
+		// When OpenGL is used, we're going to use a standard resolution of 640x480.
+		// This way we have good scaling functionality and when the screen is resized
+		// because of the NTSC <-> PAL resize, we only have to re-create the texture
+		// instead of initializing the entire OpenGL texture en screens.
+		mainSurface = SDL_SetVideoMode(640, 480, 32, mainSurfaceFlags);//*/
 
 	if (mainSurface == NULL)
 	{
@@ -85,9 +98,17 @@ bool InitVideo(void)
 	SDL_WM_SetCaption("Virtual Jaguar", "Virtual Jaguar");
 
 	// Create the primary SDL display (16 BPP, 5/5/5 RGB format)
-	surface = SDL_CreateRGBSurface(SDL_SWSURFACE, VIRTUAL_SCREEN_WIDTH,
+/*	surface = SDL_CreateRGBSurface(SDL_SWSURFACE, VIRTUAL_SCREEN_WIDTH,
 		(vjs.hardwareTypeNTSC ? VIRTUAL_SCREEN_HEIGHT_NTSC : VIRTUAL_SCREEN_HEIGHT_PAL),
-		16, 0x7C00, 0x03E0, 0x001F, 0);
+		16, 0x7C00, 0x03E0, 0x001F, 0);//*/
+//24BPP
+	surface = SDL_CreateRGBSurface(SDL_SWSURFACE, VIRTUAL_SCREEN_WIDTH,
+		(vjs.hardwareTypeNTSC ? VIRTUAL_SCREEN_HEIGHT_NTSC : VIRTUAL_SCREEN_HEIGHT_PAL), 32,
+#if SDL_BYTEORDER == SDL_BIG_ENDIAN
+		 0xFF000000, 0x00FF0000, 0x0000FF00, 0x000000FF);
+#else
+		 0x000000FF, 0x0000FF00, 0x00FF0000, 0xFF000000);
+#endif//*/
 
 	if (surface == NULL)
 	{
@@ -127,11 +148,17 @@ bool InitVideo(void)
 	// Set up the backbuffer
 //To be safe, this should be 1280 * 625 * 2...
 //	backbuffer = (int16 *)malloc(845 * 525 * sizeof(int16));
-	backbuffer = (int16 *)malloc(1280 * 625 * sizeof(int16));
+/*	backbuffer = (int16 *)malloc(1280 * 625 * sizeof(int16));
 //	memset(backbuffer, 0x44, VIRTUAL_SCREEN_WIDTH * VIRTUAL_SCREEN_HEIGHT_NTSC * sizeof(int16));
 	memset(backbuffer, 0x44, VIRTUAL_SCREEN_WIDTH *
 		(vjs.hardwareTypeNTSC ? VIRTUAL_SCREEN_HEIGHT_NTSC : VIRTUAL_SCREEN_HEIGHT_PAL)
-		* sizeof(int16));
+		* sizeof(int16));//*/
+//24BPP
+	backbuffer = (uint32 *)malloc(1280 * 625 * sizeof(uint32));
+//	memset(backbuffer, 0x44, VIRTUAL_SCREEN_WIDTH * VIRTUAL_SCREEN_HEIGHT_NTSC * sizeof(int16));
+	memset(backbuffer, 0x44, VIRTUAL_SCREEN_WIDTH *
+		(vjs.hardwareTypeNTSC ? VIRTUAL_SCREEN_HEIGHT_NTSC : VIRTUAL_SCREEN_HEIGHT_PAL)
+		* sizeof(uint32));
 
 	return true;
 }
@@ -158,7 +185,8 @@ void RenderBackbuffer(void)
 		while (SDL_LockSurface(surface) < 0)
 			SDL_Delay(10);
 
-	memcpy(surface->pixels, backbuffer, tom_getVideoModeWidth() * tom_getVideoModeHeight() * 2);
+//	memcpy(surface->pixels, backbuffer, tom_getVideoModeWidth() * tom_getVideoModeHeight() * 2);
+	memcpy(surface->pixels, backbuffer, tom_getVideoModeWidth() * tom_getVideoModeHeight() * 4);
 
 	if (SDL_MUSTLOCK(surface))
 		SDL_UnlockSurface(surface);
@@ -193,7 +221,14 @@ void ResizeScreen(uint32 width, uint32 height)
 	char window_title[256];
 
 	SDL_FreeSurface(surface);
-	surface = SDL_CreateRGBSurface(SDL_SWSURFACE, width, height, 16, 0x7C00, 0x03E0, 0x001F, 0);
+//	surface = SDL_CreateRGBSurface(SDL_SWSURFACE, width, height, 16, 0x7C00, 0x03E0, 0x001F, 0);
+//24BPP
+	surface = SDL_CreateRGBSurface(SDL_SWSURFACE, width, height, 32,
+#if SDL_BYTEORDER == SDL_BIG_ENDIAN
+		 0xFF000000, 0x00FF0000, 0x0000FF00, 0x000000FF);
+#else
+		 0x000000FF, 0x0000FF00, 0x00FF0000, 0xFF000000);
+#endif//*/
 
 	if (surface == NULL)
 	{
@@ -229,6 +264,14 @@ void ResizeScreen(uint32 width, uint32 height)
 uint32 GetSDLScreenPitch(void)
 {
 	return surface->pitch;
+}
+
+//
+// Return the screen's width in pixels
+//
+uint32 GetSDLScreenWidthInPixels(void)
+{
+	return surface->pitch / 4;						// Pitch / 4 since we're in 32BPP mode
 }
 
 //

@@ -1156,7 +1156,7 @@ void jaguar_done(void)
 //
 // Main Jaguar execution loop (1 frame)
 //
-void JaguarExecute(int16 * backbuffer, bool render)
+void JaguarExecute(uint32 * backbuffer, bool render)
 {
 	uint16 vp = TOMReadWord(0xF0003E) + 1;//Hmm. This is a WO register. Will work? Looks like. But wrong behavior!
 	uint16 vi = TOMReadWord(0xF0004E);//Another WO register...

@@ -48,7 +48,7 @@ void tom_set_pending_video_int(void);
 void TOMResetPIT(void);
 
 //uint32 TOMGetSDLScreenPitch(void);
-void TOMResetBackbuffer(int16 * backbuffer);
+void TOMResetBackbuffer(uint32 * backbuffer);
 
 // Exported variables
 
