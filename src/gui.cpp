@@ -1630,11 +1630,14 @@ Window * About(void)
 {
 	Window * window = new Window(8, 16, 304, 160);
 	window->AddElement(new Text(8, 8, "Virtual Jaguar 1.0.7"));
+//	window->AddElement(new Text(8, 8, "Virtual Jaguar CVS 20040107"));
 	window->AddElement(new Text(8, 24, "Coders:"));
 	window->AddElement(new Text(16, 32, "Niels Wagenaar (nwagenaar)"));
 	window->AddElement(new Text(16, 40, "Carwin Jones (Caz)"));
 	window->AddElement(new Text(16, 48, "James L. Hammons (shamus)"));
 	window->AddElement(new Text(16, 56, "Adam Green"));
+	window->AddElement(new Text(8, 72, "Testers:"));
+	window->AddElement(new Text(16, 80, "Guruma"));
 
 	return window;
 }
