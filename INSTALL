@@ -1,4 +1,4 @@
-Virtual Jaguar v1.0.6 GCC/SDL release INSTALL
+Virtual Jaguar v1.0.7 GCC/SDL release INSTALL
 ---------------------------------------------
 
 REQUIREMENTS:
@@ -18,12 +18,12 @@ Internet. We can't include the boot ROM since it's still copyrighted.
 
 Also, I would recommend that you have at least 20MB of free space. The .o's
 can be quite big and the binary is likely to be about a 1.5MB in size (with
-UPX or strip this could downsize to about 800K).
+UPX and/or strip this could downsize to about 400K).
 
 COMPILING:
 
-If you sure you have the minimum software requirements, you can safely
-compile Virtual Jaguar v1.0.6 GCC/SDL release by doing the following:
+If you sure you have the minimum software requirements, you can safely compile
+Virtual Jaguar by doing the following:
 
 1) Compile:
 
@@ -36,10 +36,10 @@ If you have upx in your path somewhere, you can uncomment the line in the
 makefile that executes upx so that you'll end up with a somewhat smaller
 binary.
  
-That's it! You're done! You can now start the emulator with ./vj.
-See the output for more details or consult the docs/README for more info.
+That's it! You're done! You can now start the emulator with ./vj. See the
+output for more details or consult the README file for more info.
 
-For even more info, go to http://sdlemu.ngemu.com or send use an e-mail to
-the following e-mail address: sdlemu AT ngemu DOT com.
+For even more info, go to http://sdlemu.ngemu.com or send use an e-mail to the
+following e-mail address: sdlemu AT ngemu DOT com.
 
 SDLEMU

@@ -1,6 +1,8 @@
 Virtual Jaguar v1.0.7 GCC/SDL
 -----------------------------
 
+* Fixed a horizontal scaling problem in the OP. This fixes the road in Atari
+  Karts and probably a few others. [Shamus]
 * Fixed a long standing blitter bug that kept certain doors in AvP from
   rendering correctly. [Shamus]
 * Fixed some vertical positioning bugs in the OP. Now Checkered Flag, Alien

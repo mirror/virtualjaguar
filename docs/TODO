@@ -1,11 +1,10 @@
 Stuff to add/fix for the next release of Virtual Jaguar
 -------------------------------------------------------
 
+- Need to fix PAL mode to work with the virtual screen code. [Shamus]
 - There are a few ROMs that use some "quasi-illegal" 68K instructions. Need
   to patch the 68K core to deal with these in a better way than they are
   now. [Shamus]
-- Would be nice to have a GUI for things that are set on the command line or
-  in the config file. [Shamus]
 - Would also be nice to be able to dynamically change the keybindings for
   the various keys on the emulated Jaguar controller while inside the emulator.
   [Shamus]
@@ -22,6 +21,8 @@ Stuff to add/fix for the next release of Virtual Jaguar
 Stuff that was added/fixed
 --------------------------
 
+- Would be nice to have a GUI for things that are set on the command line or
+  in the config file. [Shamus] [DONE--Shamus]
 - DSP code needs to be rewritten. [Shamus] [DONE but still work to be done--Shamus]
 - We need to have an external configuration file for remembering a user's
   preferences, such as key bindings, etc. [Shamus] [DONE--Shamus]
