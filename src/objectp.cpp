@@ -6,8 +6,8 @@
 // Extensive cleanups/fixes/rewrites by James L. Hammons
 //
 
-#include <stdio.h>
-#include <stdlib.h>
+//#include <stdio.h>
+//#include <stdlib.h>
 #include <string.h>
 #include "jaguar.h"
 
@@ -143,6 +143,9 @@ void op_done(void)
 			DumpScaledObject(op_load_phrase(olp+i), op_load_phrase(olp+i+8), op_load_phrase(olp+i+16));
 	}
 	WriteLog("\n");
+
+	memory_free(op_blend_y);
+	memory_free(op_blend_cr);
 }
 
 //
@@ -346,6 +349,7 @@ else
 		op_pointer += 8;
 if (scanline == tom_get_vdb() && op_start_log)
 //if (scanline == 215 && op_start_log)
+//if (scanline == 28 && op_start_log)
 {
 WriteLog("%08X --> phrase %08X %08X", op_pointer - 8, (int)(p0>>32), (int)(p0&0xFFFFFFFF));
 if ((p0 & 0x07) == OBJECT_TYPE_BITMAP)
