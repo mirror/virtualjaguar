@@ -11,6 +11,8 @@
 extern "C" {
 #endif
 
+void InitGUI(void);
+void GUIDone(void);
 void DrawString(int16 * screen, uint32 x, uint32 y, bool invert, const char * text, ...);
 bool UserSelectFile(char * path, char * filename);
 
