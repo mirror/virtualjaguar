@@ -2,15 +2,19 @@ CC        = gcc
 LD        = gcc
 SYSTYPE   = __GCCWIN32__
 EXESUFFIX = .exe
+TARGET    = vj
 
 CFLAGS  = -Wall -Wno-switch -O3 -D$(SYSTYPE) -Dstricmp="strcasecmp" \
 			-fomit-frame-pointer `sdl-config --cflags`
 #			-fomit-frame-pointer `sdl-config --cflags` -DLOG_UNMAPPED_MEMORY_ACCESSES
-#			-fomit-frame-pointer `sdl-config --cflags` -DTOM_DEBUG
 
 LDFLAGS = $(CFLAGS)
 
-TARGET = vj
+LIBS = -L/usr/local/lib `sdl-config --libs` -lstdc++ -lz -lopengl32
+
+INCS = -I. -Isrc -Isrc/include -I/usr/local/include
+
+THECC = $(CC) $(CFLAGS) $(INCS)
 
 OBJS = \
 	obj/anajoy.o \
@@ -34,18 +38,13 @@ OBJS = \
 	obj/m68kdasm.o \
 	obj/memory.o \
 	obj/objectp.o \
+	obj/sdlemu_config.o \
+	obj/sdlemu_opengl.o \
 	obj/tom.o \
 	obj/unzip.o \
 	obj/version.o \
+	obj/video.o \
 	obj/vj.o
-#	obj/m68kdasmAG.o \
-#	obj/gpu2.o \
-
-LIBS = -L/usr/local/lib `sdl-config --libs` -lstdc++ -lz
-
-INCS = -I. -Isrc -Isrc/include -I/usr/local/include `sdl-config --cflags`
-
-THECC = $(CC) $(CFLAGS) $(INCS)
 
 all: obj $(TARGET)
 

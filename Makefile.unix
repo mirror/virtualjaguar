@@ -2,15 +2,19 @@ CC        = gcc
 LD        = gcc
 SYSTYPE   = __GCCUNIX__
 EXESUFFIX =
+TARGET    = vj
 
 CFLAGS  = -Wall -Wno-switch -O3 -D$(SYSTYPE) -Dstricmp="strcasecmp" \
 			-fomit-frame-pointer `sdl-config --cflags`
 #			-fomit-frame-pointer `sdl-config --cflags` -DLOG_UNMAPPED_MEMORY_ACCESSES
-#			-fomit-frame-pointer `sdl-config --cflags` -DTOM_DEBUG
 
 LDFLAGS = $(CFLAGS)
 
-TARGET = vj
+LIBS = -L/usr/local/lib `sdl-config --libs` -lstdc++ -lz -lopengl32
+
+INCS = -I. -Isrc -Isrc/include -I/usr/local/include
+
+THECC = $(CC) $(CFLAGS) $(INCS)
 
 OBJS = \
 	obj/anajoy.o \
@@ -34,18 +38,13 @@ OBJS = \
 	obj/m68kdasm.o \
 	obj/memory.o \
 	obj/objectp.o \
+	obj/sdlemu_config.o \
+	obj/sdlemu_opengl.o \
 	obj/tom.o \
 	obj/unzip.o \
 	obj/version.o \
+	obj/video.o \
 	obj/vj.o
-#	obj/m68kdasmAG.o \
-#	obj/gpu2.o \
-
-LIBS = `sdl-config --libs` -lstdc++ -lz
-
-INCS = -I. -Isrc -Isrc/include `sdl-config --cflags`
-
-THECC = $(CC) $(CFLAGS) $(INCS)
 
 all: obj $(TARGET)
 
@@ -78,16 +77,16 @@ obj/gui.o: src/gui.cpp src/include/gui.h src/include/font1.h
 obj/m68kcpu.o: obj/m68kops.h src/m68k.h src/m68kconf.h
 	$(CC) $(CFLAGS) -Iobj -c src/m68kcpu.c -o obj/m68kcpu.o
 
-obj/m68kops.o: obj/m68kmake obj/m68kops.h obj/m68kops.c src/m68k.h src/m68kconf.h
+obj/m68kops.o: obj/m68kmake.exe obj/m68kops.h obj/m68kops.c src/m68k.h src/m68kconf.h
 	$(CC) $(CFLAGS) -Isrc -c obj/m68kops.c -o obj/m68kops.o
 
-obj/m68kopac.o: obj/m68kmake obj/m68kops.h obj/m68kopac.c src/m68k.h src/m68kconf.h
+obj/m68kopac.o: obj/m68kmake.exe obj/m68kops.h obj/m68kopac.c src/m68k.h src/m68kconf.h
 	$(CC) $(CFLAGS) -Isrc -c obj/m68kopac.c -o obj/m68kopac.o
 
-obj/m68kopdm.o: obj/m68kmake obj/m68kops.h obj/m68kopdm.c src/m68k.h src/m68kconf.h
+obj/m68kopdm.o: obj/m68kmake.exe obj/m68kops.h obj/m68kopdm.c src/m68k.h src/m68kconf.h
 	$(CC) $(CFLAGS) -Isrc -c obj/m68kopdm.c -o obj/m68kopdm.o
 
-obj/m68kopnz.o: obj/m68kmake obj/m68kops.h obj/m68kopnz.c src/m68k.h src/m68kconf.h
+obj/m68kopnz.o: obj/m68kmake.exe obj/m68kops.h obj/m68kopnz.c src/m68k.h src/m68kconf.h
 	$(CC) $(CFLAGS) -Isrc -c obj/m68kopnz.c -o obj/m68kopnz.o
 
 obj/m68kdasm.o: src/m68kdasm.c src/m68k.h src/m68kconf.h
