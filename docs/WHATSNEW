@@ -1,3 +1,12 @@
+Virtual Jaguar v1.0.6 GCC/SDL
+-----------------------------
+
+* Added support for gzip files. [Adam Green]
+* Added OpenGL support. Because of this, aspect ratios in the various
+  graphic modes should be correct now. Thanks to Niels for enlightenment in
+  this area. :-) [Shamus]
+
+
 Virtual Jaguar v1.0.5 GCC/SDL
 -----------------------------
 

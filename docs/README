@@ -1,4 +1,4 @@
-Virtual Jaguar v1.0.5 GCC/SDL release README
+Virtual Jaguar v1.0.6 GCC/SDL release README
 --------------------------------------------
 
 - DISCLAIMER -
@@ -29,7 +29,7 @@ by the desired company in question.
 - What is Virtual Jaguar GCC/SDL?
 
 Virtual Jaguar is software dedicated to emulate the Atari Jaguar hardware
-on you standard P.C. The software was originally developed by Potato Emulation
+on a standard P.C. The software was originally developed by Potato Emulation
 (http://potato.emu-france.com) by Cal2 and was released under the GPL license
 on 25 June 2003. 
 
