@@ -15,7 +15,7 @@
 #include "clock.h"
 #include "anajoy.h"
 #include "joystick.h"
-#include "pcm.h"
+#include "dac.h"
 #include "jagdasm.h"
 #include "dsnd.h"
 #include "cdrom.h"
@@ -57,7 +57,15 @@ void JaguarExecute(int16 * backbuffer, bool render);
 #define SET16(r, a, v)	r[(a)] = ((v) & 0xFF00) >> 8, r[(a)+1] = (v) & 0xFF
 #define GET16(r, a)		((r[(a)] << 8) | r[(a)+1])
 
-//Temp debug stuff
+// Various clock rates
+
+#define M68K_CLOCK_RATE_PAL		13296950
+#define M68K_CLOCK_RATE_NTSC	13295453
+#define RISC_CLOCK_RATE_PAL		26593900
+#define RISC_CLOCK_RATE_NTSC	26590906
+
+
+//Temp debug stuff (will go away soon, so don't use these)
 
 void DumpMainMemory(void);
 uint8 * GetRamPtr(void);
