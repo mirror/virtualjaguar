@@ -1,13 +1,13 @@
 //
 // Object Processor
 //
-// Original source by Cal2
+// Original source by David Raingeard (Cal2)
 // GCC/SDL port by Niels Wagenaar (Linux/WIN32) and Caz (BeOS)
 // Extensive cleanups/fixes/rewrites by James L. Hammons
 //
 
 //#include <stdio.h>
-//#include <stdlib.h>
+#include <stdlib.h>
 #include <string.h>
 #include "jaguar.h"
 
@@ -17,11 +17,11 @@
 #define BLEND_Y(dst, src)	op_blend_y[(((uint16)dst<<8)) | ((uint16)(src))]
 #define BLEND_CR(dst, src)	op_blend_cr[(((uint16)dst)<<8) | ((uint16)(src))]
 
-#define OBJECT_TYPE_BITMAP	0			// 000
-#define OBJECT_TYPE_SCALE	1			// 001
-#define OBJECT_TYPE_GPU		2			// 010
-#define OBJECT_TYPE_BRANCH	3			// 011
-#define OBJECT_TYPE_STOP	4			// 100
+#define OBJECT_TYPE_BITMAP	0					// 000
+#define OBJECT_TYPE_SCALE	1					// 001
+#define OBJECT_TYPE_GPU		2					// 010
+#define OBJECT_TYPE_BRANCH	3					// 011
+#define OBJECT_TYPE_STOP	4					// 100
 
 #define CONDITION_EQUAL				0
 #define CONDITION_LESS_THAN			1
@@ -29,10 +29,10 @@
 #define CONDITION_OP_FLAG_SET		3
 #define CONDITION_SECOND_HALF_LINE	4
 
-#define OPFLAG_RELEASE		8			// Bus release bit
-#define OPFLAG_TRANS		4			// Transparency bit
-#define OPFLAG_RMW			2			// Read-Modify-Write bit
-#define OPFLAG_REFLECT		1			// Horizontal mirror bit
+#define OPFLAG_RELEASE		8					// Bus release bit
+#define OPFLAG_TRANS		4					// Transparency bit
+#define OPFLAG_RMW			2					// Read-Modify-Write bit
+#define OPFLAG_REFLECT		1					// Horizontal mirror bit
 
 // Private function prototypes
 
@@ -83,23 +83,28 @@ void op_init(void)
 		int dc2 = (INT8)(i & 0xF0) >> 4;	// Sign extend the C index
 
 		y += dy;
+
 		if (y < 0)
 			y = 0;
 		else if (y > 0xFF)
 			y = 0xFF;
+
 		op_blend_y[i] = y;
 
 		c1 += dc1;
+
 		if (c1 < 0)
 			c1 = 0;
 		else if (c1 > 0x0F)
 			c1 = 0x0F;
+
 		c2 += dc2;
 
 		if (c2 < 0)
 			c2 = 0;
 		else if (c2 > 0x0F)
 			c2 = 0x0F;
+
 		op_blend_cr[i] = (c2 << 4) | c1;
 	}
 

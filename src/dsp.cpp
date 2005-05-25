@@ -6,6 +6,7 @@
 // Extensive cleanups/rewrites by James L. Hammons
 //
 
+#include <stdlib.h>
 #include <SDL.h>	// Used only for SDL_GetTicks...
 #include "dsp.h"
 

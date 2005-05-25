@@ -12,6 +12,7 @@
 // Same problem with ADDC...
 //
 
+#include <stdlib.h>
 #include "gpu.h"
 
 //#define GPU_DEBUG
