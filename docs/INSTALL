@@ -1,0 +1,44 @@
+---------------------------------------------
+Virtual Jaguar v1.0.7 GCC/SDL release INSTALL
+---------------------------------------------
+
+
+REQUIREMENTS:
+-------------
+
+To compile Virtual Jaguar you need to check if you have the minimum
+requirements for compiling the sources:
+
+- GCC v2.95 or v3.x;
+- SDL v1.2.5 or higher;
+- ZLIB v1.1.4
+- OpenGL libraries
+- supported OS (BeOS, Linux, FreeBSD and WIN32 through mingw); other OSs may
+  work to but you may need to change some items in the Makefile and compile
+  script.
+
+Optionally you need a Atari Jaguar boot ROM (and/or CD boot ROM) which is
+available on the Internet. We can't include the boot ROM since it's still
+copyrighted.
+
+
+COMPILING:
+----------
+
+If you sure you have the minimum software requirements, you can safely compile
+Virtual Jaguar by issuing the following command in the directory where you
+decompressed the source:
+
+./compile
+
+Optionally you can manually strip vj[.exe] to downsize the binary. If you have
+upx in your path somewhere, you can uncomment the line in the makefile that
+executes upx so that you'll end up with a somewhat smaller binary.
+ 
+That's it! You're done! You can now start the emulator with ./vj. See the
+output for more details or consult the README file for more info.
+
+For even more info, go to http://sdlemu.ngemu.com or send use an e-mail to the
+following e-mail address: sdlemu AT ngemu DOT com.
+
+SDLEMU
