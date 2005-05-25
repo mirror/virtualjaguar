@@ -75,17 +75,7 @@
  * If off, all interrupts will be autovectored and all interrupt requests will
  * auto-clear when the interrupt is serviced.
  */
-//#define M68K_EMULATE_INT_ACK        OPT_OFF
-//#define M68K_INT_ACK_CALLBACK(A)    your_int_ack_handler_function(A)
-
-//#ifdef __cplusplus
-//extern "C" {
-//#endif
 int irq_ack_handler(int);
-//#ifdef __cplusplus
-//}
-//#endif
-
 #define M68K_EMULATE_INT_ACK        OPT_SPECIFY_HANDLER
 #define M68K_INT_ACK_CALLBACK(A)    irq_ack_handler(A)
 
@@ -131,9 +121,7 @@ int irq_ack_handler(int);
  * instruction.
  */
 void M68KInstructionHook(void);
-//#define M68K_INSTRUCTION_HOOK       OPT_OFF
 #define M68K_INSTRUCTION_HOOK       OPT_SPECIFY_HANDLER
-//#define M68K_INSTRUCTION_CALLBACK() your_instruction_hook_function()
 #define M68K_INSTRUCTION_CALLBACK() M68KInstructionHook()
 
 
@@ -167,7 +155,7 @@ void M68KInstructionHook(void);
 /* If on, the enulation core will use 64-bit integers to speed up some
  * operations.
 */
-#define M68K_USE_64_BIT  OPT_OFF
+#define M68K_USE_64_BIT  OPT_ON
 
 
 /* Set to your compiler's static inline keyword to enable it, or
@@ -195,3 +183,4 @@ void M68KInstructionHook(void);
 /* ======================================================================== */
 
 #endif /* M68KCONF__HEADER */
+
