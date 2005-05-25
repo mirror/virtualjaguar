@@ -245,6 +245,7 @@ void jerry_i2s_exec(uint32 cycles)
 #endif
 }
 
+//NOTE: This is only used by the old execution core. Safe to nuke once it's stable.
 void JERRYExecPIT(uint32 cycles)
 {
 //This is wrong too: Counters are *always* spinning! !!! FIX !!! [DONE]
@@ -294,8 +295,12 @@ void JERRYResetPIT1(void)
 
 #else
 	RemoveCallback(JERRYPIT1Callback);
-	double usecs = (float)(JERRYPIT1Prescaler + 1) * (float)(JERRYPIT1Divider + 1) * RISC_CYCLE_IN_USEC;
-	SetCallbackTime(JERRYPIT1Callback, usecs);
+
+	if (JERRYPIT1Prescaler | JERRYPIT1Divider)
+	{
+		double usecs = (float)(JERRYPIT1Prescaler + 1) * (float)(JERRYPIT1Divider + 1) * RISC_CYCLE_IN_USEC;
+		SetCallbackTime(JERRYPIT1Callback, usecs);
+	}
 #endif
 }
 
@@ -315,8 +320,12 @@ void JERRYResetPIT2(void)
 
 #else
 	RemoveCallback(JERRYPIT2Callback);
-	double usecs = (float)(JERRYPIT2Prescaler + 1) * (float)(JERRYPIT2Divider + 1) * RISC_CYCLE_IN_USEC;
-	SetCallbackTime(JERRYPIT2Callback, usecs);
+
+	if (JERRYPIT1Prescaler | JERRYPIT1Divider)
+	{
+		double usecs = (float)(JERRYPIT2Prescaler + 1) * (float)(JERRYPIT2Divider + 1) * RISC_CYCLE_IN_USEC;
+		SetCallbackTime(JERRYPIT2Callback, usecs);
+	}
 #endif
 }
 
@@ -502,6 +511,7 @@ uint8 JERRYReadByte(uint32 offset, uint32 who/*=UNKNOWN*/)
 			return counter2Lo & 0xFF;
 		}
 #else
+WriteLog("JERRY: Unhandled timer read (BYTE) at %08X...\n", offset);
 #endif
 	}
 //	else if (offset >= 0xF10010 && offset <= 0xF10015)
@@ -542,6 +552,7 @@ uint16 JERRYReadWord(uint32 offset, uint32 who/*=UNKNOWN*/)
 //in the jerry_timer_n_counter variables... !!! FIX !!! [DONE]
 	else if ((offset >= 0xF10036) && (offset <= 0xF1003D))
 	{
+#ifndef NEW_TIMER_SYSTEM
 //		jerry_timer_1_counter = (JERRYPIT1Prescaler + 1) * (JERRYPIT1Divider + 1);
 		uint32 counter1Hi = (jerry_timer_1_counter / (JERRYPIT1Divider + 1)) - 1;
 		uint32 counter1Lo = (jerry_timer_1_counter % (JERRYPIT1Divider + 1)) - 1;
@@ -564,6 +575,9 @@ uint16 JERRYReadWord(uint32 offset, uint32 who/*=UNKNOWN*/)
 			return counter2Lo;
 		}
 		// Unaligned word reads???
+#else
+WriteLog("JERRY: Unhandled timer read (WORD) at %08X...\n", offset);
+#endif
 	}
 //	else if ((offset >= 0xF10010) && (offset <= 0xF10015))
 //		return clock_word_read(offset);
@@ -625,6 +639,7 @@ void JERRYWriteByte(uint32 offset, uint8 data, uint32 who/*=UNKNOWN*/)
 	}
 	else if (offset >= 0xF10000 && offset <= 0xF10007)
 	{
+#ifndef NEW_TIMER_SYSTEM
 		switch (offset & 0x07)
 		{
 		case 0:
@@ -659,6 +674,9 @@ void JERRYWriteByte(uint32 offset, uint8 data, uint32 who/*=UNKNOWN*/)
 			JERRYPIT2Divider = (JERRYPIT2Divider & 0xFF00) | data;
 			JERRYResetPIT2();
 		}
+#else
+WriteLog("JERRY: Unhandled timer write (BYTE) at %08X...\n", offset);
+#endif
 		return;
 	}
 /*	else if ((offset >= 0xF10010) && (offset <= 0xF10015))
@@ -734,6 +752,8 @@ void JERRYWriteWord(uint32 offset, uint16 data, uint32 who/*=UNKNOWN*/)
 	}
 	else if (offset >= 0xF10000 && offset <= 0xF10007)
 	{
+//#ifndef NEW_TIMER_SYSTEM
+#if 1
 		switch(offset & 0x07)
 		{
 		case 0:
@@ -753,6 +773,9 @@ void JERRYWriteWord(uint32 offset, uint16 data, uint32 who/*=UNKNOWN*/)
 			JERRYResetPIT2();
 		}
 		// Need to handle (unaligned) cases???
+#else
+WriteLog("JERRY: Unhandled timer write %04X (WORD) at %08X by %s...\n", data, offset, whoName[who]);
+#endif
 		return;
 	}
 /*	else if (offset >= 0xF10010 && offset < 0xF10016)
