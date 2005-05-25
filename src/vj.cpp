@@ -21,6 +21,15 @@
 // Uncomment this for speed control (?)
 //#define SPEED_CONTROL
 
+// Uncomment this to use built-in BIOS/CD-ROM BIOS
+// You'll need a copy of jagboot.h & jagcd.h for this to work...!
+//#define USE_BUILT_IN_BIOS
+
+#ifdef USE_BUILT_IN_BIOS
+#include "jagboot.h"
+#include "jagcd.h"
+#endif
+
 // Private function prototypes
 
 // External variables
@@ -55,7 +64,7 @@ int main(int argc, char * argv[])
 	int32 nFrameskip = 0;							// Default: Show every frame
 //	int32 nFrame = 0;								// No. of Frame
 
-	printf("Virtual Jaguar GCC/SDL Portable Jaguar Emulator v1.0.7\n");
+	printf("Virtual Jaguar GCC/SDL Portable Jaguar Emulator v1.0.8\n");
 	printf("Based upon Virtual Jaguar core v1.0.0 by David Raingeard.\n");
 	printf("Written by Niels Wagenaar (Linux/WIN32), Carwin Jones (BeOS),\n");
 	printf("James L. Hammons (WIN32) and Adam Green (MacOS)\n");
@@ -166,6 +175,7 @@ int main(int argc, char * argv[])
 		WriteLog("VJ: Could not initialize the SDL library: %s\n", SDL_GetError());
 		return -1;
 	}
+
 	WriteLog("VJ: SDL successfully initialized.\n");
 
 WriteLog("Initializing memory subsystem...\n");
@@ -177,6 +187,12 @@ WriteLog("Initializing jaguar subsystem...\n");
 	jaguar_init();
 
 	// Get the BIOS ROM
+#ifdef USE_BUILT_IN_BIOS
+	WriteLog("VJ: Using built in BIOS/CD BIOS...\n");
+	memcpy(jaguar_bootRom, jagBootROM, 0x20000);
+	memcpy(jaguar_CDBootROM, jagCDROM, 0x40000);
+	BIOSLoaded = CDBIOSLoaded = true;
+#else
 //	if (vjs.useJaguarBIOS)
 // What would be nice here would be a way to check if the BIOS was loaded so that we
 // could disable the pushbutton on the Misc Options menu... !!! FIX !!! [DONE here, but needs to be fixed in GUI as well!]
@@ -185,6 +201,7 @@ WriteLog("About to attempt to load BIOSes...\n");
 	WriteLog("VJ: BIOS is %savailable...\n", (BIOSLoaded ? "" : "not "));
 	CDBIOSLoaded = (JaguarLoadROM(jaguar_CDBootROM, vjs.CDBootPath) == 0x40000 ? true : false);
 	WriteLog("VJ: CD BIOS is %savailable...\n", (CDBIOSLoaded ? "" : "not "));
+#endif
 
 	SET32(jaguar_mainRam, 0, 0x00200000);			// Set top of stack...
 
