@@ -10,7 +10,7 @@ extern "C" {
 /* ======================================================================== */
 /*
  *                                  MUSASHI
- *                                Version 3.3
+ *                                Version 3.3.1
  *
  * A portable Motorola M680x0 processor emulation engine.
  * Copyright 1998-2001 Karl Stenerud.  All rights reserved.
@@ -26,7 +26,8 @@ extern "C" {
  * http://kstenerud.cjb.net
  */
 
-
+// NOTE: The 3.3.1 release is marked as 3.3 in this file. Changed by JLH
+//       in order to clarify which version we're using...
 
 /* ======================================================================== */
 /* ============================ GENERAL DEFINES =========================== */
@@ -162,10 +163,7 @@ unsigned int  m68k_read_pcrelative_32(unsigned int address);
 /* Memory access for the disassembler */
 unsigned int m68k_read_disassembler_8  (unsigned int address);
 unsigned int m68k_read_disassembler_16 (unsigned int address);
-unsigned int m68k_read_disassembler_32 (unsigned int address);//*/
-/*#define m68k_read_disassembler_8	m68k_read_memory_8
-#define m68k_read_disassembler_16	m68k_read_memory_16
-#define m68k_read_disassembler_32	m68k_read_memory_32//*/
+unsigned int m68k_read_disassembler_32 (unsigned int address);
 
 /* Write to anywhere */
 void m68k_write_memory_8(unsigned int address, unsigned int value);
@@ -328,6 +326,7 @@ unsigned int m68k_is_valid_instruction(unsigned int instruction, unsigned int cp
  * disassembly in str_buff and returns the size of the instruction in bytes.
  */
 unsigned int m68k_disassemble(char* str_buff, unsigned int pc, unsigned int cpu_type);
+
 
 /* ======================================================================== */
 /* ============================= CONFIGURATION ============================ */
