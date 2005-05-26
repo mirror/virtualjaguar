@@ -108,6 +108,7 @@ void DACDone(void)
 void SDLSoundCallback(void * userdata, Uint8 * buffer, int length)
 {
 	// Clear the buffer to silence, in case the DAC buffer is empty (or short)
+//This causes choppy sound... Ick.
 	memset(buffer, desired.silence, length);
 //WriteLog("DAC: Inside callback...\n");
 	if (LeftFIFOHeadPtr != LeftFIFOTailPtr)
@@ -185,7 +186,7 @@ void DACWriteWord(uint32 offset, uint16 data, uint32 who/*= UNKNOWN*/)
 //[DONE]
 		// Also, we're taking advantage of the fact that the buffer is a multiple of two
 		// in this check...
-		while ((LeftFIFOTailPtr + 2) & (BUFFER_SIZE - 1) == LeftFIFOHeadPtr);
+		while (((LeftFIFOTailPtr + 2) & (BUFFER_SIZE - 1)) == LeftFIFOHeadPtr);
 
 		SDL_LockAudio();							// Is it necessary to do this? Mebbe.
 		// We use a circular buffer 'cause it's easy. Note that the callback function
@@ -199,16 +200,24 @@ void DACWriteWord(uint32 offset, uint16 data, uint32 who/*= UNKNOWN*/)
 	{
 		// Spin until buffer has been drained (for too fast processors!)...
 //uint32 spin = 0;
-		while ((RightFIFOTailPtr + 2) & (BUFFER_SIZE - 1) == RightFIFOHeadPtr);
+		while (((RightFIFOTailPtr + 2) & (BUFFER_SIZE - 1)) == RightFIFOHeadPtr);
 /*		{
 spin++;
-if (spin == 0x10000000)
+//if ((spin & 0x0FFFFFFF) == 0)
+//	WriteLog("Tail=%X, Head=%X, BUFFER_SIZE-1=%X\n", RightFIFOTailPtr, RightFIFOHeadPtr, BUFFER_SIZE - 1);
+
+if (spin == 0xFFFF0000)
 {
-	WriteLog("\nStuck in right DAC spinlock! Tail=%u, Head=%u\nAborting!\n", RightFIFOTailPtr, RightFIFOHeadPtr);
+uint32 rtail = RightFIFOTailPtr, rhead = RightFIFOHeadPtr;
+WriteLog("Tail=%X, Head=%X\n", rtail, rhead);
+
+	WriteLog("\nStuck in right DAC spinlock!\nAborting!\n\n");
+	WriteLog("Tail=%X, Head=%X, BUFFER_SIZE-1=%X\n", RightFIFOTailPtr, RightFIFOHeadPtr, BUFFER_SIZE - 1);
+	WriteLog("From while: Tail=%X, Head=%X", (RightFIFOTailPtr + 2) & (BUFFER_SIZE - 1), RightFIFOHeadPtr);
 	log_done();
 	exit(0);
 }
-		}*/
+		}//*/
 
 //This is wrong		if (RightFIFOTailPtr + 2 != RightFIFOHeadPtr)
 //		{
