@@ -14,10 +14,10 @@
 //shouldn't these exist here??? Prolly.
 //And now, they do! :-)
 SDL_Surface * surface, * mainSurface;
+SDL_Joystick * joystick;
 Uint32 mainSurfaceFlags;
 //int16 * backbuffer;
 uint32 * backbuffer;
-SDL_Joystick * joystick;
 
 // One of the reasons why OpenGL is slower then normal SDL rendering, is because
 // the data is being pumped into the buffer every frame with a overflow as result.
@@ -101,8 +101,14 @@ bool InitVideo(void)
 /*	surface = SDL_CreateRGBSurface(SDL_SWSURFACE, VIRTUAL_SCREEN_WIDTH,
 		(vjs.hardwareTypeNTSC ? VIRTUAL_SCREEN_HEIGHT_NTSC : VIRTUAL_SCREEN_HEIGHT_PAL),
 		16, 0x7C00, 0x03E0, 0x001F, 0);//*/
+
+	uint32 vsWidth = VIRTUAL_SCREEN_WIDTH;
+
+	if (vjs.renderType == RT_TV)
+		vsWidth = 1280;
 //24BPP
-	surface = SDL_CreateRGBSurface(SDL_SWSURFACE, VIRTUAL_SCREEN_WIDTH,
+//	surface = SDL_CreateRGBSurface(SDL_SWSURFACE, VIRTUAL_SCREEN_WIDTH,
+	surface = SDL_CreateRGBSurface(SDL_SWSURFACE, vsWidth,
 		(vjs.hardwareTypeNTSC ? VIRTUAL_SCREEN_HEIGHT_NTSC : VIRTUAL_SCREEN_HEIGHT_PAL), 32,
 #if SDL_BYTEORDER == SDL_BIG_ENDIAN
 		 0xFF000000, 0x00FF0000, 0x0000FF00, 0x000000FF);
@@ -186,7 +192,10 @@ void RenderBackbuffer(void)
 			SDL_Delay(10);
 
 //	memcpy(surface->pixels, backbuffer, tom_getVideoModeWidth() * tom_getVideoModeHeight() * 2);
-	memcpy(surface->pixels, backbuffer, tom_getVideoModeWidth() * tom_getVideoModeHeight() * 4);
+	if (vjs.renderType == RT_NORMAL)
+		memcpy(surface->pixels, backbuffer, tom_getVideoModeWidth() * tom_getVideoModeHeight() * 4);
+	else if (vjs.renderType == RT_TV)
+		memcpy(surface->pixels, backbuffer, 1280 * tom_getVideoModeHeight() * 4);
 
 	if (SDL_MUSTLOCK(surface))
 		SDL_UnlockSurface(surface);
@@ -257,14 +266,6 @@ void ResizeScreen(uint32 width, uint32 height)
 	sprintf(window_title, "Virtual Jaguar (%i x %i)", (int)width, (int)height);
 	SDL_WM_SetCaption(window_title, window_title);
 }
-
-//
-// Return the screen's pitch
-//
-/*uint32 GetSDLScreenPitch(void)
-{
-	return surface->pitch;
-}*/
 
 //
 // Return the screen's width in pixels
