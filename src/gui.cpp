@@ -33,7 +33,8 @@ using namespace std;								// For STL stuff
 class Window;										// Forward declaration...
 
 //void DrawTransparentBitmap(uint32 * screen, uint32 x, uint32 y, uint32 * bitmap, uint8 * alpha = NULL);
-void DrawTransparentBitmap(uint32 * screen, uint32 x, uint32 y, uint32 * bitmap);
+void DrawTransparentBitmapDeprecated(uint32 * screen, uint32 x, uint32 y, uint32 * bitmap);
+void DrawTransparentBitmap(uint32 * screen, uint32 x, uint32 y, const void * bitmap);
 void DrawStringTrans(uint32 * screen, uint32 x, uint32 y, uint32 color, uint8 opacity, const char * text, ...);
 void DrawStringOpaque(uint32 * screen, uint32 x, uint32 y, uint32 color1, uint32 color2, const char * text, ...);
 void DrawString(uint32 * screen, uint32 x, uint32 y, bool invert, const char * text, ...);
@@ -59,7 +60,7 @@ extern bool CDBIOSLoaded;
 // Local global variables
 
 bool exitGUI = false;								// GUI (emulator) done variable
-int mouseX, mouseY;
+int mouseX = 0, mouseY = 0;
 uint32 background[1280 * 256];						// GUI background buffer
 
 char separator[] = "--------------------------------------------------------";
@@ -225,7 +226,7 @@ void Button::Draw(uint32 offsetX/*= 0*/, uint32 offsetY/*= 0*/)
 		if (picDown != NULL && inside && clicked)
 			picToShow = picDown;
 
-		DrawTransparentBitmap(screenBuffer, extents.x + offsetX, extents.y + offsetY, picToShow);
+		DrawTransparentBitmapDeprecated(screenBuffer, extents.x + offsetX, extents.y + offsetY, picToShow);
 	}
 }
 
@@ -242,7 +243,9 @@ class PushButton: public Element
 //		PushButton(uint32 x = 0, uint32 y = 0, uint32 w = 0, uint32 h = 0): Element(x, y, w, h),
 //			activated(false), clicked(false), inside(false), fgColor(0xFFFF),
 //			bgColor(0x03E0), pic(NULL), elementToTell(NULL) {}
-		PushButton(uint32 x, uint32 y, bool * st, string s): Element(x, y, 8, 8), state(st),
+//		PushButton(uint32 x, uint32 y, bool * st, string s): Element(x, y, 8, 8), state(st),
+//			inside(false), text(s) { if (st == NULL) state = &internalState; }
+		PushButton(uint32 x, uint32 y, bool * st, string s): Element(x, y, 16, 16), state(st),
 			inside(false), text(s) { if (st == NULL) state = &internalState; }
 /*		Button(uint32 x, uint32 y, uint32 w, uint32 h, uint32 * p): Element(x, y, w, h),
 			activated(false), clicked(false), inside(false), fgColor(0xFFFF),
@@ -318,10 +321,13 @@ void PushButton::Draw(uint32 offsetX/*= 0*/, uint32 offsetY/*= 0*/)
 		}
 	}*/
 
-	DrawTransparentBitmap(screenBuffer, extents.x + offsetX, extents.y + offsetY, (*state ? pushButtonDown : pushButtonUp));
-//	DrawTransparentBitmap(screenBuffer, extents.x + offsetX, extents.y + offsetY, (*state ? pushButtonDown : pushButtonUp), (*state ? pbdAlpha : pbuAlpha));
+	if (*state)
+		DrawTransparentBitmap(screenBuffer, extents.x + offsetX, extents.y + offsetY, &pbDown);
+	else
+		DrawTransparentBitmap(screenBuffer, extents.x + offsetX, extents.y + offsetY, &pbUp);
+
 	if (text.length() > 0)
-		DrawString(screenBuffer, extents.x + offsetX + 12, extents.y + offsetY, false, "%s", text.c_str());
+		DrawString(screenBuffer, extents.x + offsetX + 24, extents.y + offsetY, false, "%s", text.c_str());
 }
 
 
@@ -332,7 +338,7 @@ class SlideSwitch: public Element
 //Seems to be handled the same as PushButton, but without sanity checks. !!! FIX !!!
 
 	public:
-		SlideSwitch(uint32 x, uint32 y, bool * st, string s1, string s2): Element(x, y, 8, 16), state(st),
+		SlideSwitch(uint32 x, uint32 y, bool * st, string s1, string s2): Element(x, y, 16, 32), state(st),
 			inside(false), text1(s1), text2(s2) {}
 		virtual void HandleKey(SDLKey key) {}
 		virtual void HandleMouseMove(uint32 x, uint32 y);
@@ -380,11 +386,13 @@ void SlideSwitch::HandleMouseButton(uint32 x, uint32 y, bool mouseDown)
 
 void SlideSwitch::Draw(uint32 offsetX/*= 0*/, uint32 offsetY/*= 0*/)
 {
-	DrawTransparentBitmap(screenBuffer, extents.x + offsetX, extents.y + offsetY, (*state ? slideSwitchDown : slideSwitchUp));
+	DrawTransparentBitmapDeprecated(screenBuffer, extents.x + offsetX, extents.y + offsetY, (*state ? slideSwitchDown : slideSwitchUp));
+
 	if (text1.length() > 0)
-		DrawString(screenBuffer, extents.x + offsetX + 12, extents.y + offsetY, false, "%s", text1.c_str());
+		DrawString(screenBuffer, extents.x + offsetX + 24, extents.y + offsetY, false, "%s", text1.c_str());
+
 	if (text2.length() > 0)
-		DrawString(screenBuffer, extents.x + offsetX + 12, extents.y + offsetY + 8, false, "%s", text2.c_str());
+		DrawString(screenBuffer, extents.x + offsetX + 24, extents.y + offsetY + 16, false, "%s", text2.c_str());
 }
 
 
@@ -1326,7 +1334,7 @@ void DrawStringTrans(uint32 * screen, uint32 x, uint32 y, uint32 color, uint8 tr
 		}
 	}
 }*/
-void DrawTransparentBitmap(uint32 * screen, uint32 x, uint32 y, uint32 * bitmap)
+void DrawTransparentBitmapDeprecated(uint32 * screen, uint32 x, uint32 y, uint32 * bitmap)
 {
 	uint32 width = bitmap[0], height = bitmap[1];
 	bitmap += 2;
@@ -1368,6 +1376,45 @@ void DrawTransparentBitmap(uint32 * screen, uint32 x, uint32 y, uint32 * bitmap)
 	}
 }
 
+void DrawTransparentBitmap(uint32 * screen, uint32 x, uint32 y, const void * bitmap)
+{
+	uint32 pitch = sdlemuGetOverlayWidthInPixels();
+	uint32 address = x + (y * pitch);
+	uint32 count = 0;
+
+	for(uint32 yy=0; yy<((Bitmap *)bitmap)->height; yy++)
+	{
+		for(uint32 xx=0; xx<((Bitmap *)bitmap)->width; xx++)
+		{
+			uint32 color = ((uint32 *)((Bitmap *)bitmap)->pixelData)[count];
+			uint32 blendedColor = color;
+			uint32 existingColor = *(screen + address + xx + (yy * pitch));
+
+			if (existingColor >> 24 != 0x00)	// Pixel needs blending
+			{
+				uint8 trans = color >> 24;
+				uint8 invTrans = trans ^ 0xFF;
+
+				uint8 eRed = existingColor & 0xFF,
+					eGreen = (existingColor >> 8) & 0xFF,
+					eBlue = (existingColor >> 16) & 0xFF,
+
+					nRed = color & 0xFF,
+					nGreen = (color >> 8) & 0xFF,
+					nBlue = (color >> 16) & 0xFF;
+
+				uint32 bRed = (eRed * invTrans + nRed * trans) / 255;
+				uint32 bGreen = (eGreen * invTrans + nGreen * trans) / 255;
+				uint32 bBlue = (eBlue * invTrans + nBlue * trans) / 255;
+
+				blendedColor = 0xFF000000 | bRed | (bGreen << 8) | (bBlue << 16);
+			}
+
+			*(screen + address + xx + (yy * pitch)) = blendedColor;
+			count++;
+		}
+	}
+}
 
 //
 // GUI stuff--it's not crunchy, it's GUI! ;-)
@@ -1390,7 +1437,12 @@ void GUIDone(void)
 bool GUIMain(char * filename)
 {
 WriteLog("GUI: Inside GUIMain...\n");
-// Need to set things up so that it loads and runs a file if given on the command line. !!! FIX !!!
+
+	uint32 pointerBGSave[6 * 8 + 2];
+	pointerBGSave[0] = 6;
+	pointerBGSave[1] = 8;
+
+// Need to set things up so that it loads and runs a file if given on the command line. !!! FIX !!! [DONE]
 	extern uint32 * backbuffer;
 //	bool done = false;
 	SDL_Event event;
@@ -1424,6 +1476,29 @@ WriteLog("GUI: Inside GUIMain...\n");
 	mainMenu.Add(mi);
 
 	bool showMouse = true;
+
+	// Grab the BG where the mouse will be painted (prime the backstore)
+
+/*
+DISNOWOK
+Bitmap ptr = { 6, 8, 4,
+""//"000011112222333344445555"
+//"000011112222333344445555"
+//"000011112222333344445555"
+//"000011112222333344445555"
+//"000011112222333344445555"
+//"000011112222333344445555"
+//"000011112222333344445555"
+//"000011112222333344445555"
+};//*/	
+	uint32 * overlayPixels = (uint32 *)sdlemuGetOverlayPixels();
+	uint32 count = 2;
+
+	for(uint32 y=0; y<pointerBGSave[1]; y++)
+		for(uint32 x=0; x<pointerBGSave[0]; x++)
+			pointerBGSave[count++] = overlayPixels[((mouseY + y) * sdlemuGetOverlayWidthInPixels()) + (mouseX + x)];
+
+	uint32 oldMouseX = mouseX, oldMouseY = mouseY;
 
 //This is crappy!!! !!! FIX !!!
 //Is this even needed any more? Hmm. Maybe. Dunno.
@@ -1498,9 +1573,8 @@ WriteLog("GUI: Entering main loop...\n");
 					event.motion.x = mx, event.motion.y = my;
 				    SDL_PushEvent(&event);			// & update mouse position...!
 
+					oldMouseX = mouseX, oldMouseY = mouseY;
 					mouseX = mx, mouseY = my;		// This prevents "mouse flash"...
-//					if (vjs.useOpenGL)
-//						mouseX /= 2, mouseY /= 2;
 				}
 			}
 			else if (event.type == SDL_ACTIVEEVENT)
@@ -1517,10 +1591,8 @@ WriteLog("GUI: Entering main loop...\n");
 			}
 			else if (event.type == SDL_MOUSEMOTION)
 			{
+				oldMouseX = mouseX, oldMouseY = mouseY;
 				mouseX = event.motion.x, mouseY = event.motion.y;
-
-//				if (vjs.useOpenGL)
-//					mouseX /= 2, mouseY /= 2;
 
 				if (mainWindow)
 					mainWindow->HandleMouseMove(mouseX, mouseY);
@@ -1531,9 +1603,6 @@ WriteLog("GUI: Entering main loop...\n");
 			{
 				uint32 mx = event.button.x, my = event.button.y;
 
-//				if (vjs.useOpenGL)
-//					mx /= 2, my /= 2;
-
 				if (mainWindow)
 					mainWindow->HandleMouseButton(mx, my, true);
 				else
@@ -1543,14 +1612,21 @@ WriteLog("GUI: Entering main loop...\n");
 			{
 				uint32 mx = event.button.x, my = event.button.y;
 
-//				if (vjs.useOpenGL)
-//					mx /= 2, my /= 2;
-
 				if (mainWindow)
 					mainWindow->HandleMouseButton(mx, my, false);
 				else
 					mainMenu.HandleMouseButton(mx, my, false);
 			}
+
+//PROBLEM: In order to use the dirty rectangle approach here, we need some way of
+//         handling it in mainMenu.Draw() and mainWindow->Draw(). !!! FIX !!!
+//POSSIBLE SOLUTION:
+// When mouse is moving and not on menu or window, can do straight dirty rect.
+// When mouse is on menu, need to update screen. Same for buttons on windows...
+// What the menu & windows should do is only redraw on a state change. IOW, they
+// should call their own/child window's Draw() function instead of doing it top
+// level.
+//#define NEW_BACKSTORE_METHOD
 
 			// Draw the GUI...
 // The way we do things here is kinda stupid (redrawing the screen every frame), but
@@ -1559,6 +1635,7 @@ WriteLog("GUI: Entering main loop...\n");
 //			memset(backbuffer, 0x11, tom_getVideoModeWidth() * 240 * 2);
 //			memcpy(backbuffer, background, tom_getVideoModeWidth() * 256 * 2);
 //			memcpy(backbuffer, background, tom_getVideoModeWidth() * 256 * 4);
+#ifndef NEW_BACKSTORE_METHOD
 			memset(sdlemuGetOverlayPixels(), 0, sdlemuGetOverlayWidthInPixels() * 480 * 4);
 
 			mainMenu.Draw();
@@ -1566,10 +1643,40 @@ WriteLog("GUI: Entering main loop...\n");
 //Though the way ZSNES does it seems to be by a bool (i.e., they're always active, just not shown)
 			if (mainWindow)
 				mainWindow->Draw();
+#endif
+
+/*uint32 pBGS[6 * 8 + 3] = { 6, 8, 4,
+	0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0
+};*/
+//This isn't working... Why????
+//It's because DrawTransparentBitmap does alpha blending if it detects zero in the alpha channel.
+//So why do it that way? Hm.
+			overlayPixels = (uint32 *)sdlemuGetOverlayPixels();
+
+#ifdef NEW_BACKSTORE_METHOD
+//			DrawTransparentBitmapDeprecated(overlayPixels, oldMouseX, oldMouseY, pointerBGSave);
+//			DrawTransparentBitmap(overlayPixels, oldMouseX, oldMouseY, pBGS);
+			for(uint32 y=0; y<pointerBGSave[1]; y++)
+				for(uint32 x=0; x<pointerBGSave[0]; x++)
+					overlayPixels[((oldMouseY + y) * sdlemuGetOverlayWidthInPixels()) + (oldMouseX + x)] = 0x00000000;
+
+			count = 2;
+
+			for(uint32 y=0; y<pointerBGSave[1]; y++)
+				for(uint32 x=0; x<pointerBGSave[0]; x++)
+					pointerBGSave[count++] = overlayPixels[((mouseY + y) * sdlemuGetOverlayWidthInPixels()) + (mouseX + x)];
+#endif
 
 			if (showMouse)
-//				DrawTransparentBitmap(backbuffer, mouseX, mouseY, mousePic);
-				DrawTransparentBitmap((uint32 *)sdlemuGetOverlayPixels(), mouseX, mouseY, mousePic);
+//				DrawTransparentBitmapDeprecated(backbuffer, mouseX, mouseY, mousePic);
+				DrawTransparentBitmapDeprecated(overlayPixels, mouseX, mouseY, mousePic);
 
 			RenderBackbuffer();
 		}
@@ -1619,20 +1726,12 @@ sdlemuDisableOverlay();
 JaguarExecuteNew();
 sdlemuEnableOverlay();
 	// Save the background for the GUI...
-//	memcpy(background, backbuffer, tom_getVideoModeWidth() * 240 * 2);
 	// In this case, we squash the color to monochrome, then force it to blue + green...
 	for(uint32 i=0; i<tom_getVideoModeWidth() * 256; i++)
 	{
-//		uint32 word = backbuffer[i];
-//		uint8 r = (word >> 10) & 0x1F, g = (word >> 5) & 0x1F, b = word & 0x1F;
-//		word = ((r + g + b) / 3) & 0x001F;
-//		word = (word << 5) | word;
-//		background[i] = word;
-
 		uint32 pixel = backbuffer[i];
 		uint8 b = (pixel >> 16) & 0xFF, g = (pixel >> 8) & 0xFF, r = pixel & 0xFF;
 		pixel = ((r + g + b) / 3) & 0x00FF;
-//		background[i] = 0xFF000000 | (pixel << 16) | (pixel << 8);
 		backbuffer[i] = 0xFF000000 | (pixel << 16) | (pixel << 8);
 	}
 return NULL;//*/
@@ -1778,19 +1877,21 @@ Window * About(void)
 	window->AddElement(new Text(16, 8+14*FONT_HEIGHT, "Karl Stenerud for his Musashi 68K emu"));
 	window->AddElement(new Text(16, 8+15*FONT_HEIGHT, "Sam Lantinga for his amazing SDL libs"));
 	window->AddElement(new Text(16, 8+16*FONT_HEIGHT, "Ryan C. Gordon for VJ's web presence"));
-	window->AddElement(new Text(16, 8+17*FONT_HEIGHT, "The guys over at Atari Age ;-)"));
+	window->AddElement(new Text(16, 8+17*FONT_HEIGHT, "Curt Vendel for various Jaguar goodies"));
+	window->AddElement(new Text(16, 8+18*FONT_HEIGHT, "The guys over at Atari Age ;-)"));
 
 	return window;
 }
 
 Window * MiscOptions(void)
 {
-	Window * window = new Window(8, 16, 304, 160);
+	Window * window = new Window(8, 16, 304, 192);
 	window->AddElement(new PushButton(8, 8, &vjs.useJaguarBIOS, "BIOS"));
-	window->AddElement(new SlideSwitch(8, 20, &vjs.hardwareTypeNTSC, "PAL", "NTSC"));
-	window->AddElement(new PushButton(8, 40, &vjs.DSPEnabled, "DSP"));
-	window->AddElement(new SlideSwitch(16, 52, &vjs.usePipelinedDSP, "Original", "Pipelined"));
-	window->AddElement(new SlideSwitch(8, 72, (bool *)&vjs.glFilter, "Sharp", "Blurry"));
+	window->AddElement(new SlideSwitch(8, 32, &vjs.hardwareTypeNTSC, "PAL", "NTSC"));
+	window->AddElement(new PushButton(8, 64, &vjs.DSPEnabled, "DSP"));
+	window->AddElement(new SlideSwitch(24, 88, &vjs.usePipelinedDSP, "Original", "Pipelined"));
+	window->AddElement(new SlideSwitch(8, 120, (bool *)&vjs.glFilter, "Sharp", "Blurry"));
+	window->AddElement(new SlideSwitch(8, 152, (bool *)&vjs.renderType, "Normal render", "TV style"));
 
 // Missing:
 // * BIOS path
