@@ -2,6 +2,7 @@
 #define __JAGUAR_H__
 
 #include <string.h>	// Why??? (for memset, etc... Lazy!) Dunno why, but this just strikes me as wrong...
+#include <stdlib.h>	// For exit()
 #include "types.h"
 #include "log.h"
 #include "version.h"
@@ -51,6 +52,14 @@ void JaguarExecuteNew(void);
 // Some handy macros to help converting native endian to big endian (jaguar native)
 // & vice versa
 
+#define SET64(r, a, v) 	r[(a)] = ((v) & 0xFF00000000000000) >> 56, r[(a)+1] = ((v) & 0x00FF000000000000) >> 48, \
+						r[(a)+2] = ((v) & 0x0000FF0000000000) >> 40, r[(a)+3] = ((v) & 0x000000FF00000000) >> 32, \
+						r[(a)+4] = ((v) & 0xFF000000) >> 24, r[(a)+5] = ((v) & 0x00FF0000) >> 16, \
+						r[(a)+6] = ((v) & 0x0000FF00) >> 8, r[(a)+7] = (v) & 0x000000FF
+#define GET64(r, a)		(((uint64)r[(a)] << 56) | ((uint64)r[(a)+1] << 48) | \
+						((uint64)r[(a)+2] << 40) | ((uint64)r[(a)+3] << 32) | \
+						((uint64)r[(a)+4] << 24) | ((uint64)r[(a)+5] << 16) | \
+						((uint64)r[(a)+6] << 8) | (uint64)r[(a)+7])
 #define SET32(r, a, v)	r[(a)] = ((v) & 0xFF000000) >> 24, r[(a)+1] = ((v) & 0x00FF0000) >> 16, \
 						r[(a)+2] = ((v) & 0x0000FF00) >> 8, r[(a)+3] = (v) & 0x000000FF
 #define GET32(r, a)		((r[(a)] << 24) | (r[(a)+1] << 16) | (r[(a)+2] << 8) | r[(a)+3])
