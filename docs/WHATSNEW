@@ -5,6 +5,10 @@ Virtual Jaguar v1.0.8 GCC/SDL
   renders graphics, but it also gives VJ a nice speed boost. ;-) [Shamus]
 * Changed execution to a time-based solution so that timers and IRQs and
   such can happen when they're supposed to. [Shamus]
+* Fixed blitter writes so that Intensity[0-3] and Z[0-3] are written in the
+  correct order. [Shamus]
+* Rewrote blitter to conform the the Oberon ASIC nets. This should fix a
+  bunch of stuff that wasn't working correctly before.
 
 
 Virtual Jaguar v1.0.7 GCC/SDL
