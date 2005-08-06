@@ -29,23 +29,24 @@ struct VJSettings
 	uint32 glFilter;
 	bool hardwareTypeAlpine;
 	uint32 frameSkip;
-
+	uint32 renderType;
+	
 	// Keybindings in order of U, D, L, R, C, B, A, Op, Pa, 0-9, #, *
+
 	uint16 p1KeyBindings[21];
 	uint16 p2KeyBindings[21];
 
 	// Paths
+
 	char ROMPath[MAX_PATH];
 	char jagBootPath[MAX_PATH];
 	char CDBootPath[MAX_PATH];
 	char EEPROMPath[MAX_PATH];
-
-	// Internal global stuff
-//	uint32 ROMType;
 };
 
-// ROM Types
-//enum { RT_CARTRIDGE, RT_
+// Render types
+
+enum { RT_NORMAL = 0, RT_TV = 1 };
 
 // Exported functions
 

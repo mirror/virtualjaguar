@@ -42,6 +42,7 @@ void LoadVJSettings(void)
 	vjs.fullscreen = sdlemu_getval_bool("fullscreen", false);
 	vjs.useOpenGL = sdlemu_getval_bool("useOpenGL", true);
 	vjs.glFilter = sdlemu_getval_int("glFilterType", 0);
+	vjs.renderType = sdlemu_getval_int("renderType", 0);
 
 	// Keybindings in order of U, D, L, R, C, B, A, Op, Pa, 0-9, #, *
 	vjs.p1KeyBindings[0] = sdlemu_getval_int("p1k_up", SDLK_UP);
