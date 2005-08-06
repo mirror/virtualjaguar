@@ -185,6 +185,9 @@ void JERRYI2SCallback(void);
 //This approach is probably wrong, since the timer is continuously counting down, though
 //it might only be a problem if the # of interrupts generated is greater than 1--the M68K's
 //timeslice should be running during that phase... (The DSP needs to be aware of this!)
+
+//This is only used by the old system, so once the new timer system is working this
+//should be safe to nuke.
 void jerry_i2s_exec(uint32 cycles)
 {
 #ifndef NEW_TIMER_SYSTEM
@@ -386,6 +389,15 @@ void JERRYI2SCallback(void)
 			}
 			jerry_i2s_interrupt_timer += 602;
 		}*/
+
+		if (ButchIsReadyToSend())//Not sure this is right spot to check...
+		{
+//	return GetWordFromButchSSI(offset, who);
+			SetSSIWordsXmittedFromButch();
+			DSPSetIRQLine(DSPIRQ_SSI, ASSERT_LINE);
+		}
+
+		SetCallbackTime(JERRYI2SCallback, 22.675737);
 	}
 }
 
@@ -628,7 +640,12 @@ void JERRYWriteByte(uint32 offset, uint8 data, uint32 who/*=UNKNOWN*/)
 			jerry_i2s_interrupt_divide = (jerry_i2s_interrupt_divide & 0xFF00) | (uint32)data;
 
 		jerry_i2s_interrupt_timer = -1;
+#ifndef NEW_TIMER_SYSTEM
 		jerry_i2s_exec(0);
+#else
+		RemoveCallback(JERRYI2SCallback);
+		JERRYI2SCallback();
+#endif
 //		return;
 	}
 	// LTXD/RTXD/SCLK/SMODE $F1A148/4C/50/54 (really 16-bit registers...)
@@ -739,7 +756,12 @@ void JERRYWriteWord(uint32 offset, uint16 data, uint32 who/*=UNKNOWN*/)
 //This should *only* be enabled when SMODE has its INTERNAL bit set! !!! FIX !!!
 		jerry_i2s_interrupt_divide = (uint8)data;
 		jerry_i2s_interrupt_timer = -1;
+#ifndef NEW_TIMER_SYSTEM
 		jerry_i2s_exec(0);
+#else
+		RemoveCallback(JERRYI2SCallback);
+		JERRYI2SCallback();
+#endif
 
 		DACWriteWord(offset, data, who);
 		return; 
