@@ -6,6 +6,11 @@
 // Rewritten by James L. Hammons
 //
 
+// Need to set up defaults that the BIOS sets for the SSI here in DACInit()... !!! FIX !!!
+// or something like that... Seems like it already does, but it doesn't seem to
+// work correctly...! Perhaps just need to set up SSI stuff so BUTCH doesn't get
+// confused...
+
 #include "SDL.h"
 #include "m68k.h"
 #include "jaguar.h"
@@ -62,12 +67,7 @@ void DACInit(void)
 	desired.callback = SDLSoundCallback;
 
 	if (SDL_OpenAudio(&desired, NULL) < 0)			// NULL means SDL guarantees what we want
-	{
-//		WriteLog("DAC: Failed to initialize SDL sound. Shutting down!\n");
-//		log_done();
-//		exit(1);
 		WriteLog("DAC: Failed to initialize SDL sound...\n");
-	}
 	else
 	{
 		SDLSoundInitialized = true;
@@ -120,9 +120,15 @@ void SDLSoundCallback(void * userdata, Uint8 * buffer, int length)
 		int numRightSamplesReady
 			= (RightFIFOTailPtr + (RightFIFOTailPtr < RightFIFOHeadPtr ? BUFFER_SIZE : 0))
 				- RightFIFOHeadPtr;
+//This waits for the slower side to catch up. If writing only one side, then this
+//causes the buffer not to drain...
 		int numSamplesReady
 			= (numLeftSamplesReady < numRightSamplesReady
 				? numLeftSamplesReady : numRightSamplesReady);//Hmm. * 2;
+
+//Kludge, until I can figure out WTF is going on WRT Super Burnout.
+if (numLeftSamplesReady == 0 || numRightSamplesReady == 0)
+	numSamplesReady = numLeftSamplesReady + numRightSamplesReady;
 
 //The numbers look good--it's just that the DSP can't get enough samples in the DAC buffer!
 //WriteLog("DAC: Left/RightFIFOHeadPtr: %u/%u, Left/RightFIFOTailPtr: %u/%u\n", LeftFIFOHeadPtr, RightFIFOHeadPtr, LeftFIFOTailPtr, RightFIFOTailPtr);
@@ -148,7 +154,7 @@ void SDLSoundCallback(void * userdata, Uint8 * buffer, int length)
 		// Could also use (as long as BUFFER_SIZE is a multiple of 2):
 //		LeftFIFOHeadPtr = (LeftFIFOHeadPtr + numSamplesReady) & (BUFFER_SIZE - 1);
 //		RightFIFOHeadPtr = (RightFIFOHeadPtr + numSamplesReady) & (BUFFER_SIZE - 1);
-//WriteLog("  -> Left/RightFIFOHeadPtr: %u/%u, Left/RightFIFOTailPtr: %u/%u\n", LeftFIFOHeadPtr, RightFIFOHeadPtr, LeftFIFOTailPtr, RightFIFOTailPtr);
+//WriteLog("  -> Left/RightFIFOHeadPtr: %04X/%04X, Left/RightFIFOTailPtr: %04X/%04X\n", LeftFIFOHeadPtr, RightFIFOHeadPtr, LeftFIFOTailPtr, RightFIFOTailPtr);
 	}
 //Hmm. Seems that the SDL buffer isn't being starved by the DAC buffer...
 //	else
@@ -186,7 +192,26 @@ void DACWriteWord(uint32 offset, uint16 data, uint32 who/*= UNKNOWN*/)
 //[DONE]
 		// Also, we're taking advantage of the fact that the buffer is a multiple of two
 		// in this check...
-		while (((LeftFIFOTailPtr + 2) & (BUFFER_SIZE - 1)) == LeftFIFOHeadPtr);
+uint32 spin = 0;
+		while (((LeftFIFOTailPtr + 2) & (BUFFER_SIZE - 1)) == LeftFIFOHeadPtr)//;
+		{
+spin++;
+//if ((spin & 0x0FFFFFFF) == 0)
+//	WriteLog("Tail=%X, Head=%X, BUFFER_SIZE-1=%X\n", RightFIFOTailPtr, RightFIFOHeadPtr, BUFFER_SIZE - 1);
+
+if (spin == 0xFFFF0000)
+{
+uint32 ltail = LeftFIFOTailPtr, lhead = LeftFIFOHeadPtr;
+WriteLog("Tail=%X, Head=%X", ltail, lhead);
+
+	WriteLog("\nStuck in left DAC spinlock! Aborting!\n");
+	WriteLog("LTail=%X, LHead=%X, BUFFER_SIZE-1=%X\n", LeftFIFOTailPtr, LeftFIFOHeadPtr, BUFFER_SIZE - 1);
+	WriteLog("RTail=%X, RHead=%X, BUFFER_SIZE-1=%X\n", RightFIFOTailPtr, RightFIFOHeadPtr, BUFFER_SIZE - 1);
+	WriteLog("From while: Tail=%X, Head=%X", (LeftFIFOTailPtr + 2) & (BUFFER_SIZE - 1), LeftFIFOHeadPtr);
+	log_done();
+	exit(0);
+}
+		}//*/
 
 		SDL_LockAudio();							// Is it necessary to do this? Mebbe.
 		// We use a circular buffer 'cause it's easy. Note that the callback function
@@ -198,10 +223,65 @@ void DACWriteWord(uint32 offset, uint16 data, uint32 who/*= UNKNOWN*/)
 	}
 	else if (offset == RTXD + 2)
 	{
+/*
+Here's what's happening now:
+
+Stuck in right DAC spinlock!
+Aborting!
+
+Tail=681, Head=681, BUFFER_SIZE-1=FFFF
+From while: Tail=683, Head=681
+
+????? What the FUCK ?????
+
+& when I uncomment the lines below spin++; it *doesn't* lock here... WTF?????
+
+I think it was missing parentheses causing the fuckup... Seems to work now...
+
+Except for Super Burnout now...! Aarrrgggghhhhh!
+
+Tail=AC, Head=AE
+Stuck in left DAC spinlock! Aborting!
+Tail=AC, Head=AE, BUFFER_SIZE-1=FFFF
+From while: Tail=AE, Head=AE
+
+So it's *really* stuck here in the left FIFO. Figure out why!!!
+
+Prolly 'cause it doesn't set the sample rate right away--betcha it works with the BIOS...
+It gets farther, but then locks here (weird!):
+
+Tail=2564, Head=2566
+Stuck in left DAC spinlock! Aborting!
+Tail=2564, Head=2566, BUFFER_SIZE-1=FFFF
+From while: Tail=2566, Head=2566
+
+Weird--recompile with more WriteLog() entries and it *doesn't* lock...
+Yeah, because there was no DSP running. Duh!
+
+Tail=AC, Head=AE
+Stuck in left DAC spinlock! Aborting!
+LTail=AC, LHead=AE, BUFFER_SIZE-1=FFFF
+RTail=AF, RHead=AF, BUFFER_SIZE-1=FFFF
+From while: Tail=AE, Head=AE
+
+Odd: The right FIFO is empty, but the left FIFO is full!
+And this is what is causing the lockup--the DAC callback waits for the side with
+less samples ready and in this case it's the right channel (that never fills up)
+that it's waiting for...!
+
+Okay, with the kludge in place for the right channel not being filled, we select
+a track and then it locks here:
+
+Tail=60D8, Head=60DA
+Stuck in left DAC spinlock! Aborting!
+LTail=60D8, LHead=60D8, BUFFER_SIZE-1=FFFF
+RTail=DB, RHead=60D9, BUFFER_SIZE-1=FFFF
+From while: Tail=60DA, Head=60D8
+*/
 		// Spin until buffer has been drained (for too fast processors!)...
-//uint32 spin = 0;
-		while (((RightFIFOTailPtr + 2) & (BUFFER_SIZE - 1)) == RightFIFOHeadPtr);
-/*		{
+uint32 spin = 0;
+		while (((RightFIFOTailPtr + 2) & (BUFFER_SIZE - 1)) == RightFIFOHeadPtr)//;
+		{
 spin++;
 //if ((spin & 0x0FFFFFFF) == 0)
 //	WriteLog("Tail=%X, Head=%X, BUFFER_SIZE-1=%X\n", RightFIFOTailPtr, RightFIFOHeadPtr, BUFFER_SIZE - 1);
@@ -209,23 +289,21 @@ spin++;
 if (spin == 0xFFFF0000)
 {
 uint32 rtail = RightFIFOTailPtr, rhead = RightFIFOHeadPtr;
-WriteLog("Tail=%X, Head=%X\n", rtail, rhead);
+WriteLog("Tail=%X, Head=%X", rtail, rhead);
 
-	WriteLog("\nStuck in right DAC spinlock!\nAborting!\n\n");
-	WriteLog("Tail=%X, Head=%X, BUFFER_SIZE-1=%X\n", RightFIFOTailPtr, RightFIFOHeadPtr, BUFFER_SIZE - 1);
+	WriteLog("\nStuck in right DAC spinlock! Aborting!\n");
+	WriteLog("LTail=%X, LHead=%X, BUFFER_SIZE-1=%X\n", LeftFIFOTailPtr, LeftFIFOHeadPtr, BUFFER_SIZE - 1);
+	WriteLog("RTail=%X, RHead=%X, BUFFER_SIZE-1=%X\n", RightFIFOTailPtr, RightFIFOHeadPtr, BUFFER_SIZE - 1);
 	WriteLog("From while: Tail=%X, Head=%X", (RightFIFOTailPtr + 2) & (BUFFER_SIZE - 1), RightFIFOHeadPtr);
 	log_done();
 	exit(0);
 }
 		}//*/
 
-//This is wrong		if (RightFIFOTailPtr + 2 != RightFIFOHeadPtr)
-//		{
 		SDL_LockAudio();
 		RightFIFOTailPtr = (RightFIFOTailPtr + 2) % BUFFER_SIZE;
 		DACBuffer[RightFIFOTailPtr] = data;
 		SDL_UnlockAudio();
-//		}
 /*#ifdef DEBUG_DAC
 		else
 			WriteLog("DAC: Ran into FIFO's right tail pointer!\n");
