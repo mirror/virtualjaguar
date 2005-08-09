@@ -958,7 +958,7 @@ Lesse, with pre-add we'd have:
 */
 //NOTE: The way to fix the CD BIOS is to uncomment below and comment the stuff after
 //      the phrase mode mucking around. But it fucks up everything else...
-#define SCREWY_CD_DEPENDENT
+//#define SCREWY_CD_DEPENDENT
 #ifdef SCREWY_CD_DEPENDENT
 		a1_x += a1_step_x;
 		a1_y += a1_step_y;
@@ -1261,19 +1261,19 @@ WriteLog("BLIT: Asked to use invalid bit combo (XADDINC) for A2...\n");
 	{
 		gd_c[0] = blitter_ram[PATTERNDATA + 6];
 		gd_i[0]	= ((uint32)blitter_ram[PATTERNDATA + 7] << 16)
-			| ((uint32)blitter_ram[SRCDATA + 6] << 8) | blitter_ram[SRCDATA + 1];
+			| ((uint32)blitter_ram[SRCDATA + 6] << 8) | blitter_ram[SRCDATA + 7];
 
 		gd_c[1] = blitter_ram[PATTERNDATA + 4];
 		gd_i[1]	= ((uint32)blitter_ram[PATTERNDATA + 5] << 16)
-			| ((uint32)blitter_ram[SRCDATA + 4] << 8) | blitter_ram[SRCDATA + 3];
+			| ((uint32)blitter_ram[SRCDATA + 4] << 8) | blitter_ram[SRCDATA + 5];
 
 		gd_c[2] = blitter_ram[PATTERNDATA + 2];
 		gd_i[2]	= ((uint32)blitter_ram[PATTERNDATA + 3] << 16)
-			| ((uint32)blitter_ram[SRCDATA + 2] << 8) | blitter_ram[SRCDATA + 5];
+			| ((uint32)blitter_ram[SRCDATA + 2] << 8) | blitter_ram[SRCDATA + 3];
 
 		gd_c[3] = blitter_ram[PATTERNDATA + 0];
 		gd_i[3]	= ((uint32)blitter_ram[PATTERNDATA + 1] << 16)
-			| ((uint32)blitter_ram[SRCDATA + 0] << 8) | blitter_ram[SRCDATA + 7];
+			| ((uint32)blitter_ram[SRCDATA + 0] << 8) | blitter_ram[SRCDATA + 1];
 
 		gouraud_add = REG(INTENSITYINC);
 		
@@ -2688,7 +2688,7 @@ void ADDBMUX(int16 &addb_x, int16 &addb_y, uint8 addbsel, int16 a1_x, int16 a1_y
 void DATAMUX(int16 &data_x, int16 &data_y, uint32 gpu_din, int16 addq_x, int16 addq_y, bool addqsel);
 void ADDRADD(int16 &addq_x, int16 &addq_y, bool a1fracldi,
 	uint16 adda_x, uint16 adda_y, uint16 addb_x, uint16 addb_y, uint8 modx, bool suba_x, bool suba_y);
-void DATA (uint64 &wdata, uint8 &dcomp, uint8 &zcomp, bool &nowrite,
+void DATA(uint64 &wdata, uint8 &dcomp, uint8 &zcomp, bool &nowrite,
 	bool big_pix, bool cmpdst, uint8 daddasel, uint8 daddbsel, uint8 daddmode, bool daddq_sel, uint8 data_sel,
 	uint8 dbinh, uint8 dend, uint8 dstart, uint64 dstd, uint32 iinc, uint8 lfu_func, uint64 patd, bool patdadd,
 	bool phrase_mode, uint64 srcd, bool srcdread, bool srczread, bool srcz2add, uint8 zmode,
@@ -2712,9 +2712,9 @@ void BlitterMidsummer2(void)
 // $00011008 has GOURD & DSTEN.
 // $41802F41 has SRCSHADE, CLIPA1
 logBlit = false;
-/*if (
-	cmd != 0x00010200
-	&& cmd != 0x01800001
+if (
+	cmd != 0x00010200 &&	// PATDSEL
+	cmd != 0x01800001
 	&& cmd != 0x01800005
 //Boot ROM ATARI letters:
 	&& cmd != 0x00011008	// DSTEN GOURD PATDSEL
@@ -2725,7 +2725,7 @@ logBlit = false;
 //T2K TEMPEST letters:
 	&& cmd != 0x09800741	// SRCEN CLIP_A1 UPDA1 UPDA1F UPDA2 LFUFUNC=C DCOMPEN
 //Static letters on Cybermorph intro screen:
-	&& cmd != 0x09800609	// DCOMPEN
+	&& cmd != 0x09800609	// SRCEN DSTEN UPDA1 UPDA2 LFUFUNC=C DCOMPEN
 //Static pic on title screen:
 	&& cmd != 0x01800601	// SRCEN UPDA1 UPDA2 LFUFUNC=C
 //Turning letters on Cybermorph intro screen:
@@ -2738,8 +2738,23 @@ logBlit = false;
 	&& cmd != 0x00010000	// PATDSEL
 //Hover Strike text:
 	&& cmd != 0x1401060C	// SRCENX DSTEN UPDA1 UPDA2 PATDSEL BCOMPEN BKGWREN
+//Trevor McFur stuff:
+//Various text...
+//Or is it? Look at some of these dimensions (phrase mode is OFF):
+//48 x 165, 64 x 265, 192 x 104, 48 x 392, 16 x 56, 32 x 168, 48 x 281, 80 x 448, 192 x 112,
+//96 x 72, 320 x 184, 256 x 200, 224 x 48
+	&& cmd != 0x05810601	// SRCEN UPDA1 UPDA2 PATDSEL BCOMPEN
+	&& cmd != 0x01800201	// SRCEN UPDA1 LFUFUNC=C
 	)
 	logBlit = true;//*/
+/*
+TMcF unique blits:
+logBlit = F, cmd = 00010000 *
+logBlit = F, cmd = 01800601 *
+logBlit = F, cmd = 05810601
+logBlit = F, cmd = 01800201
+logBlit = F, cmd = 00010200 *
+*/
 
 //printf("logBlit = %s, cmd = %08X\n", (logBlit ? "T" : "F"), cmd);
 //fflush(stdout);
@@ -2754,7 +2769,7 @@ logBlit = false;
 		dcompen = (DCOMPEN), bkgwren = (BKGWREN), srcshade = (SRCSHADE);
 
 	uint8 zmode = (cmd & 0x01C0000) >> 18, lfufunc = (cmd & 0x1E00000) >> 21;
-//Missing: ZMODE, LFUFUNC, BUSHI
+//Missing: BUSHI
 //Where to find various lines:
 // clip_a1  -> inner
 // gourd    -> dcontrol, inner, outer, state
@@ -2898,12 +2913,72 @@ patdld[1] -> 0 0110 1100 -> $F0226C (hi 32 bits)
 So... It's reversed! The data organization of the patd register is [low 32][high 32]! !!! FIX !!! [DONE]
 And fix all the other 64 bit registers [DONE]
 */
-
-if (cmd == 0x1401060C)
+/*if (cmd == 0x1401060C)
 {
 	printf("logBlit = %s, cmd = %08X\n", (logBlit ? "T" : "F"), cmd);
 	fflush(stdout);
-}
+}*/
+/*logBlit = false;
+if ((cmd == 0x00010200) && (GET16(blitter_ram, PIXLINECOUNTER + 2) == 9))
+	logBlit = true;
+
+; Pink altimeter bar
+
+Blit! (00110000 <- 000BF010) count: 9 x 23, A1/2_FLAGS: 000042E2/00010020 [cmd: 00010200]
+ CMD -> src:  dst:  misc:  a1ctl: UPDA1  mode:  ity: PATDSEL z-op:  op: LFU_CLEAR ctrl: 
+  A1 step values: -10 (X), 1 (Y)
+  A1 -> pitch: 4 phrases, depth: 16bpp, z-off: 3, width: 320 (21), addctl: XADDPHR YADD0 XSIGNADD YSIGNADD
+  A2 -> pitch: 1 phrases, depth: 16bpp, z-off: 0, width: 1 (00), addctl: XADDPIX YADD0 XSIGNADD YSIGNADD
+        A1 x/y: 262/132, A2 x/y: 129/0
+;x-coord is 257 in pic, so add 5
+;20 for ship, 33 for #... Let's see if we can find 'em!
+
+; Black altimeter bar
+
+Blit! (00110000 <- 000BF010) count: 5 x 29, A1/2_FLAGS: 000042E2/00010020 [cmd: 00010200]
+ CMD -> src:  dst:  misc:  a1ctl: UPDA1  mode:  ity: PATDSEL z-op:  op: LFU_CLEAR ctrl: 
+  A1 step values: -8 (X), 1 (Y)
+  A1 -> pitch: 4 phrases, depth: 16bpp, z-off: 3, width: 320 (21), addctl: XADDPHR YADD0 XSIGNADD YSIGNADD
+  A2 -> pitch: 1 phrases, depth: 16bpp, z-off: 0, width: 1 (00), addctl: XADDPIX YADD0 XSIGNADD YSIGNADD
+        A1 x/y: 264/126, A2 x/y: 336/0
+
+Here's the pink bar--note that it's phrase mode without dread, so how does this work???
+Not sure, but I *think* that somehow it MUXes the data at the write site in on the left or right side
+of the write data when masked in phrase mode. I'll have to do some tracing to see if this is the mechanism
+it uses or not...
+
+Blit! (CMD = 00010200)
+Flags: UPDA1 PATDSEL
+  count = 9 x 11
+  a1_base = 00110010, a2_base = 000BD7E0
+  a1_x = 0106, a1_y = 0090, a1_frac_x = 0000, a1_frac_y = 8000, a2_x = 025A, a2_y = 0000
+  a1_step_x = FFF6, a1_step_y = 0001, a1_stepf_x = 5E00, a1_stepf_y = D100, a2_step_x = FFF7, a2_step_y = 0001
+  a1_inc_x = 0001, a1_inc_y = FFFF, a1_incf_x = 0000, a1_incf_y = E000
+  a1_win_x = 0000, a1_win_y = 0000, a2_mask_x = 0000, a2_mask_y = 0000
+  a2_mask=F a1add=+phr/+0 a2add=+1/+0
+  a1_pixsize = 4, a2_pixsize = 4
+   srcd=BAC673AC2C92E578  dstd=0000000000000000 patd=74C074C074C074C0 iinc=0002E398
+  srcz1=7E127E12000088DA srcz2=DBE06DF000000000 dstz=0000000000000000 zinc=FFFE4840, coll=0
+  Phrase mode is ON
+  [in=T a1f=F a1=F zf=F z=F a2=F iif=F iii=F izf=F izi=F]
+  Entering INNER state...
+  Entering DWRITE state...
+     Dest write address/pix address: 0016A830/0 [dstart=20 dend=40 pwidth=8 srcshift=0][daas=0 dabs=0 dam=7 ds=0 daq=F] [7400000074C074C0] (icount=0007, inc=2)
+  Entering A1_ADD state [a1_x=0106, a1_y=0090, addasel=0, addbsel=0, modx=2, addareg=F, adda_xconst=2, adda_yconst=0]...
+  Entering DWRITE state...
+     Dest write address/pix address: 0016A850/0 [dstart=0 dend=40 pwidth=8 srcshift=0][daas=0 dabs=0 dam=7 ds=0 daq=F] [74C074C074C074C0] (icount=0003, inc=4)
+  Entering A1_ADD state [a1_x=0108, a1_y=0090, addasel=0, addbsel=0, modx=2, addareg=F, adda_xconst=2, adda_yconst=0]...
+  Entering DWRITE state...
+     Dest write address/pix address: 0016A870/0 [dstart=0 dend=30 pwidth=8 srcshift=0][daas=0 dabs=0 dam=7 ds=0 daq=F] [74C074C074C00000] (icount=FFFF, inc=4)
+  Entering A1_ADD state [a1_x=010C, a1_y=0090, addasel=0, addbsel=0, modx=2, addareg=F, adda_xconst=2, adda_yconst=0]...
+  Entering IDLE_INNER state...
+  Leaving INNER state... (ocount=000A)
+  [in=F a1f=F a1=T zf=F z=F a2=F iif=F iii=F izf=F izi=F]
+  Entering A1UPDATE state... (272/144 -> 262/145)
+  [in=T a1f=F a1=F zf=F z=F a2=F iif=F iii=F izf=F izi=F]
+  Entering INNER state...
+*/
+
 	// Bugs in Jaguar I
 	
 	a2addy = a1addy;							// A2 channel Y add bit is tied to A1's
@@ -3749,7 +3824,7 @@ fflush(stdout);
 #ifdef VERBOSE_BLITTER_LOGGING
 if (logBlit)
 {
-printf("  Entering SZREADX state...\n");
+printf("  Entering SZREAD state...\n");
 fflush(stdout);
 }
 #endif
@@ -3941,9 +4016,14 @@ fflush(stdout);
 }
 #endif
 
+//More testing... This is almost certainly wrong, but how else does this work???
+//Seems to kinda work... But still, this doesn't seem to make any sense!
+if (phrase_mode && !dsten)
+	dstd = ((uint64)JaguarReadLong(address, BLITTER) << 32) | (uint64)JaguarReadLong(address + 4, BLITTER);
+
 //Testing only... for now...
 //This is wrong because the write data is a combination of srcd and dstd--either run
-//thru the LFU or in PATDSEL or ADDDSEL mode.
+//thru the LFU or in PATDSEL or ADDDSEL mode. [DONE now, thru DATA module]
 // Precedence is ADDDSEL > PATDSEL > LFU.
 //Also, doesn't take into account the start & end masks, or the phrase width...
 //Now it does!
@@ -3994,6 +4074,56 @@ DATA(wdata, dcomp, zcomp, winhibit,
 	phrase_mode, srcd, false/*srcdread*/, false/*srczread*/, srcz2add, zmode,
 	bcompen, bkgwren, dcompen, icount & 0x07, pixsize);
 //	bool bcompen, bool bkgwren, bool dcompen, uint8 icount, uint8 pixsize)
+/*
+Seems that the phrase mode writes with DCOMPEN and DSTEN are corrupting inside of DATA: !!! FIX !!!
+It's fairly random as well. 7CFE -> 7DFE, 7FCA -> 78CA, 7FA4 -> 78A4, 7F88 -> 8F88
+It could be related to an uninitialized variable, like the zmode bug...
+
+Blit! (CMD = 09800609)
+Flags: SRCEN DSTEN UPDA1 UPDA2 LFUFUNC=C DCOMPEN
+  count = 10 x 12
+  a1_base = 00110000, a2_base = 0010B2A8
+  a1_x = 004B, a1_y = 00D8, a1_frac_x = 0000, a1_frac_y = 0000, a2_x = 0704, a2_y = 0000
+  a1_step_x = FFF3, a1_step_y = 0001, a1_stepf_x = 0000, a1_stepf_y = 0000, a2_step_x = FFFC, a2_step_y = 0000
+  a1_inc_x = 0000, a1_inc_y = 0000, a1_incf_x = 0000, a1_incf_y = 0000
+  a1_win_x = 0000, a1_win_y = 0000, a2_mask_x = 0000, a2_mask_y = 0000
+  a2_mask=F a1add=+phr/+0 a2add=+phr/+0
+  a1_pixsize = 4, a2_pixsize = 4
+   srcd=0000000000000000  dstd=0000000000000000 patd=0000000000000000 iinc=00000000
+  srcz1=0000000000000000 srcz2=0000000000000000 dstz=0000000000000000 zinc=00000000, coll=0
+  Phrase mode is ON
+  [in=T a1f=F a1=F zf=F z=F a2=F iif=F iii=F izf=F izi=F]
+  Entering INNER state...
+  Entering SREAD state...    Source read address/pix address: 0010C0B0/0 [0000000078047804]
+  Entering A2_ADD state [a2_x=0704, a2_y=0000, addasel=0, addbsel=1, modx=2, addareg=F, adda_xconst=2, adda_yconst=0]...
+  Entering DREAD state...
+      Dest read address/pix address: 00197240/0 [0000000000000028]
+  Entering DWRITE state...
+     Dest write address/pix address: 00197240/0 [dstart=30 dend=40 pwidth=8 srcshift=30][daas=0 dabs=0 dam=7 ds=1 daq=F] [0000000000000028] (icount=0009, inc=1)
+  Entering A1_ADD state [a1_x=004B, a1_y=00D8, addasel=0, addbsel=0, modx=2, addareg=F, adda_xconst=2, adda_yconst=0]...
+  Entering SREAD state...    Source read address/pix address: 0010C0B8/0 [7804780478047804]
+  Entering A2_ADD state [a2_x=0708, a2_y=0000, addasel=0, addbsel=1, modx=2, addareg=F, adda_xconst=2, adda_yconst=0]...
+  Entering DREAD state...
+      Dest read address/pix address: 00197260/0 [0028000000200008]
+  Entering DWRITE state...
+     Dest write address/pix address: 00197260/0 [dstart=0 dend=40 pwidth=8 srcshift=30][daas=0 dabs=0 dam=7 ds=1 daq=F] [0028780478047804] (icount=0005, inc=4)
+  Entering A1_ADD state [a1_x=004C, a1_y=00D8, addasel=0, addbsel=0, modx=2, addareg=F, adda_xconst=2, adda_yconst=0]...
+  Entering SREAD state...    Source read address/pix address: 0010C0C0/0 [0000000000000000]
+  Entering A2_ADD state [a2_x=070C, a2_y=0000, addasel=0, addbsel=1, modx=2, addareg=F, adda_xconst=2, adda_yconst=0]...
+  Entering DREAD state...
+      Dest read address/pix address: 00197280/0 [0008001800180018]
+  Entering DWRITE state...
+     Dest write address/pix address: 00197280/0 [dstart=0 dend=40 pwidth=8 srcshift=30][daas=0 dabs=0 dam=7 ds=1 daq=F] [7804780478040018] (icount=0001, inc=4)
+  Entering A1_ADD state [a1_x=0050, a1_y=00D8, addasel=0, addbsel=0, modx=2, addareg=F, adda_xconst=2, adda_yconst=0]...
+  Entering SREAD state...    Source read address/pix address: 0010C0C8/0 [000078047BFE7BFE]
+  Entering A2_ADD state [a2_x=0710, a2_y=0000, addasel=0, addbsel=1, modx=2, addareg=F, adda_xconst=2, adda_yconst=0]...
+  Entering DREAD state...
+      Dest read address/pix address: 001972A0/0 [0008002000000000]
+  Entering DWRITE state...
+     Dest write address/pix address: 001972A0/0 [dstart=0 dend=10 pwidth=8 srcshift=30][daas=0 dabs=0 dam=7 ds=1 daq=F] [0008002000000000] (icount=FFFD, inc=4)
+  Entering A1_ADD state [a1_x=0054, a1_y=00D8, addasel=0, addbsel=0, modx=2, addareg=F, adda_xconst=2, adda_yconst=0]...
+  Entering IDLE_INNER state...
+*/
 
 if (patdadd)
 	patd = wdata;
@@ -4020,6 +4150,7 @@ A1_ycomp	:= MAG_15 (a1ygr, a1yeq, a1ylt, a1_y{0..14}, a1_win_y{0..14});
 A1_outside	:= OR6 (a1_outside, a1_x{15}, a1xgr, a1xeq, a1_y{15}, a1ygr, a1yeq);
 */
 //NOTE: There seems to be an off-by-one bug here in the clip_a1 section... !!! FIX !!!
+//      Actually, seems to be related to phrase mode writes...
 if (clip_a1 && ((a1_x & 0x8000) || (a1_y & 0x8000) || (a1_x >= a1_win_x) || (a1_y >= a1_win_y)))
 	winhibit = true;
 
@@ -5140,7 +5271,7 @@ INT32/	gpu_din			// GPU data bus
 		:IN);
 */
 
-void DATA (uint64 &wdata, uint8 &dcomp, uint8 &zcomp, bool &nowrite,
+void DATA(uint64 &wdata, uint8 &dcomp, uint8 &zcomp, bool &nowrite,
 	bool big_pix, bool cmpdst, uint8 daddasel, uint8 daddbsel, uint8 daddmode, bool daddq_sel, uint8 data_sel,
 	uint8 dbinh, uint8 dend, uint8 dstart, uint64 dstd, uint32 iinc, uint8 lfu_func, uint64 patd, bool patdadd,
 	bool phrase_mode, uint64 srcd, bool srcdread, bool srczread, bool srcz2add, uint8 zmode,
@@ -5333,7 +5464,7 @@ Efine		:= DECL38E (unused[0], e_fine\[1..7], dend[0..2], e_coarse[0]);*/
 		{ 0xFE, 0xFD, 0xFB, 0xF7, 0xEF, 0xDF, 0xBF, 0x7F } };
 	uint8 dech38[8] = { 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80 };
 	uint8 dech38el[2][8] = { { 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80 },
-		{ 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF } };
+		{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 } };
 
 			int en = (dend & 0x3F ? 1 : 0);
 	uint8 e_coarse = decl38e[en][(dend & 0x38) >> 3];		// Actually, this is e_coarse inverted...
