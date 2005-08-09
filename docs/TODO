@@ -20,22 +20,24 @@ Stuff to add/fix for the next release of Virtual Jaguar
 - Would also be nice to be able to dynamically change the keybindings for
   the various keys on the emulated Jaguar controller while inside the emulator.
   [Shamus]
-- Code to stretch the display in a generic way would be nice. [Shamus]
-  [DONE for OpenGL - nwagenaar]
 - Blitter needs fixing. [Shamus]
 - We need a comprehensive way of determining what gets written where and
   by whom (i.e., blitter wrote to range $F03000-$F03230) in order to figure
   out the remaining problems with various ROMs. [Shamus]
-- There is a bug either with the GPU or the blitter (most likely the latter)
-  which causes the spinning "A"s in the BIOS startup code to be corrupted
-  when they are showing their backsides. [Shamus]
 
 
 Stuff that was added/fixed
 --------------------------
 
+- There is a bug either with the GPU or the blitter (most likely the latter)
+  which causes the spinning "A"s in the BIOS startup code to be corrupted
+  when they are showing their backsides. [Shamus] [DONE--Shamus]
+  NOTE: This behavior has been verified on a real Jaguar and as such is not
+        an emulator bug. A Jaguar boot ROM bug, yes, but not ours. ;-)
 - Make it possible to completely disable the GUI (using a switch like -nogui
   or the like) for people running VJ in a cabinet. [Shamus] [DONE--Shamus]
+- Code to stretch the display in a generic way would be nice. [Shamus]
+  [DONE for OpenGL--nwagenaar]
 - Would be nice to have a GUI for things that are set on the command line or
   in the config file. [Shamus] [DONE--Shamus]
 - DSP code needs to be rewritten. [Shamus] [DONE but still work to be done--Shamus]

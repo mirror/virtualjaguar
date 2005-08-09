@@ -1,5 +1,5 @@
 --------------------------------------------
-Virtual Jaguar v1.0.8 GCC/SDL release README
+Virtual Jaguar v1.1.0 GCC/SDL release README
 --------------------------------------------
 
 --------------
@@ -53,7 +53,7 @@ whatsoever.
 
 The second type, the .jag file, is a Jaguar Server executable. These files
 contain header information that tells you where to load and run the file's
-executable code. Note that as of this writing (1/1/2004) that the GoodJag ROM
+executable code. Note that as of this writing (8/5/2005) that the GoodJag ROM
 renaming tool by Cowering incorrectly renames Jaguar cartridge ROM dumps to
 have a .jag extension (a better choice, and the one supported by Virtual
 Jaguar, is .j64)--if you're trying to run a ROM image with a .jag extension on

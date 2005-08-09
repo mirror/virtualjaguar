@@ -1,4 +1,4 @@
-Virtual Jaguar v1.0.8 GCC/SDL
+Virtual Jaguar v1.1.0 GCC/SDL
 -----------------------------
 
 * Switched OpenGL rendering to 32 BPP. This is not only how a real Jaguar
@@ -8,7 +8,8 @@ Virtual Jaguar v1.0.8 GCC/SDL
 * Fixed blitter writes so that Intensity[0-3] and Z[0-3] are written in the
   correct order. [Shamus]
 * Rewrote blitter to conform the the Oberon ASIC nets. This should fix a
-  bunch of stuff that wasn't working correctly before.
+  bunch of stuff that wasn't working correctly before. [Shamus]
+* Fixed writes to 64 bit blitter registers. [Shamus]
 
 
 Virtual Jaguar v1.0.7 GCC/SDL
@@ -49,7 +50,7 @@ Virtual Jaguar v1.0.7 GCC/SDL
 * Rewrote several OpenGL rendering functions concerning speed related items.
   [nwagenaar]
 * Several bugs resolved due to OpenGL and normal rendering code. [nwagenaar]
-* Default resolution for OpenGL is now 640x480 [nwagenaar];
+* Default resolution for OpenGL is now 640x480. [nwagenaar]
 
 
 Virtual Jaguar v1.0.6 GCC/SDL
@@ -160,7 +161,7 @@ Virtual Jaguar v1.0.3 GCC/SDL - source only release
   Alien vs Predator work again. :-) [Shamus]
 * Removed closed source Starscream and replaced it with the open source
   Musashi core. Because of this, VJ runs a little faster now. :-) [Shamus]
-* Various cleanups to the source files (still lots of work to do!) [Shamus]
+* Various cleanups to the source files (still lots of work to do!). [Shamus]
 
 NOTE: Tested only on WIN32 platform!
 
@@ -174,12 +175,12 @@ NOTE: Tested only on WIN32 platform!
 Virtual Jaguar v1.0.0 GCC/SDL - initial source release
 ------------------------------------------------------
 
-* Converted VC++ assembly to standard GNU assembly;
-* Fixed small bugs in SDL related items (keyboard/graphics);
-* Added *some* optimalisations to the graphics sources;
-* Added joystick support (not tested);
-* Added joystick port support (not tested);
-* Added frameskip support;
+* Converted VC++ assembly to standard GNU assembly.
+* Fixed small bugs in SDL related items (keyboard/graphics).
+* Added *some* optimalisations to the graphics sources.
+* Added joystick support (not tested).
+* Added joystick port support (not tested).
+* Added frameskip support.
 
 Source only release. Tested on BeOS, Linux, FreeBSD and WIN32.
 SOUND emulation was NOT done. Need help with this one :)
