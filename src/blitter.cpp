@@ -2618,58 +2618,12 @@ blitter_done:
 }
 #endif
 
-/*
-Here's a collection of various blits that aren't handled correctly yet...
 
-Spinning cube in Jaguar BIOS opening:
-
-  COMMAND  = 41802F41
-  a1_base  = 0015B000
-  a1_flags = 00033020 (0 0 0 11 . 011000 000 100 . 00)
-             pitch=0, pixSz=4, zOff=0, width=64, xCtrl=3
-  a1_clip  = 64, 64 (00400040)
-  a1_pixel = 0, 65534 (FFFE0000)
-  a1_step  = -64, -1 (FFFFFFC0)
-  a1_fstep = 0, 18161 (46F10000)
-  a1_fpixel= 32768, 42497 (A6018000)
-  a1_inc   = 1, 0 (00000001)
-  a1_finc  = 0, 1926 (07860000)
-  a2_base  = 0014B000
-  a2_flags = 00013820 (0 0 0 01 0 011100 000 100 . 00)
-             pitch=0, pixSz=4, zOff=0, width=128, xCtrl=1
-  a2_mask  = 0, 0 (00000000)
-  a2_pixel = 33, 55 (00370021)
-  a2_step  = -64, 1 (0001FFC0)
-  count    = 64 x 57
-  SRCEN    = 1
-  SRCENZ   = 0
-  SRCENX   = 0
-  DSTEN    = 0
-  DSTENZ   = 0
-  DSTWRZ   = 0
-  CLIPA1   = 1
-  UPDA1F   = 1
-  UPDA1    = 1
-  UPDA2    = 1
-  DSTA2    = 1
-  ZOP      =
---LFUFUNC  = LFU_REPLACE
-| PATDSEL  = 0 (PD=0000000000000000)
---ADDDSEL  = 0
-  CMPDST   = 0
-  BCOMPEN  = 0
-  DCOMPEN  = 0
-  TOPBEN   = 0
-  TOPNEN   = 0
-  BKGWREN  = 0
-  GOURD    = 0 (II=00FCDC80, SD=FF00FF00FF00FF00)
-  GOURZ    = 1 (ZI=00000000, ZD=0000000000000000, SZ1=0000000000000000, SZ2=0000000000000000)
-  SRCSHADE = 1
-
-*/
+//
+// Here's attempt #2--taken from the Oberon chip specs!
+//
 
 #ifdef USE_MIDSUMMER_BLITTER_MKII
-// Here's attempt #2--taken from the Oberon chip specs!
 
 void ADDRGEN(uint32 &, uint32 &, bool, bool,
 	uint16, uint16, uint32, uint8, uint8, uint8, uint8,
@@ -2690,7 +2644,7 @@ void ADDRADD(int16 &addq_x, int16 &addq_y, bool a1fracldi,
 	uint16 adda_x, uint16 adda_y, uint16 addb_x, uint16 addb_y, uint8 modx, bool suba_x, bool suba_y);
 void DATA(uint64 &wdata, uint8 &dcomp, uint8 &zcomp, bool &nowrite,
 	bool big_pix, bool cmpdst, uint8 daddasel, uint8 daddbsel, uint8 daddmode, bool daddq_sel, uint8 data_sel,
-	uint8 dbinh, uint8 dend, uint8 dstart, uint64 dstd, uint32 iinc, uint8 lfu_func, uint64 patd, bool patdadd,
+	uint8 dbinh, uint8 dend, uint8 dstart, uint64 dstd, uint32 iinc, uint8 lfu_func, uint64 &patd, bool patdadd,
 	bool phrase_mode, uint64 srcd, bool srcdread, bool srczread, bool srcz2add, uint8 zmode,
 	bool bcompen, bool bkgwren, bool dcompen, uint8 icount, uint8 pixsize);
 void COMP_CTRL(uint8 &dbinh, bool &nowrite,
@@ -2711,7 +2665,7 @@ void BlitterMidsummer2(void)
 // $01800005 has SRCENX, may have to investigate further...
 // $00011008 has GOURD & DSTEN.
 // $41802F41 has SRCSHADE, CLIPA1
-logBlit = false;
+/*logBlit = false;
 if (
 	cmd != 0x00010200 &&	// PATDSEL
 	cmd != 0x01800001
@@ -2739,25 +2693,47 @@ if (
 //Hover Strike text:
 	&& cmd != 0x1401060C	// SRCENX DSTEN UPDA1 UPDA2 PATDSEL BCOMPEN BKGWREN
 //Trevor McFur stuff:
-//Various text...
-//Or is it? Look at some of these dimensions (phrase mode is OFF):
-//48 x 165, 64 x 265, 192 x 104, 48 x 392, 16 x 56, 32 x 168, 48 x 281, 80 x 448, 192 x 112,
-//96 x 72, 320 x 184, 256 x 200, 224 x 48
 	&& cmd != 0x05810601	// SRCEN UPDA1 UPDA2 PATDSEL BCOMPEN
 	&& cmd != 0x01800201	// SRCEN UPDA1 LFUFUNC=C
+//T2K:
+	&& cmd != 0x00011000	// GOURD PATDSEL
+	&& cmd != 0x00011040	// CLIP_A1 GOURD PATDSEL
 	)
 	logBlit = true;//*/
+if (blit_start_log == 0)	// Wait for the signal...
+	logBlit = false;//*/
 /*
-TMcF unique blits:
-logBlit = F, cmd = 00010000 *
-logBlit = F, cmd = 01800601 *
-logBlit = F, cmd = 05810601
-logBlit = F, cmd = 01800201
+Some T2K unique blits:
 logBlit = F, cmd = 00010200 *
+logBlit = F, cmd = 00011000
+logBlit = F, cmd = 00011040
+logBlit = F, cmd = 01800005 *
+logBlit = F, cmd = 09800741 *
 */
 
 //printf("logBlit = %s, cmd = %08X\n", (logBlit ? "T" : "F"), cmd);
 //fflush(stdout);
+//logBlit = true;
+
+/*
+Blit! (CMD = 00011040)
+Flags: CLIP_A1 GOURD PATDSEL
+  count = 18 x 1
+  a1_base = 00100000, a2_base = 0081F6A8
+  a1_x = 00A7, a1_y = 0014, a1_frac_x = 0000, a1_frac_y = 0000, a2_x = 0001, a2_y = 0000
+  a1_step_x = FE80, a1_step_y = 0001, a1_stepf_x = 0000, a1_stepf_y = 0000, a2_step_x = FFF8, a2_step_y = 0001
+  a1_inc_x = 0001, a1_inc_y = 0000, a1_incf_x = 0000, a1_incf_y = 0000
+  a1_win_x = 0180, a1_win_y = 0118, a2_mask_x = 0000, a2_mask_y = 0000
+  a2_mask=F a1add=+phr/+0 a2add=+phr/+0
+  a1_pixsize = 4, a2_pixsize = 4
+*/
+//Testing T2K...
+/*logBlit = false;
+if (cmd == 0x00011040
+	&& (GET16(blitter_ram, A1_PIXEL + 2) == 0x00A7) && (GET16(blitter_ram, A1_PIXEL + 0) == 0x0014)
+	&& (GET16(blitter_ram, A2_PIXEL + 2) == 0x0001) && (GET16(blitter_ram, A2_PIXEL + 0) == 0x0000)
+	&& (GET16(blitter_ram, PIXLINECOUNTER + 2) == 18))
+	logBlit = true;*/
 
 	// Line states passed in via the command register
 
@@ -2877,6 +2853,11 @@ fflush(stdout);
 
 	uint8 pixsize = (dsta2 ? a2_pixsize : a1_pixsize);	// From ACONTROL
 
+//Testing Trevor McFur--I *think* it's the circle on the lower RHS of the screen...
+/*logBlit = false;
+if (cmd == 0x05810601 && (GET16(blitter_ram, PIXLINECOUNTER + 2) == 96)
+	&& (GET16(blitter_ram, PIXLINECOUNTER + 0) == 72))
+	logBlit = true;//*/
 //Testing...
 //if (cmd == 0x1401060C) patd = 0xFFFFFFFFFFFFFFFFLL;
 //if (cmd == 0x1401060C) patd = 0x00000000000000FFLL;
@@ -3018,6 +2999,7 @@ printf("  Phrase mode is %s\n", (phrase_mode ? "ON" : "off"));
 fflush(stdout);
 }
 #endif
+//logBlit = false;
 
 	// Stopgap vars to simulate various lines
 
@@ -3802,12 +3784,17 @@ srcd1 = ((uint64)JaguarReadLong(address, BLITTER) << 32) | (uint64)JaguarReadLon
 //Kludge to take pixel size into account...
 if (!phrase_mode)
 {
-	if (pixsize == 5)
-		srcd1 >>= 32;
-	else if (pixsize == 4)
-		srcd1 >>= 48;
-	else
+	if (bcompen)
 		srcd1 >>= 56;
+	else
+	{
+		if (pixsize == 5)
+			srcd1 >>= 32;
+		else if (pixsize == 4)
+			srcd1 >>= 48;
+		else
+			srcd1 >>= 56;
+	}
 }
 #ifdef VERBOSE_BLITTER_LOGGING
 if (logBlit)
@@ -4034,19 +4021,6 @@ uint64 srcd = (srcd2 << (64 - srcshift)) | (srcd1 >> srcshift);
 if (srcshift == 0)
 	srcd = srcd1;
 
-//Temporary kludge, to see if the fractional pattern does anything...
-//This works, BTW
-if (patfadd)
-{
-	uint16 addq[4];
-	uint8 initcin[4] = { 0, 0, 0, 0 };
-	ADDARRAY(addq, 4/*daddasel*/, 4/*daddbsel*/, 0/*daddmode*/, dstd, iinc, initcin, 0, 0, 0, patd, srcd, 0, 0, 0, 0);
-	srcd1 = ((uint64)addq[3] << 48) | ((uint64)addq[2] << 32) | ((uint64)addq[1] << 16) | (uint64)addq[0];
-}
-
-//Note that we still don't take atick[0] & [1] into account here, so this will skip half of the data needed... !!! FIX !!!
-//Not yet enumerated: dbinh, srcdread, srczread
-
 //When in SRCSHADE mode, it adds the IINC to the read source (from LFU???)
 //According to following line, it gets LFU mode. But does it feed the source into the LFU
 //after the add?
@@ -4065,6 +4039,21 @@ if (srcshade)
 //Seems to work... Not 100% sure tho.
 //end try this
 
+//Temporary kludge, to see if the fractional pattern does anything...
+//This works, BTW
+//But it seems to mess up in Cybermorph... the shading should be smooth but it isn't...
+//Seems the carry out is lost again... !!! FIX !!!
+if (patfadd)
+{
+	uint16 addq[4];
+	uint8 initcin[4] = { 0, 0, 0, 0 };
+	ADDARRAY(addq, 4/*daddasel*/, 4/*daddbsel*/, 0/*daddmode*/, dstd, iinc, initcin, 0, 0, 0, patd, srcd, 0, 0, 0, 0);
+	srcd1 = ((uint64)addq[3] << 48) | ((uint64)addq[2] << 32) | ((uint64)addq[1] << 16) | (uint64)addq[0];
+}
+
+//Note that we still don't take atick[0] & [1] into account here, so this will skip half of the data needed... !!! FIX !!!
+//Not yet enumerated: dbinh, srcdread, srczread
+
 bool winhibit;// = false;
 uint64 wdata;
 uint8 dcomp, zcomp;
@@ -4073,11 +4062,12 @@ DATA(wdata, dcomp, zcomp, winhibit,
 	dend, dstart, dstd, iinc, lfufunc, patd, patdadd,
 	phrase_mode, srcd, false/*srcdread*/, false/*srczread*/, srcz2add, zmode,
 	bcompen, bkgwren, dcompen, icount & 0x07, pixsize);
-//	bool bcompen, bool bkgwren, bool dcompen, uint8 icount, uint8 pixsize)
 /*
 Seems that the phrase mode writes with DCOMPEN and DSTEN are corrupting inside of DATA: !!! FIX !!!
 It's fairly random as well. 7CFE -> 7DFE, 7FCA -> 78CA, 7FA4 -> 78A4, 7F88 -> 8F88
 It could be related to an uninitialized variable, like the zmode bug...
+[DONE]
+It was a bug in the dech38el data--it returned $FF for ungated instead of $00...
 
 Blit! (CMD = 09800609)
 Flags: SRCEN DSTEN UPDA1 UPDA2 LFUFUNC=C DCOMPEN
@@ -4125,8 +4115,10 @@ Flags: SRCEN DSTEN UPDA1 UPDA2 LFUFUNC=C DCOMPEN
   Entering IDLE_INNER state...
 */
 
-if (patdadd)
-	patd = wdata;
+//Why isn't this taken care of in DATA? Because, DATA is modifying its local copy instead of the one used here.
+//!!! FIX !!! [DONE]
+//if (patdadd)
+//	patd = wdata;
 
 //if (patfadd)
 //	srcd1 = wdata;
@@ -4153,14 +4145,6 @@ A1_outside	:= OR6 (a1_outside, a1_x{15}, a1xgr, a1xeq, a1_y{15}, a1ygr, a1yeq);
 //      Actually, seems to be related to phrase mode writes...
 if (clip_a1 && ((a1_x & 0x8000) || (a1_y & 0x8000) || (a1_x >= a1_win_x) || (a1_y >= a1_win_y)))
 	winhibit = true;
-
-/*if (dcompen)
-{
-//This is currently not correct for phrase mode. !!! FIX !!!
-	if ((pixsize == 3 && (dcomp & 0x01))
-		|| (pixsize == 4 && (dcomp & 0x03)))
-		winhibit = true;
-}*/
 
 if (!winhibit)
 {
@@ -4895,6 +4879,11 @@ INT16/  b
 */
 void ADD16SAT(uint16 &r, uint8 &co, uint16 a, uint16 b, uint8 cin, bool sat, bool eightbit, bool hicinh)
 {
+/*if (logBlit)
+{
+	printf("--> [sat=%s 8b=%s hicinh=%s] %04X + %04X (+ %u) = ", (sat ? "T" : "F"), (eightbit ? "T" : "F"), (hicinh ? "T" : "F"), a, b, cin);
+	fflush(stdout);
+}*/
 	uint8 carry[4];
 	uint32 qt = (a & 0xFF) + (b & 0xFF) + cin;
 	carry[0] = (qt & 0x0100 ? 1 : 0);
@@ -4913,9 +4902,19 @@ void ADD16SAT(uint16 &r, uint8 &co, uint16 a, uint16 b, uint8 cin, bool sat, boo
 
 	bool saturate = sat && (btop ^ ctop);
 	bool hisaturate = saturate && !eightbit;
+/*if (logBlit)
+{
+	printf("bt=%u ct=%u s=%u hs=%u] ", btop, ctop, saturate, hisaturate);
+	fflush(stdout);
+}*/
 
 	r = (saturate ? (ctop ? 0x00FF : 0x0000) : q & 0x00FF);
 	r |= (hisaturate ? (ctop ? 0xFF00 : 0x0000) : q & 0xFF00);
+/*if (logBlit)
+{
+	printf("%04X (co=%u)\n", r, co);
+	fflush(stdout);
+}*/
 }
 
 /**  ADDAMUX - Address adder input A selection  *******************
@@ -5273,7 +5272,7 @@ INT32/	gpu_din			// GPU data bus
 
 void DATA(uint64 &wdata, uint8 &dcomp, uint8 &zcomp, bool &nowrite,
 	bool big_pix, bool cmpdst, uint8 daddasel, uint8 daddbsel, uint8 daddmode, bool daddq_sel, uint8 data_sel,
-	uint8 dbinh, uint8 dend, uint8 dstart, uint64 dstd, uint32 iinc, uint8 lfu_func, uint64 patd, bool patdadd,
+	uint8 dbinh, uint8 dend, uint8 dstart, uint64 dstd, uint32 iinc, uint8 lfu_func, uint64 &patd, bool patdadd,
 	bool phrase_mode, uint64 srcd, bool srcdread, bool srczread, bool srcz2add, uint8 zmode,
 	bool bcompen, bool bkgwren, bool dcompen, uint8 icount, uint8 pixsize)
 {
@@ -5401,6 +5400,9 @@ Zstep		:= JOIN (zstep, zstep[0..31]);*/
 	ADDARRAY(addq, daddasel, daddbsel, daddmode, dstd, iinc, initcin, 0, 0, 0, patd, srcd, 0, 0, 0, 0);
 
 	//This is normally done asynchronously above (thru local_data) when in patdadd mode...
+//And now it's passed back to the caller to be persistent between calls...!
+//But it's causing some serious fuck-ups in T2K now... !!! FIX !!!
+//Weird! It doesn't anymore...!
 	if (patdadd)
 		patd = ((uint64)addq[3] << 48) | ((uint64)addq[2] << 32) | ((uint64)addq[1] << 16) | (uint64)addq[0];
 //////////////////////////////////////////////////////////////////////////////////////
@@ -5617,6 +5619,14 @@ Dat[56-63]	:= MX4 (dat[56-63], dstdhi{24-31}, ddathi{24-31}, dstzhi{24-31}, srcz
 	wdata |= (mask & 0x1000 ? ddat : dstd) & 0x0000FF0000000000LL;
 	wdata |= (mask & 0x2000 ? ddat : dstd) & 0x00FF000000000000LL;
 	wdata |= (mask & 0x4000 ? ddat : dstd) & 0xFF00000000000000LL;
+/*if (logBlit)
+{
+	printf("\n[ddat=%08X%08X dstd=%08X%08X wdata=%08X%08X mask=%04X]\n",
+		(uint32)(ddat >> 32), (uint32)(ddat & 0xFFFFFFFF),
+		(uint32)(dstd >> 32), (uint32)(dstd & 0xFFFFFFFF),
+		(uint32)(wdata >> 32), (uint32)(wdata & 0xFFFFFFFF), mask);
+	fflush(stdout);
+}//*/
 //////////////////////////////////////////////////////////////////////////////////////
 
 /*Data_enab[0-1]	:= BUF8 (data_enab[0-1], data_ena);
