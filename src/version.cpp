@@ -14,7 +14,7 @@ void InitVersion(void)
 
 void version_display(FILE * fp)
 {
-	fprintf(fp, "Virtual Jaguar v1.0.8 (Last full build was on %s %s)\n", __DATE__, __TIME__);
+	fprintf(fp, "Virtual Jaguar v1.1.0 (Last full build was on %s %s)\n", __DATE__, __TIME__);
 }
 
 void VersionDone(void)
