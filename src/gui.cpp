@@ -35,9 +35,12 @@ class Window;										// Forward declaration...
 //void DrawTransparentBitmap(uint32 * screen, uint32 x, uint32 y, uint32 * bitmap, uint8 * alpha = NULL);
 void DrawTransparentBitmapDeprecated(uint32 * screen, uint32 x, uint32 y, uint32 * bitmap);
 void DrawTransparentBitmap(uint32 * screen, uint32 x, uint32 y, const void * bitmap);
+void DrawBitmap(uint32 * screen, uint32 x, uint32 y, const void * bitmap);
+void ClearScreenRectangle(uint32 * screen, uint32 x, uint32 y, uint32 w, uint32 h);
 void DrawStringTrans(uint32 * screen, uint32 x, uint32 y, uint32 color, uint8 opacity, const char * text, ...);
 void DrawStringOpaque(uint32 * screen, uint32 x, uint32 y, uint32 color1, uint32 color2, const char * text, ...);
 void DrawString(uint32 * screen, uint32 x, uint32 y, bool invert, const char * text, ...);
+void DrawString2(uint32 * screen, uint32 x, uint32 y, uint32 color, uint8 transparency, const char * text, ...);
 Window * LoadROM(void);
 Window * ResetJaguar(void);
 Window * ResetJaguarCD(void);
@@ -131,6 +134,10 @@ bool Element::Inside(uint32 x, uint32 y)
 		&& y >= (uint32)extents.y && y < (uint32)(extents.y + extents.h) ? true : false);
 }
 
+
+//
+// Button class
+//
 
 class Button: public Element
 {
@@ -230,6 +237,10 @@ void Button::Draw(uint32 offsetX/*= 0*/, uint32 offsetY/*= 0*/)
 	}
 }
 
+
+//
+// PushButton class
+//
 
 class PushButton: public Element
 {
@@ -331,6 +342,10 @@ void PushButton::Draw(uint32 offsetX/*= 0*/, uint32 offsetY/*= 0*/)
 }
 
 
+//
+// SlideSwitch class
+//
+
 class SlideSwitch: public Element
 {
 // How to handle?
@@ -395,6 +410,10 @@ void SlideSwitch::Draw(uint32 offsetX/*= 0*/, uint32 offsetY/*= 0*/)
 		DrawString(screenBuffer, extents.x + offsetX + 24, extents.y + offsetY + 16, false, "%s", text2.c_str());
 }
 
+
+//
+// Window class
+//
 
 class Window: public Element
 {
@@ -504,6 +523,10 @@ void Window::Notify(Element * e)
 }
 
 
+//
+// Static text class
+//
+
 class Text: public Element
 {
 	public:
@@ -535,6 +558,85 @@ void Text::Draw(uint32 offsetX/*= 0*/, uint32 offsetY/*= 0*/)
 		DrawStringOpaque(screenBuffer, extents.x + offsetX, extents.y + offsetY, fgColor, bgColor, "%s", text.c_str());
 }
 
+
+//
+// Static image class
+//
+
+class Image: public Element
+{
+	public:
+		Image(uint32 x, uint32 y, const void * img): Element(x, y, 0, 0), image(img) {}
+		virtual void HandleKey(SDLKey key) {}
+		virtual void HandleMouseMove(uint32 x, uint32 y) {}
+		virtual void HandleMouseButton(uint32 x, uint32 y, bool mouseDown) {}
+		virtual void Draw(uint32 offsetX = 0, uint32 offsetY = 0);
+		virtual void Notify(Element *) {}
+
+	protected:
+		uint32 fgColor, bgColor;
+		const void * image;
+};
+
+void Image::Draw(uint32 offsetX/*= 0*/, uint32 offsetY/*= 0*/)
+{
+	if (image != NULL)
+		DrawTransparentBitmap(screenBuffer, extents.x + offsetX, extents.y + offsetY, image);
+}
+
+
+//
+// TextEdit class
+//
+
+class TextEdit: public Element
+{
+	public:
+		TextEdit(uint32 x = 0, uint32 y = 0, uint32 w = 0, uint32 h = 0): Element(x, y, w, h),
+			fgColor(0xFF8484FF), bgColor(0xFF84FF4D), text(""), caretPos(0) {}
+		TextEdit(uint32 x, uint32 y, string s, uint32 fg = 0xFF8484FF, uint32 bg = 0xFF84FF4D):
+			Element(x, y, 0, 0), fgColor(fg), bgColor(bg), text(s), caretPos(0) {}
+		virtual void HandleKey(SDLKey key);
+		virtual void HandleMouseMove(uint32 x, uint32 y) {}
+		virtual void HandleMouseButton(uint32 x, uint32 y, bool mouseDown) {}
+		virtual void Draw(uint32 offsetX = 0, uint32 offsetY = 0);
+		virtual void Notify(Element *) {}
+
+	protected:
+		uint32 fgColor, bgColor;
+		string text;
+		uint32 caretPos;
+};
+
+//Set different filters depending on type passed in on construction, e.g., filename, amount, etc...?
+void TextEdit::HandleKey(SDLKey key)
+{
+	if ((key >= SDLK_a && key <= SDLK_z) || (key >= SDLK_0 && key <= SDLK_9) || key == SDLK_PERIOD
+		|| key == SDLK_SLASH)
+	{
+		//Need to handle shift key as well...
+		text[caretPos++] = key;
+	}
+	else if (key == SDLK_BACKSPACE)
+	{
+	}
+	else if (key == SDLK_DELETE)
+	{
+	}
+//left, right arrow
+}
+
+void TextEdit::Draw(uint32 offsetX/*= 0*/, uint32 offsetY/*= 0*/)
+{
+	if (text.length() > 0)
+//		DrawString(screenBuffer, extents.x + offsetX, extents.y + offsetY, false, "%s", text.c_str());
+		DrawStringOpaque(screenBuffer, extents.x + offsetX, extents.y + offsetY, fgColor, bgColor, "%s", text.c_str());
+}
+
+
+//
+// ListBox class
+//
 
 class ListBox: public Element
 //class ListBox: public Window
@@ -795,6 +897,10 @@ string ListBox::GetSelectedItem(void)
 }
 
 
+//
+// FileList class
+//
+
 class FileList: public Window
 {
 	public:
@@ -894,6 +1000,10 @@ void FileList::Notify(Element * e)
 }
 
 
+//
+// Menu class & supporting structs/classes
+//
+
 struct NameAction
 {
 	string name;
@@ -903,7 +1013,6 @@ struct NameAction
 	NameAction(string n, Window * (* a)(void) = NULL, SDLKey k = SDLK_UNKNOWN): name(n),
 		action(a), hotKey(k) {}
 };
-
 
 class MenuItems
 {
@@ -1212,9 +1321,9 @@ void DrawStringOpaque(uint32 * screen, uint32 x, uint32 y, uint32 color1, uint32
 				uint8 trans = font2[fontAddr++];
 				uint8 invTrans = trans ^ 0xFF;
 
-				uint32 bRed = (eRed * invTrans + nRed * trans) / 255;
+				uint32 bRed   = (eRed   * invTrans + nRed   * trans) / 255;
 				uint32 bGreen = (eGreen * invTrans + nGreen * trans) / 255;
-				uint32 bBlue = (eBlue * invTrans + nBlue * trans) / 255;
+				uint32 bBlue  = (eBlue  * invTrans + nBlue  * trans) / 255;
 
 				*(screen + address + xx + (yy * pitch)) = 0xFF000000 | (bBlue << 16) | (bGreen << 8) | bRed;
 			}
@@ -1276,6 +1385,45 @@ void DrawStringTrans(uint32 * screen, uint32 x, uint32 y, uint32 color, uint8 tr
 		}
 
 		address += 8;
+	}
+}
+
+//
+// Draw text at the given x/y coordinates, using FG color and overlay alpha blending.
+//
+void DrawString2(uint32 * screen, uint32 x, uint32 y, uint32 color, uint8 transparency, const char * text, ...)
+{
+	char string[4096];
+	va_list arg;
+
+	va_start(arg, text);
+	vsprintf(string, text, arg);
+	va_end(arg);
+
+	uint32 pitch = sdlemuGetOverlayWidthInPixels();
+	uint32 length = strlen(string), address = x + (y * pitch);
+
+	color &= 0x00FFFFFF;						// Just in case alpha was passed in...
+
+	for(uint32 i=0; i<length; i++)
+	{
+		uint8 c = string[i];
+		c = (c < 32 ? 0 : c - 32);
+		uint32 fontAddr = (uint32)c * FONT_WIDTH * FONT_HEIGHT;
+
+		for(uint32 yy=0; yy<FONT_HEIGHT; yy++)
+		{
+			for(uint32 xx=0; xx<FONT_WIDTH; xx++)
+			{
+				uint8 fontTrans = font2[fontAddr++];
+				uint32 newTrans = (fontTrans * transparency / 255) << 24;
+				uint32 pixel = newTrans | color;
+
+				*(screen + address + xx + (yy * pitch)) = pixel;
+			}
+		}
+
+		address += FONT_WIDTH;
 	}
 }
 
@@ -1407,6 +1555,7 @@ void DrawTransparentBitmap(uint32 * screen, uint32 x, uint32 y, const void * bit
 				uint32 bGreen = (eGreen * invTrans + nGreen * trans) / 255;
 				uint32 bBlue = (eBlue * invTrans + nBlue * trans) / 255;
 
+// Instead of $FF, should use the alpha from the destination pixel as the final alpha value...
 				blendedColor = 0xFF000000 | bRed | (bGreen << 8) | (bBlue << 16);
 			}
 
@@ -1415,6 +1564,39 @@ void DrawTransparentBitmap(uint32 * screen, uint32 x, uint32 y, const void * bit
 		}
 	}
 }
+
+//
+// Draw a bitmap without using blending
+//
+void DrawBitmap(uint32 * screen, uint32 x, uint32 y, const void * bitmap)
+{
+	uint32 pitch = sdlemuGetOverlayWidthInPixels();
+	uint32 address = x + (y * pitch);
+	uint32 count = 0;
+
+	for(uint32 yy=0; yy<((Bitmap *)bitmap)->height; yy++)
+	{
+		for(uint32 xx=0; xx<((Bitmap *)bitmap)->width; xx++)
+		{
+			*(screen + address + xx + (yy * pitch)) = ((uint32 *)((Bitmap *)bitmap)->pixelData)[count];
+			count++;
+		}
+	}
+}
+
+//
+// Clear a portion of the screen
+//
+void ClearScreenRectangle(uint32 * screen, uint32 x, uint32 y, uint32 w, uint32 h)
+{
+	uint32 pitch = sdlemuGetOverlayWidthInPixels();
+	uint32 address = x + (y * pitch);
+
+	for(uint32 yy=0; yy<h; yy++)
+		for(uint32 xx=0; xx<w; xx++)
+			*(screen + address + xx + (yy * pitch)) = 0;
+}
+
 
 //
 // GUI stuff--it's not crunchy, it's GUI! ;-)
@@ -1717,6 +1899,9 @@ Window * ResetJaguarCD(void)
 	return RunEmu();
 }
 
+
+#if 0
+
 bool debounceRunKey = true;
 Window * RunEmu(void)
 {
@@ -1823,7 +2008,6 @@ doGPUDis = true;//*/
 	}
 
 	// Reset the pitch, since it may have been changed in-game...
-//	Element::SetScreenAndPitch(backbuffer, GetSDLScreenPitch() / 2);
 	Element::SetScreenAndPitch((uint32 *)backbuffer, GetSDLScreenWidthInPixels());
 
 	// Save the background for the GUI...
@@ -1831,12 +2015,6 @@ doGPUDis = true;//*/
 	// In this case, we squash the color to monochrome, then force it to blue + green...
 	for(uint32 i=0; i<tom_getVideoModeWidth() * 256; i++)
 	{
-//		uint32 word = backbuffer[i];
-//		uint8 r = (word >> 10) & 0x1F, g = (word >> 5) & 0x1F, b = word & 0x1F;
-//		word = ((r + g + b) / 3) & 0x001F;
-//		word = (word << 5) | word;
-//		background[i] = word;
-
 		uint32 pixel = backbuffer[i];
 		uint8 b = (pixel >> 16) & 0xFF, g = (pixel >> 8) & 0xFF, r = pixel & 0xFF;
 		pixel = ((r + g + b) / 3) & 0x00FF;
@@ -1845,6 +2023,116 @@ doGPUDis = true;//*/
 
 	return NULL;
 }
+
+#else
+
+bool debounceRunKey = true;
+Window * RunEmu(void)
+{
+	extern uint32 * backbuffer;
+	uint32 * overlayPixels = (uint32 *)sdlemuGetOverlayPixels();
+	memset(overlayPixels, 0x00, 640 * 480 * 4);			// Clear out overlay...
+
+//This is crappy... !!! FIX !!!
+	extern bool finished, showGUI;
+
+	sdlemuDisableOverlay();
+
+//	uint32 nFrame = 0, nFrameskip = 0;
+	uint32 totalFrames = 0;
+	finished = false;
+	bool showMessage = true;
+	uint32 showMsgFrames = 120;
+	uint8 transparency = 0xFF;
+	// Pass a message to the "joystick" code to debounce the ESC key...
+	debounceRunKey = true;
+
+	uint32 cartType = 4;
+	if (jaguarRomSize == 0x200000)
+		cartType = 0;
+	else if (jaguarRomSize == 0x400000)
+		cartType = 1;
+	else if (jaguar_mainRom_crc32 == 0x687068D5)
+		cartType = 2;
+	else if (jaguar_mainRom_crc32 == 0x55A0669C)
+		cartType = 3;
+
+	char * cartTypeName[5] = { "2M Cartridge", "4M Cartridge", "CD BIOS", "CD Dev BIOS", "Homebrew" };
+	uint32 elapsedTicks = SDL_GetTicks(), frameCount = 0, framesPerSecond = 0;
+
+	while (!finished)
+	{
+		// Set up new backbuffer with new pixels and data
+		JaguarExecuteNew();
+		totalFrames++;
+//WriteLog("Frame #%u...\n", totalFrames);
+//extern bool doDSPDis;
+//if (totalFrames == 373)
+//	doDSPDis = true;
+
+//Problem: Need to do this *only* when the state changes from visible to not...
+if (showGUI || showMessage)
+	sdlemuEnableOverlay();
+else
+	sdlemuDisableOverlay();
+
+//Add in a new function for clearing patches of screen (ClearOverlayRect)
+
+		// Some QnD GUI stuff here...
+		if (showGUI)
+		{
+			ClearScreenRectangle(overlayPixels, 8, 1*FONT_HEIGHT, 128, 4*FONT_HEIGHT);
+			extern uint32 gpu_pc, dsp_pc;
+			DrawString(overlayPixels, 8, 1*FONT_HEIGHT, false, "GPU PC: %08X", gpu_pc);
+			DrawString(overlayPixels, 8, 2*FONT_HEIGHT, false, "DSP PC: %08X", dsp_pc);
+			DrawString(overlayPixels, 8, 4*FONT_HEIGHT, false, "%u FPS", framesPerSecond);
+		}
+
+		if (showMessage)
+		{
+			DrawString2(overlayPixels, 8, 24*FONT_HEIGHT, 0x007F63FF, transparency, "Running...");
+			DrawString2(overlayPixels, 8, 26*FONT_HEIGHT, 0x001FFF3F, transparency, "%s, run address: %06X", cartTypeName[cartType], jaguarRunAddress);
+			DrawString2(overlayPixels, 8, 27*FONT_HEIGHT, 0x001FFF3F, transparency, "CRC: %08X", jaguar_mainRom_crc32);
+
+			if (showMsgFrames == 0)
+			{			
+				transparency--;
+
+				if (transparency == 0)
+{
+					showMessage = false;
+/*extern bool doGPUDis;
+doGPUDis = true;//*/
+}
+
+			}
+			else
+				showMsgFrames--;
+		}
+
+		frameCount++;
+
+		if (SDL_GetTicks() - elapsedTicks > 250)
+			elapsedTicks += 250, framesPerSecond = frameCount * 4, frameCount = 0;
+	}
+
+	// Save the background for the GUI...
+	// In this case, we squash the color to monochrome, then force it to blue + green...
+	for(uint32 i=0; i<tom_getVideoModeWidth() * 256; i++)
+	{
+		uint32 pixel = backbuffer[i];
+		uint8 b = (pixel >> 16) & 0xFF, g = (pixel >> 8) & 0xFF, r = pixel & 0xFF;
+		pixel = ((r + g + b) / 3) & 0x00FF;
+		backbuffer[i] = 0xFF000000 | (pixel << 16) | (pixel << 8);
+	}
+
+	sdlemuEnableOverlay();
+
+	return NULL;
+}
+
+#endif
+
 
 Window * Quit(void)
 {
@@ -1857,28 +2145,36 @@ Window * Quit(void)
 Window * About(void)
 {
 	char buf[512];
-	sprintf(buf, "Virtual Jaguar CVS %s", __DATE__);
+//	sprintf(buf, "Virtual Jaguar CVS %s", __DATE__);
+	sprintf(buf, "CVS %s", __DATE__);
 //fprintf(fp, "VirtualJaguar v1.0.8 (Last full build was on %s %s)\n", __DATE__, __TIME__);
 //VirtualJaguar v1.0.8 (Last full build was on Dec 30 2004 20:01:31)
-	Window * window = new Window(8, 16, 40 * FONT_WIDTH, 19 * FONT_HEIGHT);
+//Hardwired, bleh... !!! FIX !!!
+uint32 width = 55 * FONT_WIDTH, height = 18 * FONT_HEIGHT;
+uint32 xpos = (640 - width) / 2, ypos = (480 - height) / 2;
+//	Window * window = new Window(8, 16, 50 * FONT_WIDTH, 21 * FONT_HEIGHT);
+	Window * window = new Window(xpos, ypos, width, height);
 //	window->AddElement(new Text(8, 8, "Virtual Jaguar 1.0.8"));
 //	window->AddElement(new Text(8, 8, "Virtual Jaguar CVS 20050110", 0xFF3030FF, 0xFF000000));
-	window->AddElement(new Text(8, 8, buf, 0xFF3030FF, 0xFF000000));
-	window->AddElement(new Text(8, 8+2*FONT_HEIGHT, "Coders:"));
-	window->AddElement(new Text(16, 8+3*FONT_HEIGHT, "James L. Hammons (shamus)"));
-	window->AddElement(new Text(16, 8+4*FONT_HEIGHT, "Niels Wagenaar (nwagenaar)"));
-	window->AddElement(new Text(16, 8+5*FONT_HEIGHT, "Carwin Jones (Caz)"));
-	window->AddElement(new Text(16, 8+6*FONT_HEIGHT, "Adam Green"));
-	window->AddElement(new Text(8, 8+8*FONT_HEIGHT, "Testers:"));
-	window->AddElement(new Text(16, 8+9*FONT_HEIGHT, "Guruma"));
-	window->AddElement(new Text(8, 8+11*FONT_HEIGHT, "Thanks go out to:"));
-	window->AddElement(new Text(16, 8+12*FONT_HEIGHT, "Aaron Giles for the original CoJag"));
-	window->AddElement(new Text(16, 8+13*FONT_HEIGHT, "David Raingeard for the original VJ"));
-	window->AddElement(new Text(16, 8+14*FONT_HEIGHT, "Karl Stenerud for his Musashi 68K emu"));
-	window->AddElement(new Text(16, 8+15*FONT_HEIGHT, "Sam Lantinga for his amazing SDL libs"));
-	window->AddElement(new Text(16, 8+16*FONT_HEIGHT, "Ryan C. Gordon for VJ's web presence"));
-	window->AddElement(new Text(16, 8+17*FONT_HEIGHT, "Curt Vendel for various Jaguar goodies"));
-	window->AddElement(new Text(16, 8+18*FONT_HEIGHT, "The guys over at Atari Age ;-)"));
+//	window->AddElement(new Text(208, 8+0*FONT_HEIGHT, buf, 0xFF3030FF, 0xFF000000));
+	window->AddElement(new Text(248, 8+4*FONT_HEIGHT+5, buf, 0xFF3030FF, 0xFF000000));
+	window->AddElement(new Text(8, 8+0*FONT_HEIGHT, "Coders:"));
+	window->AddElement(new Text(16, 8+1*FONT_HEIGHT, "James L. Hammons (shamus)"));
+	window->AddElement(new Text(16, 8+2*FONT_HEIGHT, "Niels Wagenaar (nwagenaar)"));
+	window->AddElement(new Text(16, 8+3*FONT_HEIGHT, "Carwin Jones (Caz)"));
+	window->AddElement(new Text(16, 8+4*FONT_HEIGHT, "Adam Green"));
+	window->AddElement(new Text(8, 8+6*FONT_HEIGHT, "Testers:"));
+	window->AddElement(new Text(16, 8+7*FONT_HEIGHT, "Guruma"));
+	window->AddElement(new Text(8, 8+9*FONT_HEIGHT, "Thanks go out to:"));
+	window->AddElement(new Text(16, 8+10*FONT_HEIGHT, "Aaron Giles for the original CoJag"));
+	window->AddElement(new Text(16, 8+11*FONT_HEIGHT, "David Raingeard for the original VJ"));
+	window->AddElement(new Text(16, 8+12*FONT_HEIGHT, "Karl Stenerud for his Musashi 68K emu"));
+	window->AddElement(new Text(16, 8+13*FONT_HEIGHT, "Sam Lantinga for his amazing SDL libs"));
+	window->AddElement(new Text(16, 8+14*FONT_HEIGHT, "Ryan C. Gordon for VJ's web presence"));
+	window->AddElement(new Text(16, 8+15*FONT_HEIGHT, "Curt Vendel for various Jaguar goodies"));
+	window->AddElement(new Text(16, 8+16*FONT_HEIGHT, "The guys over at Atari Age ;-)"));
+//	window->AddElement(new Image(8, 8, &vj_title_small));
+	window->AddElement(new Image(width - (vj_title_small.width + 8), 8, &vj_title_small));
 
 	return window;
 }
@@ -1902,6 +2198,7 @@ Window * MiscOptions(void)
 // * OpenGL?
 // * GL Filter type
 // * Window/fullscreen
+// * Key definitions
 
 	return window;
 }
