@@ -2646,7 +2646,8 @@ void DATA(uint64 &wdata, uint8 &dcomp, uint8 &zcomp, bool &nowrite,
 	bool big_pix, bool cmpdst, uint8 daddasel, uint8 daddbsel, uint8 daddmode, bool daddq_sel, uint8 data_sel,
 	uint8 dbinh, uint8 dend, uint8 dstart, uint64 dstd, uint32 iinc, uint8 lfu_func, uint64 &patd, bool patdadd,
 	bool phrase_mode, uint64 srcd, bool srcdread, bool srczread, bool srcz2add, uint8 zmode,
-	bool bcompen, bool bkgwren, bool dcompen, uint8 icount, uint8 pixsize);
+	bool bcompen, bool bkgwren, bool dcompen, uint8 icount, uint8 pixsize,
+	uint64 &srcz, uint64 dstz, uint32 zinc);
 void COMP_CTRL(uint8 &dbinh, bool &nowrite,
 	bool bcompen, bool big_pix, bool bkgwren, uint8 dcomp, bool dcompen, uint8 icount,
 	uint8 pixsize, bool phrase_mode, uint8 srcd, uint8 zcomp);
@@ -2691,7 +2692,9 @@ if (
 //Start of Hover Strike (clearing screen):
 	&& cmd != 0x00010000	// PATDSEL
 //Hover Strike text:
-	&& cmd != 0x1401060C	// SRCENX DSTEN UPDA1 UPDA2 PATDSEL BCOMPEN BKGWREN
+//	&& cmd != 0x1401060C	// SRCENX DSTEN UPDA1 UPDA2 PATDSEL BCOMPEN BKGWREN
+//Hover Strike 3D stuff
+	&& cmd != 0x01902839	// SRCEN DSTEN DSTENZ DSTWRZ DSTA2 GOURZ ZMODE=4 LFUFUNC=C
 //Trevor McFur stuff:
 	&& cmd != 0x05810601	// SRCEN UPDA1 UPDA2 PATDSEL BCOMPEN
 	&& cmd != 0x01800201	// SRCEN UPDA1 LFUFUNC=C
@@ -2700,6 +2703,7 @@ if (
 	&& cmd != 0x00011040	// CLIP_A1 GOURD PATDSEL
 	)
 	logBlit = true;//*/
+//logBlit = true;
 if (blit_start_log == 0)	// Wait for the signal...
 	logBlit = false;//*/
 /*
@@ -2709,6 +2713,8 @@ logBlit = F, cmd = 00011000
 logBlit = F, cmd = 00011040
 logBlit = F, cmd = 01800005 *
 logBlit = F, cmd = 09800741 *
+Hover Strike mission selection screen:
+Blit! (CMD = 01902839)	// SRCEN DSTEN DSTENZ DSTWRZ DSTA2 GOURZ ZMODE=4 LFUFUNC=C
 */
 
 //printf("logBlit = %s, cmd = %08X\n", (logBlit ? "T" : "F"), cmd);
@@ -3735,6 +3741,8 @@ fflush(stdout);
 srcd2 = srcd1;
 srcd1 = ((uint64)JaguarReadLong(address, BLITTER) << 32) | (uint64)JaguarReadLong(address + 4, BLITTER);
 //Kludge to take pixel size into account...
+//Hmm. If we're not in phrase mode, this is most likely NOT going to be used...
+//Actually, it would be--because of BCOMPEN expansion, for example...
 if (!phrase_mode)
 {
 	if (pixsize == 5)
@@ -3743,7 +3751,7 @@ if (!phrase_mode)
 		srcd1 >>= 48;
 	else
 		srcd1 >>= 56;
-}
+}//*/
 #ifdef VERBOSE_BLITTER_LOGGING
 if (logBlit)
 {
@@ -3759,8 +3767,18 @@ fflush(stdout);
 #ifdef VERBOSE_BLITTER_LOGGING
 if (logBlit)
 {
-printf("  Entering SZREADX state...\n");
+printf("  Entering SZREADX state...");
 fflush(stdout);
+}
+#endif
+					srcz2 = srcz1;
+					srcz1 = ((uint64)JaguarReadLong(address, BLITTER) << 32) | (uint64)JaguarReadLong(address + 4, BLITTER);
+#ifdef VERBOSE_BLITTER_LOGGING
+if (logBlit)
+{
+	printf(" Src Z extra read address/pix address: %08X/%1X [%08X%08X]\n", address, pixAddr,
+		(uint32)(dstz >> 32), (uint32)(dstz & 0xFFFFFFFF));
+	fflush(stdout);
 }
 #endif
 				}
@@ -3811,8 +3829,22 @@ fflush(stdout);
 #ifdef VERBOSE_BLITTER_LOGGING
 if (logBlit)
 {
-printf("  Entering SZREAD state...\n");
+printf("  Entering SZREAD state...");
 fflush(stdout);
+}
+#endif
+					srcz2 = srcz1;
+					srcz1 = ((uint64)JaguarReadLong(address, BLITTER) << 32) | (uint64)JaguarReadLong(address + 4, BLITTER);
+//Kludge to take pixel size into account... I believe that it only has to take 16BPP mode into account. Not sure tho.
+if (!phrase_mode && pixsize == 4)
+	srcz1 >>= 48;
+
+#ifdef VERBOSE_BLITTER_LOGGING
+if (logBlit)
+{
+	printf("     Src Z read address/pix address: %08X/%1X [%08X%08X]\n", address, pixAddr,
+		(uint32)(dstz >> 32), (uint32)(dstz & 0xFFFFFFFF));
+	fflush(stdout);
 }
 #endif
 				}
@@ -3822,7 +3854,7 @@ fflush(stdout);
 #ifdef VERBOSE_BLITTER_LOGGING
 if (logBlit)
 {
-printf("  Entering DREAD state...\n");
+printf("  Entering DREAD state...");
 fflush(stdout);
 }
 #endif
@@ -3844,7 +3876,7 @@ if (!phrase_mode)
 #ifdef VERBOSE_BLITTER_LOGGING
 if (logBlit)
 {
-printf("      Dest read address/pix address: %08X/%1X [%08X%08X]\n", address, pixAddr,
+printf("       Dest read address/pix address: %08X/%1X [%08X%08X]\n", address, pixAddr,
 	(uint32)(dstd >> 32), (uint32)(dstd & 0xFFFFFFFF));
 fflush(stdout);
 }
@@ -3862,6 +3894,10 @@ if (logBlit)
 }
 #endif
 					dstz = ((uint64)JaguarReadLong(address, BLITTER) << 32) | (uint64)JaguarReadLong(address + 4, BLITTER);
+//Kludge to take pixel size into account... I believe that it only has to take 16BPP mode into account. Not sure tho.
+if (!phrase_mode && pixsize == 4)
+	dstz >>= 48;
+
 #ifdef VERBOSE_BLITTER_LOGGING
 if (logBlit)
 {
@@ -3872,13 +3908,19 @@ if (logBlit)
 #endif
 				}
 
+// These vars should probably go further up in the code... !!! FIX !!!
+// We can't preassign these unless they're static...
+//uint64 srcz = 0;			// These are assigned to shut up stupid compiler warnings--dwrite is ALWAYS asserted
+//bool winhibit = false;
+uint64 srcz;
+bool winhibit;
 //NOTE: SRCSHADE requires GOURZ to be set to work properly--another Jaguar I bug
 				if (dwrite)
 				{
 #ifdef VERBOSE_BLITTER_LOGGING
 if (logBlit)
 {
-printf("  Entering DWRITE state...\n");
+printf("  Entering DWRITE state...");
 fflush(stdout);
 }
 #endif
@@ -3995,11 +4037,8 @@ uint8 pwidth = (((dend | dstart) & 0x07) == 0 ? 0x08 : (dend - dstart) & 0x07);
 #ifdef VERBOSE_BLITTER_LOGGING
 if (logBlit)
 {
-printf("     Dest write address/pix address: %08X/%1X", address, pixAddr);
-printf(" [dstart=%X dend=%X pwidth=%X srcshift=%X]", dstart, dend, pwidth, srcshift);
-fflush(stdout);
-printf("[daas=%X dabs=%X dam=%X ds=%X daq=%s]", daddasel, daddbsel, daddmode, data_sel, (daddq_sel ? "T" : "F"));
-fflush(stdout);
+	printf("     Dest write address/pix address: %08X/%1X", address, pixAddr);
+	fflush(stdout);
 }
 #endif
 
@@ -4020,6 +4059,56 @@ uint64 srcd = (srcd2 << (64 - srcshift)) | (srcd1 >> srcshift);
 //bleh, ugly ugly ugly
 if (srcshift == 0)
 	srcd = srcd1;
+
+//Z DATA() stuff done here... And it has to be done before any Z shifting...
+//Note that we need to have phrase mode start/end support here... (Not since we moved it from dzwrite...!)
+/*
+Here are a couple of Cybermorph blits with Z:
+$00113078	// DSTEN DSTENZ DSTWRZ CLIP_A1 GOURD GOURZ PATDSEL ZMODE=4
+$09900F39	// SRCEN DSTEN DSTENZ DSTWRZ UPDA1 UPDA1F UPDA2 DSTA2 ZMODE=4 LFUFUNC=C DCOMPEN
+
+We're having the same phrase mode overwrite problem we had with the pixels... !!! FIX !!!
+Odd. It's equating 0 with 0... Even though ZMODE is $04 (less than)!
+*/
+if (gourz)
+{
+/*
+void ADDARRAY(uint16 * addq, uint8 daddasel, uint8 daddbsel, uint8 daddmode,
+	uint64 dstd, uint32 iinc, uint8 initcin[], uint64 initinc, uint16 initpix,
+	uint32 istep, uint64 patd, uint64 srcd, uint64 srcz1, uint64 srcz2,
+	uint32 zinc, uint32 zstep)
+*/
+	uint16 addq[4];
+	uint8 initcin[4] = { 0, 0, 0, 0 };
+	ADDARRAY(addq, 7/*daddasel*/, 6/*daddbsel*/, 0/*daddmode*/, 0, 0, initcin, 0, 0, 0, 0, 0, srcz1, srcz2, zinc, 0);
+	srcz2 = ((uint64)addq[3] << 48) | ((uint64)addq[2] << 32) | ((uint64)addq[1] << 16) | (uint64)addq[0];
+	ADDARRAY(addq, 6/*daddasel*/, 7/*daddbsel*/, 1/*daddmode*/, 0, 0, initcin, 0, 0, 0, 0, 0, srcz1, srcz2, zinc, 0);
+	srcz1 = ((uint64)addq[3] << 48) | ((uint64)addq[2] << 32) | ((uint64)addq[1] << 16) | (uint64)addq[0];
+
+#ifdef VERBOSE_BLITTER_LOGGING
+if (logBlit)
+{
+	printf("\n[srcz1=%08X%08X, srcz2=%08X%08X, zinc=%08X",
+		(uint32)(srcz1 >> 32), (uint32)(srcz1 & 0xFFFFFFFF),
+		(uint32)(srcz2 >> 32), (uint32)(srcz2 & 0xFFFFFFFF), zinc);
+	fflush(stdout);
+}
+#endif
+}
+
+uint8 zSrcShift = srcshift & 0x30;
+srcz = (srcz2 << (64 - zSrcShift)) | (srcz1 >> zSrcShift);
+//bleh, ugly ugly ugly
+if (zSrcShift == 0)
+	srcz = srcz1;
+
+#ifdef VERBOSE_BLITTER_LOGGING
+if (logBlit)
+{
+	printf(" srcz=%08X%08X]\n", (uint32)(srcz >> 32), (uint32)(srcz & 0xFFFFFFFF));
+	fflush(stdout);
+}
+#endif
 
 //When in SRCSHADE mode, it adds the IINC to the read source (from LFU???)
 //According to following line, it gets LFU mode. But does it feed the source into the LFU
@@ -4042,7 +4131,7 @@ if (srcshade)
 //Temporary kludge, to see if the fractional pattern does anything...
 //This works, BTW
 //But it seems to mess up in Cybermorph... the shading should be smooth but it isn't...
-//Seems the carry out is lost again... !!! FIX !!!
+//Seems the carry out is lost again... !!! FIX !!! [DONE--see below]
 if (patfadd)
 {
 	uint16 addq[4];
@@ -4053,15 +4142,17 @@ if (patfadd)
 
 //Note that we still don't take atick[0] & [1] into account here, so this will skip half of the data needed... !!! FIX !!!
 //Not yet enumerated: dbinh, srcdread, srczread
+//Also, should do srcshift on the z value in phrase mode... !!! FIX !!! [DONE]
+//As well as add a srcz variable we can set external to this state... !!! FIX !!! [DONE]
 
-bool winhibit;// = false;
 uint64 wdata;
 uint8 dcomp, zcomp;
 DATA(wdata, dcomp, zcomp, winhibit,
 	true, cmpdst, daddasel, daddbsel, daddmode, daddq_sel, data_sel, 0/*dbinh*/,
 	dend, dstart, dstd, iinc, lfufunc, patd, patdadd,
 	phrase_mode, srcd, false/*srcdread*/, false/*srczread*/, srcz2add, zmode,
-	bcompen, bkgwren, dcompen, icount & 0x07, pixsize);
+	bcompen, bkgwren, dcompen, icount & 0x07, pixsize,
+	srcz, dstz, zinc);
 /*
 Seems that the phrase mode writes with DCOMPEN and DSTEN are corrupting inside of DATA: !!! FIX !!!
 It's fairly random as well. 7CFE -> 7DFE, 7FCA -> 78CA, 7FA4 -> 78A4, 7F88 -> 8F88
@@ -4143,6 +4234,7 @@ A1_outside	:= OR6 (a1_outside, a1_x{15}, a1xgr, a1xeq, a1_y{15}, a1ygr, a1yeq);
 */
 //NOTE: There seems to be an off-by-one bug here in the clip_a1 section... !!! FIX !!!
 //      Actually, seems to be related to phrase mode writes...
+//      Or is it? Could be related to non-15-bit compares as above?
 if (clip_a1 && ((a1_x & 0x8000) || (a1_y & 0x8000) || (a1_x >= a1_win_x) || (a1_y >= a1_win_y)))
 	winhibit = true;
 
@@ -4162,32 +4254,65 @@ if (!winhibit)
 		else
 			JaguarWriteByte(address, wdata & 0x000000FF, BLITTER);
 	}
+}
 
 #ifdef VERBOSE_BLITTER_LOGGING
 if (logBlit)
 {
 	printf(" [%08X%08X]", (uint32)(wdata >> 32), (uint32)(wdata & 0xFFFFFFFF));
+	printf(" (icount=%04X, inc=%u)\n", icount, (uint16)inc);
+	printf("    [dstart=%X dend=%X pwidth=%X srcshift=%X]", dstart, dend, pwidth, srcshift);
+	printf("[daas=%X dabs=%X dam=%X ds=%X daq=%s]\n", daddasel, daddbsel, daddmode, data_sel, (daddq_sel ? "T" : "F"));
 	fflush(stdout);
-}
-#endif
-}
-
-#ifdef VERBOSE_BLITTER_LOGGING
-if (logBlit)
-{
-printf(" (icount=%04X, inc=%u)\n", icount, (uint16)inc);
-fflush(stdout);
 }
 #endif
 				}
 
 				if (dzwrite)
 				{
+// OK, here's the big insight: When NOT in GOURZ mode, srcz1 & 2 function EXACTLY the same way that
+// srcd1 & 2 work--there's an implicit shift from srcz1 to srcz2 whenever srcz1 is read.
+// OTHERWISE, srcz1 is the integer for the computed Z and srcz2 is the fractional part.
+// Writes to srcz1 & 2 follow the same pattern as the other 64-bit registers--low 32 at the low address,
+// high 32 at the high address (little endian!).
+// NOTE: GOURZ is still not properly supported. Check patd/patf handling...
+//       Phrase mode start/end masks are not properly supported either...
 #ifdef VERBOSE_BLITTER_LOGGING
 if (logBlit)
 {
-printf("  Entering DZWRITE state...\n");
-fflush(stdout);
+	printf("  Entering DZWRITE state...");
+	printf("  Dest Z write address/pix address: %08X/%1X [%08X%08X]\n", address, pixAddr,
+		(uint32)(srcz >> 32), (uint32)(srcz & 0xFFFFFFFF));
+	fflush(stdout);
+}
+#endif
+//This is not correct... !!! FIX !!!
+//Should be OK now... We'll see...
+//Nope. Having the same starstep write problems in phrase mode as we had with pixels... !!! FIX !!!
+//This is not causing the problem in Hover Strike... :-/
+//The problem was with the SREADX not shifting. Still problems with Z comparisons & other text in pregame screen...
+if (!winhibit)
+{
+	if (phrase_mode)
+	{
+		JaguarWriteLong(address + 0, srcz >> 32, BLITTER);
+		JaguarWriteLong(address + 4, srcz & 0xFFFFFFFF, BLITTER);
+	}
+	else
+	{
+		if (pixsize == 4)
+			JaguarWriteWord(address, srcz & 0x0000FFFF, BLITTER);
+	}
+}//*/
+#ifdef VERBOSE_BLITTER_LOGGING
+if (logBlit)
+{
+//	printf(" [%08X%08X]\n", (uint32)(srcz >> 32), (uint32)(srcz & 0xFFFFFFFF));
+//	fflush(stdout);
+//printf(" [dstart=%X dend=%X pwidth=%X srcshift=%X]", dstart, dend, pwidth, srcshift);
+	printf("    [dstart=? dend=? pwidth=? srcshift=%X]", srcshift);
+	printf("[daas=%X dabs=%X dam=%X ds=%X daq=%s]\n", daddasel, daddbsel, daddmode, data_sel, (daddq_sel ? "T" : "F"));
+	fflush(stdout);
 }
 #endif
 				}
@@ -5274,14 +5399,15 @@ void DATA(uint64 &wdata, uint8 &dcomp, uint8 &zcomp, bool &nowrite,
 	bool big_pix, bool cmpdst, uint8 daddasel, uint8 daddbsel, uint8 daddmode, bool daddq_sel, uint8 data_sel,
 	uint8 dbinh, uint8 dend, uint8 dstart, uint64 dstd, uint32 iinc, uint8 lfu_func, uint64 &patd, bool patdadd,
 	bool phrase_mode, uint64 srcd, bool srcdread, bool srczread, bool srcz2add, uint8 zmode,
-	bool bcompen, bool bkgwren, bool dcompen, uint8 icount, uint8 pixsize)
+	bool bcompen, bool bkgwren, bool dcompen, uint8 icount, uint8 pixsize,
+	uint64 &srcz, uint64 dstz, uint32 zinc)
 {
 /*
   Stuff we absolutely *need* to have passed in/out:
 IN:
   patdadd, dstd, srcd, patd, daddasel, daddbsel, daddmode, iinc, srcz1, srcz2, big_pix, phrase_mode, cmpdst
 OUT:
-  changed patd (wdata I guess...)
+  changed patd (wdata I guess...) (Nope. We pass it back directly now...)
 */
 
 // Source data registers
@@ -5360,23 +5486,66 @@ Zstep		:= JOIN (zstep, zstep[0..31]);*/
 		dcomp |= 0x40;
 	if ((cmpd & 0xFF00000000000000LL) == 0)
 		dcomp |= 0x80;
-// We'll do the comparison/bit/byte inhibits here, since that's they way it happens
-// in the real thing (dcomp goes out to COMP_CTRL and back into DATA through dbinh)...
-#if 1
-	uint8 dbinht;
-//	bool nowrite;
-	COMP_CTRL(dbinht, nowrite,
-		bcompen, true/*big_pix*/, bkgwren, dcomp, dcompen, icount, pixsize, phrase_mode, srcd & 0xFF, 0);//zcomp);
-	dbinh = dbinht;
-//	dbinh = 0x00;
-#endif
 //////////////////////////////////////////////////////////////////////////////////////
 
 // Zed comparator for Z-buffer operations
 
 /*Zedcomp		:= ZEDCOMP (zcomp[0..3], srczp[0..1], dstz[0..1], zmode[0..2]);*/
 ////////////////////////////////////// C++ CODE //////////////////////////////////////
+//srczp is srcz pipelined, also it goes through a source shift as well...
+/*The shift is basically like so (each piece is 16 bits long):
 
+	0         1         2         3         4          5         6
+	srcz1lolo srcz1lohi srcz1hilo srcz1hihi srcrz2lolo srcz2lohi srcz2hilo
+
+with srcshift bits 4 & 5 selecting the start position
+*/
+//So... basically what we have here is:
+	zcomp = 0;
+
+	if ((((srcz & 0x000000000000FFFFLL) < (dstz & 0x000000000000FFFFLL)) && (zmode & 0x01))
+		|| (((srcz & 0x000000000000FFFFLL) == (dstz & 0x000000000000FFFFLL)) && (zmode & 0x02))
+		|| (((srcz & 0x000000000000FFFFLL) > (dstz & 0x000000000000FFFFLL)) && (zmode & 0x04)))
+		zcomp |= 0x01;
+
+	if ((((srcz & 0x00000000FFFF0000LL) < (dstz & 0x00000000FFFF0000LL)) && (zmode & 0x01))
+		|| (((srcz & 0x00000000FFFF0000LL) == (dstz & 0x00000000FFFF0000LL)) && (zmode & 0x02))
+		|| (((srcz & 0x00000000FFFF0000LL) > (dstz & 0x00000000FFFF0000LL)) && (zmode & 0x04)))
+		zcomp |= 0x02;
+
+	if ((((srcz & 0x0000FFFF00000000LL) < (dstz & 0x0000FFFF00000000LL)) && (zmode & 0x01))
+		|| (((srcz & 0x0000FFFF00000000LL) == (dstz & 0x0000FFFF00000000LL)) && (zmode & 0x02))
+		|| (((srcz & 0x0000FFFF00000000LL) > (dstz & 0x0000FFFF00000000LL)) && (zmode & 0x04)))
+		zcomp |= 0x04;
+
+	if ((((srcz & 0xFFFF000000000000LL) < (dstz & 0xFFFF000000000000LL)) && (zmode & 0x01))
+		|| (((srcz & 0xFFFF000000000000LL) == (dstz & 0xFFFF000000000000LL)) && (zmode & 0x02))
+		|| (((srcz & 0xFFFF000000000000LL) > (dstz & 0xFFFF000000000000LL)) && (zmode & 0x04)))
+		zcomp |= 0x08;
+
+//TEMP, TO TEST IF ZCOMP IS THE CULPRIT...
+//Nope, this is NOT the problem...
+//zcomp=0;
+// We'll do the comparison/bit/byte inhibits here, since that's they way it happens
+// in the real thing (dcomp goes out to COMP_CTRL and back into DATA through dbinh)...
+#if 1
+	uint8 dbinht;
+//	bool nowrite;
+	COMP_CTRL(dbinht, nowrite,
+		bcompen, true/*big_pix*/, bkgwren, dcomp, dcompen, icount, pixsize, phrase_mode, srcd & 0xFF, zcomp);
+	dbinh = dbinht;
+//	dbinh = 0x00;
+#endif
+
+#if 1
+#ifdef VERBOSE_BLITTER_LOGGING
+if (logBlit)
+{
+	printf("\n[dcomp=%02X zcomp=%02X dbinh=%02X]\n", dcomp, zcomp, dbinh);
+	fflush(stdout);
+}//*/
+#endif
+#endif
 //////////////////////////////////////////////////////////////////////////////////////
 
 // 22 Mar 94
@@ -5401,7 +5570,7 @@ Zstep		:= JOIN (zstep, zstep[0..31]);*/
 
 	//This is normally done asynchronously above (thru local_data) when in patdadd mode...
 //And now it's passed back to the caller to be persistent between calls...!
-//But it's causing some serious fuck-ups in T2K now... !!! FIX !!!
+//But it's causing some serious fuck-ups in T2K now... !!! FIX !!! [DONE--???]
 //Weird! It doesn't anymore...!
 	if (patdadd)
 		patd = ((uint64)addq[3] << 48) | ((uint64)addq[2] << 32) | ((uint64)addq[1] << 16) | (uint64)addq[0];
@@ -5627,6 +5796,25 @@ Dat[56-63]	:= MX4 (dat[56-63], dstdhi{24-31}, ddathi{24-31}, dstzhi{24-31}, srcz
 		(uint32)(wdata >> 32), (uint32)(wdata & 0xFFFFFFFF), mask);
 	fflush(stdout);
 }//*/
+//This is a crappy way of handling this, but it should work for now...
+	uint64 zwdata;
+	zwdata = ((srcz & mask) | (dstz & ~mask)) & 0x00000000000000FFLL;
+	zwdata |= (mask & 0x0100 ? srcz : dstz) & 0x000000000000FF00LL;
+	zwdata |= (mask & 0x0200 ? srcz : dstz) & 0x0000000000FF0000LL;
+	zwdata |= (mask & 0x0400 ? srcz : dstz) & 0x00000000FF000000LL;
+	zwdata |= (mask & 0x0800 ? srcz : dstz) & 0x000000FF00000000LL;
+	zwdata |= (mask & 0x1000 ? srcz : dstz) & 0x0000FF0000000000LL;
+	zwdata |= (mask & 0x2000 ? srcz : dstz) & 0x00FF000000000000LL;
+	zwdata |= (mask & 0x4000 ? srcz : dstz) & 0xFF00000000000000LL;
+if (logBlit)
+{
+	printf("\n[srcz=%08X%08X dstz=%08X%08X zwdata=%08X%08X mask=%04X]\n",
+		(uint32)(srcz >> 32), (uint32)(srcz & 0xFFFFFFFF),
+		(uint32)(dstz >> 32), (uint32)(dstz & 0xFFFFFFFF),
+		(uint32)(zwdata >> 32), (uint32)(zwdata & 0xFFFFFFFF), mask);
+	fflush(stdout);
+}//*/
+	srcz = zwdata;
 //////////////////////////////////////////////////////////////////////////////////////
 
 /*Data_enab[0-1]	:= BUF8 (data_enab[0-1], data_ena);
