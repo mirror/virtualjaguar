@@ -2663,10 +2663,7 @@ void BlitterMidsummer2(void)
 
 	uint32 cmd = GET32(blitter_ram, COMMAND);
 
-// $01800005 has SRCENX, may have to investigate further...
-// $00011008 has GOURD & DSTEN.
-// $41802F41 has SRCSHADE, CLIPA1
-/*logBlit = false;
+logBlit = false;
 if (
 	cmd != 0x00010200 &&	// PATDSEL
 	cmd != 0x01800001
@@ -2692,9 +2689,11 @@ if (
 //Start of Hover Strike (clearing screen):
 	&& cmd != 0x00010000	// PATDSEL
 //Hover Strike text:
-//	&& cmd != 0x1401060C	// SRCENX DSTEN UPDA1 UPDA2 PATDSEL BCOMPEN BKGWREN
+	&& cmd != 0x1401060C	// SRCENX DSTEN UPDA1 UPDA2 PATDSEL BCOMPEN BKGWREN
 //Hover Strike 3D stuff
-	&& cmd != 0x01902839	// SRCEN DSTEN DSTENZ DSTWRZ DSTA2 GOURZ ZMODE=4 LFUFUNC=C
+//	&& cmd != 0x01902839	// SRCEN DSTEN DSTENZ DSTWRZ DSTA2 GOURZ ZMODE=4 LFUFUNC=C
+//Hover Strike darkening on intro to play (briefing) screen
+	&& cmd != 0x00020208	// DSTEN UPDA1 ADDDSEL
 //Trevor McFur stuff:
 	&& cmd != 0x05810601	// SRCEN UPDA1 UPDA2 PATDSEL BCOMPEN
 	&& cmd != 0x01800201	// SRCEN UPDA1 LFUFUNC=C
@@ -3382,7 +3381,7 @@ sshftld = idle_inner;
 				bool dsta_addi = (dwritei && !dstwrz) || dzwritei;
 
 				bool gensrc = sreadxi || szreadxi || sreadi || szreadi;
-				bool gendst = dreadi || szreadi || dwritei || dzwritei;
+				bool gendst = dreadi || dzreadi || dwritei || dzwritei;
 				bool gena2i = (gensrc && !dsta2) || (gendst && dsta2);
 
 				bool zaddr = szreadx || szread || dzread || dzwrite;
@@ -3738,19 +3737,25 @@ fflush(stdout);
 //ADDRGEN(srcAddr, pixAddr, gena2i, zaddr,
 //	a1_x, a1_y, a1_base, a1_pitch, a1_pixsize, a1_width, a1_zoffset,
 //	a2_x, a2_y, a2_base, a2_pitch, a2_pixsize, a2_width, a2_zoffset);
-srcd2 = srcd1;
-srcd1 = ((uint64)JaguarReadLong(address, BLITTER) << 32) | (uint64)JaguarReadLong(address + 4, BLITTER);
+					srcd2 = srcd1;
+					srcd1 = ((uint64)JaguarReadLong(address + 0, BLITTER) << 32)
+						| (uint64)JaguarReadLong(address + 4, BLITTER);
 //Kludge to take pixel size into account...
 //Hmm. If we're not in phrase mode, this is most likely NOT going to be used...
 //Actually, it would be--because of BCOMPEN expansion, for example...
 if (!phrase_mode)
 {
-	if (pixsize == 5)
-		srcd1 >>= 32;
-	else if (pixsize == 4)
-		srcd1 >>= 48;
-	else
+	if (bcompen)
 		srcd1 >>= 56;
+	else
+	{
+		if (pixsize == 5)
+			srcd1 >>= 32;
+		else if (pixsize == 4)
+			srcd1 >>= 48;
+		else
+			srcd1 >>= 56;
+	}
 }//*/
 #ifdef VERBOSE_BLITTER_LOGGING
 if (logBlit)
@@ -3817,7 +3822,7 @@ if (!phrase_mode)
 #ifdef VERBOSE_BLITTER_LOGGING
 if (logBlit)
 {
-printf("    Source read address/pix address: %08X/%1X [%08X%08X]\n", address, pixAddr,
+printf("     Source read address/pix address: %08X/%1X [%08X%08X]\n", address, pixAddr,
 	(uint32)(srcd1 >> 32), (uint32)(srcd1 & 0xFFFFFFFF));
 fflush(stdout);
 }
