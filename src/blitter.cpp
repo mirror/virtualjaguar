@@ -2663,7 +2663,7 @@ void BlitterMidsummer2(void)
 
 	uint32 cmd = GET32(blitter_ram, COMMAND);
 
-logBlit = false;
+/*logBlit = false;
 if (
 	cmd != 0x00010200 &&	// PATDSEL
 	cmd != 0x01800001
@@ -2702,7 +2702,7 @@ if (
 	&& cmd != 0x00011040	// CLIP_A1 GOURD PATDSEL
 	)
 	logBlit = true;//*/
-//logBlit = true;
+logBlit = true;
 if (blit_start_log == 0)	// Wait for the signal...
 	logBlit = false;//*/
 /*
@@ -2712,8 +2712,17 @@ logBlit = F, cmd = 00011000
 logBlit = F, cmd = 00011040
 logBlit = F, cmd = 01800005 *
 logBlit = F, cmd = 09800741 *
+
 Hover Strike mission selection screen:
 Blit! (CMD = 01902839)	// SRCEN DSTEN DSTENZ DSTWRZ DSTA2 GOURZ ZMODE=4 LFUFUNC=C
+
+Checkered Flag blits in the screw up zone:
+Blit! (CMD = 01800001)	// SRCEN LFUFUNC=C
+Blit! (CMD = 01800000)	// LFUFUNC=C
+Blit! (CMD = 00010000)	// PATDSEL
+
+Wolfenstein 3D in the fuckup zone:
+Blit! (CMD = 01800000)	// LFUFUNC=C
 */
 
 //printf("logBlit = %s, cmd = %08X\n", (logBlit ? "T" : "F"), cmd);
@@ -3025,7 +3034,9 @@ fflush(stdout);
 #endif
 			idlei = true;
 
-			return;
+//Instead of a return, let's try breaking out of the loop...
+break;
+//			return;
 		}
 		else
 			idlei = false;
@@ -3723,6 +3734,39 @@ uint8 shfti = (srcen || pobbsel ? (sshftld ? loshd : srcshift & 0x07) : 0);
 shfti |= (srcen && phrase_mode ? (sshftld ? shftv & 0x38 : srcshift & 0x38) : 0);
 srcshift = shfti;
 
+/*
+Note that there's a problem here--even though it's NOT in phrase mode, it's still calculating
+a source shift... !!! FIX !!!
+Actually, the problem is the code that utilizes the source shift even when it's not needed... I think.
+
+Blit! (CMD = 01800609)
+Flags: SRCEN DSTEN UPDA1 UPDA2 LFUFUNC=C
+  count = 10 x 12
+  a1_base = 001F8300, a2_base = 00812F80
+  a1_x = 0007, a1_y = 0000, a1_frac_x = 0000, a1_frac_y = 0000, a2_x = 0000, a2_y = 0000
+  a1_step_x = FFF6, a1_step_y = 0001, a1_stepf_x = 0000, a1_stepf_y = 0000, a2_step_x = FFF6, a2_step_y = 0001
+  a1_inc_x = 0000, a1_inc_y = 0000, a1_incf_x = 0000, a1_incf_y = 0000
+  a1_win_x = 0000, a1_win_y = 0000, a2_mask_x = 0000, a2_mask_y = 0000
+  a2_mask=F a1add=+1/+0 a2add=+1/+0
+  a1_pixsize = 2, a2_pixsize = 2
+   srcd=0000000000000000  dstd=0000000000000000 patd=0000000000000000 iinc=00000000
+  srcz1=0000000000000000 srcz2=0000000000000000 dstz=0000000000000000 zinc=00000000, coll=0
+  Phrase mode is off
+  [in=T a1f=F a1=F zf=F z=F a2=F iif=F iii=F izf=F izi=F]
+  Entering INNER state...
+  Entering SREAD state...     Source read address/pix address: 00812F80/0 [0000000000000000]
+  Entering A2_ADD state [a2_x=0000, a2_y=0000, addasel=0, addbsel=1, modx=0, addareg=F, adda_xconst=0, adda_yconst=0]...
+  Entering DREAD state...       Dest read address/pix address: 001F8303/4 [0000000000000000]
+  Entering DWRITE state...     Dest write address/pix address: 001F8303/4 srcz=0000000000000000]
+
+[dcomp=FF zcomp=00 dbinh=00]
+
+[srcz=0000000000000000 dstz=0000000000000000 zwdata=0000000000000000 mask=000F]
+ [0000000000000000] (icount=0009, inc=1)
+    [dstart=4 dend=8 pwidth=4 srcshift=4][daas=0 dabs=0 dam=7 ds=1 daq=F]
+  Entering A1_ADD state [a1_x=0007, a1_y=0000, addasel=0, addbsel=0, modx=0, addareg=F, adda_xconst=0, adda_yconst=0]...
+
+*/
 				if (sreadx)
 				{
 #ifdef VERBOSE_BLITTER_LOGGING
@@ -4322,6 +4366,66 @@ if (logBlit)
 #endif
 				}
 
+/*
+This is because the address generator was using only 15 bits of the X when it should have
+used 16!
+
+There's a slight problem here: The X pointer isn't wrapping like it should when it hits
+the edge of the window... Notice how the X isn't reset at the edge of the window:
+
+Blit! (CMD = 00010000)
+Flags: PATDSEL
+  count = 160 x 261
+  a1_base = 000E8008, a2_base = 0001FA68
+  a1_x = 0000, a1_y = 0000, a1_frac_x = 0000, a1_frac_y = 0000, a2_x = 0000, a2_y = 0000
+  a1_step_x = 0000, a1_step_y = 0000, a1_stepf_x = 0000, a1_stepf_y = 0000, a2_step_x = 0000, a2_step_y = 0000
+  a1_inc_x = 0000, a1_inc_y = 0000, a1_incf_x = 0000, a1_incf_y = 0000
+  a1_win_x = 0000, a1_win_y = 0000, a2_mask_x = 0000, a2_mask_y = 0000
+  a2_mask=F a1add=+phr/+0 a2add=+phr/+0
+  a1_pixsize = 5, a2_pixsize = 5
+   srcd=7717771777177717  dstd=0000000000000000 patd=7730773077307730 iinc=00000000
+  srcz1=0000000000000000 srcz2=0000000000000000 dstz=0000000000000000 zinc=00000000, coll=0
+  Phrase mode is ON
+  [in=T a1f=F a1=F zf=F z=F a2=F iif=F iii=F izf=F izi=F]
+  Entering INNER state...
+  Entering DWRITE state...     Dest write address/pix address: 000E8008/0 [7730773077307730] (icount=009E, inc=2)
+ srcz=0000000000000000][dcomp=AA zcomp=00 dbinh=00]
+[srcz=0000000000000000 dstz=0000000000000000 zwdata=0000000000000000 mask=7FFF]
+    [dstart=0 dend=40 pwidth=8 srcshift=0][daas=0 dabs=0 dam=7 ds=0 daq=F]
+  Entering A1_ADD state [a1_x=0000, a1_y=0000, addasel=0, addbsel=0, modx=1, addareg=F, adda_xconst=1, adda_yconst=0]...
+  Entering DWRITE state...     Dest write address/pix address: 000E8018/0 [7730773077307730] (icount=009C, inc=2)
+ srcz=0000000000000000][dcomp=AA zcomp=00 dbinh=00]
+[srcz=0000000000000000 dstz=0000000000000000 zwdata=0000000000000000 mask=7FFF]
+    [dstart=0 dend=40 pwidth=8 srcshift=0][daas=0 dabs=0 dam=7 ds=0 daq=F]
+  Entering A1_ADD state [a1_x=0002, a1_y=0000, addasel=0, addbsel=0, modx=1, addareg=F, adda_xconst=1, adda_yconst=0]...
+
+...
+
+  Entering A1_ADD state [a1_x=009C, a1_y=0000, addasel=0, addbsel=0, modx=1, addareg=F, adda_xconst=1, adda_yconst=0]...
+  Entering DWRITE state...     Dest write address/pix address: 000E84F8/0 [7730773077307730] (icount=0000, inc=2)
+ srcz=0000000000000000][dcomp=AA zcomp=00 dbinh=00]
+[srcz=0000000000000000 dstz=0000000000000000 zwdata=0000000000000000 mask=7FFF]
+    [dstart=0 dend=40 pwidth=8 srcshift=0][daas=0 dabs=0 dam=7 ds=0 daq=F]
+  Entering A1_ADD state [a1_x=009E, a1_y=0000, addasel=0, addbsel=0, modx=1, addareg=F, adda_xconst=1, adda_yconst=0]...
+  Entering IDLE_INNER state...
+
+  Leaving INNER state... (ocount=0104)
+  [in=T a1f=F a1=F zf=F z=F a2=F iif=F iii=F izf=F izi=F]
+
+  Entering INNER state...
+  Entering DWRITE state...     Dest write address/pix address: 000E8508/0 [7730773077307730] (icount=009E, inc=2)
+ srcz=0000000000000000][dcomp=AA zcomp=00 dbinh=00]
+[srcz=0000000000000000 dstz=0000000000000000 zwdata=0000000000000000 mask=7FFF]
+    [dstart=0 dend=40 pwidth=8 srcshift=0][daas=0 dabs=0 dam=7 ds=0 daq=F]
+  Entering A1_ADD state [a1_x=00A0, a1_y=0000, addasel=0, addbsel=0, modx=1, addareg=F, adda_xconst=1, adda_yconst=0]...
+  Entering DWRITE state...     Dest write address/pix address: 000E8518/0 [7730773077307730] (icount=009C, inc=2)
+ srcz=0000000000000000][dcomp=AA zcomp=00 dbinh=00]
+[srcz=0000000000000000 dstz=0000000000000000 zwdata=0000000000000000 mask=7FFF]
+    [dstart=0 dend=40 pwidth=8 srcshift=0][daas=0 dabs=0 dam=7 ds=0 daq=F]
+  Entering A1_ADD state [a1_x=00A2, a1_y=0000, addasel=0, addbsel=0, modx=1, addareg=F, adda_xconst=1, adda_yconst=0]...
+
+*/
+
 				if (a1_add)
 				{
 #ifdef VERBOSE_BLITTER_LOGGING
@@ -4551,120 +4655,84 @@ fflush(stdout);
 		}
 	}
 
+// We never get here! !!! FIX !!!
+
+#ifdef VERBOSE_BLITTER_LOGGING
+if (logBlit)
+{
+	printf("Done!\na1_x=%04X a1_y=%04X a1_frac_x=%04X a1_frac_y=%04X a2_x=%04X a2_y%04X\n", 
+		GET16(blitter_ram, A1_PIXEL + 2),
+		GET16(blitter_ram, A1_PIXEL + 0),
+		GET16(blitter_ram, A1_FPIXEL + 2),
+		GET16(blitter_ram, A1_FPIXEL + 0),
+		GET16(blitter_ram, A2_PIXEL + 2),
+		GET16(blitter_ram, A2_PIXEL + 0));
+	fflush(stdout);
+}
+#endif
+
 	// Write values back to registers (in real blitter, these are continuously updated)
-	SET16(blitter_ram, A1_PIXEL + 0, a1_y);
 	SET16(blitter_ram, A1_PIXEL + 2, a1_x);
-	SET16(blitter_ram, A1_FPIXEL + 0, a1_frac_y);
+	SET16(blitter_ram, A1_PIXEL + 0, a1_y);
 	SET16(blitter_ram, A1_FPIXEL + 2, a1_frac_x);
-	SET16(blitter_ram, A2_PIXEL + 0, a2_y);
+	SET16(blitter_ram, A1_FPIXEL + 0, a1_frac_y);
 	SET16(blitter_ram, A2_PIXEL + 2, a2_x);
+	SET16(blitter_ram, A2_PIXEL + 0, a2_y);
+
+#ifdef VERBOSE_BLITTER_LOGGING
+if (logBlit)
+{
+	printf("Writeback!\na1_x=%04X a1_y=%04X a1_frac_x=%04X a1_frac_y=%04X a2_x=%04X a2_y%04X\n", 
+		GET16(blitter_ram, A1_PIXEL + 2),
+		GET16(blitter_ram, A1_PIXEL + 0),
+		GET16(blitter_ram, A1_FPIXEL + 2),
+		GET16(blitter_ram, A1_FPIXEL + 0),
+		GET16(blitter_ram, A2_PIXEL + 2),
+		GET16(blitter_ram, A2_PIXEL + 0));
+	fflush(stdout);
+}
+#endif
 }
 
-
 /*
-The latest that doesn't work properly:
+	int16 a1_x = (int16)GET16(blitter_ram, A1_PIXEL + 2);
+	int16 a1_y = (int16)GET16(blitter_ram, A1_PIXEL + 0);
+	uint16 a1_frac_x = GET16(blitter_ram, A1_FPIXEL + 2);
+	uint16 a1_frac_y = GET16(blitter_ram, A1_FPIXEL + 0);
+	int16 a2_x = (int16)GET16(blitter_ram, A2_PIXEL + 2);
+	int16 a2_y = (int16)GET16(blitter_ram, A2_PIXEL + 0);
 
-Blit! (CMD = 09800741)
-Flags: SRCEN CLIP_A1 UPDA1 UPDA1F UPDA2 LFUFUNC=C DCOMPEN
-  count = 15 x 18
-  a1_base = 00050000, a2_base = 0083F400
-  a1_x = 003D, a1_y = 00AD, a1_frac_x = 8000, a1_frac_y = 0000, a2_x = 0027, a2_y = 00A4
-  a1_step_x = FFF1, a1_step_y = 0001, a1_stepf_x = 0000, a1_stepf_y = 0000, a2_step_x = FFF1, a2_step_y = 0001
-  a1_inc_x = 0001, a1_inc_y = 0000, a1_incf_x = 0000, a1_incf_y = 0000
-  a1_win_x = 0180, a1_win_y = 0118, a2_mask_x = 0000, a2_mask_y = 0000
-  a2_mask=F a1add=+inc/+0 a2add=+1/+0
-  a1_pixsize = 4, a2_pixsize = 4
-   srcd=0000000000000000  dstd=0000000000000000 patd=0000000000000000 iinc=00FFF000
-  srcz1=0000000000000000 srcz2=0000000000000000 dstz=0000000000000000 zinc=00000000, col=2
-  Phrase mode is off
-  [in=T a1f=F a1=F zf=F z=F a2=F iif=F iii=F izf=F izi=F]
-  Entering INNER state...
-  Entering SREAD state...    Source read address/pix address: 00858E4E/0 [0000000000000000]
-  Entering A2_ADD state [a2_x=0027, a2_y=00A4, addasel=0, addbsel=1, modx=0, addareg=F, adda_xconst=0, adda_yconst=0]...
-  Entering DWRITE state...
-     Dest write address/pix address: 0007077A/0 [dstart=0 dend=10 pwidth=8 srcshift=0][daas=0 dabs=0 dam=7 ds=1 daq=F] [0000000000000000] (icount=000E, inc=1)
-  Entering A1_ADD state [a1_x=003D, a1_y=00AD, addasel=3, addbsel=2, modx=0, addareg=T, adda_xconst=7, adda_yconst=0]...
-  Entering SREAD state...    Source read address/pix address: 00858E50/0 [0000000000000000]
-  Entering A2_ADD state [a2_x=0028, a2_y=00A4, addasel=0, addbsel=1, modx=0, addareg=F, adda_xconst=0, adda_yconst=0]...
-  Entering DWRITE state...
-     Dest write address/pix address: 0007077C/0 [dstart=0 dend=10 pwidth=8 srcshift=0][daas=0 dabs=0 dam=7 ds=1 daq=F] [0000000000000000] (icount=000D, inc=1)
-  Entering A1_ADD state [a1_x=003E, a1_y=00AD, addasel=3, addbsel=2, modx=0, addareg=T, adda_xconst=7, adda_yconst=0]...
-  Entering SREAD state...    Source read address/pix address: 00858E52/0 [0000000000000000]
-  Entering A2_ADD state [a2_x=0029, a2_y=00A4, addasel=0, addbsel=1, modx=0, addareg=F, adda_xconst=0, adda_yconst=0]...
-  Entering DWRITE state...
-     Dest write address/pix address: 0007077E/0 [dstart=0 dend=10 pwidth=8 srcshift=0][daas=0 dabs=0 dam=7 ds=1 daq=F] [0000000000000000] (icount=000C, inc=1)
-  Entering A1_ADD state [a1_x=003F, a1_y=00AD, addasel=3, addbsel=2, modx=0, addareg=T, adda_xconst=7, adda_yconst=0]...
-  Entering SREAD state...    Source read address/pix address: 00858E54/0 [000000000000014A]
-  Entering A2_ADD state [a2_x=002A, a2_y=00A4, addasel=0, addbsel=1, modx=0, addareg=F, adda_xconst=0, adda_yconst=0]...
-  Entering DWRITE state...
-     Dest write address/pix address: 00070780/0 [dstart=0 dend=10 pwidth=8 srcshift=0][daas=0 dabs=0 dam=7 ds=1 daq=F] [000000000000014A] (icount=000B, inc=1)
-  Entering A1_ADD state [a1_x=0040, a1_y=00AD, addasel=3, addbsel=2, modx=0, addareg=T, adda_xconst=7, adda_yconst=0]...
-  Entering SREAD state...    Source read address/pix address: 00858E56/0 [000000000000014A]
-  Entering A2_ADD state [a2_x=002B, a2_y=00A4, addasel=0, addbsel=1, modx=0, addareg=F, adda_xconst=0, adda_yconst=0]...
-  Entering DWRITE state...
-     Dest write address/pix address: 00070782/0 [dstart=0 dend=10 pwidth=8 srcshift=0][daas=0 dabs=0 dam=7 ds=1 daq=F] [000000000000014A] (icount=000A, inc=1)
-  Entering A1_ADD state [a1_x=0041, a1_y=00AD, addasel=3, addbsel=2, modx=0, addareg=T, adda_xconst=7, adda_yconst=0]...
-  Entering SREAD state...    Source read address/pix address: 00858E58/0 [000000000000014A]
-  Entering A2_ADD state [a2_x=002C, a2_y=00A4, addasel=0, addbsel=1, modx=0, addareg=F, adda_xconst=0, adda_yconst=0]...
-  Entering DWRITE state...
-     Dest write address/pix address: 00070784/0 [dstart=0 dend=10 pwidth=8 srcshift=0][daas=0 dabs=0 dam=7 ds=1 daq=F] [000000000000014A] (icount=0009, inc=1)
-  Entering A1_ADD state [a1_x=0042, a1_y=00AD, addasel=3, addbsel=2, modx=0, addareg=T, adda_xconst=7, adda_yconst=0]...
-  Entering SREAD state...    Source read address/pix address: 00858E5A/0 [000000000000014A]
-  Entering A2_ADD state [a2_x=002D, a2_y=00A4, addasel=0, addbsel=1, modx=0, addareg=F, adda_xconst=0, adda_yconst=0]...
-  Entering DWRITE state...
-     Dest write address/pix address: 00070786/0 [dstart=0 dend=10 pwidth=8 srcshift=0][daas=0 dabs=0 dam=7 ds=1 daq=F] [000000000000014A] (icount=0008, inc=1)
-  Entering A1_ADD state [a1_x=0043, a1_y=00AD, addasel=3, addbsel=2, modx=0, addareg=T, adda_xconst=7, adda_yconst=0]...
-  Entering SREAD state...    Source read address/pix address: 00858E5C/0 [000000000000014A]
-  Entering A2_ADD state [a2_x=002E, a2_y=00A4, addasel=0, addbsel=1, modx=0, addareg=F, adda_xconst=0, adda_yconst=0]...
-  Entering DWRITE state...
-     Dest write address/pix address: 00070788/0 [dstart=0 dend=10 pwidth=8 srcshift=0][daas=0 dabs=0 dam=7 ds=1 daq=F] [000000000000014A] (icount=0007, inc=1)
-  Entering A1_ADD state [a1_x=0044, a1_y=00AD, addasel=3, addbsel=2, modx=0, addareg=T, adda_xconst=7, adda_yconst=0]...
-  Entering SREAD state...    Source read address/pix address: 00858E5E/0 [000000000000014A]
-  Entering A2_ADD state [a2_x=002F, a2_y=00A4, addasel=0, addbsel=1, modx=0, addareg=F, adda_xconst=0, adda_yconst=0]...
-  Entering DWRITE state...
-     Dest write address/pix address: 0007078A/0 [dstart=0 dend=10 pwidth=8 srcshift=0][daas=0 dabs=0 dam=7 ds=1 daq=F] [000000000000014A] (icount=0006, inc=1)
-  Entering A1_ADD state [a1_x=0045, a1_y=00AD, addasel=3, addbsel=2, modx=0, addareg=T, adda_xconst=7, adda_yconst=0]...
-  Entering SREAD state...    Source read address/pix address: 00858E60/0 [000000000000014A]
-  Entering A2_ADD state [a2_x=0030, a2_y=00A4, addasel=0, addbsel=1, modx=0, addareg=F, adda_xconst=0, adda_yconst=0]...
-  Entering DWRITE state...
-     Dest write address/pix address: 0007078C/0 [dstart=0 dend=10 pwidth=8 srcshift=0][daas=0 dabs=0 dam=7 ds=1 daq=F] [000000000000014A] (icount=0005, inc=1)
-  Entering A1_ADD state [a1_x=0046, a1_y=00AD, addasel=3, addbsel=2, modx=0, addareg=T, adda_xconst=7, adda_yconst=0]...
-  Entering SREAD state...    Source read address/pix address: 00858E62/0 [000000000000014A]
-  Entering A2_ADD state [a2_x=0031, a2_y=00A4, addasel=0, addbsel=1, modx=0, addareg=F, adda_xconst=0, adda_yconst=0]...
-  Entering DWRITE state...
-     Dest write address/pix address: 0007078E/0 [dstart=0 dend=10 pwidth=8 srcshift=0][daas=0 dabs=0 dam=7 ds=1 daq=F] [000000000000014A] (icount=0004, inc=1)
-  Entering A1_ADD state [a1_x=0047, a1_y=00AD, addasel=3, addbsel=2, modx=0, addareg=T, adda_xconst=7, adda_yconst=0]...
-  Entering SREAD state...    Source read address/pix address: 00858E64/0 [000000000000014A]
-  Entering A2_ADD state [a2_x=0032, a2_y=00A4, addasel=0, addbsel=1, modx=0, addareg=F, adda_xconst=0, adda_yconst=0]...
-  Entering DWRITE state...
-     Dest write address/pix address: 00070790/0 [dstart=0 dend=10 pwidth=8 srcshift=0][daas=0 dabs=0 dam=7 ds=1 daq=F] [000000000000014A] (icount=0003, inc=1)
-  Entering A1_ADD state [a1_x=0048, a1_y=00AD, addasel=3, addbsel=2, modx=0, addareg=T, adda_xconst=7, adda_yconst=0]...
-  Entering SREAD state...    Source read address/pix address: 00858E66/0 [0000000000000000]
-  Entering A2_ADD state [a2_x=0033, a2_y=00A4, addasel=0, addbsel=1, modx=0, addareg=F, adda_xconst=0, adda_yconst=0]...
-  Entering DWRITE state...
-     Dest write address/pix address: 00070792/0 [dstart=0 dend=10 pwidth=8 srcshift=0][daas=0 dabs=0 dam=7 ds=1 daq=F] [0000000000000000] (icount=0002, inc=1)
-  Entering A1_ADD state [a1_x=0049, a1_y=00AD, addasel=3, addbsel=2, modx=0, addareg=T, adda_xconst=7, adda_yconst=0]...
-  Entering SREAD state...    Source read address/pix address: 00858E68/0 [0000000000000000]
-  Entering A2_ADD state [a2_x=0034, a2_y=00A4, addasel=0, addbsel=1, modx=0, addareg=F, adda_xconst=0, adda_yconst=0]...
-  Entering DWRITE state...
-     Dest write address/pix address: 00070794/0 [dstart=0 dend=10 pwidth=8 srcshift=0][daas=0 dabs=0 dam=7 ds=1 daq=F] [0000000000000000] (icount=0001, inc=1)
-  Entering A1_ADD state [a1_x=004A, a1_y=00AD, addasel=3, addbsel=2, modx=0, addareg=T, adda_xconst=7, adda_yconst=0]...
-  Entering SREAD state...    Source read address/pix address: 00858E6A/0 [0000000000000000]
-  Entering A2_ADD state [a2_x=0035, a2_y=00A4, addasel=0, addbsel=1, modx=0, addareg=F, adda_xconst=0, adda_yconst=0]...
-  Entering DWRITE state...
-     Dest write address/pix address: 00070796/0 [dstart=0 dend=10 pwidth=8 srcshift=0][daas=0 dabs=0 dam=7 ds=1 daq=F] [0000000000000000] (icount=0000, inc=1)
-  Entering A1_ADD state [a1_x=004B, a1_y=00AD, addasel=3, addbsel=2, modx=0, addareg=T, adda_xconst=7, adda_yconst=0]...
-  Entering IDLE_INNER state...
-  Leaving INNER state... (ocount=0011)
-  [in=F a1f=T a1=F zf=F z=F a2=F iif=F iii=F izf=F izi=F]
-  Entering A1FUPDATE state...
-  [in=F a1f=F a1=T zf=F z=F a2=F iif=F iii=F izf=F izi=F]
-  Entering A1UPDATE state... (76/173 -> 61/174)
-  [in=F a1f=F a1=F zf=F z=F a2=T iif=F iii=F izf=F izi=F]
-  Entering A2UPDATE state... (54/164 -> 39/165)
-  [in=T a1f=F a1=F zf=F z=F a2=F iif=F iii=F izf=F izi=F]
-  Entering INNER state...
+Seems that the ending a1_x should be written between blits, but it doesn't seem to be...
+
+Blit! (CMD = 01800000)
+Flags: LFUFUNC=C
+  count = 28672 x 1
+  a1_base = 00050000, a2_base = 00070000
+  a1_x = 0000, a1_y = 0000, a1_frac_x = 49CD, a1_frac_y = 0000, a2_x = 0033, a2_y = 0001
+  a1_step_x = 0000, a1_step_y = 0000, a1_stepf_x = 939A, a1_stepf_y = 0000, a2_step_x = 0000, a2_step_y = 0000
+  a1_inc_x = 0000, a1_inc_y = 0000, a1_incf_x = 0000, a1_incf_y = 0000
+  a1_win_x = 0100, a1_win_y = 0020, a2_mask_x = 0000, a2_mask_y = 0000
+  a2_mask=F a1add=+phr/+0 a2add=+phr/+0
+  a1_pixsize = 4, a2_pixsize = 3
+   srcd=DEDEDEDEDEDEDEDE  dstd=0000000000000000 patd=0000000000000000 iinc=00000000
+  srcz1=0000000000000000 srcz2=0000000000000000 dstz=0000000000000000 zinc=00000000, coll=0
+  Phrase mode is ON
+
+Blit! (CMD = 01800000)
+Flags: LFUFUNC=C
+  count = 28672 x 1
+  a1_base = 00050000, a2_base = 00070000
+  a1_x = 0000, a1_y = 0000, a1_frac_x = 49CD, a1_frac_y = 0000, a2_x = 0033, a2_y = 0001
+  a1_step_x = 0000, a1_step_y = 0000, a1_stepf_x = 939A, a1_stepf_y = 0000, a2_step_x = 0000, a2_step_y = 0000
+  a1_inc_x = 0000, a1_inc_y = 0000, a1_incf_x = 0000, a1_incf_y = 0000
+  a1_win_x = 0100, a1_win_y = 0020, a2_mask_x = 0000, a2_mask_y = 0000
+  a2_mask=F a1add=+phr/+0 a2add=+phr/+0
+  a1_pixsize = 4, a2_pixsize = 3
+   srcd=D6D6D6D6D6D6D6D6  dstd=0000000000000000 patd=0000000000000000 iinc=00000000
+  srcz1=0000000000000000 srcz2=0000000000000000 dstz=0000000000000000 zinc=00000000, coll=0
+  Phrase mode is ON
 */
+
 
 
 // Various pieces of the blitter puzzle are teased out here...
@@ -4701,7 +4769,8 @@ void ADDRGEN(uint32 &address, uint32 &pixa, bool gena2, bool zaddr,
 	uint16 a1_x, uint16 a1_y, uint32 a1_base, uint8 a1_pitch, uint8 a1_pixsize, uint8 a1_width, uint8 a1_zoffset,
 	uint16 a2_x, uint16 a2_y, uint32 a2_base, uint8 a2_pitch, uint8 a2_pixsize, uint8 a2_width, uint8 a2_zoffset)
 {
-	uint16 x = (gena2 ? a2_x : a1_x) & 0x7FFF;
+//	uint16 x = (gena2 ? a2_x : a1_x) & 0x7FFF;
+	uint16 x = (gena2 ? a2_x : a1_x) & 0xFFFF;	// Actually uses all 16 bits to generate address...!
 	uint16 y = (gena2 ? a2_y : a1_y) & 0x0FFF;
 	uint8 width = (gena2 ? a2_width : a1_width);
 	uint8 pixsize = (gena2 ? a2_pixsize : a1_pixsize);
