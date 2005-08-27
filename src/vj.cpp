@@ -18,9 +18,6 @@
 #include "sdlemu_opengl.h"
 #include "settings.h"								// Pull in "vjs" struct
 
-// Uncomment this for speed control (?)
-//#define SPEED_CONTROL
-
 // Uncomment this to use built-in BIOS/CD-ROM BIOS
 // You'll need a copy of jagboot.h & jagcd.h for this to work...!
 //#define USE_BUILT_IN_BIOS
@@ -58,13 +55,10 @@ bool CDBIOSLoaded = false;
 uint32 totalFrames;//temp, so we can grab this from elsewhere...
 int main(int argc, char * argv[])
 {
-//	uint32 startTime;//, totalFrames;//, endTime;//, w, h;
-//	uint32 nNormalLast = 0;
-//	int32 nNormalFrac = 0; 
+//NOTE: This isn't actually used anywhere... !!! FIX !!!
 	int32 nFrameskip = 0;							// Default: Show every frame
-//	int32 nFrame = 0;								// No. of Frame
 
-	printf("Virtual Jaguar GCC/SDL Portable Jaguar Emulator v1.0.8\n");
+	printf("Virtual Jaguar GCC/SDL Portable Jaguar Emulator v1.1.0\n");
 	printf("Based upon Virtual Jaguar core v1.0.0 by David Raingeard.\n");
 	printf("Written by Niels Wagenaar (Linux/WIN32), Carwin Jones (BeOS),\n");
 	printf("James L. Hammons (WIN32) and Adam Green (MacOS)\n");
@@ -100,9 +94,6 @@ int main(int argc, char * argv[])
 			nFrameskip = atoi(argv[++i]) + 1;
 			if (nFrameskip > 10)
 				nFrameskip = 10;
-#ifdef SPEED_CONTROL
-			nFrameskip = 0;
-#endif
 		}
 
 		if (!strcmp(argv[i], "-bios"))
@@ -210,80 +201,9 @@ WriteLog("Initializing video subsystem...\n");
 WriteLog("Initializing GUI subsystem...\n");
 	InitGUI();
 
-	// Get the cartridge ROM (if passed in)
 	// Now with crunchy GUI goodness!
-//	JaguarLoadCart(jaguar_mainRom, (haveCart ? argv[1] : vjs.ROMPath));
-//Need to find a better way to handle this crap...
 WriteLog("About to start GUI...\n");
-//	GUIMain();
 	GUIMain(haveCart ? argv[1] : NULL);
-
-/*	jaguar_reset();
-	
-	totalFrames = 0;
-	startTime = clock();
-	nNormalLast = 0;									// Last value of timeGetTime()
-	nNormalFrac = 0;									// Extra fraction we did
-	nNormalLast = SDL_GetTicks();						//timeGetTime();
-
-	while (!finished)
-	{
-#ifdef SPEED_CONTROL
-		nTime = SDL_GetTicks() - nNormalLast;			// calcule le temps écoulé depuis le dernier affichage
-														// nTime est en mili-secondes.
-		// détermine le nombre de trames à passer + 1
-		nCount = (nTime * 600 - nNormalFrac) / 10000;
-
-		// si le nombre de trames à passer + 1 est nul ou négatif,
-		// ne rien faire pendant 2 ms
-		if (nCount <= 0) 
-		{ 
-			//Sleep(2); 
-			//SDL_Delay(1);
-		} // No need to do anything for a bit
-		else
-		{
-			nNormalFrac += nCount * 10000;				// 
-			nNormalLast += nNormalFrac / 600;			// add the duration of nNormalFrac frames
-			nNormalFrac %= 600;							// 
-
-			// Pas plus de 9 (10-1) trames non affichées 
-			if (nCount > 10)
-				nCount = 10;
-			for(int i=0; i<nCount-1; i++)
-				jaguar_exec(backbuffer, false);
-#endif
-            // Set up new backbuffer with new pixels and data
-			JaguarExecute(backbuffer, true);
-			totalFrames++;
-//WriteLog("Frame #%u...\n", totalFrames);
-//extern bool doDSPDis;
-//if (totalFrames == 373)
-//	doDSPDis = true;
-
-			// Some QnD GUI stuff here...
-			if (showGUI)
-			{
-				extern uint32 gpu_pc, dsp_pc;
-				DrawString(backbuffer, 8, 8, false, "GPU PC: %08X", gpu_pc);
-				DrawString(backbuffer, 8, 16, false, "DSP PC: %08X", dsp_pc);
-			}
-
-			// Simple frameskip
-			if (nFrame == nFrameskip)
-			{
-				RenderBackbuffer();
-				nFrame = 0;
-			}
-			else
-				nFrame++;
-
-			joystick_exec();
-
-#ifdef SPEED_CONTROL
-		}
-#endif
-	}*/
 
 //This is no longer accurate...!
 //	int elapsedTime = clock() - startTime;
