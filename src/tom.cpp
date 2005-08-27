@@ -1237,9 +1237,19 @@ if (offset >= 0xF02000 && offset <= 0xF020FF)
 //But it's causing Rayman to be fucked up... Why???
 //Because VC is even in NI mode when calling the OP! That's why!
 		return (tom_scanline << 1) + 1;//*/
-	else if ((offset >= GPU_CONTROL_RAM_BASE) && (offset < GPU_CONTROL_RAM_BASE+0x20))
+/*
+//	F00004          R/W   -----xxx xxxxxxxx   HC - horizontal count
+//	                      -----x-- --------      (which half of the display)
+//	                      ------xx xxxxxxxx      (10-bit counter)
+*/
+// This is a kludge to get the HC working somewhat... What we really should do here
+// is check what the global time is at the time of the read and calculate the correct HC...
+// !!! FIX !!!
+	else if (offset == 0xF00004)
+		return rand() & 0x03FF;
+	else if ((offset >= GPU_CONTROL_RAM_BASE) && (offset < GPU_CONTROL_RAM_BASE + 0x20))
 		return GPUReadWord(offset, who);
-	else if ((offset >= GPU_WORK_RAM_BASE) && (offset < GPU_WORK_RAM_BASE+0x1000))
+	else if ((offset >= GPU_WORK_RAM_BASE) && (offset < GPU_WORK_RAM_BASE + 0x1000))
 		return GPUReadWord(offset, who);
 	else if ((offset >= 0xF00010) && (offset < 0xF00028))
 		return OPReadWord(offset, who);
