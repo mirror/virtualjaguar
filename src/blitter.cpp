@@ -2663,10 +2663,10 @@ void BlitterMidsummer2(void)
 
 	uint32 cmd = GET32(blitter_ram, COMMAND);
 
-/*logBlit = false;
+logBlit = false;
 if (
 	cmd != 0x00010200 &&	// PATDSEL
-	cmd != 0x01800001
+	cmd != 0x01800001		// SRCEN LFUFUNC=C
 	&& cmd != 0x01800005
 //Boot ROM ATARI letters:
 	&& cmd != 0x00011008	// DSTEN GOURD PATDSEL
@@ -2681,7 +2681,7 @@ if (
 //Static pic on title screen:
 	&& cmd != 0x01800601	// SRCEN UPDA1 UPDA2 LFUFUNC=C
 //Turning letters on Cybermorph intro screen:
-	&& cmd != 0x09800F41	// SRCEN CLIP_A1 UPDA1 UPDA1F UPDA2 DSTA2 LFUFUNC=C DCOMPEN
+//	&& cmd != 0x09800F41	// SRCEN CLIP_A1 UPDA1 UPDA1F UPDA2 DSTA2 LFUFUNC=C DCOMPEN
 	&& cmd != 0x00113078	// DSTEN DSTENZ DSTWRZ CLIP_A1 GOURD GOURZ PATDSEL ZMODE=4
 	&& cmd != 0x09900F39	// SRCEN DSTEN DSTENZ DSTWRZ UPDA1 UPDA1F UPDA2 DSTA2 ZMODE=4 LFUFUNC=C DCOMPEN
 	&& cmd != 0x09800209	// SRCEN DSTEN UPDA1 LFUFUNC=C DCOMPEN
@@ -2691,7 +2691,7 @@ if (
 //Hover Strike text:
 	&& cmd != 0x1401060C	// SRCENX DSTEN UPDA1 UPDA2 PATDSEL BCOMPEN BKGWREN
 //Hover Strike 3D stuff
-//	&& cmd != 0x01902839	// SRCEN DSTEN DSTENZ DSTWRZ DSTA2 GOURZ ZMODE=4 LFUFUNC=C
+	&& cmd != 0x01902839	// SRCEN DSTEN DSTENZ DSTWRZ DSTA2 GOURZ ZMODE=4 LFUFUNC=C
 //Hover Strike darkening on intro to play (briefing) screen
 	&& cmd != 0x00020208	// DSTEN UPDA1 ADDDSEL
 //Trevor McFur stuff:
@@ -2700,9 +2700,15 @@ if (
 //T2K:
 	&& cmd != 0x00011000	// GOURD PATDSEL
 	&& cmd != 0x00011040	// CLIP_A1 GOURD PATDSEL
+//Checkered flag:
+	&& cmd != 0x01800000	// LFUFUNC=C
+	&& cmd != 0x01800401	// 
+	&& cmd != 0x01800040	// 
+	&& cmd != 0x00020008	// 
+//	&& cmd != 0x09800F41	// SRCEN CLIP_A1 UPDA1 UPDA1F UPDA2 DSTA2 LFUFUNC=C DCOMPEN
 	)
 	logBlit = true;//*/
-logBlit = true;
+//logBlit = true;
 if (blit_start_log == 0)	// Wait for the signal...
 	logBlit = false;//*/
 /*
@@ -3734,39 +3740,6 @@ uint8 shfti = (srcen || pobbsel ? (sshftld ? loshd : srcshift & 0x07) : 0);
 shfti |= (srcen && phrase_mode ? (sshftld ? shftv & 0x38 : srcshift & 0x38) : 0);
 srcshift = shfti;
 
-/*
-Note that there's a problem here--even though it's NOT in phrase mode, it's still calculating
-a source shift... !!! FIX !!!
-Actually, the problem is the code that utilizes the source shift even when it's not needed... I think.
-
-Blit! (CMD = 01800609)
-Flags: SRCEN DSTEN UPDA1 UPDA2 LFUFUNC=C
-  count = 10 x 12
-  a1_base = 001F8300, a2_base = 00812F80
-  a1_x = 0007, a1_y = 0000, a1_frac_x = 0000, a1_frac_y = 0000, a2_x = 0000, a2_y = 0000
-  a1_step_x = FFF6, a1_step_y = 0001, a1_stepf_x = 0000, a1_stepf_y = 0000, a2_step_x = FFF6, a2_step_y = 0001
-  a1_inc_x = 0000, a1_inc_y = 0000, a1_incf_x = 0000, a1_incf_y = 0000
-  a1_win_x = 0000, a1_win_y = 0000, a2_mask_x = 0000, a2_mask_y = 0000
-  a2_mask=F a1add=+1/+0 a2add=+1/+0
-  a1_pixsize = 2, a2_pixsize = 2
-   srcd=0000000000000000  dstd=0000000000000000 patd=0000000000000000 iinc=00000000
-  srcz1=0000000000000000 srcz2=0000000000000000 dstz=0000000000000000 zinc=00000000, coll=0
-  Phrase mode is off
-  [in=T a1f=F a1=F zf=F z=F a2=F iif=F iii=F izf=F izi=F]
-  Entering INNER state...
-  Entering SREAD state...     Source read address/pix address: 00812F80/0 [0000000000000000]
-  Entering A2_ADD state [a2_x=0000, a2_y=0000, addasel=0, addbsel=1, modx=0, addareg=F, adda_xconst=0, adda_yconst=0]...
-  Entering DREAD state...       Dest read address/pix address: 001F8303/4 [0000000000000000]
-  Entering DWRITE state...     Dest write address/pix address: 001F8303/4 srcz=0000000000000000]
-
-[dcomp=FF zcomp=00 dbinh=00]
-
-[srcz=0000000000000000 dstz=0000000000000000 zwdata=0000000000000000 mask=000F]
- [0000000000000000] (icount=0009, inc=1)
-    [dstart=4 dend=8 pwidth=4 srcshift=4][daas=0 dabs=0 dam=7 ds=1 daq=F]
-  Entering A1_ADD state [a1_x=0007, a1_y=0000, addasel=0, addbsel=0, modx=0, addareg=F, adda_xconst=0, adda_yconst=0]...
-
-*/
 				if (sreadx)
 				{
 #ifdef VERBOSE_BLITTER_LOGGING
@@ -4109,6 +4082,11 @@ uint64 srcd = (srcd2 << (64 - srcshift)) | (srcd1 >> srcshift);
 if (srcshift == 0)
 	srcd = srcd1;
 
+//NOTE: This only works with pixel sizes less than 8BPP...
+//DOUBLE NOTE: Still need to do regression testing to ensure that this doesn't break other stuff... !!! CHECK !!!
+if (!phrase_mode && srcshift != 0)
+	srcd = ((srcd2 & 0xFF) << (8 - srcshift)) | ((srcd1 & 0xFF) >> srcshift);
+
 //Z DATA() stuff done here... And it has to be done before any Z shifting...
 //Note that we need to have phrase mode start/end support here... (Not since we moved it from dzwrite...!)
 /*
@@ -4134,7 +4112,7 @@ void ADDARRAY(uint16 * addq, uint8 daddasel, uint8 daddbsel, uint8 daddmode,
 	ADDARRAY(addq, 6/*daddasel*/, 7/*daddbsel*/, 1/*daddmode*/, 0, 0, initcin, 0, 0, 0, 0, 0, srcz1, srcz2, zinc, 0);
 	srcz1 = ((uint64)addq[3] << 48) | ((uint64)addq[2] << 32) | ((uint64)addq[1] << 16) | (uint64)addq[0];
 
-#ifdef VERBOSE_BLITTER_LOGGING
+#if 0//def VERBOSE_BLITTER_LOGGING
 if (logBlit)
 {
 	printf("\n[srcz1=%08X%08X, srcz2=%08X%08X, zinc=%08X",
@@ -4151,7 +4129,7 @@ srcz = (srcz2 << (64 - zSrcShift)) | (srcz1 >> zSrcShift);
 if (zSrcShift == 0)
 	srcz = srcz1;
 
-#ifdef VERBOSE_BLITTER_LOGGING
+#if 0//def VERBOSE_BLITTER_LOGGING
 if (logBlit)
 {
 	printf(" srcz=%08X%08X]\n", (uint32)(srcz >> 32), (uint32)(srcz & 0xFFFFFFFF));
@@ -4308,7 +4286,7 @@ if (!winhibit)
 #ifdef VERBOSE_BLITTER_LOGGING
 if (logBlit)
 {
-	printf(" [%08X%08X]", (uint32)(wdata >> 32), (uint32)(wdata & 0xFFFFFFFF));
+	printf(" [%08X%08X]%s", (uint32)(wdata >> 32), (uint32)(wdata & 0xFFFFFFFF), (winhibit ? "[X]" : ""));
 	printf(" (icount=%04X, inc=%u)\n", icount, (uint16)inc);
 	printf("    [dstart=%X dend=%X pwidth=%X srcshift=%X]", dstart, dend, pwidth, srcshift);
 	printf("[daas=%X dabs=%X dam=%X ds=%X daq=%s]\n", daddasel, daddbsel, daddmode, data_sel, (daddq_sel ? "T" : "F"));
@@ -6231,4 +6209,9 @@ if (logBlit)
 ////////////////////////////////////// C++ CODE //////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////
 
+// !!! TESTING !!! TESTING !!! TESTING !!! TESTING !!! TESTING !!! TESTING !!! TESTING !!!
+// !!! TESTING !!! TESTING !!! TESTING !!! TESTING !!! TESTING !!! TESTING !!! TESTING !!!
+// !!! TESTING !!! TESTING !!! TESTING !!! TESTING !!! TESTING !!! TESTING !!! TESTING !!!
+
 #endif
+
