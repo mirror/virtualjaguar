@@ -1,0 +1,58 @@
+CC = gcc
+LD = gcc 
+NASM = nasm
+
+CFLAGS  = -Wall -O3 -D__PORT__ -D__GCCUNIX__ -DSPEED_CONTROL -Dstricmp="strcasecmp" -fomit-frame-pointer `sdl-config --cflags`
+
+LDFLAGS = $(CFLAGS)
+
+TARGET = jag_em
+
+OBJ = \
+	src/version.o \
+	src/tom.o \
+	src/pcm.o \
+	src/objectp.o \
+	src/memory.o \
+	src/m68kdasm.o \
+	src/log.o \
+	src/joystick.o \
+	src/jerry.o \
+	src/jaguar.o \
+	src/jagdasm.o \
+	src/Jagem.o \
+	src/gpu.o \
+	src/eeprom.o \
+	src/dsp.o \
+	src/dsound_dummy.o \
+	src/crc32.o \
+	src/clock.o \
+	src/cdrom.o \
+	src/cdi.o \
+	src/cdbios.o \
+	src/blitter.o \
+	src/anajoy.o \
+	src/star026c/s68000.o
+
+LIBS = `sdl-config --libs` -lstdc++
+
+all: $(TARGET)
+
+INCS = -I. `sdl-config --cflags`
+
+THECC = $(CC) $(CFLAGS) $(INCS)
+
+%.o: %.asm
+	$(NASM) -f elf -o $@ $<
+
+%.o: %.c
+	$(THECC) -c $< -o $@
+
+%.o: %.cpp
+	$(THECC) -c $< -o $@
+
+jag_em: $(OBJ) 
+	$(LD) $(LDFLAGS) -o $@ $(OBJ) $(LIBS)
+	 
+clean:
+	rm -f jag_em *.o src/*.o src/star026c/*.o

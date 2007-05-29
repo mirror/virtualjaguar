@@ -1,0 +1,14 @@
+Virtual Jaguar v1.0.0 GCC/SDL - initial source release
+------------------------------------------------------
+
+* Converted VC++ assembly to standard GNU assembly;
+* Fixed small bugs in SDL related items (keyboard/graphics);
+* Added *some* optimalisations to the graphics sources;
+* Added joystick support (not tested);
+* Added joystick port support (not tested);
+* Added frameskip support;
+
+Source only release. Tested on BeOS, Linux, FreeBSD and WIN32.
+SOUND emulation was NOT done. Need help with this one :)
+
+SDLEMU (Niels Wagenaar & Caz) - http://sdlemu.ngemu.com
