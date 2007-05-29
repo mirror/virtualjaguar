@@ -87,7 +87,6 @@ void sdlemu_init_opengl(SDL_Surface * src, SDL_Surface * dst, int texturetype, i
 
 	// Let us create the texture information :
 	sdlemu_create_texture(src, dst, filter, src_bpp);
-
 	sdlemu_create_overlay(dst, src_bpp);
 }
 

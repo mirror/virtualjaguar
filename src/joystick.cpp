@@ -54,8 +54,11 @@ bool iLeft, iRight, iToggle = false;
 bool keyHeld1 = false, keyHeld2 = false, keyHeld3 = false;
 int objectPtr = 0;
 bool startMemLog = false;
-extern bool doDSPDis;
+extern bool doDSPDis, doGPUDis;
 
+bool blitterSingleStep = false;
+bool bssGo = false;
+bool bssHeld = false;
 
 void joystick_init(void)
 {
@@ -204,7 +207,23 @@ void joystick_exec(void)
 		WriteLog("\n--------> MARK!\n\n");
 	if (keystate[SDLK_t])
 		doDSPDis = true;
+	if (keystate[SDLK_y])
+		doGPUDis = true;
 
+	// BLITTER single step
+	if (keystate[SDLK_F5])
+		blitterSingleStep = true;
+
+	if (keystate[SDLK_F6])
+	{
+		if (!bssHeld)
+		{
+			bssHeld = true;
+			bssGo = true;
+		}
+	}
+	else
+		bssHeld = false;
 
 	// Joystick support [nwagenaar]
 

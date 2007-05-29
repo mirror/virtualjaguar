@@ -11,7 +11,7 @@
 #include "cdintf.h"									// System agnostic CD interface functions
 #include "cdrom.h"
 
-#define CDROM_LOG									// For CDROM logging, obviously
+//#define CDROM_LOG									// For CDROM logging, obviously
 
 /*
 BUTCH     equ  $DFFF00		; base of Butch=interrupt control register, R/W
@@ -825,6 +825,8 @@ if (cdBufPtr % 32 == 30)
 
 bool ButchIsReadyToSend(void)
 {
+WriteLog("Butch is%s ready to send...\n", cdRam[I2CNTRL + 3] & 0x02 ? "" : " not");
+
 	return (cdRam[I2CNTRL + 3] & 0x02 ? true : false);
 }
 
