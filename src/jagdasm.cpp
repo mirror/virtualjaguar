@@ -46,7 +46,7 @@ char * condition[32] =
 	
 
 
-char * signed_16bit(INT16 val)
+char * signed_16bit(int16 val)
 {
 	static char temp[10];
 
@@ -99,7 +99,7 @@ unsigned dasmjag(int dsp_type, char * buffer, unsigned pc)
 		case 28:	sprintf(buffer, "ROR     R%02d,R%02d", reg1, reg2);					break;
 		case 29:	sprintf(buffer, "RORQ    $%X,R%02d", convert_zero[reg1], reg2);	break;
 		case 30:	sprintf(buffer, "CMP     R%02d,R%02d", reg1, reg2);					break;
-		case 31:	sprintf(buffer, "CMPQ    %s,R%02d", signed_16bit((INT16)(reg1 << 11) >> 11), reg2);break;
+		case 31:	sprintf(buffer, "CMPQ    %s,R%02d", signed_16bit((int16)(reg1 << 11) >> 11), reg2);break;
 		case 32:	if (dsp_type == JAGUAR_GPU)
 						sprintf(buffer, "SAT8    R%02d", reg2);
 					else
@@ -137,7 +137,7 @@ unsigned dasmjag(int dsp_type, char * buffer, unsigned pc)
 		case 50:	sprintf(buffer, "STORE   R%02d,(R15+$%X)", reg2, convert_zero[reg1]*4);break;
 		case 51:	sprintf(buffer, "MOVE    PC,R%02d", reg2);							break;
 		case 52:	sprintf(buffer, "JUMP    %s(R%02d)", condition[reg2], reg1);			break;
-		case 53:	sprintf(buffer, "JR      %s%08X", condition[reg2], pc + ((INT8)(reg1 << 3) >> 2)); break;
+		case 53:	sprintf(buffer, "JR      %s%08X", condition[reg2], pc + ((int8)(reg1 << 3) >> 2)); break;
 		case 54:	sprintf(buffer, "MMULT   R%02d,R%02d", reg1, reg2);					break;
 		case 55:	sprintf(buffer, "MTOI    R%02d,R%02d", reg1, reg2);					break;
 		case 56:	sprintf(buffer, "NORMI   R%02d,R%02d", reg1, reg2);					break;

@@ -8,6 +8,11 @@
 // NT based code, but for now, it's ASPI or nothing.
 //
 
+// STILL TO DO:
+//
+// - Convert this shit to platform independent libcdio
+//
+
 // *** OS dependent CDROM stuffola ***
 #include <windows.h>
 #include "wnaspi32.h"

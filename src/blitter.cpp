@@ -47,39 +47,39 @@ void BlitterMidsummer2(void);
 
 // Blitter registers (offsets from F02200)
 
-#define A1_BASE			((UINT32)0x00)
-#define A1_FLAGS		((UINT32)0x04)
-#define A1_CLIP			((UINT32)0x08)	// Height and width values for clipping
-#define A1_PIXEL		((UINT32)0x0C)	// Integer part of the pixel (Y.i and X.i)
-#define A1_STEP			((UINT32)0x10)	// Integer part of the step
-#define A1_FSTEP		((UINT32)0x14)	// Fractional part of the step
-#define A1_FPIXEL		((UINT32)0x18)	// Fractional part of the pixel (Y.f and X.f)
-#define A1_INC			((UINT32)0x1C)	// Integer part of the increment
-#define A1_FINC			((UINT32)0x20)	// Fractional part of the increment
-#define A2_BASE			((UINT32)0x24)
-#define A2_FLAGS		((UINT32)0x28)
-#define A2_MASK			((UINT32)0x2C)	// Modulo values for x and y (M.y  and M.x)
-#define A2_PIXEL		((UINT32)0x30)	// Integer part of the pixel (no fractional part for A2)
-#define A2_STEP			((UINT32)0x34)	// Integer part of the step (no fractional part for A2)
-#define COMMAND			((UINT32)0x38)
-#define PIXLINECOUNTER	((UINT32)0x3C)	// Inner & outer loop values
-#define SRCDATA			((UINT32)0x40)
-#define DSTDATA			((UINT32)0x48)
-#define DSTZ			((UINT32)0x50)
-#define SRCZINT			((UINT32)0x58)
-#define SRCZFRAC		((UINT32)0x60)
-#define PATTERNDATA		((UINT32)0x68)
-#define INTENSITYINC	((UINT32)0x70)
-#define ZINC			((UINT32)0x74)
-#define COLLISIONCTRL	((UINT32)0x78)
-#define PHRASEINT0		((UINT32)0x7C)
-#define PHRASEINT1		((UINT32)0x80)
-#define PHRASEINT2		((UINT32)0x84)
-#define PHRASEINT3		((UINT32)0x88)
-#define PHRASEZ0		((UINT32)0x8C)
-#define PHRASEZ1		((UINT32)0x90)
-#define PHRASEZ2		((UINT32)0x94)
-#define PHRASEZ3		((UINT32)0x98)
+#define A1_BASE			((uint32)0x00)
+#define A1_FLAGS		((uint32)0x04)
+#define A1_CLIP			((uint32)0x08)	// Height and width values for clipping
+#define A1_PIXEL		((uint32)0x0C)	// Integer part of the pixel (Y.i and X.i)
+#define A1_STEP			((uint32)0x10)	// Integer part of the step
+#define A1_FSTEP		((uint32)0x14)	// Fractional part of the step
+#define A1_FPIXEL		((uint32)0x18)	// Fractional part of the pixel (Y.f and X.f)
+#define A1_INC			((uint32)0x1C)	// Integer part of the increment
+#define A1_FINC			((uint32)0x20)	// Fractional part of the increment
+#define A2_BASE			((uint32)0x24)
+#define A2_FLAGS		((uint32)0x28)
+#define A2_MASK			((uint32)0x2C)	// Modulo values for x and y (M.y  and M.x)
+#define A2_PIXEL		((uint32)0x30)	// Integer part of the pixel (no fractional part for A2)
+#define A2_STEP			((uint32)0x34)	// Integer part of the step (no fractional part for A2)
+#define COMMAND			((uint32)0x38)
+#define PIXLINECOUNTER	((uint32)0x3C)	// Inner & outer loop values
+#define SRCDATA			((uint32)0x40)
+#define DSTDATA			((uint32)0x48)
+#define DSTZ			((uint32)0x50)
+#define SRCZINT			((uint32)0x58)
+#define SRCZFRAC		((uint32)0x60)
+#define PATTERNDATA		((uint32)0x68)
+#define INTENSITYINC	((uint32)0x70)
+#define ZINC			((uint32)0x74)
+#define COLLISIONCTRL	((uint32)0x78)
+#define PHRASEINT0		((uint32)0x7C)
+#define PHRASEINT1		((uint32)0x80)
+#define PHRASEINT2		((uint32)0x84)
+#define PHRASEINT3		((uint32)0x88)
+#define PHRASEZ0		((uint32)0x8C)
+#define PHRASEZ1		((uint32)0x90)
+#define PHRASEZ2		((uint32)0x94)
+#define PHRASEZ3		((uint32)0x98)
 
 // Blitter command bits
 
@@ -142,34 +142,34 @@ void BlitterMidsummer2(void);
 //Put 'em back, once we fix the problem!!! [KO]
 // 1 bpp pixel read
 #define PIXEL_SHIFT_1(a)      (((~a##_x) >> 16) & 7)
-#define PIXEL_OFFSET_1(a)     (((((UINT32)a##_y >> 16) * a##_width / 8) + (((UINT32)a##_x >> 19) & ~7)) * (1 + a##_pitch) + (((UINT32)a##_x >> 19) & 7))
+#define PIXEL_OFFSET_1(a)     (((((uint32)a##_y >> 16) * a##_width / 8) + (((uint32)a##_x >> 19) & ~7)) * (1 + a##_pitch) + (((uint32)a##_x >> 19) & 7))
 #define READ_PIXEL_1(a)       ((JaguarReadByte(a##_addr+PIXEL_OFFSET_1(a), BLITTER) >> PIXEL_SHIFT_1(a)) & 0x01)
 //#define READ_PIXEL_1(a)       ((JaguarReadByte(a##_addr+PIXEL_OFFSET_1(a)) >> PIXEL_SHIFT_1(a)) & 0x01)
 
 // 2 bpp pixel read
 #define PIXEL_SHIFT_2(a)      (((~a##_x) >> 15) & 6)
-#define PIXEL_OFFSET_2(a)     (((((UINT32)a##_y >> 16) * a##_width / 4) + (((UINT32)a##_x >> 18) & ~7)) * (1 + a##_pitch) + (((UINT32)a##_x >> 18) & 7))
+#define PIXEL_OFFSET_2(a)     (((((uint32)a##_y >> 16) * a##_width / 4) + (((uint32)a##_x >> 18) & ~7)) * (1 + a##_pitch) + (((uint32)a##_x >> 18) & 7))
 #define READ_PIXEL_2(a)       ((JaguarReadByte(a##_addr+PIXEL_OFFSET_2(a), BLITTER) >> PIXEL_SHIFT_2(a)) & 0x03)
 //#define READ_PIXEL_2(a)       ((JaguarReadByte(a##_addr+PIXEL_OFFSET_2(a)) >> PIXEL_SHIFT_2(a)) & 0x03)
 
 // 4 bpp pixel read
 #define PIXEL_SHIFT_4(a)      (((~a##_x) >> 14) & 4)
-#define PIXEL_OFFSET_4(a)     (((((UINT32)a##_y >> 16) * (a##_width/2)) + (((UINT32)a##_x >> 17) & ~7)) * (1 + a##_pitch) + (((UINT32)a##_x >> 17) & 7))
+#define PIXEL_OFFSET_4(a)     (((((uint32)a##_y >> 16) * (a##_width/2)) + (((uint32)a##_x >> 17) & ~7)) * (1 + a##_pitch) + (((uint32)a##_x >> 17) & 7))
 #define READ_PIXEL_4(a)       ((JaguarReadByte(a##_addr+PIXEL_OFFSET_4(a), BLITTER) >> PIXEL_SHIFT_4(a)) & 0x0f)
 //#define READ_PIXEL_4(a)       ((JaguarReadByte(a##_addr+PIXEL_OFFSET_4(a)) >> PIXEL_SHIFT_4(a)) & 0x0f)
 
 // 8 bpp pixel read
-#define PIXEL_OFFSET_8(a)     (((((UINT32)a##_y >> 16) * a##_width) + (((UINT32)a##_x >> 16) & ~7)) * (1 + a##_pitch) + (((UINT32)a##_x >> 16) & 7))
+#define PIXEL_OFFSET_8(a)     (((((uint32)a##_y >> 16) * a##_width) + (((uint32)a##_x >> 16) & ~7)) * (1 + a##_pitch) + (((uint32)a##_x >> 16) & 7))
 #define READ_PIXEL_8(a)       (JaguarReadByte(a##_addr+PIXEL_OFFSET_8(a), BLITTER))
 //#define READ_PIXEL_8(a)       (JaguarReadByte(a##_addr+PIXEL_OFFSET_8(a)))
 
 // 16 bpp pixel read
-#define PIXEL_OFFSET_16(a)    (((((UINT32)a##_y >> 16) * a##_width) + (((UINT32)a##_x >> 16) & ~3)) * (1 + a##_pitch) + (((UINT32)a##_x >> 16) & 3))
+#define PIXEL_OFFSET_16(a)    (((((uint32)a##_y >> 16) * a##_width) + (((uint32)a##_x >> 16) & ~3)) * (1 + a##_pitch) + (((uint32)a##_x >> 16) & 3))
 #define READ_PIXEL_16(a)       (JaguarReadWord(a##_addr+(PIXEL_OFFSET_16(a)<<1), BLITTER))
 //#define READ_PIXEL_16(a)       (JaguarReadWord(a##_addr+(PIXEL_OFFSET_16(a)<<1)))
 
 // 32 bpp pixel read
-#define PIXEL_OFFSET_32(a)    (((((UINT32)a##_y >> 16) * a##_width) + (((UINT32)a##_x >> 16) & ~1)) * (1 + a##_pitch) + (((UINT32)a##_x >> 16) & 1))
+#define PIXEL_OFFSET_32(a)    (((((uint32)a##_y >> 16) * a##_width) + (((uint32)a##_x >> 16) & ~1)) * (1 + a##_pitch) + (((uint32)a##_x >> 16) & 1))
 #define READ_PIXEL_32(a)      (JaguarReadLong(a##_addr+(PIXEL_OFFSET_32(a)<<2), BLITTER))
 //#define READ_PIXEL_32(a)      (JaguarReadLong(a##_addr+(PIXEL_OFFSET_32(a)<<2)))
 
@@ -198,22 +198,22 @@ void BlitterMidsummer2(void);
 #define WRITE_ZDATA(a,f,d) WRITE_ZDATA_16(a,d); 
 
 // 1 bpp r data read
-#define READ_RDATA_1(r,a,p)  ((p) ?  ((REG(r+(((UINT32)a##_x >> 19) & 0x04))) >> (((UINT32)a##_x >> 16) & 0x1F)) & 0x0001 : (REG(r) & 0x0001))
+#define READ_RDATA_1(r,a,p)  ((p) ?  ((REG(r+(((uint32)a##_x >> 19) & 0x04))) >> (((uint32)a##_x >> 16) & 0x1F)) & 0x0001 : (REG(r) & 0x0001))
 
 // 2 bpp r data read
-#define READ_RDATA_2(r,a,p)  ((p) ?  ((REG(r+(((UINT32)a##_x >> 18) & 0x04))) >> (((UINT32)a##_x >> 15) & 0x3E)) & 0x0003 : (REG(r) & 0x0003))
+#define READ_RDATA_2(r,a,p)  ((p) ?  ((REG(r+(((uint32)a##_x >> 18) & 0x04))) >> (((uint32)a##_x >> 15) & 0x3E)) & 0x0003 : (REG(r) & 0x0003))
 
 // 4 bpp r data read
-#define READ_RDATA_4(r,a,p)  ((p) ?  ((REG(r+(((UINT32)a##_x >> 17) & 0x04))) >> (((UINT32)a##_x >> 14) & 0x28)) & 0x000F : (REG(r) & 0x000F))
+#define READ_RDATA_4(r,a,p)  ((p) ?  ((REG(r+(((uint32)a##_x >> 17) & 0x04))) >> (((uint32)a##_x >> 14) & 0x28)) & 0x000F : (REG(r) & 0x000F))
 
 // 8 bpp r data read
-#define READ_RDATA_8(r,a,p)  ((p) ?  ((REG(r+(((UINT32)a##_x >> 16) & 0x04))) >> (((UINT32)a##_x >> 13) & 0x18)) & 0x00FF : (REG(r) & 0x00FF))
+#define READ_RDATA_8(r,a,p)  ((p) ?  ((REG(r+(((uint32)a##_x >> 16) & 0x04))) >> (((uint32)a##_x >> 13) & 0x18)) & 0x00FF : (REG(r) & 0x00FF))
 
 // 16 bpp r data read
-#define READ_RDATA_16(r,a,p)  ((p) ? ((REG(r+(((UINT32)a##_x >> 15) & 0x04))) >> (((UINT32)a##_x >> 12) & 0x10)) & 0xFFFF : (REG(r) & 0xFFFF))
+#define READ_RDATA_16(r,a,p)  ((p) ? ((REG(r+(((uint32)a##_x >> 15) & 0x04))) >> (((uint32)a##_x >> 12) & 0x10)) & 0xFFFF : (REG(r) & 0xFFFF))
 
 // 32 bpp r data read
-#define READ_RDATA_32(r,a,p)  ((p) ? REG(r+(((UINT32)a##_x >> 14) & 0x04)) : REG(r))
+#define READ_RDATA_32(r,a,p)  ((p) ? REG(r+(((uint32)a##_x >> 14) & 0x04)) : REG(r))
 
 // register data read
 #define READ_RDATA(r,a,f,p) (\
@@ -705,7 +705,7 @@ Blit! (00098D90 <- 0081DDC0) count: 320 x 287, A1/2_FLAGS: 00004220/00004020 [cm
 /*if (((REG(A1_FLAGS) >> 3) & 0x07) == 5)
 {
 	uint32 offset = a1_addr+(PIXEL_OFFSET_32(a1)<<2);
-// (((((UINT32)a##_y >> 16) * a##_width) + (((UINT32)a##_x >> 16) & ~1)) * (1 + a##_pitch) + (((UINT32)a##_x >> 16) & 1))
+// (((((uint32)a##_y >> 16) * a##_width) + (((uint32)a##_x >> 16) & ~1)) * (1 + a##_pitch) + (((uint32)a##_x >> 16) & 1))
 	if ((offset >= 0x1FF020 && offset <= 0x1FF03F) || (offset >= 0x1FF820 && offset <= 0x1FF83F))
 		WriteLog("32bpp pixel write: A1 Phrase mode --> ");
 }//*/
@@ -861,7 +861,7 @@ Blit! (00098D90 <- 0081DDC0) count: 320 x 287, A1/2_FLAGS: 00004220/00004020 [cm
 /*if (logGo)
 {
 	uint32 offset = a2_addr+(PIXEL_OFFSET_16(a2)<<1);
-// (((((UINT32)a##_y >> 16) * a##_width) + (((UINT32)a##_x >> 16) & ~1)) * (1 + a##_pitch) + (((UINT32)a##_x >> 16) & 1))
+// (((((uint32)a##_y >> 16) * a##_width) + (((uint32)a##_x >> 16) & ~1)) * (1 + a##_pitch) + (((uint32)a##_x >> 16) & 1))
 	WriteLog("[%08X:%04X] ", offset, writedata);
 }//*/
 					// write to the destination
@@ -1107,7 +1107,7 @@ void blitter_blit(uint32 cmd)
 //	a1_width = blitter_scanline_width[((REG(A1_FLAGS) & 0x00007E00) >> 9)];
 // According to JTRM, this must give a *whole number* of phrases in the current
 // pixel size (this means the lookup above is WRONG)... !!! FIX !!!
-	UINT32 m = (REG(A1_FLAGS) >> 9) & 0x03, e = (REG(A1_FLAGS) >> 11) & 0x0F;
+	uint32 m = (REG(A1_FLAGS) >> 9) & 0x03, e = (REG(A1_FLAGS) >> 11) & 0x0F;
 	a1_width = ((0x04 | m) << e) >> 2;//*/
 
 	a2_x = (REG(A2_PIXEL) & 0x0000FFFF) << 16;
@@ -1170,7 +1170,7 @@ void blitter_blit(uint32 cmd)
 //  A1 -> pitch: 1 phrases, depth: 16bpp, z-off: 0, width: 128 (1C), addctl: XADDINC YADD1 XSIGNADD YSIGNADD
 //  A2 -> pitch: 1 phrases, depth: 16bpp, z-off: 0, width: 320 (21), addctl: XADD0 YADD1 XSIGNADD YSIGNADD
 //if (YADD1_A1 && YADD1_A2 && xadd_a2_control == XADD0 && xadd_a1_control == XADDINC)// &&
-//	UINT32 a1f = REG(A1_FLAGS), a2f = REG(A2_FLAGS);
+//	uint32 a1f = REG(A1_FLAGS), a2f = REG(A2_FLAGS);
 //Ok, so this ISN'T it... Prolly the XADDPHR code above that's doing it...
 //if (REG(A1_FLAGS) == 0x00073820 && REG(A2_FLAGS) == 0x00064220 && cmd == 0x41802801)
 //        A1 x/y: 14368/7, A2 x/y: 150/36
@@ -1458,14 +1458,14 @@ if (blit_start_log)
 	uint32 /*src = cmd & 0x07, dst = (cmd >> 3) & 0x07, misc = (cmd >> 6) & 0x03,
 		a1ctl = (cmd >> 8) & 0x07,*/ mode = (cmd >> 11) & 0x07/*, ity = (cmd >> 14) & 0x0F,
 		zop = (cmd >> 18) & 0x07, op = (cmd >> 21) & 0x0F, ctrl = (cmd >> 25) & 0x3F*/;
-	UINT32 a1f = REG(A1_FLAGS), a2f = REG(A2_FLAGS);
+	uint32 a1f = REG(A1_FLAGS), a2f = REG(A2_FLAGS);
 	uint32 p1 = a1f & 0x07, p2 = a2f & 0x07,
 		d1 = (a1f >> 3) & 0x07, d2 = (a2f >> 3) & 0x07,
 		zo1 = (a1f >> 6) & 0x07, zo2 = (a2f >> 6) & 0x07,
 		w1 = (a1f >> 9) & 0x3F, w2 = (a2f >> 9) & 0x3F,
 		ac1 = (a1f >> 16) & 0x1F, ac2 = (a2f >> 16) & 0x1F;
-	UINT32 iw1 = ((0x04 | (w1 & 0x03)) << ((w1 & 0x3C) >> 2)) >> 2;
-	UINT32 iw2 = ((0x04 | (w2 & 0x03)) << ((w2 & 0x3C) >> 2)) >> 2;
+	uint32 iw1 = ((0x04 | (w1 & 0x03)) << ((w1 & 0x3C) >> 2)) >> 2;
+	uint32 iw2 = ((0x04 | (w2 & 0x03)) << ((w2 & 0x3C) >> 2)) >> 2;
 	WriteLog("Blit! (%08X %s %08X) count: %d x %d, A1/2_FLAGS: %08X/%08X [cmd: %08X]\n", a1_addr, (mode&0x01 ? "->" : "<-"), a2_addr, n_pixels, n_lines, a1f, a2f, cmd);
 //	WriteLog(" CMD -> src: %d, dst: %d, misc: %d, a1ctl: %d, mode: %d, ity: %1X, z-op: %d, op: %1X, ctrl: %02X\n", src, dst, misc, a1ctl, mode, ity, zop, op, ctrl);
 
@@ -1727,10 +1727,10 @@ void LogBlit(void)
 	char * opStr[16] = { "LFU_CLEAR", "LFU_NSAND", "LFU_NSAD", "LFU_NOTS", "LFU_SAND", "LFU_NOTD", "LFU_N_SXORD", "LFU_NSORND",
 		"LFU_SAD", "LFU_XOR", "LFU_D", "LFU_NSORD", "LFU_REPLACE", "LFU_SORND", "LFU_SORD", "LFU_ONE" };
 	uint32 cmd = GET32(blitter_ram, 0x38);
-	UINT32 m = (REG(A1_FLAGS) >> 9) & 0x03, e = (REG(A1_FLAGS) >> 11) & 0x0F;
-	UINT32 a1_width = ((0x04 | m) << e) >> 2;
+	uint32 m = (REG(A1_FLAGS) >> 9) & 0x03, e = (REG(A1_FLAGS) >> 11) & 0x0F;
+	uint32 a1_width = ((0x04 | m) << e) >> 2;
 	m = (REG(A2_FLAGS) >> 9) & 0x03, e = (REG(A2_FLAGS) >> 11) & 0x0F;
-	UINT32 a2_width = ((0x04 | m) << e) >> 2;
+	uint32 a2_width = ((0x04 | m) << e) >> 2;
 
 	WriteLog("Blit!\n");
 	WriteLog("  COMMAND  = %08X\n", cmd);
@@ -1846,7 +1846,7 @@ uint8 a1_phrase_mode, a2_phrase_mode;
 	a2_addr = REG(A2_BASE) & 0xFFFFFFF8;
 	a1_x = (REG(A1_PIXEL) << 16) | (REG(A1_FPIXEL) & 0xFFFF);
 	a1_y = (REG(A1_PIXEL) & 0xFFFF0000) | (REG(A1_FPIXEL) >> 16);
-	UINT32 m = (REG(A1_FLAGS) >> 9) & 0x03, e = (REG(A1_FLAGS) >> 11) & 0x0F;
+	uint32 m = (REG(A1_FLAGS) >> 9) & 0x03, e = (REG(A1_FLAGS) >> 11) & 0x0F;
 	a1_width = ((0x04 | m) << e) >> 2;//*/
 	a2_x = (REG(A2_PIXEL) & 0x0000FFFF) << 16;
 	a2_y = (REG(A2_PIXEL) & 0xFFFF0000);
@@ -2475,10 +2475,10 @@ a1fupdate    A1 step fraction is added to A1 pointer fraction
 goto a1update
 */
 /*
-#define A1_PIXEL		((UINT32)0x0C)	// Integer part of the pixel (Y.i and X.i)
-#define A1_STEP			((UINT32)0x10)	// Integer part of the step
-#define A1_FSTEP		((UINT32)0x14)	// Fractional part of the step
-#define A1_FPIXEL		((UINT32)0x18)	// Fractional part of the pixel (Y.f and X.f)
+#define A1_PIXEL		((uint32)0x0C)	// Integer part of the pixel (Y.i and X.i)
+#define A1_STEP			((uint32)0x10)	// Integer part of the step
+#define A1_FSTEP		((uint32)0x14)	// Fractional part of the step
+#define A1_FPIXEL		((uint32)0x18)	// Fractional part of the pixel (Y.f and X.f)
 */
 
 // This is all kinda murky. All we have are the Midsummer docs to give us any guidance,

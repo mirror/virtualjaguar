@@ -383,9 +383,9 @@ static uint32 dsp_opcode_second_parameter;
 #define CLR_ZN				(dsp_flag_z = dsp_flag_n = 0)
 #define CLR_ZNC				(dsp_flag_z = dsp_flag_n = dsp_flag_c = 0)
 #define SET_Z(r)			(dsp_flag_z = ((r) == 0))
-#define SET_N(r)			(dsp_flag_n = (((UINT32)(r) >> 31) & 0x01))
-#define SET_C_ADD(a,b)		(dsp_flag_c = ((UINT32)(b) > (UINT32)(~(a))))
-#define SET_C_SUB(a,b)		(dsp_flag_c = ((UINT32)(b) > (UINT32)(a)))
+#define SET_N(r)			(dsp_flag_n = (((uint32)(r) >> 31) & 0x01))
+#define SET_C_ADD(a,b)		(dsp_flag_c = ((uint32)(b) > (uint32)(~(a))))
+#define SET_C_SUB(a,b)		(dsp_flag_c = ((uint32)(b) > (uint32)(a)))
 #define SET_ZN(r)			SET_N(r); SET_Z(r)
 #define SET_ZNC_ADD(a,b,r)	SET_N(r); SET_Z(r); SET_C_ADD(a,b)
 #define SET_ZNC_SUB(a,b,r)	SET_N(r); SET_Z(r); SET_C_SUB(a,b)
@@ -1740,7 +1740,7 @@ static void dsp_opcode_add(void)
 	if (doDSPDis)
 		WriteLog("%06X: ADD    R%02u, R%02u [NCZ:%u%u%u, R%02u=%08X, R%02u=%08X] -> ", dsp_pc-2, IMM_1, IMM_2, dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_1, RM, IMM_2, RN);
 #endif
-	UINT32 res = RN + RM;
+	uint32 res = RN + RM;
 	SET_ZNC_ADD(RN, RM, res);
 	RN = res;
 #ifdef DSP_DIS_ADD
@@ -1755,8 +1755,8 @@ static void dsp_opcode_addc(void)
 	if (doDSPDis)
 		WriteLog("%06X: ADDC   R%02u, R%02u [NCZ:%u%u%u, R%02u=%08X, R%02u=%08X] -> ", dsp_pc-2, IMM_1, IMM_2, dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_1, RM, IMM_2, RN);
 #endif
-	UINT32 res = RN + RM + dsp_flag_c;
-	UINT32 carry = dsp_flag_c;
+	uint32 res = RN + RM + dsp_flag_c;
+	uint32 carry = dsp_flag_c;
 //	SET_ZNC_ADD(RN, RM, res); //???BUG??? Yes!
 	SET_ZNC_ADD(RN + carry, RM, res);
 //	SET_ZNC_ADD(RN, RM + carry, res);
@@ -1773,8 +1773,8 @@ static void dsp_opcode_addq(void)
 	if (doDSPDis)
 		WriteLog("%06X: ADDQ   #%u, R%02u [NCZ:%u%u%u, R%02u=%08X] -> ", dsp_pc-2, dsp_convert_zero[IMM_1], IMM_2, dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_2, RN);
 #endif
-	UINT32 r1 = dsp_convert_zero[IMM_1];
-	UINT32 res = RN + r1;
+	uint32 r1 = dsp_convert_zero[IMM_1];
+	uint32 res = RN + r1;
 	CLR_ZNC; SET_ZNC_ADD(RN, r1, res);
 	RN = res;
 #ifdef DSP_DIS_ADDQ
@@ -1789,7 +1789,7 @@ static void dsp_opcode_sub(void)
 	if (doDSPDis)
 		WriteLog("%06X: SUB    R%02u, R%02u [NCZ:%u%u%u, R%02u=%08X, R%02u=%08X] -> ", dsp_pc-2, IMM_1, IMM_2, dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_1, RM, IMM_2, RN);
 #endif
-	UINT32 res = RN - RM;
+	uint32 res = RN - RM;
 	SET_ZNC_SUB(RN, RM, res);
 	RN = res;
 #ifdef DSP_DIS_SUB
@@ -1804,8 +1804,8 @@ static void dsp_opcode_subc(void)
 	if (doDSPDis)
 		WriteLog("%06X: SUBC   R%02u, R%02u [NCZ:%u%u%u, R%02u=%08X, R%02u=%08X] -> ", dsp_pc-2, IMM_1, IMM_2, dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_1, RM, IMM_2, RN);
 #endif
-	UINT32 res = RN - RM - dsp_flag_c;
-	UINT32 borrow = dsp_flag_c;
+	uint32 res = RN - RM - dsp_flag_c;
+	uint32 borrow = dsp_flag_c;
 	SET_ZNC_SUB(RN - borrow, RM, res);
 	RN = res;
 #ifdef DSP_DIS_SUBC
@@ -1820,8 +1820,8 @@ static void dsp_opcode_subq(void)
 	if (doDSPDis)
 		WriteLog("%06X: SUBQ   #%u, R%02u [NCZ:%u%u%u, R%02u=%08X] -> ", dsp_pc-2, dsp_convert_zero[IMM_1], IMM_2, dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_2, RN);
 #endif
-	UINT32 r1 = dsp_convert_zero[IMM_1];
-	UINT32 res = RN - r1;
+	uint32 r1 = dsp_convert_zero[IMM_1];
+	uint32 res = RN - r1;
 	SET_ZNC_SUB(RN, r1, res);
 	RN = res;
 #ifdef DSP_DIS_SUBQ
@@ -1836,7 +1836,7 @@ static void dsp_opcode_cmp(void)
 	if (doDSPDis)
 		WriteLog("%06X: CMP    R%02u, R%02u [NCZ:%u%u%u, R%02u=%08X, R%02u=%08X] -> ", dsp_pc-2, IMM_1, IMM_2, dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_1, RM, IMM_2, RN);
 #endif
-	UINT32 res = RN - RM;
+	uint32 res = RN - RM;
 	SET_ZNC_SUB(RN, RM, res);
 #ifdef DSP_DIS_CMP
 	if (doDSPDis)
@@ -1852,8 +1852,8 @@ static void dsp_opcode_cmpq(void)
 	if (doDSPDis)
 		WriteLog("%06X: CMPQ   #%d, R%02u [NCZ:%u%u%u, R%02u=%08X] -> ", dsp_pc-2, sqtable[IMM_1], IMM_2, dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_2, RN);
 #endif
-	UINT32 r1 = sqtable[IMM_1 & 0x1F]; // I like this better -> (INT8)(jaguar.op >> 2) >> 3;
-	UINT32 res = RN - r1;
+	uint32 r1 = sqtable[IMM_1 & 0x1F]; // I like this better -> (INT8)(jaguar.op >> 2) >> 3;
+	uint32 res = RN - r1;
 	SET_ZNC_SUB(RN, r1, res);
 #ifdef DSP_DIS_CMPQ
 	if (doDSPDis)
@@ -2202,7 +2202,7 @@ static void dsp_opcode_bclr(void)
 	if (doDSPDis)
 		WriteLog("%06X: BCLR   #%u, R%02u [NCZ:%u%u%u, R%02u=%08X] -> ", dsp_pc-2, IMM_1, IMM_2, dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_2, RN);
 #endif
-	UINT32 res = RN & ~(1 << IMM_1);
+	uint32 res = RN & ~(1 << IMM_1);
 	RN = res;
 	SET_ZN(res);
 #ifdef DSP_DIS_BCLR
@@ -2230,7 +2230,7 @@ static void dsp_opcode_bset(void)
 	if (doDSPDis)
 		WriteLog("%06X: BSET   #%u, R%02u [NCZ:%u%u%u, R%02u=%08X] -> ", dsp_pc-2, IMM_1, IMM_2, dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_2, RN);
 #endif
-	UINT32 res = RN | (1 << IMM_1);
+	uint32 res = RN | (1 << IMM_1);
 	RN = res;
 	SET_ZN(res);
 #ifdef DSP_DIS_BSET
@@ -2282,7 +2282,7 @@ static void dsp_opcode_imacn(void)
 
 static void dsp_opcode_mtoi(void)
 {
-	RN = (((INT32)RM >> 8) & 0xFF800000) | (RM & 0x007FFFFF);
+	RN = (((int32)RM >> 8) & 0xFF800000) | (RM & 0x007FFFFF);
 	SET_ZN(RN);
 }
 
@@ -2420,7 +2420,7 @@ static void dsp_opcode_neg(void)
 	if (doDSPDis)
 		WriteLog("%06X: NEG    R%02u [NCZ:%u%u%u, R%02u=%08X] -> ", dsp_pc-2, IMM_2, dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_2, RN);
 #endif
-	UINT32 res = -RN;
+	uint32 res = -RN;
 	SET_ZNC_SUB(0, RN, res);
 	RN = res;
 #ifdef DSP_DIS_NEG
@@ -2435,8 +2435,8 @@ static void dsp_opcode_shlq(void)
 	if (doDSPDis)
 		WriteLog("%06X: SHLQ   #%u, R%02u [NCZ:%u%u%u, R%02u=%08X] -> ", dsp_pc-2, 32 - IMM_1, IMM_2, dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_2, RN);
 #endif
-	INT32 r1 = 32 - IMM_1;
-	UINT32 res = RN << r1;
+	int32 r1 = 32 - IMM_1;
+	uint32 res = RN << r1;
 	SET_ZN(res); dsp_flag_c = (RN >> 31) & 1;
 	RN = res;
 #ifdef DSP_DIS_SHLQ
@@ -2451,8 +2451,8 @@ static void dsp_opcode_shrq(void)
 	if (doDSPDis)
 		WriteLog("%06X: SHRQ   #%u, R%02u [NCZ:%u%u%u, R%02u=%08X] -> ", dsp_pc-2, dsp_convert_zero[IMM_1], IMM_2, dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_2, RN);
 #endif
-	INT32 r1 = dsp_convert_zero[IMM_1];
-	UINT32 res = RN >> r1;
+	int32 r1 = dsp_convert_zero[IMM_1];
+	uint32 res = RN >> r1;
 	SET_ZN(res); dsp_flag_c = RN & 1;
 	RN = res;
 #ifdef DSP_DIS_SHRQ
@@ -2467,8 +2467,8 @@ static void dsp_opcode_ror(void)
 	if (doDSPDis)
 		WriteLog("%06X: ROR    R%02u, R%02u [NCZ:%u%u%u, R%02u=%08X, R%02u=%08X] -> ", dsp_pc-2, IMM_1, IMM_2, dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_1, RM, IMM_2, RN);
 #endif
-	UINT32 r1 = RM & 0x1F;
-	UINT32 res = (RN >> r1) | (RN << (32 - r1));
+	uint32 r1 = RM & 0x1F;
+	uint32 res = (RN >> r1) | (RN << (32 - r1));
 	SET_ZN(res); dsp_flag_c = (RN >> 31) & 1;
 	RN = res;
 #ifdef DSP_DIS_ROR
@@ -2483,9 +2483,9 @@ static void dsp_opcode_rorq(void)
 	if (doDSPDis)
 		WriteLog("%06X: RORQ   #%u, R%02u [NCZ:%u%u%u, R%02u=%08X] -> ", dsp_pc-2, dsp_convert_zero[IMM_1], IMM_2, dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_2, RN);
 #endif
-	UINT32 r1 = dsp_convert_zero[IMM_1 & 0x1F];
-	UINT32 r2 = RN;
-	UINT32 res = (r2 >> r1) | (r2 << (32 - r1));
+	uint32 r1 = dsp_convert_zero[IMM_1 & 0x1F];
+	uint32 r2 = RN;
+	uint32 res = (r2 >> r1) | (r2 << (32 - r1));
 	RN = res;
 	SET_ZN(res); dsp_flag_c = (r2 >> 31) & 0x01;
 #ifdef DSP_DIS_RORQ
@@ -2531,7 +2531,7 @@ static void dsp_opcode_sharq(void)
 	if (doDSPDis)
 		WriteLog("%06X: SHARQ  #%u, R%02u [NCZ:%u%u%u, R%02u=%08X] -> ", dsp_pc-2, dsp_convert_zero[IMM_1], IMM_2, dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_2, RN);
 #endif
-	UINT32 res = (INT32)RN >> dsp_convert_zero[IMM_1];
+	uint32 res = (int32)RN >> dsp_convert_zero[IMM_1];
 	SET_ZN(res); dsp_flag_c = RN & 0x01;
 	RN = res;
 #ifdef DSP_DIS_SHARQ
@@ -2577,9 +2577,9 @@ void dsp_opcode_addqmod(void)
 	if (doDSPDis)
 		WriteLog("%06X: ADDQMOD #%u, R%02u [NCZ:%u%u%u, R%02u=%08X, DSP_MOD=%08X] -> ", dsp_pc-2, dsp_convert_zero[IMM_1], IMM_2, dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_2, RN, dsp_modulo);
 #endif
-	UINT32 r1 = dsp_convert_zero[IMM_1];
-	UINT32 r2 = RN;
-	UINT32 res = r2 + r1;
+	uint32 r1 = dsp_convert_zero[IMM_1];
+	uint32 r2 = RN;
+	uint32 res = r2 + r1;
 	res = (res & (~dsp_modulo)) | (r2 & dsp_modulo);
 	RN = res;
 	SET_ZNC_ADD(r2, r1, res);
@@ -2591,9 +2591,9 @@ void dsp_opcode_addqmod(void)
 
 void dsp_opcode_subqmod(void)	
 {
-	UINT32 r1 = dsp_convert_zero[IMM_1];
-	UINT32 r2 = RN;
-	UINT32 res = r2 - r1;
+	uint32 r1 = dsp_convert_zero[IMM_1];
+	uint32 r2 = RN;
+	uint32 res = r2 - r1;
 	res = (res & (~dsp_modulo)) | (r2 & dsp_modulo);
 	RN = res;
 	
@@ -2602,24 +2602,24 @@ void dsp_opcode_subqmod(void)
 
 void dsp_opcode_mirror(void)	
 {
-	UINT32 r1 = RN;
+	uint32 r1 = RN;
 	RN = (mirror_table[r1 & 0xFFFF] << 16) | mirror_table[r1 >> 16];
 	SET_ZN(RN);
 }
 
 void dsp_opcode_sat32s(void)		
 {
-	INT32 r2 = (UINT32)RN;
-	INT32 temp = dsp_acc >> 32;
-	UINT32 res = (temp < -1) ? (INT32)0x80000000 : (temp > 0) ? (INT32)0x7FFFFFFF : r2;
+	int32 r2 = (uint32)RN;
+	int32 temp = dsp_acc >> 32;
+	uint32 res = (temp < -1) ? (int32)0x80000000 : (temp > 0) ? (int32)0x7FFFFFFF : r2;
 	RN = res;
 	SET_ZN(res);
 }
 
 void dsp_opcode_sat16s(void)		
 {
-	INT32 r2 = RN;
-	UINT32 res = (r2 < -32768) ? -32768 : (r2 > 32767) ? 32767 : r2;
+	int32 r2 = RN;
+	uint32 res = (r2 < -32768) ? -32768 : (r2 > 32767) ? 32767 : r2;
 	RN = res;
 	SET_ZN(res);
 }
@@ -3431,7 +3431,7 @@ static void DSP_add(void)
 	if (doDSPDis)
 		WriteLog("%06X: ADD    R%02u, R%02u [NCZ:%u%u%u, R%02u=%08X, R%02u=%08X] -> ", DSP_PPC, PIMM1, PIMM2, dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM1, PRM, PIMM2, PRN);
 #endif
-	UINT32 res = PRN + PRM;
+	uint32 res = PRN + PRM;
 	SET_ZNC_ADD(PRN, PRM, res);
 	PRES = res;
 #ifdef DSP_DIS_ADD
@@ -3446,8 +3446,8 @@ static void DSP_addc(void)
 	if (doDSPDis)
 		WriteLog("%06X: ADDC   R%02u, R%02u [NCZ:%u%u%u, R%02u=%08X, R%02u=%08X] -> ", DSP_PPC, PIMM1, PIMM2, dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM1, PRM, PIMM2, PRN);
 #endif
-	UINT32 res = PRN + PRM + dsp_flag_c;
-	UINT32 carry = dsp_flag_c;
+	uint32 res = PRN + PRM + dsp_flag_c;
+	uint32 carry = dsp_flag_c;
 //	SET_ZNC_ADD(PRN, PRM, res); //???BUG??? Yes!
 	SET_ZNC_ADD(PRN + carry, PRM, res);
 //	SET_ZNC_ADD(PRN, PRM + carry, res);
@@ -3464,8 +3464,8 @@ static void DSP_addq(void)
 	if (doDSPDis)
 		WriteLog("%06X: ADDQ   #%u, R%02u [NCZ:%u%u%u, R%02u=%08X] -> ", DSP_PPC, dsp_convert_zero[PIMM1], PIMM2, dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM2, PRN);
 #endif
-	UINT32 r1 = dsp_convert_zero[PIMM1];
-	UINT32 res = PRN + r1;
+	uint32 r1 = dsp_convert_zero[PIMM1];
+	uint32 res = PRN + r1;
 	CLR_ZNC; SET_ZNC_ADD(PRN, r1, res);
 	PRES = res;
 #ifdef DSP_DIS_ADDQ
@@ -3480,9 +3480,9 @@ static void DSP_addqmod(void)
 	if (doDSPDis)
 		WriteLog("%06X: ADDQMOD #%u, R%02u [NCZ:%u%u%u, R%02u=%08X, DSP_MOD=%08X] -> ", DSP_PPC, dsp_convert_zero[PIMM1], PIMM2, dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM2, PRN, dsp_modulo);
 #endif
-	UINT32 r1 = dsp_convert_zero[PIMM1];
-	UINT32 r2 = PRN;
-	UINT32 res = r2 + r1;
+	uint32 r1 = dsp_convert_zero[PIMM1];
+	uint32 r2 = PRN;
+	uint32 res = r2 + r1;
 	res = (res & (~dsp_modulo)) | (r2 & dsp_modulo);
 	PRES = res;
 	SET_ZNC_ADD(r2, r1, res);
@@ -3567,7 +3567,7 @@ static void DSP_cmp(void)
 	if (doDSPDis)
 		WriteLog("%06X: CMP    R%02u, R%02u [NCZ:%u%u%u, R%02u=%08X, R%02u=%08X] -> ", DSP_PPC, PIMM1, PIMM2, dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM1, PRM, PIMM2, PRN);
 #endif
-	UINT32 res = PRN - PRM;
+	uint32 res = PRN - PRM;
 	SET_ZNC_SUB(PRN, PRM, res);
 	NO_WRITEBACK;
 #ifdef DSP_DIS_CMP
@@ -3584,8 +3584,8 @@ static void DSP_cmpq(void)
 	if (doDSPDis)
 		WriteLog("%06X: CMPQ   #%d, R%02u [NCZ:%u%u%u, R%02u=%08X] -> ", DSP_PPC, sqtable[PIMM1], PIMM2, dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM2, PRN);
 #endif
-	UINT32 r1 = sqtable[PIMM1 & 0x1F]; // I like this better -> (INT8)(jaguar.op >> 2) >> 3;
-	UINT32 res = PRN - r1;
+	uint32 r1 = sqtable[PIMM1 & 0x1F]; // I like this better -> (INT8)(jaguar.op >> 2) >> 3;
+	uint32 res = PRN - r1;
 	SET_ZNC_SUB(PRN, r1, res);
 	NO_WRITEBACK;
 #ifdef DSP_DIS_CMPQ
@@ -3994,7 +3994,7 @@ static void DSP_load_r15_r(void)
 
 static void DSP_mirror(void)	
 {
-	UINT32 r1 = PRN;
+	uint32 r1 = PRN;
 	PRES = (mirror_table[r1 & 0xFFFF] << 16) | mirror_table[r1 >> 16];
 	SET_ZN(PRES);
 }
@@ -4133,7 +4133,7 @@ static void DSP_moveta(void)
 
 static void DSP_mtoi(void)
 {
-	PRES = (((INT32)PRM >> 8) & 0xFF800000) | (PRM & 0x007FFFFF);
+	PRES = (((int32)PRM >> 8) & 0xFF800000) | (PRM & 0x007FFFFF);
 	SET_ZN(PRES);
 }
 
@@ -4157,7 +4157,7 @@ static void DSP_neg(void)
 	if (doDSPDis)
 		WriteLog("%06X: NEG    R%02u [NCZ:%u%u%u, R%02u=%08X] -> ", DSP_PPC, PIMM2, dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM2, PRN);
 #endif
-	UINT32 res = -PRN;
+	uint32 res = -PRN;
 	SET_ZNC_SUB(0, PRN, res);
 	PRES = res;
 #ifdef DSP_DIS_NEG
@@ -4244,8 +4244,8 @@ static void DSP_ror(void)
 	if (doDSPDis)
 		WriteLog("%06X: ROR    R%02u, R%02u [NCZ:%u%u%u, R%02u=%08X, R%02u=%08X] -> ", DSP_PPC, PIMM1, PIMM2, dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM1, PRM, PIMM2, PRN);
 #endif
-	UINT32 r1 = PRM & 0x1F;
-	UINT32 res = (PRN >> r1) | (PRN << (32 - r1));
+	uint32 r1 = PRM & 0x1F;
+	uint32 res = (PRN >> r1) | (PRN << (32 - r1));
 	SET_ZN(res); dsp_flag_c = (PRN >> 31) & 1;
 	PRES = res;
 #ifdef DSP_DIS_ROR
@@ -4260,9 +4260,9 @@ static void DSP_rorq(void)
 	if (doDSPDis)
 		WriteLog("%06X: RORQ   #%u, R%02u [NCZ:%u%u%u, R%02u=%08X] -> ", DSP_PPC, dsp_convert_zero[PIMM1], PIMM2, dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM2, PRN);
 #endif
-	UINT32 r1 = dsp_convert_zero[PIMM1 & 0x1F];
-	UINT32 r2 = PRN;
-	UINT32 res = (r2 >> r1) | (r2 << (32 - r1));
+	uint32 r1 = dsp_convert_zero[PIMM1 & 0x1F];
+	uint32 r2 = PRN;
+	uint32 res = (r2 >> r1) | (r2 << (32 - r1));
 	PRES = res;
 	SET_ZN(res); dsp_flag_c = (r2 >> 31) & 0x01;
 #ifdef DSP_DIS_RORQ
@@ -4273,17 +4273,17 @@ static void DSP_rorq(void)
 
 static void DSP_sat16s(void)		
 {
-	INT32 r2 = PRN;
-	UINT32 res = (r2 < -32768) ? -32768 : (r2 > 32767) ? 32767 : r2;
+	int32 r2 = PRN;
+	uint32 res = (r2 < -32768) ? -32768 : (r2 > 32767) ? 32767 : r2;
 	PRES = res;
 	SET_ZN(res);
 }
 
 static void DSP_sat32s(void)		
 {
-	INT32 r2 = (UINT32)PRN;
-	INT32 temp = dsp_acc >> 32;
-	UINT32 res = (temp < -1) ? (INT32)0x80000000 : (temp > 0) ? (INT32)0x7FFFFFFF : r2;
+	int32 r2 = (uint32)PRN;
+	int32 temp = dsp_acc >> 32;
+	uint32 res = (temp < -1) ? (int32)0x80000000 : (temp > 0) ? (int32)0x7FFFFFFF : r2;
 	PRES = res;
 	SET_ZN(res);
 }
@@ -4374,7 +4374,7 @@ static void DSP_sharq(void)
 	if (doDSPDis)
 		WriteLog("%06X: SHARQ  #%u, R%02u [NCZ:%u%u%u, R%02u=%08X] -> ", DSP_PPC, dsp_convert_zero[PIMM1], PIMM2, dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM2, PRN);
 #endif
-	UINT32 res = (INT32)PRN >> dsp_convert_zero[PIMM1];
+	uint32 res = (int32)PRN >> dsp_convert_zero[PIMM1];
 	SET_ZN(res); dsp_flag_c = PRN & 0x01;
 	PRES = res;
 #ifdef DSP_DIS_SHARQ
@@ -4389,8 +4389,8 @@ static void DSP_shlq(void)
 	if (doDSPDis)
 		WriteLog("%06X: SHLQ   #%u, R%02u [NCZ:%u%u%u, R%02u=%08X] -> ", DSP_PPC, 32 - PIMM1, PIMM2, dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM2, PRN);
 #endif
-	INT32 r1 = 32 - PIMM1;
-	UINT32 res = PRN << r1;
+	int32 r1 = 32 - PIMM1;
+	uint32 res = PRN << r1;
 	SET_ZN(res); dsp_flag_c = (PRN >> 31) & 1;
 	PRES = res;
 #ifdef DSP_DIS_SHLQ
@@ -4405,8 +4405,8 @@ static void DSP_shrq(void)
 	if (doDSPDis)
 		WriteLog("%06X: SHRQ   #%u, R%02u [NCZ:%u%u%u, R%02u=%08X] -> ", DSP_PPC, dsp_convert_zero[PIMM1], PIMM2, dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM2, PRN);
 #endif
-	INT32 r1 = dsp_convert_zero[PIMM1];
-	UINT32 res = PRN >> r1;
+	int32 r1 = dsp_convert_zero[PIMM1];
+	uint32 res = PRN >> r1;
 	SET_ZN(res); dsp_flag_c = PRN & 1;
 	PRES = res;
 #ifdef DSP_DIS_SHRQ
@@ -4538,7 +4538,7 @@ static void DSP_sub(void)
 	if (doDSPDis)
 		WriteLog("%06X: SUB    R%02u, R%02u [NCZ:%u%u%u, R%02u=%08X, R%02u=%08X] -> ", DSP_PPC, PIMM1, PIMM2, dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM1, PRM, PIMM2, PRN);
 #endif
-	UINT32 res = PRN - PRM;
+	uint32 res = PRN - PRM;
 	SET_ZNC_SUB(PRN, PRM, res);
 	PRES = res;
 #ifdef DSP_DIS_SUB
@@ -4553,8 +4553,8 @@ static void DSP_subc(void)
 	if (doDSPDis)
 		WriteLog("%06X: SUBC   R%02u, R%02u [NCZ:%u%u%u, R%02u=%08X, R%02u=%08X] -> ", DSP_PPC, PIMM1, PIMM2, dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM1, PRM, PIMM2, PRN);
 #endif
-	UINT32 res = PRN - PRM - dsp_flag_c;
-	UINT32 borrow = dsp_flag_c;
+	uint32 res = PRN - PRM - dsp_flag_c;
+	uint32 borrow = dsp_flag_c;
 	SET_ZNC_SUB(PRN - borrow, PRM, res);
 	PRES = res;
 #ifdef DSP_DIS_SUBC
@@ -4569,8 +4569,8 @@ static void DSP_subq(void)
 	if (doDSPDis)
 		WriteLog("%06X: SUBQ   #%u, R%02u [NCZ:%u%u%u, R%02u=%08X] -> ", DSP_PPC, dsp_convert_zero[PIMM1], PIMM2, dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM2, PRN);
 #endif
-	UINT32 r1 = dsp_convert_zero[PIMM1];
-	UINT32 res = PRN - r1;
+	uint32 r1 = dsp_convert_zero[PIMM1];
+	uint32 res = PRN - r1;
 	SET_ZNC_SUB(PRN, r1, res);
 	PRES = res;
 #ifdef DSP_DIS_SUBQ
@@ -4581,9 +4581,9 @@ static void DSP_subq(void)
 
 static void DSP_subqmod(void)	
 {
-	UINT32 r1 = dsp_convert_zero[PIMM1];
-	UINT32 r2 = PRN;
-	UINT32 res = r2 - r1;
+	uint32 r1 = dsp_convert_zero[PIMM1];
+	uint32 r2 = PRN;
+	uint32 res = r2 - r1;
 	res = (res & (~dsp_modulo)) | (r2 & dsp_modulo);
 	PRES = res;
 	SET_ZNC_SUB(r2, r1, res);

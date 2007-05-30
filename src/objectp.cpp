@@ -76,11 +76,11 @@ void op_init(void)
 	for(int i=0; i<256*256; i++)
 	{
 		int y = (i >> 8) & 0xFF;
-		int dy = (INT8)i;					// Sign extend the Y index
+		int dy = (int8)i;					// Sign extend the Y index
 		int c1 = (i >> 8) & 0x0F;
-		int dc1 = (INT8)(i << 4) >> 4;		// Sign extend the R index
+		int dc1 = (int8)(i << 4) >> 4;		// Sign extend the R index
 		int c2 = (i >> 12) & 0x0F;
-		int dc2 = (INT8)(i & 0xF0) >> 4;	// Sign extend the C index
+		int dc2 = (int8)(i & 0xF0) >> 4;	// Sign extend the C index
 
 		y += dy;
 

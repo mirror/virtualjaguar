@@ -2,8 +2,13 @@
 # Unified Makefile for Virtual Jaguar GCC/SDL Portable Jaguar Emulator
 #
 # by James L. Hammons
-# This software is licensed under the GPL v2. Set the file GPL.TXT for details. ;-)
 #
+# This software is licensed under the GPL v2 or any later version. Set the
+# file GPL.TXT for details. ;-)
+#
+
+# NOTE: zlib and OpenGL libs are a dependency, but are not checked for.
+#       same goes for libcdio
 
 # Figure out which system we're compiling for, and set the appropriate variables
 
@@ -52,7 +57,7 @@ CPPFLAGS = -MMD -Wall -Wno-switch -Wno-non-virtual-dtor -O2 -D$(SYSTYPE) \
 
 LDFLAGS =
 
-LIBS = -L/usr/local/lib -L/usr/lib `sdl-config $(SDLLIBTYPE)` -lstdc++ -lz $(GLLIB)
+LIBS = -L/usr/local/lib -L/usr/lib `sdl-config $(SDLLIBTYPE)` -lstdc++ -lz $(GLLIB) -lcdio
 
 INCS = -I. -I./src -I/usr/local/include -I/usr/include
 

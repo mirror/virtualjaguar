@@ -121,7 +121,7 @@ $185 - Returns 16-bit value
 static void CDROMBusWrite(uint16);
 static uint16 CDROMBusRead(void);
 
-#define BUTCH		0x00				// base of Butch=interrupt control register, R/W
+#define BUTCH		0x00				// base of Butch == interrupt control register, R/W
 #define DSCNTRL 	BUTCH + 0x04		// DSA control register, R/W
 #define DS_DATA		BUTCH + 0x0A		// DSA TX/RX data, R/W
 #define I2CNTRL		BUTCH + 0x10		// i2s bus control register, R/W
@@ -147,7 +147,7 @@ static uint32 cdBufPtr = 2352;
 //Also need to set up (save/restore) the CD's NVRAM
 
 
-extern bool GetRawTOC(void);
+//extern bool GetRawTOC(void);
 void CDROMInit(void)
 {
 	haveCDGoodness = CDIntfInit();
@@ -225,7 +225,10 @@ void CDROMDone(void)
 //
 void BUTCHExec(uint32 cycles)
 {
+#if 1
+// We're chickening out for now...
 return;
+#else
 	extern uint8 * jerry_ram_8;					// Hmm.
 
 	// For now, we just do the FIFO interrupt. Timing is also likely to be WRONG as well.
@@ -243,6 +246,7 @@ return;
 //I'm *sure* this is wrong--prolly need to generate DSP IRQs as well!
 	if (jerry_ram_8[0x23] & 0x3F)				// Only generate an IRQ if enabled!
 		GPUSetIRQLine(GPUIRQ_DSP, ASSERT_LINE);
+#endif
 }
 
 

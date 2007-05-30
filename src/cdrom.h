@@ -5,7 +5,7 @@
 #ifndef __CDROM_H__
 #define __CDROM_H__
 
-#include "jaguar.h"
+#include "types.h"
 
 void CDROMInit(void);
 void CDROMReset(void);

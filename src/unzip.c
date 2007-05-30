@@ -41,17 +41,17 @@ void errormsg(const char * extmsg, const char * usermsg, const char * zipname)
  ------------------------------------------------------------------------- */
 
 /* Use these to avoid structure padding and byte-ordering problems */
-static UINT16 read_word (char *buf) {
+static uint16_t read_word (char *buf) {
    unsigned char *ubuf = (unsigned char *) buf;
 
-   return ((UINT16)ubuf[1] << 8) | (UINT16)ubuf[0];
+   return ((uint16_t)ubuf[1] << 8) | (uint16_t)ubuf[0];
 }
 
 /* Use these to avoid structure padding and byte-ordering problems */
-static UINT32 read_dword (char *buf) {
+static uint32_t read_dword (char *buf) {
    unsigned char *ubuf = (unsigned char *) buf;
 
-   return ((UINT32)ubuf[3] << 24) | ((UINT32)ubuf[2] << 16) | ((UINT32)ubuf[1] << 8) | (UINT32)ubuf[0];
+   return ((uint32_t)ubuf[3] << 24) | ((uint32_t)ubuf[2] << 16) | ((uint32_t)ubuf[1] << 8) | (uint32_t)ubuf[0];
 }
 
 /* Locate end-of-central-dir sig in buffer and return offset
@@ -464,8 +464,8 @@ int seekcompresszip(ZIP * zip, struct zipent * ent)
 	}
 
 	{
-		UINT16 filename_length = read_word(buf+ZIPFNLN);
-		UINT16 extra_field_length = read_word(buf+ZIPXTRALN);
+		uint16_t filename_length = read_word(buf+ZIPFNLN);
+		uint16_t extra_field_length = read_word(buf+ZIPXTRALN);
 
 		// calculate offset to data and fseek() there
 		offset = ent->offset_lcl_hdr_frm_frst_disk + ZIPNAME + filename_length + extra_field_length;
@@ -829,7 +829,7 @@ static int equal_filename(const char * zipfile, const char * file)
 // buf will be set to point to the uncompressed image of that zipped file.
 // length will be set to the length of the uncompressed data.
 //
-int load_zipped_file(int pathtype, int pathindex, const char * zipfile, const char * filename, unsigned char ** buf, uint32 * length)
+int load_zipped_file(int pathtype, int pathindex, const char * zipfile, const char * filename, unsigned char ** buf, uint32_t * length)
 {
 	ZIP * zip;
 	struct zipent * ent;
