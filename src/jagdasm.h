@@ -4,6 +4,6 @@
 #define JAGUAR_GPU 0
 #define JAGUAR_DSP 1
 
-unsigned dasmjag(int dsp_type, char *buffer, unsigned pc);
+unsigned dasmjag(int dsp_type, char * buffer, unsigned pc);
 
 #endif

@@ -6,11 +6,15 @@
 // Cleanups/fixes by James L. Hammons
 //
 
+#include "joystick.h"
+
 #include <time.h>
 #include <SDL.h>
 #include "jaguar.h"
 #include "video.h"
 #include "settings.h"
+#include "gpu.h"
+#include "log.h"
 
 #define BUTTON_U		0
 #define BUTTON_D		1

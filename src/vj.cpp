@@ -7,7 +7,8 @@
 //
 
 #ifdef __GCCUNIX__
-#include <unistd.h>									// Is this necessary anymore?
+//#include <unistd.h>									// Is this necessary anymore?
+//Looks like the answer is no...
 #endif
 
 #include <time.h>
@@ -17,6 +18,9 @@
 #include "gui.h"
 #include "sdlemu_opengl.h"
 #include "settings.h"								// Pull in "vjs" struct
+#include "log.h"
+#include "version.h"
+#include "memory.h"
 
 // Uncomment this to use built-in BIOS/CD-ROM BIOS
 // You'll need a copy of jagboot.h & jagcd.h for this to work...!
@@ -37,7 +41,7 @@ extern uint8 * jaguar_bootRom;
 extern uint8 * jaguar_CDBootROM;
 
 // Global variables (export capable)
-//should these even be here anymore?
+//should these even be here anymore? prolly not...
 
 bool finished = false;
 bool showGUI = false;
@@ -132,11 +136,11 @@ int main(int argc, char * argv[])
 		if (!strcmp(argv[i], "-ntsc"))
 			vjs.hardwareTypeNTSC = true;
 
-		if (!strcmp(argv[i], "-help") || !strcmp(argv[i], "-?"))
+		if (!strcmp(argv[i], "--help") || !strcmp(argv[i], "-?"))
 		{
 		    printf("Usage: \n\n");
 			printf("vj [romfile] [switches]\n");
-			printf("  -? or -help     : Display usage and switches                \n");
+			printf("  -? or --help    : Display usage and switches                \n");
 			printf("  -frameskip 1-10 : Enable frameskip 1 - 10 (default: none)   \n");
 			printf("  -joystick       : Enable joystick/gamepad                   \n");
 			printf("  -joyport 0-3    : Select desired joystick port              \n");
@@ -160,8 +164,6 @@ int main(int argc, char * argv[])
 
 	// Set up SDL library
 	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_JOYSTICK | SDL_INIT_AUDIO | SDL_INIT_TIMER) < 0)
-//		| SDL_INIT_CDROM) < 0)
-//		| SDL_INIT_CDROM | SDL_INIT_NOPARACHUTE) < 0)
 	{
 		WriteLog("VJ: Could not initialize the SDL library: %s\n", SDL_GetError());
 		return -1;
@@ -217,7 +219,6 @@ WriteLog("About to start GUI...\n");
 	log_done();	
 
 	// Free SDL components last...!
-//	SDL_QuitSubSystem(SDL_INIT_VIDEO | SDL_INIT_JOYSTICK | SDL_INIT_AUDIO | SDL_INIT_TIMER | SDL_INIT_CDROM);
 	SDL_QuitSubSystem(SDL_INIT_VIDEO | SDL_INIT_JOYSTICK | SDL_INIT_AUDIO | SDL_INIT_TIMER);
 	SDL_Quit();
 

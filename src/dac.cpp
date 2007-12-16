@@ -11,11 +11,13 @@
 // work correctly...! Perhaps just need to set up SSI stuff so BUTCH doesn't get
 // confused...
 
+#include "dac.h"
+
 #include "SDL.h"
 #include "m68k.h"
 #include "jaguar.h"
 #include "settings.h"
-#include "dac.h"
+#include "log.h"
 
 //#define DEBUG_DAC
 
@@ -43,7 +45,7 @@ static bool SDLSoundInitialized = false;
 // We can get away with using native endian here because we can tell SDL to use the native
 // endian when looking at the sample buffer, i.e., no need to worry about it.
 
-static uint16 * DACBuffer;
+static uint16 DACBuffer[BUFFER_SIZE];
 static uint8 SCLKFrequencyDivider = 19;				// Default is roughly 22 KHz (20774 Hz in NTSC mode)
 /*static*/ uint16 serialMode = 0;
 
@@ -57,7 +59,8 @@ int GetCalculatedFrequency(void);
 //
 void DACInit(void)
 {
-	memory_malloc_secure((void **)&DACBuffer, BUFFER_SIZE * sizeof(uint16), "DAC buffer");
+//	memory_malloc_secure((void **)&DACBuffer, BUFFER_SIZE * sizeof(uint16), "DAC buffer");
+//	DACBuffer = (uint16 *)memory_malloc(BUFFER_SIZE * sizeof(uint16), "DAC buffer");
 
 	desired.freq = GetCalculatedFrequency();		// SDL will do conversion on the fly, if it can't get the exact rate. Nice!
 	desired.format = AUDIO_S16SYS;					// This uses the native endian (for portability)...
@@ -96,7 +99,7 @@ void DACDone(void)
 		SDL_CloseAudio();
 	}
 
-	memory_free(DACBuffer);
+//	memory_free(DACBuffer);
 	WriteLog("DAC: Done.\n");
 }
 

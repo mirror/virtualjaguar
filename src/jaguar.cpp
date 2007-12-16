@@ -9,12 +9,22 @@
 // 
 
 #include "jaguar.h"
+
 #include "video.h"
 #include "settings.h"
 //#include "m68kdasmAG.h"
 #include "clock.h"
 #include <SDL.h>
 #include "SDL_opengl.h"
+#include "m68k.h"
+#include "log.h"
+#include "tom.h"
+#include "jerry.h"
+#include "cdrom.h"
+#include "dsp.h"
+#include "gpu.h"
+#include "memory.h"
+#include "joystick.h"
 
 #define CPU_DEBUG
 //Do this in makefile??? Yes! Could, but it's easier to define here...
@@ -43,7 +53,7 @@ extern int effect_start2, effect_start3, effect_start4, effect_start5, effect_st
 
 // Memory debugging identifiers
 
-char * whoName[9] =
+const char * whoName[9] =
 	{ "Unknown", "Jaguar", "DSP", "GPU", "TOM", "JERRY", "M68K", "Blitter", "OP" };
 
 uint32 jaguar_active_memory_dumps = 0;

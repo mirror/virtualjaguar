@@ -4,10 +4,12 @@
 // by James L. Hammons
 //
 
+#include "video.h"
+
 #include "tom.h"
 #include "sdlemu_opengl.h"
 #include "settings.h"
-#include "video.h"
+#include "log.h"
 
 // External global variables
 

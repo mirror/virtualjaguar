@@ -5,7 +5,8 @@
 #ifndef __GPU_H__
 #define __GPU_H__
 
-#include "jaguar.h"
+//#include "jaguar.h"
+#include "types.h"
 
 #define GPU_CONTROL_RAM_BASE    0x00F02100
 #define GPU_WORK_RAM_BASE		0x00F03000

@@ -4,12 +4,13 @@
 // by James L. Hammons
 //
 
+#include "settings.h"
+
 #include <stdlib.h>
 #include <string>
 #include "SDL.h"
 #include "sdlemu_config.h"
 #include "log.h"
-#include "settings.h"
 
 using namespace std;
 

@@ -6,17 +6,18 @@
 // Cleanups/new stuff by James L. Hammons
 //
 
+#include "log.h"
+
 #include <stdlib.h>
 #include <stdarg.h>
 #include "types.h"
-#include "log.h"
 
 #define MAX_LOG_SIZE		10000000				// Maximum size of log file (10 MB)
 
 static FILE * log_stream = NULL;
 static uint32 logSize = 0;
 
-int log_init(char * path)
+int log_init(const char * path)
 {
 	log_stream = fopen(path, "wrt");
 

@@ -5,7 +5,8 @@
 #ifndef __TOM_H__
 #define __TOM_H__
 
-#include "jaguar.h"
+//#include "jaguar.h"
+#include "types.h"
 
 #define VIDEO_MODE_16BPP_CRY	0
 #define VIDEO_MODE_24BPP_RGB	1
@@ -54,5 +55,6 @@ void TOMResetBackbuffer(uint32 * backbuffer);
 
 extern uint32 tom_width;
 extern uint32 tom_height;
+extern uint8 tom_ram_8[];
 
 #endif	// __TOM_H__

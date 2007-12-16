@@ -6,10 +6,14 @@
 // Extensive rewrites/cleanups/fixes by James L. Hammons
 //
 
+#include "cdrom.h"
+
+#include <string.h>									// For memset, etc.
 #include "jaguar.h"									// For GET32/SET32 macros
 #include "m68k.h"
 #include "cdintf.h"									// System agnostic CD interface functions
-#include "cdrom.h"
+#include "log.h"
+#include "dac.h"
 
 //#define CDROM_LOG									// For CDROM logging, obviously
 
@@ -133,9 +137,9 @@ static uint16 CDROMBusRead(void);
 #define I2SDAT2		BUTCH + 0x28		// i2s FIFO data (old)
 #define UNKNOWN		BUTCH + 0x2C		// Seems to be some sort of I2S interface
 
-char * BReg[12] = { "BUTCH", "DSCNTRL", "DS_DATA", "???", "I2CNTRL", "SBCNTRL", "SUBDATA", "SUBDATB",
+const char * BReg[12] = { "BUTCH", "DSCNTRL", "DS_DATA", "???", "I2CNTRL", "SBCNTRL", "SUBDATA", "SUBDATB",
 	"SB_TIME", "FIFO_DATA", "I2SDAT2", "UNKNOWN" };
-extern char * whoName[9];
+extern const char * whoName[9];
 
 
 static uint8 cdRam[0x100];

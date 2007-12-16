@@ -144,17 +144,25 @@
 //	F1DE00          R     xxxxxxxx xxxxxxxx   ROM_NOISE - white noise
 //	------------------------------------------------------------
 
+#include "jerry.h"
+
+#include <string.h>								// For memcpy
 //#include <math.h>
 #include "jaguar.h"
 #include "wavetable.h"
-#include "jerry.h"
 #include "clock.h"
+#include "dsp.h"
+#include "dac.h"
+#include "joystick.h"
+#include "eeprom.h"
+#include "log.h"
+#include "cdrom.h"
 
 //Note that 44100 Hz requires samples every 22.675737 usec.
 #define NEW_TIMER_SYSTEM
 //#define JERRY_DEBUG
 
-/*static*/ uint8 * jerry_ram_8;
+/*static*/ uint8 jerry_ram_8[0x10000];
 
 //#define JERRY_CONFIG	0x4002						// ??? What's this ???
 
@@ -348,6 +356,7 @@ void JERRYI2SCallback(void)
 {
 	// Why is it called this? Instead of SCLK? Shouldn't this be read from DAC.CPP???
 //Yes, it should. !!! FIX !!!
+#warning Yes, it should. !!! FIX !!!
 	jerry_i2s_interrupt_divide &= 0xFF;
 	// We don't have to divide the RISC clock rate by this--the reason is a bit
 	// convoluted. Will put explanation here later...
@@ -410,7 +419,7 @@ void jerry_init(void)
 	DACInit();
 //This should be handled with the cart initialization...
 //	eeprom_init();
-	memory_malloc_secure((void **)&jerry_ram_8, 0x10000, "JERRY RAM/ROM");
+//	memory_malloc_secure((void **)&jerry_ram_8, 0x10000, "JERRY RAM/ROM");
 	memcpy(&jerry_ram_8[0xD000], wave_table, 0x1000);
 
 	JERRYPIT1Prescaler = 0xFFFF;
@@ -440,7 +449,7 @@ void jerry_reset(void)
 void jerry_done(void)
 {
 	WriteLog("JERRY: M68K Interrupt control ($F10020) = %04X\n", GET16(jerry_ram_8, 0x20));
-	memory_free(jerry_ram_8);
+//	memory_free(jerry_ram_8);
 //	clock_done();
 //	anajoy_done();
 	joystick_done();

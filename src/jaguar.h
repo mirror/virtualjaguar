@@ -1,6 +1,9 @@
 #ifndef __JAGUAR_H__
 #define __JAGUAR_H__
 
+#include "types.h"
+
+#if 0
 #include <string.h>	// Why??? (for memset, etc... Lazy!) Dunno why, but this just strikes me as wrong...
 #include <stdlib.h>	// For exit()
 #include "types.h"
@@ -15,21 +18,19 @@
 #include "objectp.h"
 #include "blitter.h"
 #include "clock.h"
-//#include "anajoy.h"
 #include "joystick.h"
 #include "dac.h"
 #include "jagdasm.h"
 #include "cdrom.h"
 #include "eeprom.h"
-//#include "cdi.h"
-//#include "cdbios.h"
+#endif
 
 // Exports from JAGUAR.CPP
 
 extern int32 jaguar_cpu_in_exec;
 extern uint32 jaguar_mainRom_crc32, jaguarRomSize, jaguarRunAddress;
 extern char * jaguar_eeproms_path;
-extern char * whoName[9];
+extern const char * whoName[9];
 
 void jaguar_init(void);
 void jaguar_reset(void);

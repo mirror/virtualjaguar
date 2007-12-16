@@ -6,9 +6,13 @@
 // Cleanups/enhancements by James L. Hammons
 //
 
-#include <stdlib.h>
 #include "eeprom.h"
+
+#include <string.h>								// For memset
+#include <stdlib.h>
 #include "settings.h"
+#include "log.h"
+#include "jaguar.h"
 
 #define eeprom_LOG
 

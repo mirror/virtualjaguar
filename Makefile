@@ -94,9 +94,6 @@ OBJS = \
 	obj/video.o         \
 	obj/vj.o            \
 	$(ICON)
-#	obj/anajoy.o 
-#	obj/cdbios.o 
-#	obj/cdi.o 
 
 all: checkenv message obj $(TARGET)$(EXESUFFIX)
 	@echo

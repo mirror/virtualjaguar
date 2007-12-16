@@ -5,7 +5,8 @@
 #ifndef __EEPROM_H__
 #define __EEPROM_H__
 
-#include "jaguar.h"
+//#include "jaguar.h"
+#include "types.h"
 
 void eeprom_init(void);
 void eeprom_reset(void);

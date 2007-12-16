@@ -6,9 +6,17 @@
 // Extensive cleanups/rewrites by James L. Hammons
 //
 
+#include "dsp.h"
+
 #include <stdlib.h>
 #include <SDL.h>	// Used only for SDL_GetTicks...
-#include "dsp.h"
+#include "memory.h"
+#include "log.h"
+#include "jaguar.h"
+#include "jerry.h"
+#include "gpu.h"
+#include "jagdasm.h"
+#include "m68k.h"
 
 //#define DSP_DEBUG
 //#define DSP_DEBUG_IRQ
@@ -332,7 +340,7 @@ void (* dsp_opcode[64])() =
 
 uint32 dsp_opcode_use[65];
 
-char * dsp_opcode_str[65]=
+const char * dsp_opcode_str[65]=
 {	
 	"add",				"addc",				"addq",				"addqt",
 	"sub",				"subc",				"subq",				"subqt",
@@ -364,8 +372,8 @@ static uint32 dsp_data_organization;
 uint32 dsp_control;
 static uint32 dsp_div_control;
 static uint8 dsp_flag_z, dsp_flag_n, dsp_flag_c;    
-static uint32 * dsp_reg, * dsp_alternate_reg;
-static uint32 * dsp_reg_bank_0, * dsp_reg_bank_1;
+static uint32 * dsp_reg = NULL, * dsp_alternate_reg = NULL;
+static uint32 dsp_reg_bank_0[32], dsp_reg_bank_1[32];
 
 static uint32 dsp_opcode_first_parameter;
 static uint32 dsp_opcode_second_parameter;
@@ -393,7 +401,7 @@ static uint32 dsp_opcode_second_parameter;
 uint32 dsp_convert_zero[32] = { 32,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31 };
 uint8 * dsp_branch_condition_table = NULL;
 static uint16 * mirror_table = NULL;
-static uint8 * dsp_ram_8 = NULL;
+static uint8 dsp_ram_8[0x2000];
 
 #define BRANCH_CONDITION(x)		dsp_branch_condition_table[(x) + ((jaguar_flags & 7) << 5)]
 
@@ -433,7 +441,7 @@ void dsp_build_branch_condition_table(void)
 {
 	// Allocate the mirror table
 	if (!mirror_table)
-		mirror_table = (uint16 *)malloc(65536 * sizeof(mirror_table[0]));
+		mirror_table = (uint16 *)memory_malloc(65536 * sizeof(uint16), "DSP mirror table");
 
 	// Fill in the mirror table
 	if (mirror_table)
@@ -449,7 +457,7 @@ void dsp_build_branch_condition_table(void)
 
 	if (!dsp_branch_condition_table)
 	{
-		dsp_branch_condition_table = (uint8 *)malloc(32 * 8 * sizeof(dsp_branch_condition_table[0]));
+		dsp_branch_condition_table = (uint8 *)memory_malloc(32 * 8 * sizeof(uint8), "DSP branch condition table");
 
 		// Fill in the condition table
 		if (dsp_branch_condition_table)
@@ -537,12 +545,12 @@ uint16 DSPReadWord(uint32 offset, uint32 who/*=UNKNOWN*/)
 		if (offset==0xF1B2C2) return(0x0000);
 	}
 */
-	// pour permettre à wolfenstein 3d de tourner sans le dsp
+	// pour permettre ï¿½ wolfenstein 3d de tourner sans le dsp
 /*	if ((offset==0xF1B0D0)||(offset==0xF1B0D2))
 		return(0);
 */
 
-		// pour permettre à nba jam de tourner sans le dsp
+		// pour permettre ï¿½ nba jam de tourner sans le dsp
 /*	if (jaguar_mainRom_crc32==0x4faddb18)
 	{
 		if (offset==0xf1b2c0) return(0);
@@ -1226,9 +1234,9 @@ DSPHandleIRQsNP();
 
 void DSPInit(void)
 {
-	memory_malloc_secure((void **)&dsp_ram_8, 0x2000, "DSP work RAM");
-	memory_malloc_secure((void **)&dsp_reg_bank_0, 32 * sizeof(int32), "DSP bank 0 regs");
-	memory_malloc_secure((void **)&dsp_reg_bank_1, 32 * sizeof(int32), "DSP bank 1 regs");
+//	memory_malloc_secure((void **)&dsp_ram_8, 0x2000, "DSP work RAM");
+//	memory_malloc_secure((void **)&dsp_reg_bank_0, 32 * sizeof(int32), "DSP bank 0 regs");
+//	memory_malloc_secure((void **)&dsp_reg_bank_1, 32 * sizeof(int32), "DSP bank 1 regs");
 
 	dsp_build_branch_condition_table();
 	DSPReset();
@@ -1666,7 +1674,7 @@ if ((dsp_pc < 0xF1B000 || dsp_pc > 0xF1CFFE) && !tripwire)
 static void dsp_opcode_jump(void)
 {
 #ifdef DSP_DIS_JUMP
-char * condition[32] =
+const char * condition[32] =
 {	"T", "nz", "z", "???", "nc", "nc nz", "nc z", "???", "c", "c nz",
 	"c z", "???", "???", "???", "???", "???", "???", "???", "???",
 	"???", "nn", "nn nz", "nn z", "???", "n", "n nz", "n z", "???",
@@ -1701,7 +1709,7 @@ char * condition[32] =
 static void dsp_opcode_jr(void)
 {
 #ifdef DSP_DIS_JR
-char * condition[32] =
+const char * condition[32] =
 {	"T", "nz", "z", "???", "nc", "nc nz", "nc z", "???", "c", "c nz",
 	"c z", "???", "???", "???", "???", "???", "???", "???", "???",
 	"???", "nn", "nn nz", "nn z", "???", "n", "n nz", "n z", "???",
@@ -3683,7 +3691,7 @@ static void DSP_illegal(void)
 static void DSP_jr(void)
 {
 #ifdef DSP_DIS_JR
-char * condition[32] =
+const char * condition[32] =
 {	"T", "nz", "z", "???", "nc", "nc nz", "nc z", "???", "c", "c nz",
 	"c z", "???", "???", "???", "???", "???", "???", "???", "???",
 	"???", "nn", "nn nz", "nn z", "???", "n", "n nz", "n z", "???",
@@ -3793,7 +3801,7 @@ char * condition[32] =
 static void DSP_jump(void)
 {
 #ifdef DSP_DIS_JUMP
-char * condition[32] =
+const char * condition[32] =
 {	"T", "nz", "z", "???", "nc", "nc nz", "nc z", "???", "c", "c nz",
 	"c z", "???", "???", "???", "???", "???", "???", "???", "???",
 	"???", "nn", "nn nz", "nn z", "???", "n", "n nz", "n z", "???",

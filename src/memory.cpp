@@ -6,17 +6,18 @@
 // Cleanups by James L. Hammons
 //
 
+#include "memory.h"
+
 #include <malloc.h>
 #include <stdlib.h>
 #include "log.h"
-#include "memory.h"
 
 // Useful structs (for doubly linked list in this case)
 
 typedef struct sMemBlockInfo
 {
 	void * ptr;
-	char * info;
+	const char * info;
 	uint32 size;
 	sMemBlockInfo * next;
 	sMemBlockInfo * prev;
@@ -30,7 +31,7 @@ static uint32 currentAllocatedMemory;
 static uint32 maximumAllocatedMemory;
 
 
-void memory_addMemInfo(void * ptr, uint32 size, char * info)
+void memory_addMemInfo(void * ptr, uint32 size, const char * info)
 {
 	sMemBlockInfo * alias = &memoryInfo;
 
@@ -63,7 +64,7 @@ void MemoryDone(void)
 {
 }
 
-void * memory_malloc(uint32 size, char * info)
+void * memory_malloc(uint32 size, const char * info)
 {
 	void * ptr = (void *)malloc(size);
 
@@ -79,7 +80,11 @@ void * memory_malloc(uint32 size, char * info)
 	return ptr;
 }
 
-void memory_malloc_secure(void ** new_ptr, uint32 size, char * info)
+// OK, this sux, causes the compiler to complain about type punned pointers.
+// The only difference between this and the previous is that this one ABORTS
+// if it can't allocate the memory. BAD BAD BAD
+
+void memory_malloc_secure(void ** new_ptr, uint32 size, const char * info)
 {
 	WriteLog("Memory: Allocating %i bytes of memory for <%s>...", size, (info == NULL ? "unknown" : info));
 
@@ -89,6 +94,11 @@ void memory_malloc_secure(void ** new_ptr, uint32 size, char * info)
 	{
 		WriteLog("Failed!\n");
 		log_done();
+
+//BAD, BAD, BAD! Need to do better than this!!!
+//And since we ARE keeping track of all memory allocations, we should unwind the stack here as well...!
+// !!! FIX !!!
+
 		exit(0);
 	}
 
@@ -101,6 +111,36 @@ void memory_malloc_secure(void ** new_ptr, uint32 size, char * info)
 	*new_ptr = ptr;
 	WriteLog("OK\n");
 }
+
+/*
+void * memory_malloc_secure2(uint32 size, const char * info)
+{
+	WriteLog("Memory: Allocating %i bytes of memory for <%s>...", size, (info == NULL ? "unknown" : info));
+
+	void * ptr = malloc(size);
+
+	if (ptr == NULL)
+	{
+		WriteLog("Failed!\n");
+		log_done();
+
+//BAD, BAD, BAD! Need to do better than this!!!
+//And since we ARE keeping track of all memory allocations, we should unwind the stack here as well...!
+// !!! FIX !!!
+
+		exit(0);
+	}
+
+	memory_addMemInfo(ptr, size, info);
+	currentAllocatedMemory += size;
+
+	if (currentAllocatedMemory > maximumAllocatedMemory)
+		maximumAllocatedMemory = currentAllocatedMemory;
+
+	new_ptr = ptr;
+	WriteLog("OK\n");
+}
+*/
 
 void memory_free(void * ptr)
 {

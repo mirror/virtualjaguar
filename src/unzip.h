@@ -1,7 +1,6 @@
 #ifndef __UNZIP_H__
 #define __UNZIP_H__
 
-//#include "types.h"
 #include <stdio.h>
 #include <stdint.h>
 

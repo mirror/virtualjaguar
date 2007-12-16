@@ -12,8 +12,17 @@
 // Same problem with ADDC...
 //
 
-#include <stdlib.h>
 #include "gpu.h"
+
+#include <string.h>								// For memset
+#include <stdlib.h>
+#include "log.h"
+#include "jaguar.h"
+#include "m68k.h"
+#include "tom.h"
+#include "memory.h"
+#include "jagdasm.h"
+#include "dsp.h"
 
 //#define GPU_DEBUG
 
@@ -283,7 +292,7 @@ void (*gpu_opcode[64])()=
 	gpu_opcode_store_r14_ri,		gpu_opcode_store_r15_ri,		gpu_opcode_sat24,				gpu_opcode_pack,
 };
 
-static uint8 * gpu_ram_8;
+static uint8 gpu_ram_8[0x1000];
 uint32 gpu_pc;
 static uint32 gpu_acc;
 static uint32 gpu_remain;
@@ -298,8 +307,8 @@ static uint32 gpu_div_control;
 // a bit before writing a result. I.e., if the result of an operation leaves a zero in
 // the carry flag, you don't have to zero gpu_flag_c before you can write that zero!
 static uint8 gpu_flag_z, gpu_flag_n, gpu_flag_c;
-static uint32 * gpu_reg_bank_0;
-static uint32 * gpu_reg_bank_1;
+static uint32 gpu_reg_bank_0[32];
+static uint32 gpu_reg_bank_1[32];
 static uint32 * gpu_reg;
 static uint32 * gpu_alternate_reg;
 
@@ -342,7 +351,7 @@ uint8 * branch_condition_table = 0;
 
 uint32 gpu_opcode_use[64];
 
-char * gpu_opcode_str[64]= 
+const char * gpu_opcode_str[64]= 
 {	
 	"add",				"addc",				"addq",				"addqt",
 	"sub",				"subc",				"subq",				"subqt",
@@ -968,9 +977,9 @@ void GPUSetIRQLine(int irqline, int state)
 
 void gpu_init(void)
 {
-	memory_malloc_secure((void **)&gpu_ram_8, 0x1000, "GPU work RAM");
-	memory_malloc_secure((void **)&gpu_reg_bank_0, 32 * sizeof(int32), "GPU bank 0 regs");
-	memory_malloc_secure((void **)&gpu_reg_bank_1, 32 * sizeof(int32), "GPU bank 1 regs");
+//	memory_malloc_secure((void **)&gpu_ram_8, 0x1000, "GPU work RAM");
+//	memory_malloc_secure((void **)&gpu_reg_bank_0, 32 * sizeof(int32), "GPU bank 0 regs");
+//	memory_malloc_secure((void **)&gpu_reg_bank_1, 32 * sizeof(int32), "GPU bank 1 regs");
 
 	build_branch_condition_table();
 
@@ -1335,7 +1344,7 @@ GPU opcodes use (offset punch--vertically below bad guy):
 static void gpu_opcode_jump(void)
 {
 #ifdef GPU_DIS_JUMP
-char * condition[32] =
+const char * condition[32] =
 {	"T", "nz", "z", "???", "nc", "nc nz", "nc z", "???", "c", "c nz",
 	"c z", "???", "???", "???", "???", "???", "???", "???", "???",
 	"???", "nn", "nn nz", "nn z", "???", "n", "n nz", "n z", "???",
@@ -1378,7 +1387,7 @@ if (gpu_start_log)
 static void gpu_opcode_jr(void)
 {
 #ifdef GPU_DIS_JR
-char * condition[32] =
+const char * condition[32] =
 {	"T", "nz", "z", "???", "nc", "nc nz", "nc z", "???", "c", "c nz",
 	"c z", "???", "???", "???", "???", "???", "???", "???", "???",
 	"???", "nn", "nn nz", "nn z", "???", "n", "n nz", "n z", "???",

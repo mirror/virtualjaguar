@@ -8,17 +8,9 @@
 // - Handling for an event that occurs NOW
 //
 
-//#include <SDL.h>
-//#include "SDL.h"
-//#include "SDL_opengl.h"
-//#include "jaguar.h"
-//#include "m68k.h"
-//#include "gpu.h"
-//#include "dsp.h"
-//#include "settings.h"
-//#include "video.h"
-#include "log.h"
 #include "clock.h"
+
+#include "log.h"
 
 #define EVENT_LIST_SIZE       512
 

@@ -17,9 +17,9 @@ void op_set_status_register(uint32 data);
 uint32 op_get_status_register(void);
 void op_set_current_object(uint64 object);
 
-uint8 OPReadByte(uint32, uint32 who = UNKNOWN);
-uint16 OPReadWord(uint32, uint32 who = UNKNOWN);
-void OPWriteByte(uint32, uint8, uint32 who = UNKNOWN);
-void OPWriteWord(uint32, uint16, uint32 who = UNKNOWN);
+//uint8 OPReadByte(uint32, uint32 who = UNKNOWN);
+//uint16 OPReadWord(uint32, uint32 who = UNKNOWN);
+//void OPWriteByte(uint32, uint8, uint32 who = UNKNOWN);
+//void OPWriteWord(uint32, uint16, uint32 who = UNKNOWN);
 
 #endif	// __OBJECTP_H__

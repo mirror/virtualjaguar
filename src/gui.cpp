@@ -5,6 +5,8 @@
 // by James L. Hammons
 //
 
+#include "gui.h"
+
 #include <stdarg.h>
 #include <sys/types.h>								// For MacOS <dirent.h> dependency
 #include <dirent.h>
@@ -24,7 +26,9 @@
 #include "zlib.h"
 #include "unzip.h"
 #include "sdlemu_opengl.h"
-#include "gui.h"
+#include "log.h"
+#include "jaguar.h"
+#include "eeprom.h"
 
 using namespace std;								// For STL stuff
 
@@ -68,7 +72,7 @@ bool exitGUI = false;								// GUI (emulator) done variable
 int mouseX = 0, mouseY = 0;
 uint32 background[1280 * 256];						// GUI background buffer
 
-char separator[] = "--------------------------------------------------------";
+const char separator[] = "--------------------------------------------------------";
 
 //
 // Case insensitive string compare function
@@ -80,7 +84,7 @@ int stringCmpi(const string &s1, const string &s2)
 	// Select the first element of each string:
 	string::const_iterator p1 = s1.begin(), p2 = s2.begin();
 
-	while (p1 != s1.end() && p2 != s2.end())		// Don’t run past the end
+	while (p1 != s1.end() && p2 != s2.end())		// Donï¿½t run past the end
 	{
 		if (toupper(*p1) != toupper(*p2))			// Compare upper-cased chars
 			return (toupper(*p1) < toupper(*p2) ? -1 : 1);// Report which was lexically greater
@@ -2070,7 +2074,7 @@ Window * RunEmu(void)
 	else if (jaguar_mainRom_crc32 == 0x55A0669C)
 		cartType = 3;
 
-	char * cartTypeName[5] = { "2M Cartridge", "4M Cartridge", "CD BIOS", "CD Dev BIOS", "Homebrew" };
+	const char * cartTypeName[5] = { "2M Cartridge", "4M Cartridge", "CD BIOS", "CD Dev BIOS", "Homebrew" };
 	uint32 elapsedTicks = SDL_GetTicks(), frameCount = 0, framesPerSecond = 0;
 
 	while (!finished)

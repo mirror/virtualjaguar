@@ -71,6 +71,8 @@ bool CDIntfInit(void)
 		return false;
 	}
 
+	WriteLog("CDINTF: Successfully opened CD-ROM interface.\n");
+
 	return true;
 }
 

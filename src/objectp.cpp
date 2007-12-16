@@ -6,10 +6,15 @@
 // Extensive cleanups/fixes/rewrites by James L. Hammons
 //
 
-//#include <stdio.h>
+#include "objectp.h"
+
 #include <stdlib.h>
 #include <string.h>
+#include "tom.h"
 #include "jaguar.h"
+#include "log.h"
+#include "gpu.h"
+#include "m68k.h"
 
 //#define OP_DEBUG
 //#define OP_DEBUG_BMP
@@ -44,12 +49,14 @@ uint64 op_load_phrase(uint32 offset);
 
 // Local global variables
 
-static uint8 * op_blend_y;
-static uint8 * op_blend_cr;
+// Blend tables (64K each)
+static uint8 op_blend_y[0x10000];
+static uint8 op_blend_cr[0x10000];
 // There may be a problem with this "RAM" overlapping (and thus being independent of)
 // some of the regular TOM RAM...
-static uint8 objectp_ram[0x40];			// This is based at $F00000
-uint8 objectp_running;
+//#warning objectp_ram is separated from TOM RAM--need to fix that!
+//static uint8 objectp_ram[0x40];			// This is based at $F00000
+uint8 objectp_running = 0;
 //bool objectp_stop_reading_list;
 
 static uint8 op_bitmap_bit_depth[8] = { 1, 2, 4, 8, 16, 24, 32, 0 };
@@ -66,10 +73,6 @@ int32 phraseWidthToPixels[8] = { 64, 32, 16, 8, 4, 2, 0, 0 };
 //
 void op_init(void)
 {
-	// Blend tables (64K each)
-	memory_malloc_secure((void **)&op_blend_y, 0x10000, "Jaguar Object processor Y blend lookup table");
-	memory_malloc_secure((void **)&op_blend_cr, 0x10000, "Jaguar Object processor CR blend lookup table");
-
 	// Here we calculate the saturating blend of a signed 4-bit value and an
 	// existing Cyan/Red value as well as a signed 8-bit value and an existing intensity...
 	// Note: CRY is 4 bits Cyan, 4 bits Red, 16 bits intensitY
@@ -116,15 +119,15 @@ void op_init(void)
 //
 void op_reset(void)
 {
-	memset(objectp_ram, 0x00, 0x40);
+//	memset(objectp_ram, 0x00, 0x40);
 	objectp_running = 0;
 }
 
 void op_done(void)
 {
-	char * opType[8] =
+	const char * opType[8] =
 	{ "(BITMAP)", "(SCALED BITMAP)", "(GPU INT)", "(BRANCH)", "(STOP)", "???", "???", "???" };
-	char * ccType[8] =
+	const char * ccType[8] =
 		{ "\"==\"", "\"<\"", "\">\"", "(opflag set)", "(second half line)", "?", "?", "?" };
 
 	uint32 olp = op_get_list_pointer();
@@ -149,8 +152,8 @@ void op_done(void)
 	}
 	WriteLog("\n");
 
-	memory_free(op_blend_y);
-	memory_free(op_blend_cr);
+//	memory_free(op_blend_y);
+//	memory_free(op_blend_cr);
 }
 
 //
@@ -162,6 +165,7 @@ void op_done(void)
 //	F00026            W   -------- -------x   OBF - object processor flag
 //
 
+#if 0
 uint8 OPReadByte(uint32 offset, uint32 who/*=UNKNOWN*/)
 {
 	offset &= 0x3F;
@@ -190,33 +194,27 @@ WriteLog("OP: Setting lo list pointer: %04X\n", data);
 if (offset == 0x22)
 WriteLog("OP: Setting hi list pointer: %04X\n", data);//*/
 }
+#endif
 
 uint32 op_get_list_pointer(void)
 {
 	// Note: This register is LO / HI WORD, hence the funky look of this...
-//	return (objectp_ram[0x22] << 24) | (objectp_ram[0x23] << 16) | (objectp_ram[0x20] << 8) | objectp_ram[0x21];
-	return GET16(objectp_ram, 0x20) | (GET16(objectp_ram, 0x22) << 16);
+	return GET16(tom_ram_8, 0x20) | (GET16(tom_ram_8, 0x22) << 16);
 }
 
 // This is WRONG, since the OBF is only 16 bits wide!!! [FIXED]
 
 uint32 op_get_status_register(void)
 {
-//	return (objectp_ram[0x26] << 24) | (objectp_ram[0x27] << 16) | (objectp_ram[0x28] << 8) | objectp_ram[0x29];
-//	return GET32(objectp_ram, 0x26);
-	return GET16(objectp_ram, 0x26);
+	return GET16(tom_ram_8, 0x26);
 }
 
 // This is WRONG, since the OBF is only 16 bits wide!!! [FIXED]
 
 void op_set_status_register(uint32 data)
 {
-/*	objectp_ram[0x26] = (data & 0xFF000000) >> 24;
-	objectp_ram[0x27] = (data & 0x00FF0000) >> 16;
-	objectp_ram[0x28] = (data & 0x0000FF00) >> 8;
-	objectp_ram[0x29] |= (data & 0xFE);*/
-	objectp_ram[0x26] = (data & 0x0000FF00) >> 8;
-	objectp_ram[0x27] |= (data & 0xFE);
+	tom_ram_8[0x26] = (data & 0x0000FF00) >> 8;
+	tom_ram_8[0x27] |= (data & 0xFE);
 }
 
 void op_set_current_object(uint64 object)
@@ -233,15 +231,15 @@ void op_set_current_object(uint64 object)
 	objectp_ram[0x15] = object & 0xFF; object >>= 8;
 	objectp_ram[0x14] = object & 0xFF;*/
 // Let's try regular good old big endian...
-	objectp_ram[0x17] = object & 0xFF; object >>= 8;
-	objectp_ram[0x16] = object & 0xFF; object >>= 8;
-	objectp_ram[0x15] = object & 0xFF; object >>= 8;
-	objectp_ram[0x14] = object & 0xFF; object >>= 8;
+	tom_ram_8[0x17] = object & 0xFF; object >>= 8;
+	tom_ram_8[0x16] = object & 0xFF; object >>= 8;
+	tom_ram_8[0x15] = object & 0xFF; object >>= 8;
+	tom_ram_8[0x14] = object & 0xFF; object >>= 8;
 
-	objectp_ram[0x13] = object & 0xFF; object >>= 8;
-	objectp_ram[0x12] = object & 0xFF; object >>= 8;
-	objectp_ram[0x11] = object & 0xFF; object >>= 8;
-	objectp_ram[0x10] = object & 0xFF;
+	tom_ram_8[0x13] = object & 0xFF; object >>= 8;
+	tom_ram_8[0x12] = object & 0xFF; object >>= 8;
+	tom_ram_8[0x11] = object & 0xFF; object >>= 8;
+	tom_ram_8[0x10] = object & 0xFF;
 }
 
 uint64 op_load_phrase(uint32 offset)
@@ -314,6 +312,7 @@ void DumpFixedObject(uint64 p0, uint64 p1)
 //
 //Need to fix this so that when an GPU object IRQ happens, we can pick up OP processing
 //where we left off. !!! FIX !!!
+#warning Need to fix this so that when an GPU object IRQ happens, we can pick up OP processing where we left off. !!! FIX !!!
 void OPProcessList(int scanline, bool render)
 {
 extern int op_start_log;
@@ -460,8 +459,8 @@ if (!inhibit)	// For OP testing only!
 //???Does this really happen??? Doesn't seem to work if you do this...!
 //Probably not. Must be a bug in the documentation...!
 //				uint32 link = (p0 & 0x7FFFF000000) >> 21;
-//				SET16(objectp_ram, 0x20, link & 0xFFFF);	// OLP
-//				SET16(objectp_ram, 0x22, link >> 16);
+//				SET16(tom_ram_8, 0x20, link & 0xFFFF);	// OLP
+//				SET16(tom_ram_8, 0x22, link >> 16);
 /*				uint32 height = (p0 & 0xFFC000) >> 14;
 				if (height - 1 > 0)
 					height--;*/

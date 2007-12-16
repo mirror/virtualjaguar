@@ -244,14 +244,20 @@
 //	F02298            W   xxxxxxxx xxxxxxxx xxxxxxxx xxxxxxxx   B_Z0 - Z0
 //	------------------------------------------------------------
 
-//#include <SDL.h>
 #include "tom.h"
+
+#include <string.h>								// For memset()
+#include <stdlib.h>								// For rand()
 #include "video.h"
 #include "gpu.h"
 #include "objectp.h"
 #include "cry2rgb.h"
 #include "settings.h"
 #include "clock.h"
+#include "jaguar.h"
+#include "log.h"
+#include "blitter.h"
+#include "m68k.h"
 
 #define NEW_TIMER_SYSTEM
 
@@ -310,7 +316,7 @@
 
 extern uint8 objectp_running;
 
-static uint8 * tom_ram_8;
+uint8 tom_ram_8[0x4000];
 uint32 tom_width, tom_height;
 static uint32 tom_timer_prescaler;
 static uint32 tom_timer_divider;
@@ -323,7 +329,7 @@ uint16 tom_jerry_int_pending, tom_timer_int_pending, tom_object_int_pending,
 //int16 * TOMBackbuffer;
 uint32 * TOMBackbuffer;
 
-static char * videoMode_to_str[8] =
+static const char * videoMode_to_str[8] =
 	{ "16 BPP CRY", "24 BPP RGB", "16 BPP DIRECT", "16 BPP RGB",
 	  "Mixed mode", "24 BPP RGB", "16 BPP DIRECT", "16 BPP RGB" };
 
@@ -991,7 +997,7 @@ void tom_init(void)
 	op_init();
 	blitter_init();
 //This should be done by JERRY!	pcm_init();
-	memory_malloc_secure((void **)&tom_ram_8, 0x4000, "TOM RAM");
+//	memory_malloc_secure((void **)&tom_ram_8, 0x4000, "TOM RAM");
 	tom_reset();
 	// Setup the non-stretchy scanline rendering...
 	memcpy(scanline_render, scanline_render_normal, sizeof(scanline_render));
@@ -1011,7 +1017,7 @@ void tom_done(void)
 //	WriteLog("tom: INT1=0x%.2x%.2x\n",TOMReadByte(0xf000e0),TOMReadByte(0xf000e1));
 //	gpu_done();
 //	dsp_done();
-	memory_free(tom_ram_8);
+//	memory_free(tom_ram_8);
 //	memory_free(tom_cry_rgb_mix_lut);
 }
 
@@ -1192,8 +1198,8 @@ uint8 TOMReadByte(uint32 offset, uint32 who/*=UNKNOWN*/)
 		return GPUReadByte(offset, who);
 	else if ((offset >= GPU_WORK_RAM_BASE) && (offset < GPU_WORK_RAM_BASE+0x1000))
 		return GPUReadByte(offset, who);
-	else if ((offset >= 0xF00010) && (offset < 0xF00028))
-		return OPReadByte(offset, who);
+/*	else if ((offset >= 0xF00010) && (offset < 0xF00028))
+		return OPReadByte(offset, who);*/
 	else if ((offset >= 0xF02200) && (offset < 0xF022A0))
 		return BlitterReadByte(offset, who);
 	else if (offset == 0xF00050)
@@ -1251,8 +1257,8 @@ if (offset >= 0xF02000 && offset <= 0xF020FF)
 		return GPUReadWord(offset, who);
 	else if ((offset >= GPU_WORK_RAM_BASE) && (offset < GPU_WORK_RAM_BASE + 0x1000))
 		return GPUReadWord(offset, who);
-	else if ((offset >= 0xF00010) && (offset < 0xF00028))
-		return OPReadWord(offset, who);
+/*	else if ((offset >= 0xF00010) && (offset < 0xF00028))
+		return OPReadWord(offset, who);*/
 	else if ((offset >= 0xF02200) && (offset < 0xF022A0))
 		return BlitterReadWord(offset, who);
 	else if (offset == 0xF00050)
@@ -1287,11 +1293,11 @@ void TOMWriteByte(uint32 offset, uint8 data, uint32 who/*=UNKNOWN*/)
 		GPUWriteByte(offset, data, who);
 		return;
 	}
-	else if ((offset >= 0xF00010) && (offset < 0xF00028))
+/*	else if ((offset >= 0xF00010) && (offset < 0xF00028))
 	{
 		OPWriteByte(offset, data, who);
 		return;
-	}
+	}*/
 	else if ((offset >= 0xF02200) && (offset < 0xF022A0))
 	{
 		BlitterWriteByte(offset, data, who);
@@ -1365,11 +1371,11 @@ if (offset >= 0xF02000 && offset <= 0xF020FF)
 		TOMWriteByte(offset, data >> 8);
 		TOMWriteByte(offset+1, data & 0xFF);
 	}*/
-	else if ((offset >= 0xF00010) && (offset < 0xF00028))
+/*	else if ((offset >= 0xF00010) && (offset < 0xF00028))
 	{
 		OPWriteWord(offset, data, who);
 		return;
-	}
+	}*/
 	else if (offset == 0xF00050)
 	{
 		tom_timer_prescaler = data;
@@ -1412,6 +1418,8 @@ if (offset >= 0xF02000 && offset <= 0xF020FF)
 
 	offset &= 0x3FFF;
 	if (offset == 0x28)			// VMODE (Why? Why not OBF?)
+//Actually, we should check to see if the Enable bit of VMODE is set before doing this... !!! FIX !!!
+#warning Actually, we should check to see if the Enable bit of VMODE is set before doing this... !!! FIX !!!
 		objectp_running = 1;
 
 	if (offset >= 0x30 && offset <= 0x4E)

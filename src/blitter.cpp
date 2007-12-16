@@ -8,10 +8,16 @@
 // to Curt. ;-) Without that excellent documentation which shows *exactly*
 // what's going on inside the TOM chip, we'd all still be guessing as to how
 // the wily blitter and other pieces of the Jaguar puzzle actually work.
+// Now how about those JERRY ASIC nets gentlemen...? ;-)
 //
 
-#include "jaguar.h"
 #include "blitter.h"
+
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include "jaguar.h"
+#include "log.h"
 
 // Various conditional compilation goodies...
 
@@ -1724,7 +1730,7 @@ doGPUDis = true;
 
 void LogBlit(void)
 {
-	char * opStr[16] = { "LFU_CLEAR", "LFU_NSAND", "LFU_NSAD", "LFU_NOTS", "LFU_SAND", "LFU_NOTD", "LFU_N_SXORD", "LFU_NSORND",
+	const char * opStr[16] = { "LFU_CLEAR", "LFU_NSAND", "LFU_NSAD", "LFU_NOTS", "LFU_SAND", "LFU_NOTD", "LFU_N_SXORD", "LFU_NSORND",
 		"LFU_SAD", "LFU_XOR", "LFU_D", "LFU_NSORD", "LFU_REPLACE", "LFU_SORND", "LFU_SORD", "LFU_ONE" };
 	uint32 cmd = GET32(blitter_ram, 0x38);
 	uint32 m = (REG(A1_FLAGS) >> 9) & 0x03, e = (REG(A1_FLAGS) >> 11) & 0x0F;
