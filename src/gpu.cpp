@@ -1095,9 +1095,9 @@ void gpu_done(void)
 	}
 	WriteLog("\n");
 
-	memory_free(gpu_ram_8);
-	memory_free(gpu_reg_bank_0);
-	memory_free(gpu_reg_bank_1);
+//	memory_free(gpu_ram_8);
+//	memory_free(gpu_reg_bank_0);
+//	memory_free(gpu_reg_bank_1);
 }
 
 //

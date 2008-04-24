@@ -1355,9 +1355,9 @@ void DSPDone(void)
 			WriteLog("\t%s %i\n", dsp_opcode_str[i], dsp_opcode_use[i]);
 	}//*/
 
-	memory_free(dsp_ram_8);
-	memory_free(dsp_reg_bank_0);
-	memory_free(dsp_reg_bank_1);
+//	memory_free(dsp_ram_8);
+//	memory_free(dsp_reg_bank_0);
+//	memory_free(dsp_reg_bank_1);
 }
 
 
