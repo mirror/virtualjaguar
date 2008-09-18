@@ -19,7 +19,8 @@
 
 #include "sdlemu_config.h"
 
-#include <stdio.h>
+#include <stdlib.h>								// For atoi()
+#include <cstring>								// For strcmp()
 #include <string>
 #include <list>
 
