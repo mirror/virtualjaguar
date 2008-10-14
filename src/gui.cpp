@@ -220,7 +220,7 @@ void Button::Draw(uint32 offsetX/*= 0*/, uint32 offsetY/*= 0*/)
 			{
 				// Doesn't clip in y axis! !!! FIX !!!
 				if (extents.x + x < pitch)
-					screenBuffer[addr + x + (y * pitch)] 
+					screenBuffer[addr + x + (y * pitch)]
 //					= (clicked && inside ? fgColor : (inside ? 0x43F0 : bgColor));
 //43F0 -> 010000 11111 10000 -> 0100 0001 1111 1111 1000 0100 -> 41 FF 84
 						= (clicked && inside ? fgColor : (inside ? 0xFF84FF41 : bgColor));
@@ -333,7 +333,7 @@ void PushButton::Draw(uint32 offsetX/*= 0*/, uint32 offsetY/*= 0*/)
 		{
 			// Doesn't clip in y axis! !!! FIX !!!
 			if (extents.x + x < pitch)
-				screenBuffer[addr + x + (y * pitch)] 
+				screenBuffer[addr + x + (y * pitch)]
 					= (clicked && inside ? fgColor : (inside ? 0x43F0 : bgColor));
 		}
 	}*/
@@ -629,7 +629,7 @@ void TextEdit::HandleKey(SDLKey key)
 	}
 	else if (key == SDLK_BACKSPACE)
 	{
-		
+
 	}
 	else if (key == SDLK_DELETE)
 	{
@@ -951,14 +951,14 @@ FileList::FileList(uint32 x, uint32 y, uint32 w, uint32 h): Window(x, y, w, h)
 		while ((de = readdir(dp)) != NULL)
 		{
 			char * ext = strrchr(de->d_name, '.');
-	
+
 			if (ext != NULL)
 				if (strcasecmp(ext, ".zip") == 0 || strcasecmp(ext, ".j64") == 0
 					|| strcasecmp(ext, ".abs") == 0 || strcasecmp(ext, ".jag") == 0
 					|| strcasecmp(ext, ".rom") == 0)
 					files->AddItem(string(de->d_name));
 		}
-	
+
 		closedir(dp);
 	}
 	else
@@ -1047,7 +1047,7 @@ class MenuItems
 class Menu: public Element
 {
 	public:
-// 1CFF -> 0 001 11 00  111 1 1111 
+// 1CFF -> 0 001 11 00  111 1 1111
 // 421F -> 0 100 00 10  000 1 1111
 		Menu(uint32 x = 0, uint32 y = 0, uint32 w = 0, uint32 h = FONT_HEIGHT,
 /*			uint16 fgc = 0x1CFF, uint16 bgc = 0x000F, uint16 fgch = 0x421F,
@@ -1689,7 +1689,7 @@ Bitmap ptr = { 6, 8, 4,
 //"000011112222333344445555"
 //"000011112222333344445555"
 //"000011112222333344445555"
-};//*/	
+};//*/
 	uint32 * overlayPixels = (uint32 *)sdlemuGetOverlayPixels();
 	uint32 count = 2;
 
@@ -2002,7 +2002,7 @@ return NULL;//*/
 			DrawStringTrans(backbuffer, 8, 27*8, 0xFF1FFF3F, transparency, "CRC: %08X", jaguar_mainRom_crc32);
 
 			if (showMsgFrames == 0)
-			{			
+			{
 				transparency++;
 
 				if (transparency == 33)
@@ -2113,7 +2113,7 @@ else
 			DrawString2(overlayPixels, 8, 27*FONT_HEIGHT, 0x001FFF3F, transparency, "CRC: %08X", jaguar_mainRom_crc32);
 
 			if (showMsgFrames == 0)
-			{			
+			{
 				transparency--;
 
 				if (transparency == 0)
@@ -2164,7 +2164,7 @@ Window * About(void)
 {
 	char buf[512];
 //	sprintf(buf, "Virtual Jaguar CVS %s", __DATE__);
-	sprintf(buf, "CVS %s", __DATE__);
+	sprintf(buf, "SVN %s", __DATE__);
 //fprintf(fp, "VirtualJaguar v1.0.8 (Last full build was on %s %s)\n", __DATE__, __TIME__);
 //VirtualJaguar v1.0.8 (Last full build was on Dec 30 2004 20:01:31)
 //Hardwired, bleh... !!! FIX !!!
