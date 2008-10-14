@@ -116,6 +116,7 @@ ifeq "" "$(shell which sdl-config)"
 else
 	@echo "OK"
 endif
+# !!! NOTE !!! Need to put a check here for libcdio, GL, etc.
 
 message:
 	@echo
