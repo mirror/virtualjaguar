@@ -51,13 +51,16 @@ TARGET     = vj
 # Note that we use optimization level 2 instead of 3--3 doesn't seem to gain much over 2
 CFLAGS   = -MMD -Wall -Wno-switch -O2 -D$(SYSTYPE) -ffast-math -fomit-frame-pointer `sdl-config --cflags`
 CPPFLAGS = -MMD -Wall -Wno-switch -Wno-non-virtual-dtor -O2 -D$(SYSTYPE) \
-		-ffast-math -fomit-frame-pointer `sdl-config --cflags` -g
+		-DHAVE_LIB_CDIO -ffast-math -fomit-frame-pointer `sdl-config --cflags` -g
 #		-fomit-frame-pointer `sdl-config --cflags` -g
 #		-fomit-frame-pointer `sdl-config --cflags` -DLOG_UNMAPPED_MEMORY_ACCESSES
 
 LDFLAGS =
 
 LIBS = -L/usr/local/lib -L/usr/lib `sdl-config $(SDLLIBTYPE)` -lstdc++ -lz $(GLLIB) -lcdio
+# Comment out the above and uncomment below if you don't have libcdio.
+# Also, remove the "-DHAVE_LIB_CDIO" from CPPFLAGS above.
+#LIBS = -L/usr/local/lib -L/usr/lib `sdl-config $(SDLLIBTYPE)` -lstdc++ -lz $(GLLIB)
 
 INCS = -I. -I./src -I/usr/local/include -I/usr/include
 

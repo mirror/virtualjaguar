@@ -14,19 +14,21 @@ consult the INSTALL file for more information about supported OS's and
 software requirements.
 
 The use of this software is entirely at your own risk. We can't be held
-responsible for damage done to you hardware and/or software. This software
-requires the use of the Atari Jaguar (CD) boot ROM and/or Commercial ROM
-images. You may only use the ROM images if you own the cartridges itself. The
-use of Commercial ROMs without owning the original cartridge is illegal in
+responsible for damage done to you hardware and/or software. While it won't
+rape your dog, it might do other nasty things. You have been warned. This
+software requires the use of the Atari Jaguar (CD) boot ROM and/or Commercial
+ROM images. You may only use the ROM images if you own the cartridges itself.
+The use of Commercial ROMs without owning the original cartridge is illegal in
 most countries and could result in fines and/or legal actions.
 
-This software is released under the GPL. For more information I direct you to
-the GPL.TXT. You may hack/change the code anyway you like. You may not
-commercially sell this software. If you make changes, release the source code
-to the public and send the changes you made to the original authors. 
+This software is released under the GPL v2 or later. For more information I
+direct you to the GPL.TXT. You may hack/change the code anyway you like. You
+may not commercially sell this software. If you make changes, release the
+source code to the public and send the changes you made to the original
+authors.
 
 The products and brands used in these documents and/or sourcecode are owned by
-their respective companies.
+their respective companies and/or successors in interest.
 
 ----------------------------------------------------------------
 - IMPORTANT NOTE ABOUT JAGUAR FILE FORMATS--READ THIS OR ELSE! -
@@ -68,8 +70,8 @@ higher address than a Jaguar cartridge.
 The fourth type, the .bin file, is simply a Jaguar executable with no header.
 Since these files contain no information about where they load and execute,
 Virtual Jaguar does not support this file type. Go bug the author to release
-either a file with headers or a file in Alpine ROM format. Virtual Jaguar is
-not omniscient! ;)
+either a file with proper headers or a file in Alpine ROM format. Virtual
+Jaguar is not omniscient (yet)! ;)
 
 There is a fifth type of file that is supported by Virtual Jaguar, the .j64
 file, which is simply a 1, 2, or 4 Meg dump of a Jaguar cartridge ROM which
@@ -82,7 +84,7 @@ loads at $800000 in the Jaguar memory space.
 Virtual Jaguar is software dedicated to emulating the Atari Jaguar hardware on
 a standard PC. The software was originally developed by David Raingeard of
 Potato Emulation [http://potato.emu-france.com] and was released under the GPL
-on 25 June 2003. 
+on 25 June 2003.
 
 Virtual Jaguar GCC/SDL is not only a port of the MS Visual C++/SDL sourcecode
 but has also been extended and rewritten so that we can enjoy Atari Jaguar
@@ -122,7 +124,8 @@ use Virtual Jaguar using the following command:
 The context of ROMFILE is the filename of the an Atari Jaguar ROM dump (can be
 either compressed or uncompressed). You can also use switches. By just typing
 ./vj -? (or ./vj -help) you get an overview of the options you can use. WIN32
-users should look into the stdout.txt for that information.
+users should look into the stdout.txt in the directory they ran Virtual Jaguar
+for that information.
 
 If you prefer a nice GUI instead of typing in command lines, you can either
 type ./vj or double click on the Virtual Jaguar executable. If you have a
@@ -173,13 +176,13 @@ anymore. ;)
 -----------
 
 If you find bugs, enhance the code or simply have questions, drop us an e-mail
-at sdlemu AT ngemu DOT com or drop a message on the SDLEMU Official Forum. 
+at sdlemu AT ngemu DOT com or drop a message on the SDLEMU Official Forum.
 
 More information about this project (releases/WIP) can be found at the official
 Virtual Jaguar website [http://www.icculus.org/virtualjaguar] and on the SDLEMU
 website [http://sdlemu.ngemu.com].
 
-We hope you enjoy the emulator and will use it wisely! 
+We hope you enjoy the emulator and will use it wisely!
 
 Special thanks go to guys over at ngemu.com and #ngemu (EFNET). Thanks also to
 David Raingeard of Potato Emulation who originally developed this emulator and

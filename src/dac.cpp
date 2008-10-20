@@ -11,6 +11,14 @@
 // work correctly...! Perhaps just need to set up SSI stuff so BUTCH doesn't get
 // confused...
 
+// ALSO: Need to implement some form of proper locking to replace the clusterfuck
+//       that is the current spinlock implementation. Since the DSP is a separate
+//       entity, could we get away with running it in the sound IRQ?
+
+// ALSO: It may be a good idea to physically separate the left and right buffers
+//       to prevent things like the DSP filling only one side and such. Do such
+//       mono modes exist on the Jag? Seems to according to Super Burnout.
+
 #include "dac.h"
 
 #include "SDL.h"
@@ -331,6 +339,8 @@ WriteLog("Tail=%X, Head=%X", rtail, rhead);
 				{
 					if (SDL_OpenAudio(&desired, NULL) < 0)	// NULL means SDL guarantees what we want
 					{
+// This is bad, Bad, BAD !!! DON'T ABORT BECAUSE WE DIDN'T GET OUR FREQ! !!! FIX !!!
+#warning !!! FIX !!! Aborting because of SDL audio problem is bad!
 						WriteLog("DAC: Failed to initialize SDL sound: %s.\nDesired freq: %u\nShutting down!\n", SDL_GetError(), desired.freq);
 						log_done();
 						exit(1);
@@ -382,5 +392,5 @@ uint16 DACReadWord(uint32 offset, uint32 who/*= UNKNOWN*/)
 	else if (offset == RRXD + 2)
 		return rrxd;
 
-	return 0xFFFF;	// May need SSTAT as well... (but may be a Jaguar II only feature)		
+	return 0xFFFF;	// May need SSTAT as well... (but may be a Jaguar II only feature)
 }

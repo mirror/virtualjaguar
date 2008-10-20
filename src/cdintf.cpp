@@ -3,37 +3,24 @@
 //
 // by James L. Hammons
 //
-// This file is basically a shell to keep the front-end clean and also pull in the
-// appropriate back-end code depending on which target is being compiled for.
+// This now uses the supposedly cross-platform libcdio to do the necessary
+// low-level CD twiddling we need that libsdl can't do currently. Jury is
+// still out on whether or not to make this a conditional compilation or not.
 //
+
+// Comment this out if you don't have libcdio installed
+// (Actually, this is defined in the Makefile to prevent having to edit
+//  things too damn much. Jury is still out whether or not to make this
+//  change permanent.)
+//#define HAVE_LIB_CDIO
 
 #include "cdintf.h"								// Every OS has to implement these
 
+#ifdef HAVE_LIB_CDIO
 #include <cdio/cdio.h>							// Now using OS agnostic CD access routines!
+#endif
 #include "log.h"
 
-// Not any more!
-#if 0
-
-// OS dependent implementations
-
-#if defined(__GCCWIN32__)
-
-#include "cdintf_win32.cpp"
-
-#elif defined(__GCCUNIX__)
-	#if defined(_OSX_)
-
-#include "cdintf_osx.cpp"
-
-	#else
-
-#include "cdintf_linux.cpp"
-
-	#endif
-#endif
-
-#endif
 
 /*
 static void TestCDIO(void)
@@ -59,33 +46,42 @@ static void TestCDIO(void)
 // *** OK, here's where we're going to attempt to put the platform agnostic CD interface ***
 //
 
+#ifdef HAVE_LIB_CDIO
 static CdIo_t * cdioPtr = NULL;
+#endif
 
 bool CDIntfInit(void)
 {
+#ifdef HAVE_LIB_CDIO
 	cdioPtr = cdio_open(NULL, DRIVER_DEVICE);
 
 	if (cdioPtr == NULL)
 	{
+#endif
 		WriteLog("CDINTF: No suitable CD-ROM driver found.\n");
 		return false;
+#ifdef HAVE_LIB_CDIO
 	}
 
 	WriteLog("CDINTF: Successfully opened CD-ROM interface.\n");
 
 	return true;
+#endif
 }
 
 void CDIntfDone(void)
 {
 	WriteLog("CDINTF: Shutting down CD-ROM subsystem.\n");
 
+#ifdef HAVE_LIB_CDIO
 	if (cdioPtr)
 		cdio_destroy(cdioPtr);
+#endif
 }
 
 bool CDIntfReadBlock(uint32 sector, uint8 * buffer)
 {
+#warning !!! FIX !!! CDIntfReadBlock not implemented!
 	// !!! FIX !!!
 	WriteLog("CDINTF: ReadBlock unimplemented!\n");
 	return false;
@@ -93,6 +89,7 @@ bool CDIntfReadBlock(uint32 sector, uint8 * buffer)
 
 uint32 CDIntfGetNumSessions(void)
 {
+#warning !!! FIX !!! CDIntfGetNumSessions not implemented!
 	// !!! FIX !!!
 	// Still need relevant code here... !!! FIX !!!
 	return 2;
@@ -100,12 +97,14 @@ uint32 CDIntfGetNumSessions(void)
 
 void CDIntfSelectDrive(uint32 driveNum)
 {
+#warning !!! FIX !!! CDIntfSelectDrive not implemented!
 	// !!! FIX !!!
 	WriteLog("CDINTF: SelectDrive unimplemented!\n");
 }
 
 uint32 CDIntfGetCurrentDrive(void)
 {
+#warning !!! FIX !!! CDIntfGetCurrentDrive not implemented!
 	// !!! FIX !!!
 	WriteLog("CDINTF: GetCurrentDrive unimplemented!\n");
 	return 0;
@@ -113,16 +112,22 @@ uint32 CDIntfGetCurrentDrive(void)
 
 const uint8 * CDIntfGetDriveName(uint32 driveNum)
 {
+#warning !!! FIX !!! CDIntfGetDriveName driveNum is currently ignored!
 	// driveNum is currently ignored... !!! FIX !!!
 
+#ifdef HAVE_LIB_CDIO
 	uint8 * driveName = (uint8 *)cdio_get_default_device(cdioPtr);
 	WriteLog("CDINTF: The drive name for the current driver is %s.\n", driveName);
 
 	return driveName;
+#else
+	return (uint8 *)"NONE";
+#endif
 }
 
 uint8 CDIntfGetSessionInfo(uint32 session, uint32 offset)
 {
+#warning !!! FIX !!! CDIntfGetSessionInfo not implemented!
 	// !!! FIX !!!
 	WriteLog("CDINTF: GetSessionInfo unimplemented!\n");
 	return 0xFF;
@@ -130,6 +135,7 @@ uint8 CDIntfGetSessionInfo(uint32 session, uint32 offset)
 
 uint8 CDIntfGetTrackInfo(uint32 track, uint32 offset)
 {
+#warning !!! FIX !!! CDIntfTrackInfo not implemented!
 	// !!! FIX !!!
 	WriteLog("CDINTF: GetTrackInfo unimplemented!\n");
 	return 0xFF;

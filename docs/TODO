@@ -1,6 +1,8 @@
 Stuff to add/fix for the next release of Virtual Jaguar
 -------------------------------------------------------
 
+- Fix DSP code so that it doesn't hang in a spinlock waiting for the sound
+  buffer to empty. Probably a CS lock contention issue. [Shamus]
 - Make sure that VJ doesn't crash if the useJaguarBIOS key is set to 1 and the
   BIOS file isn't available. [Shamus]
 - Create an EEPROMs directory (or whatever is in EEPROMPath[]) if it doesn't
