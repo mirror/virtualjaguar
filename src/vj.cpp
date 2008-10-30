@@ -6,11 +6,6 @@
 // Cleanups/fixes/enhancements by James L. Hammons and Adam Green
 //
 
-#ifdef __GCCUNIX__
-//#include <unistd.h>									// Is this necessary anymore?
-//Looks like the answer is no...
-#endif
-
 #include <time.h>
 #include <SDL.h>
 #include "jaguar.h"
@@ -21,6 +16,7 @@
 #include "log.h"
 #include "version.h"
 #include "memory.h"
+#include "file.h"
 
 // Uncomment this to use built-in BIOS/CD-ROM BIOS
 // You'll need a copy of jagboot.h & jagcd.h for this to work...!
@@ -33,30 +29,12 @@
 
 // Private function prototypes
 
-// External variables
-
-extern uint8 * jaguar_mainRam;
-extern uint8 * jaguar_mainRom;
-extern uint8 * jaguar_bootRom;
-extern uint8 * jaguar_CDBootROM;
-
-// Global variables (export capable)
-//should these even be here anymore? prolly not...
-
-bool finished = false;
-bool showGUI = false;
-bool showMessage = false;
-uint32 showMessageTimeout;
-char messageBuffer[200];
-bool BIOSLoaded = false;
-bool CDBIOSLoaded = false;
-
 //
 // The main emulator loop (what else?)
 //
 //Maybe we should move the video stuff to TOM? Makes more sense to put it there...
 //Actually, it would probably be better served in VIDEO.CPP... !!! FIX !!! [DONE]
-uint32 totalFrames;//temp, so we can grab this from elsewhere...
+//uint32 totalFrames;//temp, so we can grab this from elsewhere...
 int main(int argc, char * argv[])
 {
 //NOTE: This isn't actually used anywhere... !!! FIX !!!
@@ -83,7 +61,7 @@ int main(int argc, char * argv[])
 		if (argv[i][0] != '-')
 			haveCart = true;						// It looks like we have a cartridge!
 
-		if (!strcmp(argv[i], "-joystick")) 
+		if (!strcmp(argv[i], "-joystick"))
 			vjs.useJoystick = true;
 
 		if (!strcmp(argv[i], "-joyport"))
@@ -124,10 +102,10 @@ int main(int argc, char * argv[])
 		if (!strcmp(argv[i], "-nogl"))
 			vjs.useOpenGL = false;
 
-		if (!strcmp(argv[i], "-fullscreen")) 
+		if (!strcmp(argv[i], "-fullscreen"))
 			vjs.fullscreen = true;
 
-		if (!strcmp(argv[i], "-window")) 
+		if (!strcmp(argv[i], "-window"))
 			vjs.fullscreen = false;
 
 		if (!strcmp(argv[i], "-pal"))
@@ -186,7 +164,6 @@ WriteLog("Initializing jaguar subsystem...\n");
 	memcpy(jaguar_CDBootROM, jagCDROM, 0x40000);
 	BIOSLoaded = CDBIOSLoaded = true;
 #else
-//	if (vjs.useJaguarBIOS)
 // What would be nice here would be a way to check if the BIOS was loaded so that we
 // could disable the pushbutton on the Misc Options menu... !!! FIX !!! [DONE here, but needs to be fixed in GUI as well!]
 WriteLog("About to attempt to load BIOSes...\n");
@@ -216,7 +193,7 @@ WriteLog("About to start GUI...\n");
 	VersionDone();
 	MemoryDone();
 	VideoDone();
-	log_done();	
+	log_done();
 
 	// Free SDL components last...!
 	SDL_QuitSubSystem(SDL_INIT_VIDEO | SDL_INIT_JOYSTICK | SDL_INIT_AUDIO | SDL_INIT_TIMER);

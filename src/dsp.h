@@ -31,6 +31,10 @@ void DSPExecP2(int32 cycles);
 //void DSPExecP3(int32 cycles);
 void DSPExecComp(int32 cycles);
 
+// Exported vars
+
+extern bool doDSPDis;
+
 // DSP interrupt numbers (in $F1A100, bits 4-8 & 16)
 
 enum { DSPIRQ_CPU = 0, DSPIRQ_SSI, DSPIRQ_TIMER0, DSPIRQ_TIMER1, DSPIRQ_EXT0, DSPIRQ_EXT1 };

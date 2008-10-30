@@ -6,10 +6,11 @@
 
 #include "video.h"
 
+#include "gui.h"								// For "finished"
+#include "log.h"
 #include "tom.h"
 #include "sdlemu_opengl.h"
 #include "settings.h"
-#include "log.h"
 
 // External global variables
 
@@ -31,7 +32,7 @@ uint32 * backbuffer;
 //          60 FPS. But doing so will have some nasty side effects in some games.
 //          You have been warned!
 
-int frame_ticker = vjs.frameSkip;
+int frame_ticker = 0;
 
 //
 // Create SDL/OpenGL surfaces
@@ -53,7 +54,7 @@ bool InitVideo(void)
 	    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 0);
         SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 		mainSurfaceFlags = SDL_OPENGL;
-		
+
 	}
 	else
 	{
@@ -104,14 +105,14 @@ bool InitVideo(void)
 		(vjs.hardwareTypeNTSC ? VIRTUAL_SCREEN_HEIGHT_NTSC : VIRTUAL_SCREEN_HEIGHT_PAL),
 		16, 0x7C00, 0x03E0, 0x001F, 0);//*/
 
-	uint32 vsWidth = VIRTUAL_SCREEN_WIDTH;
+	uint32 vsWidth = (vjs.renderType == RT_TV ? 1280 : VIRTUAL_SCREEN_WIDTH),
+		vsHeight = (vjs.hardwareTypeNTSC ? VIRTUAL_SCREEN_HEIGHT_NTSC : VIRTUAL_SCREEN_HEIGHT_PAL);
 
-	if (vjs.renderType == RT_TV)
-		vsWidth = 1280;
+//	if (vjs.renderType == RT_TV)
+//		vsWidth = 1280;
 //24BPP
 //	surface = SDL_CreateRGBSurface(SDL_SWSURFACE, VIRTUAL_SCREEN_WIDTH,
-	surface = SDL_CreateRGBSurface(SDL_SWSURFACE, vsWidth,
-		(vjs.hardwareTypeNTSC ? VIRTUAL_SCREEN_HEIGHT_NTSC : VIRTUAL_SCREEN_HEIGHT_PAL), 32,
+	surface = SDL_CreateRGBSurface(SDL_SWSURFACE, vsWidth, vsHeight, 32,
 #if SDL_BYTEORDER == SDL_BIG_ENDIAN
 		 0xFF000000, 0x00FF0000, 0x0000FF00, 0x000000FF);
 #else
@@ -127,7 +128,7 @@ bool InitVideo(void)
 	if (vjs.useOpenGL)
 		// Let us setup OpenGL and our rendering texture. We give the src (surface) and the
 		// dst (mainSurface) display as well as the automatic bpp selection as options so that
-		// our texture is automaticly created :)
+		// our texture is automatically created :)
 		sdlemu_init_opengl(surface, mainSurface, 1 /*method*/,
 			vjs.glFilter /*texture type (linear, nearest)*/,
 			0 /* Automatic bpp selection based upon src */);
@@ -154,16 +155,8 @@ bool InitVideo(void)
 	}
 
 	// Set up the backbuffer
-//To be safe, this should be 1280 * 625 * 2...
-//	backbuffer = (int16 *)malloc(845 * 525 * sizeof(int16));
-/*	backbuffer = (int16 *)malloc(1280 * 625 * sizeof(int16));
-//	memset(backbuffer, 0x44, VIRTUAL_SCREEN_WIDTH * VIRTUAL_SCREEN_HEIGHT_NTSC * sizeof(int16));
-	memset(backbuffer, 0x44, VIRTUAL_SCREEN_WIDTH *
-		(vjs.hardwareTypeNTSC ? VIRTUAL_SCREEN_HEIGHT_NTSC : VIRTUAL_SCREEN_HEIGHT_PAL)
-		* sizeof(int16));//*/
-//24BPP
+	// To be safe, this should be 1280 * 625 * 2...
 	backbuffer = (uint32 *)malloc(1280 * 625 * sizeof(uint32));
-//	memset(backbuffer, 0x44, VIRTUAL_SCREEN_WIDTH * VIRTUAL_SCREEN_HEIGHT_NTSC * sizeof(int16));
 	memset(backbuffer, 0x44, VIRTUAL_SCREEN_WIDTH *
 		(vjs.hardwareTypeNTSC ? VIRTUAL_SCREEN_HEIGHT_NTSC : VIRTUAL_SCREEN_HEIGHT_PAL)
 		* sizeof(uint32));
@@ -189,11 +182,22 @@ void VideoDone(void)
 //
 void RenderBackbuffer(void)
 {
+	// Handle frameskip *before* we do any heavy lifting here...
+
+	if (frame_ticker > 0)
+	{
+		frame_ticker--;
+		return;
+	}
+
+	frame_ticker = vjs.frameSkip;				// Reset frame_ticker
+
 	if (SDL_MUSTLOCK(surface))
 		while (SDL_LockSurface(surface) < 0)
 			SDL_Delay(10);
 
 //	memcpy(surface->pixels, backbuffer, tom_getVideoModeWidth() * tom_getVideoModeHeight() * 2);
+// This memcpy is expensive--do some profiling to see what the impact is!
 	if (vjs.renderType == RT_NORMAL)
 		memcpy(surface->pixels, backbuffer, tom_getVideoModeWidth() * tom_getVideoModeHeight() * 4);
 	else if (vjs.renderType == RT_TV)
@@ -203,19 +207,12 @@ void RenderBackbuffer(void)
 		SDL_UnlockSurface(surface);
 
 	if (vjs.useOpenGL)
-	{
 		// One of the reasons why OpenGL is slower then normal SDL rendering, is because
 		// the data is being pumped into the buffer every frame with a overflow as result.
 		// So, we going to render every 1 fps instead of every 0 fps.
 		// [Shamus] This is isn't why it's slower--see top of file for explanation... ;-)
-		if (frame_ticker == 0)
-		{
-			sdlemu_draw_texture(mainSurface, surface, 1/*1=GL_QUADS*/);
-			frame_ticker = vjs.frameSkip;		// Reset frame_ticker
-		}
-		else
-			frame_ticker--;
-    }  
+//The problem lies in this function...
+		sdlemu_draw_texture(mainSurface, surface, 1/*1=GL_QUADS*/);
 	else
 	{
 		SDL_Rect rect = { 0, 0, surface->w, surface->h };
@@ -229,11 +226,7 @@ void RenderBackbuffer(void)
 //
 void ResizeScreen(uint32 width, uint32 height)
 {
-	char window_title[256];
-
 	SDL_FreeSurface(surface);
-//	surface = SDL_CreateRGBSurface(SDL_SWSURFACE, width, height, 16, 0x7C00, 0x03E0, 0x001F, 0);
-//24BPP
 	surface = SDL_CreateRGBSurface(SDL_SWSURFACE, width, height, 32,
 #if SDL_BYTEORDER == SDL_BIG_ENDIAN
 		 0xFF000000, 0x00FF0000, 0x0000FF00, 0x000000FF);
@@ -246,12 +239,16 @@ void ResizeScreen(uint32 width, uint32 height)
 		WriteLog("Video: Could not create primary SDL surface: %s", SDL_GetError());
 //This is just crappy. We shouldn't exit this way--it leaves all kinds of memory leaks
 //as well as screwing up SDL... !!! FIX !!!
-		exit(1);
+//		exit(1);
+		// OK, this is cleaner. We can't continue if there is no surface created!
+		finished = true;
 	}
 
 	if (vjs.useOpenGL)
 	{
 		// Recreate the texture because of the NTSC <-> PAL screen resize.
+//Not sure why this is here...
+//Is it because of the resized surface up above?
 		sdlemu_create_texture(surface, mainSurface, vjs.glFilter, 0);
 	}
 	else
@@ -261,12 +258,15 @@ void ResizeScreen(uint32 width, uint32 height)
 		if (mainSurface == NULL)
 		{
 			WriteLog("Video: SDL is unable to set the video mode: %s\n", SDL_GetError());
-			exit(1);
+// Don't exit because we can't resize!
+//			exit(1);
 		}
 	}
 
+	char window_title[64];
+
 	sprintf(window_title, "Virtual Jaguar (%i x %i)", (int)width, (int)height);
-	SDL_WM_SetCaption(window_title, window_title);
+	SDL_WM_SetCaption((vjs.useOpenGL ? "Virtual Jaguar (OpenGL)" : window_title), "Virtual Jaguar");
 }
 
 //
@@ -282,23 +282,44 @@ uint32 GetSDLScreenWidthInPixels(void)
 //
 void ToggleFullscreen(void)
 {
-//NOTE: This does *NOT* work with OpenGL rendering! !!! FIX !!!
-	if (vjs.useOpenGL)
-		return;										// Until we can fix it...
-
 	vjs.fullscreen = !vjs.fullscreen;
 	mainSurfaceFlags &= ~SDL_FULLSCREEN;
 
 	if (vjs.fullscreen)
 		mainSurfaceFlags |= SDL_FULLSCREEN;
 
-	mainSurface = SDL_SetVideoMode(tom_width, tom_height, 32, mainSurfaceFlags);
+	if (vjs.useOpenGL)
+	{
+		// When OpenGL is used, we're going to use a standard resolution of 640x480.
+		// This way we have good scaling functionality and when the screen is resized
+		// because of the NTSC <-> PAL resize, we only have to re-create the texture
+		// instead of initializing the entire OpenGL texture en screens.
+		mainSurface = SDL_SetVideoMode(640, 480, 32, mainSurfaceFlags);//*/
+
+		// Reset viewport, etc.
+		glViewport(0, 0, mainSurface->w, mainSurface->h);
+		glMatrixMode(GL_PROJECTION);
+		glPushMatrix();
+		glLoadIdentity();
+		glOrtho(0.0, (GLdouble)mainSurface->w, (GLdouble)mainSurface->h, 0.0, 0.0, 1.0);
+		glMatrixMode(GL_MODELVIEW);
+		glPushMatrix();
+		glLoadIdentity();
+	}
+	else
+		mainSurface = SDL_SetVideoMode(VIRTUAL_SCREEN_WIDTH,
+			(vjs.hardwareTypeNTSC ? VIRTUAL_SCREEN_HEIGHT_NTSC : VIRTUAL_SCREEN_HEIGHT_PAL),
+			32, mainSurfaceFlags);
 
 	if (mainSurface == NULL)
 	{
-		WriteLog("Video: SDL is unable to set the video mode: %s\n", SDL_GetError());
-		exit(1);
+		WriteLog("Video: SDL was unable to switch the video to %s: %s\n", (vjs.fullscreen ? "fullscreen" : "windowed"), SDL_GetError());
+// Shouldn't exit because we can't switch! BAD!!!
+//		exit(1);
+		return;
 	}
 
-	SDL_WM_SetCaption("Virtual Jaguar", "Virtual Jaguar");
+	SDL_WM_SetCaption((vjs.useOpenGL ? "Virtual Jaguar (OpenGL)" : "Virtual Jaguar"), "Virtual Jaguar");
+
+	return;
 }

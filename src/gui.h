@@ -7,8 +7,6 @@
 #ifndef __GUI_H__
 #define __GUI_H__
 
-#include "types.h"
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -17,10 +15,10 @@ void InitGUI(void);
 void GUIDone(void);
 bool GUIMain(char *);
 
-// Not sure why these are in *this* file, but here they are... :-/
+// Exported vars
 
-uint32 JaguarLoadROM(uint8 * rom, char * path);
-bool JaguarLoadFile(char * path);
+extern bool showGUI;
+extern bool finished;
 
 #ifdef __cplusplus
 }

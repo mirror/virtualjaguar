@@ -11,10 +11,11 @@
 #include <time.h>
 #include <SDL.h>
 #include "jaguar.h"
-#include "video.h"
-#include "settings.h"
-#include "gpu.h"
 #include "log.h"
+#include "gpu.h"
+#include "gui.h"
+#include "settings.h"
+#include "video.h"
 
 #define BUTTON_U		0
 #define BUTTON_D		1
@@ -44,8 +45,8 @@
 static uint8 joystick_ram[4];
 static uint8 joypad_0_buttons[21];
 static uint8 joypad_1_buttons[21];
-extern bool finished;
-extern bool showGUI;
+//extern bool finished;
+////extern bool showGUI;
 bool GUIKeyHeld = false;
 extern int start_logging;
 int gpu_start_log = 0;
@@ -64,16 +65,16 @@ bool blitterSingleStep = false;
 bool bssGo = false;
 bool bssHeld = false;
 
-void joystick_init(void)
+void JoystickInit(void)
 {
-	joystick_reset();
+	JoystickReset();
 }
 
-void joystick_exec(void)
+void JoystickExec(void)
 {
 //	extern bool useJoystick;
 	uint8 * keystate = SDL_GetKeyState(NULL);
-  	
+
 	memset(joypad_0_buttons, 0, 21);
 	memset(joypad_1_buttons, 0, 21);
 	gpu_start_log = 0;							// Only log while key down!
@@ -236,7 +237,7 @@ void joystick_exec(void)
 		extern SDL_Joystick * joystick;
 		int16 x = SDL_JoystickGetAxis(joystick, 0),
 			y = SDL_JoystickGetAxis(joystick, 1);
-	
+
 		if (x > 16384)
 			joypad_0_buttons[BUTTON_R] = 0x01;
 		if (x < -16384)
@@ -245,7 +246,7 @@ void joystick_exec(void)
 			joypad_0_buttons[BUTTON_D] = 0x01;
 		if (y < -16384)
 			joypad_0_buttons[BUTTON_U] = 0x01;
-	
+
 		if (SDL_JoystickGetButton(joystick, 0) == SDL_PRESSED)
 			joypad_0_buttons[BUTTON_A] = 0x01;
 		if (SDL_JoystickGetButton(joystick, 1) == SDL_PRESSED)
@@ -253,24 +254,25 @@ void joystick_exec(void)
 		if (SDL_JoystickGetButton(joystick, 2) == SDL_PRESSED)
 			joypad_0_buttons[BUTTON_C] = 0x01;
 	}
-	
+
 	// Needed to ensure that the events queue is empty [nwagenaar]
     SDL_PumpEvents();
 }
 
-void joystick_reset(void)
+void JoystickReset(void)
 {
 	memset(joystick_ram, 0x00, 4);
 	memset(joypad_0_buttons, 0, 21);
 	memset(joypad_1_buttons, 0, 21);
 }
 
-void joystick_done(void)
+void JoystickDone(void)
 {
 }
 
-uint8 joystick_byte_read(uint32 offset)
+uint8 JoystickReadByte(uint32 offset)
 {
+#warning No bounds checking done in JoystickReadByte!
 //	extern bool hardwareTypeNTSC;
 	offset &= 0x03;
 
@@ -279,22 +281,22 @@ uint8 joystick_byte_read(uint32 offset)
 		uint8 data = 0x00;
 		int pad0Index = joystick_ram[1] & 0x0F;
 		int pad1Index = (joystick_ram[1] >> 4) & 0x0F;
-		
+
 // This is bad--we're assuming that a bit is set in the last case. Might not be so!
-		if (!(pad0Index & 0x01)) 
+		if (!(pad0Index & 0x01))
 			pad0Index = 0;
-		else if (!(pad0Index & 0x02)) 
+		else if (!(pad0Index & 0x02))
 			pad0Index = 1;
-		else if (!(pad0Index & 0x04)) 
+		else if (!(pad0Index & 0x04))
 			pad0Index = 2;
-		else 
+		else
 			pad0Index = 3;
-		
-		if (!(pad1Index & 0x01)) 
+
+		if (!(pad1Index & 0x01))
 			pad1Index = 0;
-		else if (!(pad1Index & 0x02)) 
+		else if (!(pad1Index & 0x02))
 			pad1Index = 1;
-		else if (!(pad1Index & 0x04)) 
+		else if (!(pad1Index & 0x04))
 			pad1Index = 2;
 		else
 			pad1Index = 3;
@@ -312,10 +314,11 @@ uint8 joystick_byte_read(uint32 offset)
 	}
 	else if (offset == 3)
 	{
+		// Hardware ID returns NTSC/PAL identification bit here
 		uint8 data = 0x2F | (vjs.hardwareTypeNTSC ? 0x10 : 0x00);
 		int pad0Index = joystick_ram[1] & 0x0F;
 //unused		int pad1Index = (joystick_ram[1] >> 4) & 0x0F;
-		
+
 		if (!(pad0Index & 0x01))
 		{
 			if (joypad_0_buttons[BUTTON_PAUSE])
@@ -337,26 +340,27 @@ uint8 joystick_byte_read(uint32 offset)
 		{
 			if (joypad_0_buttons[BUTTON_OPTION])
 				data ^= 0x02;
-		}		
+		}
 		return data;
 	}
 
 	return joystick_ram[offset];
 }
 
-uint16 joystick_word_read(uint32 offset)
+uint16 JoystickReadWord(uint32 offset)
 {
-	return ((uint16)joystick_byte_read((offset+0)&0x03) << 8) | joystick_byte_read((offset+1)&0x03);
+	return ((uint16)JoystickReadByte((offset + 0) & 0x03) << 8) | JoystickReadByte((offset + 1) & 0x03);
 }
 
-void joystick_byte_write(uint32 offset, uint8 data)
+void JoystickWriteByte(uint32 offset, uint8 data)
 {
-	joystick_ram[offset&0x03] = data;
+	joystick_ram[offset & 0x03] = data;
 }
 
-void joystick_word_write(uint32 offset, uint16 data)
+void JoystickWriteWord(uint32 offset, uint16 data)
 {
+#warning No bounds checking done for JoystickWriteWord!
 	offset &= 0x03;
-	joystick_ram[offset+0] = (data >> 8) & 0xFF;
-	joystick_ram[offset+1] = data & 0xFF;
+	joystick_ram[offset + 0] = (data >> 8) & 0xFF;
+	joystick_ram[offset + 1] = data & 0xFF;
 }

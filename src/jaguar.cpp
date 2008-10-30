@@ -6,7 +6,7 @@
 // Cleanups and endian wrongness amelioration by James L. Hammons
 // Note: Endian wrongness probably stems from the MAME origins of this emu and
 //       the braindead way in which MAME handles memory. :-)
-// 
+//
 
 #include "jaguar.h"
 
@@ -25,6 +25,7 @@
 #include "gpu.h"
 #include "memory.h"
 #include "joystick.h"
+#include "gui.h"
 
 #define CPU_DEBUG
 //Do this in makefile??? Yes! Could, but it's easier to define here...
@@ -60,10 +61,12 @@ uint32 jaguar_active_memory_dumps = 0;
 
 uint32 jaguar_mainRom_crc32, jaguarRomSize, jaguarRunAddress;
 
-/*static*/ uint8 * jaguar_mainRam = NULL;
-/*static*/ uint8 * jaguar_mainRom = NULL;
-/*static*/ uint8 * jaguar_bootRom = NULL;
-/*static*/ uint8 * jaguar_CDBootROM = NULL;
+uint8 * jaguar_mainRam = NULL;
+uint8 * jaguar_mainRom = NULL;
+uint8 * jaguar_bootRom = NULL;
+uint8 * jaguar_CDBootROM = NULL;
+bool BIOSLoaded = false;
+bool CDBIOSLoaded = false;
 
 #ifdef CPU_DEBUG_MEMORY
 uint8 writeMemMax[0x400000], writeMemMin[0x400000];
@@ -701,9 +704,9 @@ void jaguar_unknown_writebyte(unsigned address, unsigned data, uint32 who/*=UNKN
 	WriteLog("Jaguar: Unknown byte %02X written at %08X by %s (M68K PC=%06X)\n", data, address, whoName[who], m68k_get_reg(NULL, M68K_REG_PC));
 #endif
 #ifdef ABORT_ON_UNMAPPED_MEMORY_ACCESS
-	extern bool finished;
+//	extern bool finished;
 	finished = true;
-	extern bool doDSPDis;
+//	extern bool doDSPDis;
 	if (who == DSP)
 		doDSPDis = true;
 #endif
@@ -715,9 +718,9 @@ void jaguar_unknown_writeword(unsigned address, unsigned data, uint32 who/*=UNKN
 	WriteLog("Jaguar: Unknown word %04X written at %08X by %s (M68K PC=%06X)\n", data, address, whoName[who], m68k_get_reg(NULL, M68K_REG_PC));
 #endif
 #ifdef ABORT_ON_UNMAPPED_MEMORY_ACCESS
-	extern bool finished;
+//	extern bool finished;
 	finished = true;
-	extern bool doDSPDis;
+//	extern bool doDSPDis;
 	if (who == DSP)
 		doDSPDis = true;
 #endif
@@ -729,9 +732,9 @@ unsigned jaguar_unknown_readbyte(unsigned address, uint32 who/*=UNKNOWN*/)
 	WriteLog("Jaguar: Unknown byte read at %08X by %s (M68K PC=%06X)\n", address, whoName[who], m68k_get_reg(NULL, M68K_REG_PC));
 #endif
 #ifdef ABORT_ON_UNMAPPED_MEMORY_ACCESS
-	extern bool finished;
+//	extern bool finished;
 	finished = true;
-	extern bool doDSPDis;
+//	extern bool doDSPDis;
 	if (who == DSP)
 		doDSPDis = true;
 #endif
@@ -744,9 +747,9 @@ unsigned jaguar_unknown_readword(unsigned address, uint32 who/*=UNKNOWN*/)
 	WriteLog("Jaguar: Unknown word read at %08X by %s (M68K PC=%06X)\n", address, whoName[who], m68k_get_reg(NULL, M68K_REG_PC));
 #endif
 #ifdef ABORT_ON_UNMAPPED_MEMORY_ACCESS
-	extern bool finished;
+//	extern bool finished;
 	finished = true;
-	extern bool doDSPDis;
+//	extern bool doDSPDis;
 	if (who == DSP)
 		doDSPDis = true;
 #endif
@@ -869,7 +872,7 @@ void JaguarWriteByte(uint32 offset, uint8 data, uint32 who/*=UNKNOWN*/)
 		JERRYWriteByte(offset, data, who);
 		return;
 	}
-    
+
 	jaguar_unknown_writebyte(offset, data, who);
 }
 
@@ -1061,7 +1064,7 @@ void jaguar_init(void)
 //New timer based code stuffola...
 void ScanlineCallback(void);
 void RenderCallback(void);
-extern uint32 * backbuffer;
+//extern uint32 * backbuffer;
 void jaguar_reset(void)
 {
 //NOTE: This causes a (virtual) crash if this is set in the config but not found... !!! FIX !!!
@@ -1449,7 +1452,7 @@ void ScanlineCallback(void)
 	if (vc == 0)
 //	if (vc == vbb)
 	{
-		joystick_exec();
+		JoystickExec();
 		RenderBackbuffer();
 		TOMResetBackbuffer(backbuffer);
 		frameDone = true;

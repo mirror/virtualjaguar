@@ -3,35 +3,6 @@
 
 #include "types.h"
 
-#if 0
-#include <string.h>	// Why??? (for memset, etc... Lazy!) Dunno why, but this just strikes me as wrong...
-#include <stdlib.h>	// For exit()
-#include "types.h"
-#include "log.h"
-#include "version.h"
-#include "memory.h"
-#include "m68k.h"
-#include "tom.h"
-#include "jerry.h"
-#include "gpu.h"
-#include "dsp.h"
-#include "objectp.h"
-#include "blitter.h"
-#include "clock.h"
-#include "joystick.h"
-#include "dac.h"
-#include "jagdasm.h"
-#include "cdrom.h"
-#include "eeprom.h"
-#endif
-
-// Exports from JAGUAR.CPP
-
-extern int32 jaguar_cpu_in_exec;
-extern uint32 jaguar_mainRom_crc32, jaguarRomSize, jaguarRunAddress;
-extern char * jaguar_eeproms_path;
-extern const char * whoName[9];
-
 void jaguar_init(void);
 void jaguar_reset(void);
 void jaguar_done(void);
@@ -49,6 +20,19 @@ void jaguar_dasm(uint32 offset, uint32 qt);
 void JaguarExecute(uint32 * backbuffer, bool render);
 //For testing the new system...
 void JaguarExecuteNew(void);
+
+// Exports from JAGUAR.CPP
+
+extern uint8 * jaguar_mainRam;
+extern uint8 * jaguar_mainRom;
+extern uint8 * jaguar_bootRom;
+extern uint8 * jaguar_CDBootROM;
+extern bool BIOSLoaded;
+extern bool CDBIOSLoaded;
+extern int32 jaguar_cpu_in_exec;
+extern uint32 jaguar_mainRom_crc32, jaguarRomSize, jaguarRunAddress;
+extern char * jaguar_eeproms_path;
+extern const char * whoName[9];
 
 // Some handy macros to help converting native endian to big endian (jaguar native)
 // & vice versa

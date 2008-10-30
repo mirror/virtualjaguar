@@ -415,7 +415,7 @@ void jerry_init(void)
 {
 //	clock_init();
 //	anajoy_init();
-	joystick_init();
+	JoystickInit();
 	DACInit();
 //This should be handled with the cart initialization...
 //	eeprom_init();
@@ -432,7 +432,7 @@ void jerry_reset(void)
 {
 //	clock_reset();
 //	anajoy_reset();
-	joystick_reset();
+	JoystickReset();
 	eeprom_reset();
 	JERRYResetI2S();
 	DACReset();
@@ -452,14 +452,14 @@ void jerry_done(void)
 //	memory_free(jerry_ram_8);
 //	clock_done();
 //	anajoy_done();
-	joystick_done();
+	JoystickDone();
 	DACDone();
 	eeprom_done();
 }
 
 bool JERRYIRQEnabled(int irq)
 {
-	// Read the word @ $F10020 
+	// Read the word @ $F10020
 	return jerry_ram_8[0x21] & (1 << irq);
 }
 
@@ -540,10 +540,10 @@ WriteLog("JERRY: Unhandled timer read (BYTE) at %08X...\n", offset);
 //	else if (offset >= 0xF17C00 && offset <= 0xF17C01)
 //		return anajoy_byte_read(offset);
 	else if (offset >= 0xF14000 && offset <= 0xF14003)
-		return joystick_byte_read(offset) | eeprom_byte_read(offset);
+		return JoystickReadByte(offset) | eeprom_byte_read(offset);
 	else if (offset >= 0xF14000 && offset <= 0xF1A0FF)
 		return eeprom_byte_read(offset);
-	
+
 	return jerry_ram_8[offset & 0xFFFF];
 }
 
@@ -607,9 +607,9 @@ WriteLog("JERRY: Unhandled timer read (WORD) at %08X...\n", offset);
 //	else if ((offset >= 0xF17C00) && (offset <= 0xF17C01))
 //		return anajoy_word_read(offset);
 	else if (offset == 0xF14000)
-		return (joystick_word_read(offset) & 0xFFFE) | eeprom_word_read(offset);
+		return (JoystickReadWord(offset) & 0xFFFE) | eeprom_word_read(offset);
 	else if ((offset >= 0xF14002) && (offset < 0xF14003))
-		return joystick_word_read(offset);
+		return JoystickReadWord(offset);
 	else if ((offset >= 0xF14000) && (offset <= 0xF1A0FF))
 		return eeprom_word_read(offset);
 
@@ -659,9 +659,9 @@ void JERRYWriteByte(uint32 offset, uint8 data, uint32 who/*=UNKNOWN*/)
 	}
 	// LTXD/RTXD/SCLK/SMODE $F1A148/4C/50/54 (really 16-bit registers...)
 	else if (offset >= 0xF1A148 && offset <= 0xF1A157)
-	{ 
+	{
 		DACWriteByte(offset, data, who);
-		return; 
+		return;
 	}
 	else if (offset >= 0xF10000 && offset <= 0xF10007)
 	{
@@ -722,7 +722,7 @@ WriteLog("JERRY: (68K int en/lat - Unhandled!) Tried to write $%02X to $%08X!\n"
 	}*/
 	else if ((offset >= 0xF14000) && (offset <= 0xF14003))
 	{
-		joystick_byte_write(offset, data);
+		JoystickWriteByte(offset, data);
 		eeprom_byte_write(offset, data);
 		return;
 	}
@@ -773,13 +773,13 @@ void JERRYWriteWord(uint32 offset, uint16 data, uint32 who/*=UNKNOWN*/)
 #endif
 
 		DACWriteWord(offset, data, who);
-		return; 
+		return;
 	}
 	// LTXD/RTXD/SCLK/SMODE $F1A148/4C/50/54 (really 16-bit registers...)
 	else if (offset >= 0xF1A148 && offset <= 0xF1A156)
-	{ 
+	{
 		DACWriteWord(offset, data, who);
-		return; 
+		return;
 	}
 	else if (offset >= 0xF10000 && offset <= 0xF10007)
 	{
@@ -827,7 +827,7 @@ WriteLog("JERRY: (68K int en/lat - Unhandled!) Tried to write $%04X to $%08X!\n"
 	}*/
 	else if (offset >= 0xF14000 && offset < 0xF14003)
 	{
-		joystick_word_write(offset, data);
+		JoystickWriteWord(offset, data);
 		eeprom_word_write(offset, data);
 		return;
 	}

@@ -73,6 +73,7 @@ OBJS = \
 	obj/dac.o           \
 	obj/dsp.o           \
 	obj/eeprom.o        \
+	obj/file.o          \
 	obj/gpu.o           \
 	obj/gui.o           \
 	obj/jagdasm.o       \

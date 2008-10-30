@@ -16,13 +16,13 @@
  *  along with this program; if not, write to the Free Software
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
- 
+
 /*  SDLEMU_OPENGL.C
     SDLEMU related sources for using OpenGL with SDL.
     By Niels Wagenaar | http://sdlemu.ngemu.com | shalafi@xs4all.nl
-    
+
     Version 1.0.001 - 4-10-2004
-    
+
     - Added support for 16, 24 and 32 bit textures;
     - Added support for 16, 24 and 32 bit texture rendering;
 
@@ -40,6 +40,11 @@
 */
 
 #include "sdlemu_opengl.h"
+
+// We want alpha on our OpenGL contexts...!
+// Or do we? Seems to kill performance on X...
+// Or does it? Could it be bad blitter performance?
+#define WANT_OPENGL_ALPHA
 
 static SDL_Surface *texture      = 0;
 static GLuint       texid        = 0;
@@ -97,8 +102,8 @@ void sdlemu_draw_texture(SDL_Surface * dst, SDL_Surface * src, int texturetype)
 	Be warned! This only works with the bpp of texture en *src set to 32.
 */
 #ifdef WANT_OPENGL_ALPHA
-	Uint32 saved_flags;                
-	Uint8  saved_alpha;                
+	Uint32 saved_flags;
+	Uint8  saved_alpha;
 
 	/* Save the alpha blending attributes */
 	saved_flags = src->flags&(SDL_SRCALPHA|SDL_RLEACCELOK);
@@ -126,7 +131,7 @@ pix[x+(y*1024)] = 0x800000FF;//*/
 
 glBlendFunc(GL_ONE, GL_ZERO);
 glBindTexture(GL_TEXTURE_2D, texid);
-	// Texturemap complete texture to surface so we have free scaling 
+	// Texturemap complete texture to surface so we have free scaling
 	// and antialiasing
 	switch (texturebpp)
 	{
@@ -143,7 +148,7 @@ glBindTexture(GL_TEXTURE_2D, texid);
 		glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, texture->w, texture->h,
 			GL_RGBA, GL_UNSIGNED_BYTE, texture->pixels);
 		break;
-	}     
+	}
 
 	// Render the texture to the screen using OpenGL!
 	switch (texturetype)
@@ -200,7 +205,7 @@ glRasterPos2i(10, 10);
 glDrawPixels(5, 5, GL_RGBA, GL_UNSIGNED_INT, map);//*/
 
 //  glFlush();
-	SDL_GL_SwapBuffers();    
+	SDL_GL_SwapBuffers();
 //	glFinish();
 
 }
@@ -227,12 +232,12 @@ void sdlemu_create_overlay(SDL_Surface * dst, int src_bpp)
 	// So, find the largest power of two that will contain both the width and height
 	int w = power_of_two(dst->w);
 	int h = power_of_two(dst->h);
-	
+
 	printf("OpenGL - Overlay size : %d x %d\n", w, h);
-	
+
 	// Setting bpp based upon src_bpp.
 	int bpp = src_bpp;
-	
+
 	// We allow the developer to set its own texture bpp. But if the value is NULL or
 	// not equal to 16, 24 or 32, we make the texturebpp the same as the BPP from src.
 	if (bpp == 16 || bpp == 24 || bpp == 32)
@@ -247,7 +252,7 @@ void sdlemu_create_overlay(SDL_Surface * dst, int src_bpp)
 	// This buffer is needed because we need to convert the SDL_Surface *src to an OpenGL
 	// texture with a depth of 16, 24 or 32 bpp, before we can blit the pixels to *dst
 	// using OpenGL.
-	// 
+	//
 	// NOTE: Seems the byte order here *is* important!
 	switch (texturebpp)
 	{
@@ -255,11 +260,11 @@ void sdlemu_create_overlay(SDL_Surface * dst, int src_bpp)
 /*
 	According to information on the SDL mailinglist and on internet, the following
 	rgba masks should be the ones to use. But somehow the screen gets f*cked up and
-	the RGB colours are incorrect (at least in Virtual Jaguar/SDL). 
-		
+	the RGB colours are incorrect (at least in Virtual Jaguar/SDL).
+
 	Compile with -DOPENGL_16BPP_CORRECT_RGBA to use this RGBA values.
-*/        
-#ifdef OPENGL_16BPP_CORRECT_RGBA     
+*/
+#ifdef OPENGL_16BPP_CORRECT_RGBA
 		rmask = 0x7C00;
 		gmask = 0x03E0;
 		bmask = 0x001F;
@@ -302,7 +307,7 @@ void sdlemu_create_overlay(SDL_Surface * dst, int src_bpp)
 
 	// Creating SDL_Surface texture based upon the above settings.
 	overlay = SDL_CreateRGBSurface(SDL_SWSURFACE, w, h, texturebpp, rmask, gmask, bmask, amask);
-	
+
 	// Setting up the texture coordinates.
 	overlayCoord[0] = 0.0f;
 	overlayCoord[1] = 0.0f;
@@ -312,10 +317,10 @@ void sdlemu_create_overlay(SDL_Surface * dst, int src_bpp)
 	// create a RGB(A) texture for the texture surface
 	glGenTextures(1, &overlayID);
 	glBindTexture(GL_TEXTURE_2D, overlayID);
-	
+
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    
+
 	// Setting texture mode.
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
@@ -332,16 +337,16 @@ void sdlemu_create_overlay(SDL_Surface * dst, int src_bpp)
 		//
 		// IMPORTANT : If you don't use Alpha. Use textures with a depth of 16bpp.
 		//             If you use Alpha. Use textures with a depth of 32bpp.
-		//             24bpp textures are SLOW and avoid them at all costs!        
+		//             24bpp textures are SLOW and avoid them at all costs!
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, overlay->w, overlay->h, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
 		break;
 	case 32:
 	default:
 		// The 32bpp depth based textures consist out of GL_RGBA8 and has support for Alpha channels.
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, overlay->w, overlay->h, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
-		break;        
-	}    
-}    
+		break;
+	}
+}
 
 void * sdlemuGetOverlayPixels(void)
 {
@@ -378,12 +383,12 @@ void sdlemu_create_texture(SDL_Surface * src, SDL_Surface * dst, int filter, int
 	// So, find the largest power of two that will contain both the width and height
 	w = power_of_two(src->w);
 	h = power_of_two(src->h);
-	
+
 	printf("OpenGL - Texture size : %d x %d\n", w, h);
-	
+
 	// Setting bpp based upon src_bpp.
 	bpp = src_bpp;
-	
+
 	// We allow the developer to set its own texture bpp. But if the value is NULL or
 	// not equal to 16, 24 or 32, we make the texturebpp the same as the BPP from src.
 	if (bpp == 16 || bpp == 24 || bpp == 32)
@@ -398,7 +403,7 @@ void sdlemu_create_texture(SDL_Surface * src, SDL_Surface * dst, int filter, int
 	// This buffer is needed because we need to convert the SDL_Surface *src to an OpenGL
 	// texture with a depth of 16, 24 or 32 bpp, before we can blit the pixels to *dst
 	// using OpenGL.
-	// 
+	//
 	// NOTE: Seems the byte order here *is* important!
 	switch (texturebpp)
 	{
@@ -406,11 +411,11 @@ void sdlemu_create_texture(SDL_Surface * src, SDL_Surface * dst, int filter, int
 /*
 	According to information on the SDL mailinglist and on internet, the following
 	rgba masks should be the ones to use. But somehow the screen gets f*cked up and
-	the RGB colours are incorrect (at least in Virtual Jaguar/SDL). 
+	the RGB colours are incorrect (at least in Virtual Jaguar/SDL).
 
 	Compile with -DOPENGL_16BPP_CORRECT_RGBA to use this RGBA values.
-*/        
-#ifdef OPENGL_16BPP_CORRECT_RGBA     
+*/
+#ifdef OPENGL_16BPP_CORRECT_RGBA
 		rmask = 0x7C00;
 		gmask = 0x03E0;
 		bmask = 0x001F;
@@ -453,7 +458,7 @@ void sdlemu_create_texture(SDL_Surface * src, SDL_Surface * dst, int filter, int
 
 	// Creating SDL_Surface texture based upon the above settings.
 	texture = SDL_CreateRGBSurface(SDL_SWSURFACE, w, h, texturebpp, rmask, gmask, bmask, amask);
-	
+
 	// Setting up OpenGL
 	glDisable(GL_FOG);
 	glDisable(GL_LIGHTING);
@@ -489,12 +494,12 @@ void sdlemu_create_texture(SDL_Surface * src, SDL_Surface * dst, int filter, int
 	// create a RGB(A) texture for the texture surface
 	glGenTextures(1, &texid);
 	glBindTexture(GL_TEXTURE_2D, texid);
-	
+
 	// Setting up the OpenGL Filters. These filters are important when we/you
-	// want to scale the texture. 
+	// want to scale the texture.
 	if (filter)
 	{
-		// Textures are rendered in best quality. 
+		// Textures are rendered in best quality.
 		printf("OpenGL filters: enabled\n");
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -506,7 +511,7 @@ void sdlemu_create_texture(SDL_Surface * src, SDL_Surface * dst, int filter, int
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	}
-    
+
 	// Setting texture mode.
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
@@ -523,13 +528,13 @@ void sdlemu_create_texture(SDL_Surface * src, SDL_Surface * dst, int filter, int
 		//
 		// IMPORTANT : If you don't use Alpha. Use textures with a depth of 16bpp.
 		//             If you use Alpha. Use textures with a depth of 32bpp.
-		//             24bpp textures are SLOW and avoid them at all costs!        
+		//             24bpp textures are SLOW and avoid them at all costs!
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, texture->w, texture->h, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
 		break;
 	case 32:
 	default:
 		// The 32bpp depth based textures consist out of GL_RGBA8 and has support for Alpha channels.
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, texture->w, texture->h, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
-		break;        
-	}    
-}    
+		break;
+	}
+}
