@@ -62,7 +62,7 @@ LIBS = -L/usr/local/lib -L/usr/lib `sdl-config $(SDLLIBTYPE)` -lstdc++ -lz $(GLL
 # Also, remove the "-DHAVE_LIB_CDIO" from CPPFLAGS above.
 #LIBS = -L/usr/local/lib -L/usr/lib `sdl-config $(SDLLIBTYPE)` -lstdc++ -lz $(GLLIB)
 
-INCS = -I. -I./src -I/usr/local/include -I/usr/include
+INCS = -I. -I./src -I./src/gui -I/usr/local/include -I/usr/include
 
 OBJS = \
 	obj/m68kcpu.o       \
