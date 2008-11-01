@@ -3,9 +3,9 @@
 
 #include "types.h"
 
-void jaguar_init(void);
-void jaguar_reset(void);
-void jaguar_done(void);
+void JaguarInit(void);
+void JaguarReset(void);
+void JaguarDone(void);
 
 uint8 JaguarReadByte(uint32 offset, uint32 who = UNKNOWN);
 uint16 JaguarReadWord(uint32 offset, uint32 who = UNKNOWN);
@@ -14,8 +14,8 @@ void JaguarWriteByte(uint32 offset, uint8 data, uint32 who = UNKNOWN);
 void JaguarWriteWord(uint32 offset, uint16 data, uint32 who = UNKNOWN);
 void JaguarWriteLong(uint32 offset, uint32 data, uint32 who = UNKNOWN);
 
-uint32 jaguar_interrupt_handler_is_valid(uint32 i);
-void jaguar_dasm(uint32 offset, uint32 qt);
+bool JaguarInterruptHandlerIsValid(uint32 i);
+void JaguarDasm(uint32 offset, uint32 qt);
 
 void JaguarExecute(uint32 * backbuffer, bool render);
 //For testing the new system...
@@ -23,15 +23,15 @@ void JaguarExecuteNew(void);
 
 // Exports from JAGUAR.CPP
 
-extern uint8 * jaguar_mainRam;
-extern uint8 * jaguar_mainRom;
-extern uint8 * jaguar_bootRom;
-extern uint8 * jaguar_CDBootROM;
+extern uint8 * jaguarMainRam;
+extern uint8 * jaguarMainRom;
+extern uint8 * jaguarBootRom;
+extern uint8 * jaguarCDBootROM;
 extern bool BIOSLoaded;
 extern bool CDBIOSLoaded;
-extern int32 jaguar_cpu_in_exec;
-extern uint32 jaguar_mainRom_crc32, jaguarRomSize, jaguarRunAddress;
-extern char * jaguar_eeproms_path;
+extern int32 jaguarCPUInExec;
+extern uint32 jaguarMainRomCRC32, jaguarRomSize, jaguarRunAddress;
+extern char * jaguarEepromsPath;
 extern const char * whoName[9];
 
 // Some handy macros to help converting native endian to big endian (jaguar native)

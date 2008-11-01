@@ -14,15 +14,15 @@
 
 #include "gpu.h"
 
-#include <string.h>								// For memset
 #include <stdlib.h>
-#include "log.h"
-#include "jaguar.h"
-#include "m68k.h"
-#include "tom.h"
-#include "memory.h"
-#include "jagdasm.h"
+#include <string.h>								// For memset
 #include "dsp.h"
+#include "jagdasm.h"
+#include "jaguar.h"
+#include "log.h"
+#include "m68k.h"
+#include "memory.h"
+#include "tom.h"
 
 //#define GPU_DEBUG
 
@@ -163,7 +163,6 @@ extern int gpu_start_log;
 // Private function prototypes
 
 void GPUUpdateRegisterBanks(void);
-
 void GPUDumpDisassembly(void);
 void GPUDumpRegisters(void);
 void GPUDumpMemory(void);
@@ -234,7 +233,7 @@ static void gpu_opcode_sat24(void);
 static void gpu_opcode_pack(void);
 
 // This is wrong, since it doesn't take pipeline effects into account. !!! FIX !!!
-/*uint8 gpu_opcode_cycles[64] = 
+/*uint8 gpu_opcode_cycles[64] =
 {
 	3,  3,  3,  3,  3,  3,  3,  3,
 	3,  3,  3,  3,  3,  3,  3,  3,
@@ -249,7 +248,7 @@ static void gpu_opcode_pack(void);
 //This is wrong, wrong, WRONG, but it seems to work for the time being...
 //(That is, it fixes Flip Out which relies on GPU timing rather than semaphores. Bad developers! Bad!)
 //What's needed here is a way to take pipeline effects into account (including pipeline stalls!)...
-/*uint8 gpu_opcode_cycles[64] = 
+/*uint8 gpu_opcode_cycles[64] =
 {
 	1,  1,  1,  1,  1,  1,  1,  1,
 	1,  1,  1,  1,  1,  1,  1,  1,
@@ -260,7 +259,7 @@ static void gpu_opcode_pack(void);
 	1,  1,  1,  1,  1,  1,  4,  1,
 	1,  1,  3,  3,  1,  1,  1,  1
 };//*/
-uint8 gpu_opcode_cycles[64] = 
+uint8 gpu_opcode_cycles[64] =
 {
 	1,  1,  1,  1,  1,  1,  1,  1,
 	1,  1,  1,  1,  1,  1,  1,  1,
@@ -272,8 +271,8 @@ uint8 gpu_opcode_cycles[64] =
 	1,  1,  1,  1,  1,  1,  1,  1
 };//*/
 
-void (*gpu_opcode[64])()= 
-{	
+void (*gpu_opcode[64])()=
+{
 	gpu_opcode_add,					gpu_opcode_addc,				gpu_opcode_addq,				gpu_opcode_addqt,
 	gpu_opcode_sub,					gpu_opcode_subc,				gpu_opcode_subq,				gpu_opcode_subqt,
 	gpu_opcode_neg,					gpu_opcode_and,					gpu_opcode_or,					gpu_opcode_xor,
@@ -330,7 +329,7 @@ static uint32 gpu_opcode_second_parameter;
 
 #define RESET_FLAG_Z()	gpu_flag_z = 0;
 #define RESET_FLAG_N()	gpu_flag_n = 0;
-#define RESET_FLAG_C()	gpu_flag_c = 0;    
+#define RESET_FLAG_C()	gpu_flag_c = 0;
 
 #define CLR_Z				(gpu_flag_z = 0)
 #define CLR_ZN				(gpu_flag_z = gpu_flag_n = 0)
@@ -351,8 +350,8 @@ uint8 * branch_condition_table = 0;
 
 uint32 gpu_opcode_use[64];
 
-const char * gpu_opcode_str[64]= 
-{	
+const char * gpu_opcode_str[64]=
+{
 	"add",				"addc",				"addq",				"addqt",
 	"sub",				"subc",				"subq",				"subqt",
 	"neg",				"and",				"or",				"xor",
@@ -374,12 +373,12 @@ const char * gpu_opcode_str[64]=
 static uint32 gpu_in_exec = 0;
 static uint32 gpu_releaseTimeSlice_flag = 0;
 
-void gpu_releaseTimeslice(void)
+void GPUReleaseTimeslice(void)
 {
 	gpu_releaseTimeSlice_flag = 1;
 }
 
-uint32 gpu_get_pc(void)
+uint32 GPUGetPC(void)
 {
 	return gpu_pc;
 }
@@ -507,7 +506,7 @@ uint32 GPUReadLong(uint32 offset, uint32 who/*=UNKNOWN*/)
 			gpu_flag_n = (gpu_flag_n ? 1 : 0);
 
 			gpu_flags = (gpu_flags & 0xFFFFFFF8) | (gpu_flag_n << 2) | (gpu_flag_c << 1) | gpu_flag_z;
-					
+
 			return gpu_flags & 0xFFFFC1FF;
 		case 0x04:
 			return gpu_matrix_control;
@@ -627,7 +626,7 @@ void GPUWriteWord(uint32 offset, uint16 data, uint32 who/*=UNKNOWN*/)
 			else
 				gpu_div_control = (gpu_div_control & 0x0000FFFF) | ((data & 0xFFFF) << 16);
 		}
-		else 
+		else
 		{
 //WriteLog("[GPU W16:%08X,%04X]", offset, data);
 			uint32 old_data = GPUReadLong(offset & 0xFFFFFFC, who);
@@ -719,7 +718,7 @@ WriteLog("GPU: %s setting GPU PC to %08X %s\n", whoName[who], gpu_pc, (GPU_RUNNI
 #endif	// GPU_DEBUG
 			break;
 		case 0x14:
-		{	
+		{
 //			uint32 gpu_was_running = GPU_RUNNING;
 			data &= ~0xF7C0;		// Disable writes to INT_LAT0-4 & TOM version number
 
@@ -727,13 +726,13 @@ WriteLog("GPU: %s setting GPU PC to %08X %s\n", whoName[who], gpu_pc, (GPU_RUNNI
 			if (data & 0x02)
 			{
 //WriteLog("GPU->CPU interrupt\n");
-				if (tom_irq_enabled(IRQ_GPU))
+				if (TOMIRQEnabled(IRQ_GPU))
 				{
-					if ((tom_irq_enabled(IRQ_GPU)) && (jaguar_interrupt_handler_is_valid(64)))
+					if ((TOMIRQEnabled(IRQ_GPU)) && (JaguarInterruptHandlerIsValid(64)))
 					{
-						tom_set_pending_gpu_int();
+						TOMSetPendingGPUInt();
 						m68k_set_irq(7);			// Set 68000 NMI
-						gpu_releaseTimeslice();
+						GPUReleaseTimeslice();
 					}
 				}
 				data &= ~0x02;
@@ -745,7 +744,7 @@ WriteLog("GPU: %s setting GPU PC to %08X %s\n", whoName[who], gpu_pc, (GPU_RUNNI
 //WriteLog("CPU->GPU interrupt\n");
 				GPUSetIRQLine(0, ASSERT_LINE);
 				m68k_end_timeslice();
-				dsp_releaseTimeslice();
+				DSPReleaseTimeslice();
 				data &= ~0x04;
 			}
 
@@ -763,13 +762,13 @@ WriteLog("GPU: %s setting GPU PC to %08X %s\n", whoName[who], gpu_pc, (GPU_RUNNI
 			{
 				WriteLog("GPU: Write32--About to do stupid braindead GPU execution for 200 cycles.\n");
 #endif	// GPU_DEBUG
-				gpu_exec(200);
+				GPUExec(200);
 #ifdef GPU_DEBUG
 			}
 #endif	// GPU_DEBUG//*/
 #else
 			if (gpu_control & 0x18)
-				gpu_exec(1);
+				GPUExec(1);
 #endif	// #ifndef GPU_SINGLE_STEPPING
 #ifdef GPU_DEBUG
 WriteLog("Write to GPU CTRL by %s: %08X ", whoName[who], data);
@@ -821,7 +820,7 @@ if (GPU_RUNNING && effect_start5 && gpu_pc == 0xF035D8)
 		for(int x=0; x<2; x++)
 		{
 			JaguarWriteLong(dst, JaguarReadLong(src));
-			
+
 			src += 4;
 			dst += 4;
 		}
@@ -918,12 +917,12 @@ void GPUHandleIRQs(void)
 
 	// Get the interrupt latch & enable bits
 	uint32 bits = (gpu_control >> 6) & 0x1F, mask = (gpu_flags >> 4) & 0x1F;
-	
+
 	// Bail out if latched interrupts aren't enabled
 	bits &= mask;
 	if (!bits)
 		return;
-	
+
 	// Determine which interrupt to service
 	uint32 which = 0; //Isn't there a #pragma to disable this warning???
 	if (bits & 0x01)
@@ -940,18 +939,18 @@ void GPUHandleIRQs(void)
 	if (start_logging)
 		WriteLog("GPU: Generating IRQ #%i\n", which);
 
-	// set the interrupt flag 
+	// set the interrupt flag
 	gpu_flags |= IMASK;
 	GPUUpdateRegisterBanks();
 
-	// subqt  #4,r31		; pre-decrement stack pointer 
-	// move  pc,r30			; address of interrupted code 
+	// subqt  #4,r31		; pre-decrement stack pointer
+	// move  pc,r30			; address of interrupted code
 	// store  r30,(r31)     ; store return address
 	gpu_reg[31] -= 4;
 	GPUWriteLong(gpu_reg[31], gpu_pc - 2, GPU);
-	
-	// movei  #service_address,r30  ; pointer to ISR entry 
-	// jump  (r30)					; jump to ISR 
+
+	// movei  #service_address,r30  ; pointer to ISR entry
+	// jump  (r30)					; jump to ISR
 	// nop
 	gpu_pc = gpu_reg[30] = GPU_WORK_RAM_BASE + (which * 0x10);
 }
@@ -975,7 +974,7 @@ void GPUSetIRQLine(int irqline, int state)
 //#include "gpu2.h"
 //#include "gpu3.h"
 
-void gpu_init(void)
+void GPUInit(void)
 {
 //	memory_malloc_secure((void **)&gpu_ram_8, 0x1000, "GPU work RAM");
 //	memory_malloc_secure((void **)&gpu_reg_bank_0, 32 * sizeof(int32), "GPU bank 0 regs");
@@ -983,14 +982,14 @@ void gpu_init(void)
 
 	build_branch_condition_table();
 
-	gpu_reset();
+	GPUReset();
 
 //TEMPORARY: Testing only!
 //	gpu2_init();
 //	gpu3_init();
 }
 
-void gpu_reset(void)
+void GPUReset(void)
 {
 	// GPU registers (directly visible)
 	gpu_flags			  = 0x00000000;
@@ -1016,15 +1015,15 @@ void gpu_reset(void)
 	memset(gpu_ram_8, 0xFF, 0x1000);
 	gpu_in_exec = 0;
 //not needed	GPUInterruptPending = false;
-	gpu_reset_stats();
+	GPUResetStats();
 }
 
-uint32 gpu_read_pc(void)
+uint32 GPUReadPC(void)
 {
 	return gpu_pc;
 }
 
-void gpu_reset_stats(void)
+void GPUResetStats(void)
 {
 	for(uint32 i=0; i<64; i++)
 		gpu_opcode_use[i] = 0;
@@ -1076,11 +1075,11 @@ void GPUDumpMemory(void)
 			gpu_ram_8[i+1], gpu_ram_8[i+2], gpu_ram_8[i+3]);
 }
 
-void gpu_done(void)
-{ 
+void GPUDone(void)
+{
 	WriteLog("GPU: Stopped at PC=%08X (GPU %s running)\n", (unsigned int)gpu_pc, GPU_RUNNING ? "was" : "wasn't");
 
-	// Get the interrupt latch & enable bits 
+	// Get the interrupt latch & enable bits
 	uint8 bits = (gpu_control >> 6) & 0x1F, mask = (gpu_flags >> 4) & 0x1F;
 	WriteLog("GPU: Latch bits = %02X, enable bits = %02X\n", bits, mask);
 
@@ -1106,7 +1105,7 @@ void gpu_done(void)
 static int testCount = 1;
 static int len = 0;
 static bool tripwire = false;
-void gpu_exec(int32 cycles)
+void GPUExec(int32 cycles)
 {
 	if (!GPU_RUNNING)
 		return;
@@ -1161,7 +1160,7 @@ if (gpu_ram_8[0x054] == 0x98 && gpu_ram_8[0x055] == 0x0A && gpu_ram_8[0x056] == 
 /*		gpu_flag_c = (gpu_flag_c ? 1 : 0);
 		gpu_flag_z = (gpu_flag_z ? 1 : 0);
 		gpu_flag_n = (gpu_flag_n ? 1 : 0);*/
-	
+
 		uint16 opcode = GPUReadWord(gpu_pc, GPU);
 		uint32 index = opcode >> 10;
 		gpu_instruction = opcode;				// Added for GPU #3...
@@ -1267,7 +1266,7 @@ WriteLog("GPU: [%08X] %s (RM=%08X, RN=%08X) -> ", gpu_pc, buffer, RM, RN);
 //		gpu3_opcode[index]();
 
 // BIOS hacking
-//GPU: [00F03548] jr      nz,00F03560 (0xd561) (RM=00F03114, RN=00000004) ->     --> JR: Branch taken. 
+//GPU: [00F03548] jr      nz,00F03560 (0xd561) (RM=00F03114, RN=00000004) ->     --> JR: Branch taken.
 /*static bool firstTime = true;
 if (gpu_pc == 0xF03548 && firstTime)
 {
@@ -1368,7 +1367,7 @@ const char * condition[32] =
 if (gpu_start_log)
 	WriteLog("    --> JUMP: Branch taken.\n");
 		uint32 delayed_pc = RM;
-		gpu_exec(1);
+		GPUExec(1);
 		gpu_pc = delayed_pc;
 /*		uint16 opcode = GPUReadWord(gpu_pc, GPU);
 		gpu_opcode_first_parameter = (opcode >> 5) & 0x1F;
@@ -1423,7 +1422,7 @@ if (gpu_start_log)
 	WriteLog("    --> JR: Branch taken.\n");
 		int32 offset = (IMM_1 & 0x10 ? 0xFFFFFFF0 | IMM_1 : IMM_1);		// Sign extend IMM_1
 		int32 delayed_pc = gpu_pc + (offset * 2);
-		gpu_exec(1);
+		GPUExec(1);
 		gpu_pc = delayed_pc;
 /*		uint16 opcode = GPUReadWord(gpu_pc, GPU);
 		gpu_opcode_first_parameter = (opcode >> 5) & 0x1F;
@@ -2103,7 +2102,7 @@ static void gpu_opcode_mmult(void)
 	if (gpu_matrix_control & 0x10)				// Column stepping
 	{
 		for(int i=0; i<count; i++)
-		{ 
+		{
 			int16 a;
 			if (i & 0x01)
 				a = (int16)((gpu_alternate_reg[IMM_1 + (i >> 1)] >> 16) & 0xFFFF);

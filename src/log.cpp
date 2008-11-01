@@ -17,7 +17,7 @@
 static FILE * log_stream = NULL;
 static uint32 logSize = 0;
 
-int log_init(const char * path)
+int LogInit(const char * path)
 {
 	log_stream = fopen(path, "wrt");
 
@@ -27,12 +27,12 @@ int log_init(const char * path)
 	return 1;
 }
 
-FILE * log_get(void)
+FILE * LogGet(void)
 {
 	return log_stream;
 }
 
-void log_done(void)
+void LogDone(void)
 {
 	fclose(log_stream);
 }

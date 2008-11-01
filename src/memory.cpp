@@ -12,6 +12,8 @@
 #include <stdlib.h>
 #include "log.h"
 
+#warning This module needs some serious cleanup. !!! FIX !!!
+
 // Useful structs (for doubly linked list in this case)
 
 typedef struct sMemBlockInfo
@@ -54,7 +56,7 @@ void memory_addMemInfo(void * ptr, uint32 size, const char * info)
 	alias->info = info;
 }
 
-void InitMemory(void)
+void MemoryInit(void)
 {
 	memoryInfo.next = memoryInfo.prev = NULL;
 	currentAllocatedMemory = maximumAllocatedMemory = 0;
@@ -93,11 +95,11 @@ void memory_malloc_secure(void ** new_ptr, uint32 size, const char * info)
 	if (ptr == NULL)
 	{
 		WriteLog("Failed!\n");
-		log_done();
+		LogDone();
 
-//BAD, BAD, BAD! Need to do better than this!!!
-//And since we ARE keeping track of all memory allocations, we should unwind the stack here as well...!
-// !!! FIX !!!
+#warning BAD, BAD, BAD! Need to do better than this!!!
+#warning And since we ARE keeping track of all memory allocations, we should unwind the stack here as well...!
+#warning !!! FIX !!!
 
 		exit(0);
 	}

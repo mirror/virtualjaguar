@@ -17,9 +17,9 @@
 
 enum { IRQ_VBLANK = 0, IRQ_GPU, IRQ_OPFLAG, IRQ_TIMER, IRQ_DSP };
 
-void tom_init(void);
-void tom_reset(void);
-void tom_done(void);
+void TOMInit(void);
+void TOMReset(void);
+void TOMDone(void);
 
 uint8 TOMReadByte(uint32 offset, uint32 who = UNKNOWN);
 uint16 TOMReadWord(uint32 offset, uint32 who = UNKNOWN);
@@ -28,24 +28,24 @@ void TOMWriteWord(uint32 offset, uint16 data, uint32 who = UNKNOWN);
 
 //void TOMExecScanline(int16 * backbuffer, int32 scanline, bool render);
 void TOMExecScanline(uint16 scanline, bool render);
-uint32 tom_getVideoModeWidth(void);
-uint32 tom_getVideoModeHeight(void);
-uint8 tom_getVideoMode(void);
-uint8 * tom_get_ram_pointer(void);
-uint16 tom_get_hdb(void);
-uint16 tom_get_vdb(void);
+uint32 TOMGetVideoModeWidth(void);
+uint32 TOMGetVideoModeHeight(void);
+uint8 TOMGetVideoMode(void);
+uint8 * TOMGetRamPointer(void);
+uint16 TOMGetHDB(void);
+uint16 TOMGetVDB(void);
 //uint16 tom_get_scanline(void);
 //uint32 tom_getHBlankWidthInPixels(void);
 
-int	tom_irq_enabled(int irq);
-uint16 tom_irq_control_reg(void);
-void tom_set_irq_latch(int irq, int enabled);
+int	TOMIRQEnabled(int irq);
+uint16 TOMIRQControlReg(void);
+void TOMSetIRQLatch(int irq, int enabled);
 void TOMExecPIT(uint32 cycles);
-void tom_set_pending_jerry_int(void);
-void tom_set_pending_timer_int(void);
-void tom_set_pending_object_int(void);
-void tom_set_pending_gpu_int(void);
-void tom_set_pending_video_int(void);
+void TOMSetPendingJERRYInt(void);
+void TOMSetPendingTimerInt(void);
+void TOMSetPendingObjectInt(void);
+void TOMSetPendingGPUInt(void);
+void TOMSetPendingVideoInt(void);
 void TOMResetPIT(void);
 
 //uint32 TOMGetSDLScreenPitch(void);
@@ -53,8 +53,8 @@ void TOMResetBackbuffer(uint32 * backbuffer);
 
 // Exported variables
 
-extern uint32 tom_width;
-extern uint32 tom_height;
-extern uint8 tom_ram_8[];
+extern uint32 tomWidth;
+extern uint32 tomHeight;
+extern uint8 tomRam8[];
 
 #endif	// __TOM_H__

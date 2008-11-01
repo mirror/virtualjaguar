@@ -5,7 +5,6 @@
 #ifndef __DSP_H__
 #define __DSP_H__
 
-//#include "jaguar.h"
 #include "types.h"
 
 #define DSP_CONTROL_RAM_BASE    0x00F1A100
@@ -24,7 +23,7 @@ uint32 DSPReadLong(uint32 offset, uint32 who = UNKNOWN);
 void DSPWriteByte(uint32 offset, uint8 data, uint32 who = UNKNOWN);
 void DSPWriteWord(uint32 offset, uint16 data, uint32 who = UNKNOWN);
 void DSPWriteLong(uint32 offset, uint32 data, uint32 who = UNKNOWN);
-void dsp_releaseTimeslice(void);
+void DSPReleaseTimeslice(void);
 
 void DSPExecP(int32 cycles);
 void DSPExecP2(int32 cycles);

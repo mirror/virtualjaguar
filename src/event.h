@@ -1,11 +1,11 @@
 //
-// CLOCK.H: System timing support functionality
+// EVENT.H: System timing support functionality
 //
 // by James L. Hammons
 //
 
-#ifndef __CLOCK_H__
-#define __CLOCK_H__
+#ifndef __EVENT_H__
+#define __EVENT_H__
 
 #include "types.h"
 
@@ -25,4 +25,4 @@ void AdjustCallbackTime(void (* callback)(void), double time);
 double GetTimeToNextEvent(void);
 void HandleNextEvent(void);
 
-#endif	// __CLOCK_H__
+#endif	// __EVENT_H__

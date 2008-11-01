@@ -201,7 +201,7 @@ void BlitterMidsummer2(void);
 //#define WRITE_ZDATA_16(a,d)     {  JaguarWriteWord(a##_addr+(ZDATA_OFFSET_16(a)<<1), d); }
 
 // z data write
-#define WRITE_ZDATA(a,f,d) WRITE_ZDATA_16(a,d); 
+#define WRITE_ZDATA(a,f,d) WRITE_ZDATA_16(a,d);
 
 // 1 bpp r data read
 #define READ_RDATA_1(r,a,p)  ((p) ?  ((REG(r+(((uint32)a##_x >> 19) & 0x04))) >> (((uint32)a##_x >> 16) & 0x1F)) & 0x0001 : (REG(r) & 0x0001))
@@ -252,8 +252,8 @@ void BlitterMidsummer2(void);
 //#define WRITE_PIXEL_16(a,d)     {  JaguarWriteWord(a##_addr+(PIXEL_OFFSET_16(a)<<1), d); if (specialLog) WriteLog("Pixel write address: %08X\n", a##_addr+(PIXEL_OFFSET_16(a)<<1)); }
 
 // 32 bpp pixel write
-#define WRITE_PIXEL_32(a,d)		{ JaguarWriteLong(a##_addr+(PIXEL_OFFSET_32(a)<<2), d, BLITTER); } 
-//#define WRITE_PIXEL_32(a,d)		{ JaguarWriteLong(a##_addr+(PIXEL_OFFSET_32(a)<<2), d); } 
+#define WRITE_PIXEL_32(a,d)		{ JaguarWriteLong(a##_addr+(PIXEL_OFFSET_32(a)<<2), d, BLITTER); }
+//#define WRITE_PIXEL_32(a,d)		{ JaguarWriteLong(a##_addr+(PIXEL_OFFSET_32(a)<<2), d); }
 
 // pixel write
 #define WRITE_PIXEL(a,f,d) {\
@@ -273,8 +273,8 @@ void BlitterMidsummer2(void);
 // as a floating point bit pattern being followed by a number of zeroes. So, e.g., 001101 translates to
 // 1.01 (the "1." being implied) x (2 ^ 3) or 1010 -> 10 in base 10 (i.e., 1.01 with the decimal place
 // being shifted to the right 3 places).
-/*static uint32 blitter_scanline_width[48] = 
-{             
+/*static uint32 blitter_scanline_width[48] =
+{
      0,    0,    0,    0,					// Note: This would really translate to 1, 1, 1, 1
      2,    0,    0,    0,
      4,    0,    6,    0,
@@ -357,7 +357,7 @@ void blitter_generic(uint32 cmd)
 {
 /*
 Blit! (0018FA70 <- 008DDC40) count: 2 x 13, A1/2_FLAGS: 00014218/00013C18 [cmd: 1401060C]
- CMD -> src: SRCENX dst: DSTEN  misc:  a1ctl: UPDA1 UPDA2 mode:  ity: PATDSEL z-op:  op: LFU_CLEAR ctrl: BCOMPEN BKGWREN 
+ CMD -> src: SRCENX dst: DSTEN  misc:  a1ctl: UPDA1 UPDA2 mode:  ity: PATDSEL z-op:  op: LFU_CLEAR ctrl: BCOMPEN BKGWREN
   A1 step values: -2 (X), 1 (Y)
   A2 step values: -1 (X), 1 (Y) [mask (unused): 00000000 - FFFFFFFF/FFFFFFFF]
   A1 -> pitch: 1 phrases, depth: 8bpp, z-off: 0, width: 320 (21), addctl: XADDPIX YADD0 XSIGNADD YSIGNADD
@@ -433,7 +433,7 @@ if (specialLog)
 						srczdata = READ_RDATA(SRCZINT, a2, REG(A2_FLAGS), a2_phrase_mode);
 				}
 
-				// load dst data and Z 
+				// load dst data and Z
 				if (DSTEN)
 				{
 					dstdata = READ_PIXEL(a1, REG(A1_FLAGS));
@@ -459,14 +459,14 @@ if (specialLog)
 						inhibit = 1;
 				}//*/
 
-				if (GOURZ) 
+				if (GOURZ)
 					srczdata = z_i[colour_index] >> 16;
 
 				// apply z comparator
 				if (Z_OP_INF && srczdata <  dstzdata)	inhibit = 1;
 				if (Z_OP_EQU && srczdata == dstzdata)	inhibit = 1;
 				if (Z_OP_SUP && srczdata >  dstzdata)	inhibit = 1;
-				
+
 				// apply data comparator
 // Note: DCOMPEN only works in 8/16 bpp modes! !!! FIX !!!
 // Does BCOMPEN only work in 1 bpp mode???
@@ -496,7 +496,7 @@ if (specialLog)
 Interesting (Hover Strike--large letter):
 
 Blit! (0018FA70 <- 008DDC40) count: 2 x 13, A1/2_FLAGS: 00014218/00013C18 [cmd: 1401060C]
- CMD -> src: SRCENX dst: DSTEN  misc:  a1ctl: UPDA1 UPDA2 mode:  ity: PATDSEL z-op:  op: LFU_CLEAR ctrl: BCOMPEN BKGWREN 
+ CMD -> src: SRCENX dst: DSTEN  misc:  a1ctl: UPDA1 UPDA2 mode:  ity: PATDSEL z-op:  op: LFU_CLEAR ctrl: BCOMPEN BKGWREN
   A1 step values: -2 (X), 1 (Y)
   A2 step values: -1 (X), 1 (Y) [mask (unused): 00000000 - FFFFFFFF/FFFFFFFF]
   A1 -> pitch: 1 phrases, depth: 8bpp, z-off: 0, width: 320 (21), addctl: XADDPIX YADD0 XSIGNADD YSIGNADD
@@ -504,7 +504,7 @@ Blit! (0018FA70 <- 008DDC40) count: 2 x 13, A1/2_FLAGS: 00014218/00013C18 [cmd: 
         A1 x/y: 100/12, A2 x/y: 106/0 Pattern: 000000F300000000
 
 Blit! (0018FA70 <- 008DDC40) count: 8 x 13, A1/2_FLAGS: 00014218/00013C18 [cmd: 1401060C]
- CMD -> src: SRCENX dst: DSTEN  misc:  a1ctl: UPDA1 UPDA2 mode:  ity: PATDSEL z-op:  op: LFU_CLEAR ctrl: BCOMPEN BKGWREN 
+ CMD -> src: SRCENX dst: DSTEN  misc:  a1ctl: UPDA1 UPDA2 mode:  ity: PATDSEL z-op:  op: LFU_CLEAR ctrl: BCOMPEN BKGWREN
   A1 step values: -8 (X), 1 (Y)
   A2 step values: -1 (X), 1 (Y) [mask (unused): 00000000 - FFFFFFFF/FFFFFFFF]
   A1 -> pitch: 1 phrases, depth: 8bpp, z-off: 0, width: 320 (21), addctl: XADDPIX YADD0 XSIGNADD YSIGNADD
@@ -512,7 +512,7 @@ Blit! (0018FA70 <- 008DDC40) count: 8 x 13, A1/2_FLAGS: 00014218/00013C18 [cmd: 
         A1 x/y: 102/12, A2 x/y: 107/0 Pattern: 000000F300000000
 
 Blit! (0018FA70 <- 008DDC40) count: 1 x 13, A1/2_FLAGS: 00014218/00013C18 [cmd: 1401060C]
- CMD -> src: SRCENX dst: DSTEN  misc:  a1ctl: UPDA1 UPDA2 mode:  ity: PATDSEL z-op:  op: LFU_CLEAR ctrl: BCOMPEN BKGWREN 
+ CMD -> src: SRCENX dst: DSTEN  misc:  a1ctl: UPDA1 UPDA2 mode:  ity: PATDSEL z-op:  op: LFU_CLEAR ctrl: BCOMPEN BKGWREN
   A1 step values: -1 (X), 1 (Y)
   A2 step values: -1 (X), 1 (Y) [mask (unused): 00000000 - FFFFFFFF/FFFFFFFF]
   A1 -> pitch: 1 phrases, depth: 8bpp, z-off: 0, width: 320 (21), addctl: XADDPIX YADD0 XSIGNADD YSIGNADD
@@ -520,7 +520,7 @@ Blit! (0018FA70 <- 008DDC40) count: 1 x 13, A1/2_FLAGS: 00014218/00013C18 [cmd: 
         A1 x/y: 118/12, A2 x/y: 70/0 Pattern: 000000F300000000
 
 Blit! (0018FA70 <- 008DDC40) count: 8 x 13, A1/2_FLAGS: 00014218/00013C18 [cmd: 1401060C]
- CMD -> src: SRCENX dst: DSTEN  misc:  a1ctl: UPDA1 UPDA2 mode:  ity: PATDSEL z-op:  op: LFU_CLEAR ctrl: BCOMPEN BKGWREN 
+ CMD -> src: SRCENX dst: DSTEN  misc:  a1ctl: UPDA1 UPDA2 mode:  ity: PATDSEL z-op:  op: LFU_CLEAR ctrl: BCOMPEN BKGWREN
   A1 step values: -8 (X), 1 (Y)
   A2 step values: -1 (X), 1 (Y) [mask (unused): 00000000 - FFFFFFFF/FFFFFFFF]
   A1 -> pitch: 1 phrases, depth: 8bpp, z-off: 0, width: 320 (21), addctl: XADDPIX YADD0 XSIGNADD YSIGNADD
@@ -528,7 +528,7 @@ Blit! (0018FA70 <- 008DDC40) count: 8 x 13, A1/2_FLAGS: 00014218/00013C18 [cmd: 
         A1 x/y: 119/12, A2 x/y: 71/0 Pattern: 000000F300000000
 
 Blit! (0018FA70 <- 008DDC40) count: 1 x 13, A1/2_FLAGS: 00014218/00013C18 [cmd: 1401060C]
- CMD -> src: SRCENX dst: DSTEN  misc:  a1ctl: UPDA1 UPDA2 mode:  ity: PATDSEL z-op:  op: LFU_CLEAR ctrl: BCOMPEN BKGWREN 
+ CMD -> src: SRCENX dst: DSTEN  misc:  a1ctl: UPDA1 UPDA2 mode:  ity: PATDSEL z-op:  op: LFU_CLEAR ctrl: BCOMPEN BKGWREN
   A1 step values: -1 (X), 1 (Y)
   A2 step values: -1 (X), 1 (Y) [mask (unused): 00000000 - FFFFFFFF/FFFFFFFF]
   A1 -> pitch: 1 phrases, depth: 8bpp, z-off: 0, width: 320 (21), addctl: XADDPIX YADD0 XSIGNADD YSIGNADD
@@ -536,7 +536,7 @@ Blit! (0018FA70 <- 008DDC40) count: 1 x 13, A1/2_FLAGS: 00014218/00013C18 [cmd: 
         A1 x/y: 127/12, A2 x/y: 66/0 Pattern: 000000F300000000
 
 Blit! (0018FA70 <- 008DDC40) count: 8 x 13, A1/2_FLAGS: 00014218/00013C18 [cmd: 1401060C]
- CMD -> src: SRCENX dst: DSTEN  misc:  a1ctl: UPDA1 UPDA2 mode:  ity: PATDSEL z-op:  op: LFU_CLEAR ctrl: BCOMPEN BKGWREN 
+ CMD -> src: SRCENX dst: DSTEN  misc:  a1ctl: UPDA1 UPDA2 mode:  ity: PATDSEL z-op:  op: LFU_CLEAR ctrl: BCOMPEN BKGWREN
   A1 step values: -8 (X), 1 (Y)
   A2 step values: -1 (X), 1 (Y) [mask (unused): 00000000 - FFFFFFFF/FFFFFFFF]
   A1 -> pitch: 1 phrases, depth: 8bpp, z-off: 0, width: 320 (21), addctl: XADDPIX YADD0 XSIGNADD YSIGNADD
@@ -551,7 +551,7 @@ Blit! (0018FA70 <- 008DDC40) count: 8 x 13, A1/2_FLAGS: 00014218/00013C18 [cmd: 
 						// compare source pixel with pattern pixel
 /*
 Blit! (000B8250 <- 0012C3A0) count: 16 x 1, A1/2_FLAGS: 00014420/00012000 [cmd: 05810001]
- CMD -> src: SRCEN  dst:  misc:  a1ctl:  mode:  ity: PATDSEL z-op:  op: LFU_REPLACE ctrl: BCOMPEN 
+ CMD -> src: SRCEN  dst:  misc:  a1ctl:  mode:  ity: PATDSEL z-op:  op: LFU_REPLACE ctrl: BCOMPEN
   A1 -> pitch: 1 phrases, depth: 16bpp, z-off: 0, width: 384 (22), addctl: XADDPIX YADD0 XSIGNADD YSIGNADD
   A2 -> pitch: 1 phrases, depth: 1bpp, z-off: 0, width: 16 (10), addctl: XADDPIX YADD0 XSIGNADD YSIGNADD
         x/y: 0/20
@@ -598,12 +598,12 @@ Blit! (000B8250 <- 0012C3A0) count: 16 x 1, A1/2_FLAGS: 00014420/00012000 [cmd: 
 
 				// compute the write data and store
 				if (!inhibit)
-				{			
+				{
 // Houston, we have a problem...
 // Look here, at PATDSEL and GOURD. If both are active (as they are on the BIOS intro), then there's
 // a conflict! E.g.:
 //Blit! (00100000 <- 000095D0) count: 3 x 1, A1/2_FLAGS: 00014220/00004020 [cmd: 00011008]
-// CMD -> src:  dst: DSTEN  misc:  a1ctl:  mode: GOURD  ity: PATDSEL z-op:  op: LFU_CLEAR ctrl: 
+// CMD -> src:  dst: DSTEN  misc:  a1ctl:  mode: GOURD  ity: PATDSEL z-op:  op: LFU_CLEAR ctrl:
 //  A1 -> pitch: 1 phrases, depth: 16bpp, z-off: 0, width: 320 (21), addctl: XADDPIX YADD0 XSIGNADD YSIGNADD
 //  A2 -> pitch: 1 phrases, depth: 16bpp, z-off: 0, width: 256 (20), addctl: XADDPHR YADD0 XSIGNADD YSIGNADD
 //        A1 x/y: 90/171, A2 x/y: 808/0 Pattern: 776D770077007700
@@ -636,7 +636,7 @@ Blit! (000B8250 <- 0012C3A0) count: 16 x 1, A1/2_FLAGS: 00014420/00012000 [cmd: 
 Hover Strike ADDDSEL blit:
 
 Blit! (00098D90 <- 0081DDC0) count: 320 x 287, A1/2_FLAGS: 00004220/00004020 [cmd: 00020208]
- CMD -> src:  dst: DSTEN  misc:  a1ctl: UPDA1  mode:  ity: ADDDSEL z-op:  op: LFU_CLEAR ctrl: 
+ CMD -> src:  dst: DSTEN  misc:  a1ctl: UPDA1  mode:  ity: ADDDSEL z-op:  op: LFU_CLEAR ctrl:
   A1 step values: -320 (X), 1 (Y)
   A1 -> pitch: 1 phrases, depth: 16bpp, z-off: 0, width: 320 (21), addctl: XADDPHR YADD0 XSIGNADD YSIGNADD
   A2 -> pitch: 1 phrases, depth: 16bpp, z-off: 0, width: 256 (20), addctl: XADDPHR YADD0 XSIGNADD YSIGNADD
@@ -681,10 +681,10 @@ Blit! (00098D90 <- 0081DDC0) count: 320 x 287, A1/2_FLAGS: 00004220/00004020 [cm
 //According to JTRM, this is part of the four things the blitter does with the write data (the other
 //three being PATDSEL, ADDDSEL, and LFU (default). I'm not sure which gets precedence, this or PATDSEL
 //(see above blit example)...
-					if (GOURD) 
+					if (GOURD)
 						writedata = ((gd_c[colour_index]) << 8) | (gd_i[colour_index] >> 16);
 
-					if (SRCSHADE) 
+					if (SRCSHADE)
 					{
 						int intensity = srcdata & 0xFF;
 						int ia = gd_ia >> 16;
@@ -739,7 +739,7 @@ Blit! (00098D90 <- 0081DDC0) count: 320 x 287, A1/2_FLAGS: 00004220/00004020 [cm
 						srczdata = READ_RDATA(SRCZINT, a1, REG(A1_FLAGS), a1_phrase_mode);
 				}
 
-				// load dst data and Z 
+				// load dst data and Z
 				if (DSTEN)
 				{
 					dstdata = READ_PIXEL(a2, REG(A2_FLAGS));
@@ -755,14 +755,14 @@ Blit! (00098D90 <- 0081DDC0) count: 320 x 287, A1/2_FLAGS: 00004220/00004020 [cm
 						dstzdata = READ_RDATA(DSTZ, a2, REG(A2_FLAGS), a2_phrase_mode);
 				}
 
-				if (GOURZ) 
+				if (GOURZ)
 					srczdata = z_i[colour_index] >> 16;
 
 				// apply z comparator
 				if (Z_OP_INF && srczdata < dstzdata)	inhibit = 1;
 				if (Z_OP_EQU && srczdata == dstzdata)	inhibit = 1;
 				if (Z_OP_SUP && srczdata > dstzdata)	inhibit = 1;
-				
+
 				// apply data comparator
 //NOTE: The bit comparator (BCOMPEN) is NOT the same at the data comparator!
 				if (DCOMPEN | BCOMPEN)
@@ -801,7 +801,7 @@ Blit! (00098D90 <- 0081DDC0) count: 320 x 287, A1/2_FLAGS: 00004220/00004020 [cm
 //					if (a1_phrase_mode || a2_phrase_mode)
 //						inhibit = !inhibit;
 				}
-				
+
 				if (CLIPA1)
 				{
 					inhibit |= (((a1_x >> 16) < a1_clip_x && (a1_x >> 16) >= 0
@@ -810,7 +810,7 @@ Blit! (00098D90 <- 0081DDC0) count: 320 x 287, A1/2_FLAGS: 00004220/00004020 [cm
 
 				// compute the write data and store
 				if (!inhibit)
-				{			
+				{
 					if (PATDSEL)
 					{
 						// use pattern data for write data
@@ -839,10 +839,10 @@ Blit! (00098D90 <- 0081DDC0) count: 320 x 287, A1/2_FLAGS: 00004220/00004020 [cm
 							writedata |= srcdata & dstdata;
 					}
 
-					if (GOURD) 
+					if (GOURD)
 						writedata = ((gd_c[colour_index]) << 8) | (gd_i[colour_index] >> 16);
 
-					if (SRCSHADE) 
+					if (SRCSHADE)
 					{
 						int intensity = srcdata & 0xFF;
 						int ia = gd_ia >> 16;
@@ -946,7 +946,7 @@ Below fixes it, but then borks:
 ; O
 
 Blit! (00110000 <- 0010B2A8) count: 12 x 12, A1/2_FLAGS: 000042E2/00000020 [cmd: 09800609]
- CMD -> src: SRCEN  dst: DSTEN  misc:  a1ctl: UPDA1 UPDA2 mode:  ity:  z-op:  op: LFU_REPLACE ctrl: DCOMPEN 
+ CMD -> src: SRCEN  dst: DSTEN  misc:  a1ctl: UPDA1 UPDA2 mode:  ity:  z-op:  op: LFU_REPLACE ctrl: DCOMPEN
   A1 step values: -15 (X), 1 (Y)
   A2 step values: -4 (X), 0 (Y) [mask (unused): 00000000 - FFFFFFFF/FFFFFFFF]
   A1 -> pitch: 4 phrases, depth: 16bpp, z-off: 3, width: 320 (21), addctl: XADDPHR YADD0 XSIGNADD YSIGNADD
@@ -1054,8 +1054,8 @@ Lesse, with pre-add we'd have:
 		a2_y += a2_step_y;//*/
 #endif
 	}
-	
-	// write values back to registers 
+
+	// write values back to registers
 	WREG(A1_PIXEL,  (a1_y & 0xFFFF0000) | ((a1_x >> 16) & 0xFFFF));
 	WREG(A1_FPIXEL, (a1_y << 16) | (a1_x & 0xFFFF));
 	WREG(A2_PIXEL,  (a2_y & 0xFFFF0000) | ((a2_x >> 16) & 0xFFFF));
@@ -1091,7 +1091,7 @@ void blitter_blit(uint32 cmd)
 
 	a1_zoffs = (REG(A1_FLAGS) >> 6) & 7;
 	a2_zoffs = (REG(A2_FLAGS) >> 6) & 7;
-	
+
 	xadd_a1_control = (REG(A1_FLAGS) >> 16) & 0x03;
 	xadd_a2_control = (REG(A2_FLAGS) >> 16) & 0x03;
 
@@ -1160,7 +1160,7 @@ void blitter_blit(uint32 cmd)
 		// add pixelsize (1) to X
 		a1_xadd = 1 << 16;
 		break;
-	case XADD0:	
+	case XADD0:
 		// add zero (for those nice vertical lines)
 		a1_xadd = 0;
 		break;
@@ -1204,7 +1204,7 @@ void blitter_blit(uint32 cmd)
 		// add pixelsize (1) to X
 		a2_xadd = 1 << 16;
 		break;
-	case XADD0:	
+	case XADD0:
 		// add zero (for those nice vertical lines)
 		a2_xadd = 0;
 		break;
@@ -1282,7 +1282,7 @@ WriteLog("BLIT: Asked to use invalid bit combo (XADDINC) for A2...\n");
 			| ((uint32)blitter_ram[SRCDATA + 0] << 8) | blitter_ram[SRCDATA + 1];
 
 		gouraud_add = REG(INTENSITYINC);
-		
+
 		gd_ia = gouraud_add & 0x00FFFFFF;
 		if (gd_ia & 0x00800000)
 			gd_ia = 0xFF000000 | gd_ia;
@@ -1352,7 +1352,7 @@ WriteLog("BLIT: Asked to use invalid bit combo (XADDINC) for A2...\n");
 		WriteLog("  GOURZ   = %i\n",GOURZ);
 		WriteLog("  GOURD   = %i\n",GOURD);
 		WriteLog("  SRCSHADE= %i\n",SRCSHADE);
-	}	
+	}
 #endif
 
 //NOTE: Pitch is ignored!
@@ -1362,24 +1362,24 @@ WriteLog("BLIT: Asked to use invalid bit combo (XADDINC) for A2...\n");
 //Black is short by 3, pink is short by 1...
 /*
 Blit! (00110000 <- 000BF010) count: 9 x 31, A1/2_FLAGS: 000042E2/00010020 [cmd: 00010200]
- CMD -> src:  dst:  misc:  a1ctl: UPDA1  mode:  ity: PATDSEL z-op:  op: LFU_CLEAR ctrl: 
+ CMD -> src:  dst:  misc:  a1ctl: UPDA1  mode:  ity: PATDSEL z-op:  op: LFU_CLEAR ctrl:
   A1 -> pitch: 4 phrases, depth: 16bpp, z-off: 3, width: 320 (21), addctl: XADDPHR YADD0 XSIGNADD YSIGNADD
   A2 -> pitch: 1 phrases, depth: 16bpp, z-off: 0, width: 1 (00), addctl: XADDPIX YADD0 XSIGNADD YSIGNADD
         A1 x/y: 262/124, A2 x/y: 128/0
 Blit! (00110000 <- 000BF010) count: 5 x 38, A1/2_FLAGS: 000042E2/00010020 [cmd: 00010200]
- CMD -> src:  dst:  misc:  a1ctl: UPDA1  mode:  ity: PATDSEL z-op:  op: LFU_CLEAR ctrl: 
+ CMD -> src:  dst:  misc:  a1ctl: UPDA1  mode:  ity: PATDSEL z-op:  op: LFU_CLEAR ctrl:
   A1 -> pitch: 4 phrases, depth: 16bpp, z-off: 3, width: 320 (21), addctl: XADDPHR YADD0 XSIGNADD YSIGNADD
   A2 -> pitch: 1 phrases, depth: 16bpp, z-off: 0, width: 1 (00), addctl: XADDPIX YADD0 XSIGNADD YSIGNADD
         A1 x/y: 264/117, A2 x/y: 407/0
 
 Blit! (00110000 <- 000BF010) count: 9 x 23, A1/2_FLAGS: 000042E2/00010020 [cmd: 00010200]
- CMD -> src:  dst:  misc:  a1ctl: UPDA1  mode:  ity: PATDSEL z-op:  op: LFU_CLEAR ctrl: 
+ CMD -> src:  dst:  misc:  a1ctl: UPDA1  mode:  ity: PATDSEL z-op:  op: LFU_CLEAR ctrl:
   A1 step values: -10 (X), 1 (Y)
   A1 -> pitch: 4(2) phrases, depth: 16bpp, z-off: 3, width: 320 (21), addctl: XADDPHR YADD0 XSIGNADD YSIGNADD
   A2 -> pitch: 1(0) phrases, depth: 16bpp, z-off: 0, width: 1 (00), addctl: XADDPIX YADD0 XSIGNADD YSIGNADD
         A1 x/y: 262/132, A2 x/y: 129/0
 Blit! (00110000 <- 000BF010) count: 5 x 27, A1/2_FLAGS: 000042E2/00010020 [cmd: 00010200]
- CMD -> src:  dst:  misc:  a1ctl: UPDA1  mode:  ity: PATDSEL z-op:  op: LFU_CLEAR ctrl: 
+ CMD -> src:  dst:  misc:  a1ctl: UPDA1  mode:  ity: PATDSEL z-op:  op: LFU_CLEAR ctrl:
   A1 step values: -8 (X), 1 (Y)
   A1 -> pitch: 4(2) phrases, depth: 16bpp, z-off: 3, width: 320 (21), addctl: XADDPHR YADD0 XSIGNADD YSIGNADD
   A2 -> pitch: 1(0) phrases, depth: 16bpp, z-off: 0, width: 1 (00), addctl: XADDPIX YADD0 XSIGNADD YSIGNADD
@@ -1398,7 +1398,7 @@ Fixed! Now for more:
 ; This looks like the ship icon in the upper left corner...
 
 Blit! (00110000 <- 0010B2A8) count: 11 x 12, A1/2_FLAGS: 000042E2/00000020 [cmd: 09800609]
- CMD -> src: SRCEN  dst: DSTEN  misc:  a1ctl: UPDA1 UPDA2 mode:  ity:  z-op:  op: LFU_REPLACE ctrl: DCOMPEN 
+ CMD -> src: SRCEN  dst: DSTEN  misc:  a1ctl: UPDA1 UPDA2 mode:  ity:  z-op:  op: LFU_REPLACE ctrl: DCOMPEN
   A1 step values: -12 (X), 1 (Y)
   A2 step values: 0 (X), 0 (Y) [mask (unused): 00000000 - FFFFFFFF/FFFFFFFF]
   A1 -> pitch: 4 phrases, depth: 16bpp, z-off: 3, width: 320 (21), addctl: XADDPHR YADD0 XSIGNADD YSIGNADD
@@ -1415,7 +1415,7 @@ Actually, if you look at the A1 step values, there IS a discrepancy!
 ; D
 
 Blit! (00110000 <- 0010B2A8) count: 12 x 12, A1/2_FLAGS: 000042E2/00000020 [cmd: 09800609]
- CMD -> src: SRCEN  dst: DSTEN  misc:  a1ctl: UPDA1 UPDA2 mode:  ity:  z-op:  op: LFU_REPLACE ctrl: DCOMPEN 
+ CMD -> src: SRCEN  dst: DSTEN  misc:  a1ctl: UPDA1 UPDA2 mode:  ity:  z-op:  op: LFU_REPLACE ctrl: DCOMPEN
   A1 step values: -14 (X), 1 (Y)
   A2 step values: -4 (X), 0 (Y) [mask (unused): 00000000 - FFFFFFFF/FFFFFFFF]
   A1 -> pitch: 4 phrases, depth: 16bpp, z-off: 3, width: 320 (21), addctl: XADDPHR YADD0 XSIGNADD YSIGNADD
@@ -1426,7 +1426,7 @@ Blit! (00110000 <- 0010B2A8) count: 12 x 12, A1/2_FLAGS: 000042E2/00000020 [cmd:
 ; E
 
 Blit! (00110000 <- 0010B2A8) count: 12 x 12, A1/2_FLAGS: 000042E2/00000020 [cmd: 09800609]
- CMD -> src: SRCEN  dst: DSTEN  misc:  a1ctl: UPDA1 UPDA2 mode:  ity:  z-op:  op: LFU_REPLACE ctrl: DCOMPEN 
+ CMD -> src: SRCEN  dst: DSTEN  misc:  a1ctl: UPDA1 UPDA2 mode:  ity:  z-op:  op: LFU_REPLACE ctrl: DCOMPEN
   A1 step values: -13 (X), 1 (Y)
   A2 step values: -4 (X), 0 (Y) [mask (unused): 00000000 - FFFFFFFF/FFFFFFFF]
   A1 -> pitch: 4 phrases, depth: 16bpp, z-off: 3, width: 320 (21), addctl: XADDPHR YADD0 XSIGNADD YSIGNADD
@@ -1436,7 +1436,7 @@ Blit! (00110000 <- 0010B2A8) count: 12 x 12, A1/2_FLAGS: 000042E2/00000020 [cmd:
 ; M
 
 Blit! (00110000 <- 0010B2A8) count: 12 x 12, A1/2_FLAGS: 000042E2/00000020 [cmd: 09800609]
- CMD -> src: SRCEN  dst: DSTEN  misc:  a1ctl: UPDA1 UPDA2 mode:  ity:  z-op:  op: LFU_REPLACE ctrl: DCOMPEN 
+ CMD -> src: SRCEN  dst: DSTEN  misc:  a1ctl: UPDA1 UPDA2 mode:  ity:  z-op:  op: LFU_REPLACE ctrl: DCOMPEN
   A1 step values: -12 (X), 1 (Y)
   A2 step values: 0 (X), 0 (Y) [mask (unused): 00000000 - FFFFFFFF/FFFFFFFF]
   A1 -> pitch: 4 phrases, depth: 16bpp, z-off: 3, width: 320 (21), addctl: XADDPHR YADD0 XSIGNADD YSIGNADD
@@ -1446,7 +1446,7 @@ Blit! (00110000 <- 0010B2A8) count: 12 x 12, A1/2_FLAGS: 000042E2/00000020 [cmd:
 ; O
 
 Blit! (00110000 <- 0010B2A8) count: 12 x 12, A1/2_FLAGS: 000042E2/00000020 [cmd: 09800609]
- CMD -> src: SRCEN  dst: DSTEN  misc:  a1ctl: UPDA1 UPDA2 mode:  ity:  z-op:  op: LFU_REPLACE ctrl: DCOMPEN 
+ CMD -> src: SRCEN  dst: DSTEN  misc:  a1ctl: UPDA1 UPDA2 mode:  ity:  z-op:  op: LFU_REPLACE ctrl: DCOMPEN
   A1 step values: -15 (X), 1 (Y)
   A2 step values: -4 (X), 0 (Y) [mask (unused): 00000000 - FFFFFFFF/FFFFFFFF]
   A1 -> pitch: 4 phrases, depth: 16bpp, z-off: 3, width: 320 (21), addctl: XADDPHR YADD0 XSIGNADD YSIGNADD
@@ -1525,17 +1525,17 @@ if (blit_start_log)
 ********************** STUFF CUT ABOVE THIS LINE! ******************************
 *******************************************************************************/
 
-void blitter_init(void)
+void BlitterInit(void)
 {
-	blitter_reset();
+	BlitterReset();
 }
 
-void blitter_reset(void)
+void BlitterReset(void)
 {
 	memset(blitter_ram, 0x00, 0xA0);
 }
 
-void blitter_done(void)
+void BlitterDone(void)
 {
 	WriteLog("BLIT: Done.\n");
 }
@@ -1602,12 +1602,12 @@ void BlitterWriteByte(uint32 offset, uint8 data, uint32 who/*=UNKNOWN*/)
 		case 0x81: blitter_ram[PATTERNDATA + 5] = data; break;
 		case 0x82: blitter_ram[SRCDATA + 4] = data; break;
 		case 0x83: blitter_ram[SRCDATA + 5] = data; break;
-		
+
 		case 0x84: break;
 		case 0x85: blitter_ram[PATTERNDATA + 3] = data; break;
 		case 0x86: blitter_ram[SRCDATA + 2] = data; break;
 		case 0x87: blitter_ram[SRCDATA + 3] = data; break;
-		
+
 		case 0x88: break;
 		case 0x89: blitter_ram[PATTERNDATA + 1] = data; break;
 		case 0x8A: blitter_ram[SRCDATA + 0] = data; break;
@@ -1624,12 +1624,12 @@ void BlitterWriteByte(uint32 offset, uint8 data, uint32 who/*=UNKNOWN*/)
 		case 0x91: blitter_ram[SRCZINT + 5] = data; break;
 		case 0x92: blitter_ram[SRCZFRAC + 4] = data; break;
 		case 0x93: blitter_ram[SRCZFRAC + 5] = data; break;
-		
+
 		case 0x94: blitter_ram[SRCZINT + 2] = data; break;
 		case 0x95: blitter_ram[SRCZINT + 3] = data; break;
 		case 0x96: blitter_ram[SRCZFRAC + 2] = data; break;
 		case 0x97: blitter_ram[SRCZFRAC + 3] = data; break;
-		
+
 		case 0x98: blitter_ram[SRCZINT + 0] = data; break;
 		case 0x99: blitter_ram[SRCZINT + 1] = data; break;
 		case 0x9A: blitter_ram[SRCZFRAC + 0] = data; break;
@@ -2015,7 +2015,7 @@ sread:							// Source data read
 //pointing at. Likewise, the pixel (if in BPP 1, 2 & 4, chopped) otherwise. It probably still
 //transfers an entire phrase even in pixel mode.
 //Odd thought: Does it expand, e.g., 1 BPP pixels into 32 BPP internally? Hmm...
-//No. 
+//No.
 /*
 	a1_addr = REG(A1_BASE) & 0xFFFFFFF8;
 	a2_addr = REG(A2_BASE) & 0xFFFFFFF8;
@@ -2036,7 +2036,7 @@ sread:							// Source data read
 	a1_width = ((0x04 | m) << e) >> 2;
 	a2_width = ((0x04 | m) << e) >> 2;
 
-	// write values back to registers 
+	// write values back to registers
 	WREG(A1_PIXEL,  (a1_y & 0xFFFF0000) | ((a1_x >> 16) & 0xFFFF));
 	WREG(A1_FPIXEL, (a1_y << 16) | (a1_x & 0xFFFF));
 	WREG(A2_PIXEL,  (a2_y & 0xFFFF0000) | ((a2_x >> 16) & 0xFFFF));
@@ -2251,7 +2251,7 @@ Blit!
 	}
 
 	// Figure out what gets written...
-	
+
 	if (PATDSEL)
 	{
 		writeData = GET64(blitter_ram, PATTERNDATA);
@@ -2274,7 +2274,7 @@ Blit!
 	else	// LFUFUNC is the default...
 	{
 		writeData = 0;
-		
+
 		if (LFU_NAN)
 			writeData |= ~srcData & ~dstData;
 		if (LFU_NA)
@@ -2376,7 +2376,7 @@ inhibitWrite://Should this go here? or on the other side of the X/Y incrementing
 		a2_x += (blitter_ram[A2_FLAGS + 1] & 0x08 ? -1 << 16 : 1 << 16);
 /*	else if ((blitter_ram[A2_FLAGS + 1] & 0x03) == 2)
 		a2_x += 0 << 16;                              */
-	
+
 	if (blitter_ram[A2_FLAGS + 1] & 0x04)
 		a2_y += (blitter_ram[A2_FLAGS + 1] & 0x10 ? -1 << 16 : 1 << 16);
 
@@ -2708,9 +2708,9 @@ if (
 	&& cmd != 0x00011040	// CLIP_A1 GOURD PATDSEL
 //Checkered flag:
 	&& cmd != 0x01800000	// LFUFUNC=C
-	&& cmd != 0x01800401	// 
-	&& cmd != 0x01800040	// 
-	&& cmd != 0x00020008	// 
+	&& cmd != 0x01800401	//
+	&& cmd != 0x01800040	//
+	&& cmd != 0x00020008	//
 //	&& cmd != 0x09800F41	// SRCEN CLIP_A1 UPDA1 UPDA1F UPDA2 DSTA2 LFUFUNC=C DCOMPEN
 	)
 	logBlit = true;//*/
@@ -2807,7 +2807,7 @@ fflush(stdout);
 #endif
 
 	// Lines that don't exist in Jaguar I (and will never be asserted)
-	
+
 	bool polygon = false, datinit = false, a1_stepld = false, a2_stepld = false, ext_int = false;
 	bool istepadd = false, istepfadd = false, finneradd = false, inneradd = false;
 	bool zstepfadd = false, zstepadd = false;
@@ -2932,7 +2932,7 @@ if ((cmd == 0x00010200) && (GET16(blitter_ram, PIXLINECOUNTER + 2) == 9))
 ; Pink altimeter bar
 
 Blit! (00110000 <- 000BF010) count: 9 x 23, A1/2_FLAGS: 000042E2/00010020 [cmd: 00010200]
- CMD -> src:  dst:  misc:  a1ctl: UPDA1  mode:  ity: PATDSEL z-op:  op: LFU_CLEAR ctrl: 
+ CMD -> src:  dst:  misc:  a1ctl: UPDA1  mode:  ity: PATDSEL z-op:  op: LFU_CLEAR ctrl:
   A1 step values: -10 (X), 1 (Y)
   A1 -> pitch: 4 phrases, depth: 16bpp, z-off: 3, width: 320 (21), addctl: XADDPHR YADD0 XSIGNADD YSIGNADD
   A2 -> pitch: 1 phrases, depth: 16bpp, z-off: 0, width: 1 (00), addctl: XADDPIX YADD0 XSIGNADD YSIGNADD
@@ -2943,7 +2943,7 @@ Blit! (00110000 <- 000BF010) count: 9 x 23, A1/2_FLAGS: 000042E2/00010020 [cmd: 
 ; Black altimeter bar
 
 Blit! (00110000 <- 000BF010) count: 5 x 29, A1/2_FLAGS: 000042E2/00010020 [cmd: 00010200]
- CMD -> src:  dst:  misc:  a1ctl: UPDA1  mode:  ity: PATDSEL z-op:  op: LFU_CLEAR ctrl: 
+ CMD -> src:  dst:  misc:  a1ctl: UPDA1  mode:  ity: PATDSEL z-op:  op: LFU_CLEAR ctrl:
   A1 step values: -8 (X), 1 (Y)
   A1 -> pitch: 4 phrases, depth: 16bpp, z-off: 3, width: 320 (21), addctl: XADDPHR YADD0 XSIGNADD YSIGNADD
   A2 -> pitch: 1 phrases, depth: 16bpp, z-off: 0, width: 1 (00), addctl: XADDPIX YADD0 XSIGNADD YSIGNADD
@@ -2987,7 +2987,7 @@ Flags: UPDA1 PATDSEL
 */
 
 	// Bugs in Jaguar I
-	
+
 	a2addy = a1addy;							// A2 channel Y add bit is tied to A1's
 
 //if (logBlit && (ocount > 20)) logBlit = false;
@@ -3013,7 +3013,7 @@ printf("  srcz1=%08X%08X srcz2=%08X%08X dstz=%08X%08X zinc=%08X, coll=%X\n",
 	(uint32)(srcz2 >> 32), (uint32)(srcz2 & 0xFFFFFFFF),
 	(uint32)(dstz >> 32), (uint32)(dstz & 0xFFFFFFFF), zinc, collision);
 }
-#endif	
+#endif
 
 	// Various state lines set up by user
 
@@ -3034,7 +3034,7 @@ fflush(stdout);
 	while (true)
 	{
 		// IDLE
-	
+
 		if ((idle && !go) || (inner && outer0 && indone))
 		{
 #ifdef VERBOSE_BLITTER_LOGGING
@@ -3052,7 +3052,7 @@ break;
 		}
 		else
 			idlei = false;
-	
+
 		// INNER LOOP ACTIVE
 /*
   Entering DWRITE state... (icount=0000, inc=4)
@@ -3063,7 +3063,7 @@ break;
 Now:
   [in=F a1f=F a1=F zf=F z=F a2=F iif=F iii=F izf=F izi=F]
 */
-	
+
 		if ((idle && go && !datinit)
 			|| (inner && !indone)
 			|| (inner && indone && !outer0 && !upda1f && !upda1 && notgzandp && !upda2 && !datinit)
@@ -3077,9 +3077,9 @@ Now:
 		}
 		else
 			inneri = false;
-	
+
 		// A1 FRACTION UPDATE
-	
+
 		if (inner && indone && !outer0 && upda1f)
 		{
 			a1fupdatei = true;
@@ -3126,9 +3126,9 @@ Now:
 		}
 		else
 			a2updatei = false;
-	
+
 		// INITIALIZE INTENSITY FRACTION
-	
+
 		if ((zupdate && !upda2 && datinit)
 			|| (a1update && !upda2 && datinit && notgzandp)
 			|| (inner && indone && !outer0 && !upda1f && !upda1 && notgzandp && !upda2 && datinit)
@@ -3139,34 +3139,34 @@ Now:
 		}
 		else
 			init_ifi = false;
-	
+
 		// INITIALIZE INTENSITY INTEGER
-	
+
 		if (init_if)
 		{
 			init_iii = true;
 		}
 		else
 			init_iii = false;
-	
+
 		// INITIALIZE Z FRACTION
-	
+
 		if (init_ii && gourz)
 		{
 			init_zfi = true;
 		}
 		else
 			init_zfi = false;
-	
+
 		// INITIALIZE Z INTEGER
-	
+
 		if (init_zf)
 		{
 			init_zii = true;
 		}
 		else
 			init_zii = false;
-	
+
 // Here we move the fooi into their foo counterparts in order to simulate the moving
 // of data into the various FDSYNCs... Each time we loop we simulate one clock cycle...
 
@@ -3604,14 +3604,14 @@ daddbsel |= (istepadd && istepfadd && zstepadd && zstepfadd ? 0x08 : 0x00);
 /* Data adder mode control
 000	16-bit normal add
 001	16-bit saturating add with carry
-010	8-bit saturating add with carry, carry into top byte is 
+010	8-bit saturating add with carry, carry into top byte is
 	inhibited (YCrCb)
-011	8-bit saturating add with carry, carry into top byte and 
+011	8-bit saturating add with carry, carry into top byte and
 	between top nybbles is inhibited (CRY)
 100	16-bit normal add with carry
 101	16-bit saturating add
 110	8-bit saturating add, carry into top byte is inhibited
-111	8-bit saturating add, carry into top byte and between top 
+111	8-bit saturating add, carry into top byte and between top
 	nybbles is inhibited
 
 The first five are used for Gouraud calculations, the latter three
@@ -3630,7 +3630,7 @@ Bit 0 =   dzwrite . gourz . atick[1]
 	+ init_ii . /topnen . /topben . /ext_int
 	+ init_ii .  topnen .  topben . /ext_int
 	+ init_zi
-		
+
 Bit 1 =   dwrite . gourd . atick[1] . /topben . /ext_int
 	+ istepadd . /topben . /ext_int
 	+ /gourd . /gourz .  /topben
@@ -3655,8 +3655,8 @@ daddmode |= ((dwrite && gourd && !topben && !ext_int) || (istepadd && !topben &&
 	|| (init_ii && !topben && !ext_int) ? 0x02 : 0x00);
 daddmode |= ((!gourd && !gourz) || shadeadd || (dwrite && gourd && ext_int)
 	|| (istepadd && ext_int) || (init_ii && ext_int) ? 0x04 : 0x00);
-/* Data add load controls 
-Pattern fraction (dest data) is loaded on 
+/* Data add load controls
+Pattern fraction (dest data) is loaded on
 	  dwrite . gourd . atick[0]
 	+ istepfadd . /datinit
 	+ init_if
@@ -3664,11 +3664,11 @@ Pattern data is loaded on
 	  dwrite . gourd . atick[1]
 	+ istepadd . /datinit . /datinit
 	+ init_ii
-Source z1 is loaded on 
+Source z1 is loaded on
 	  dzwrite . gourz . atick[1]
 	+ zstepadd . /datinit . /datinit
 	+ init_zi
-Source z2 is loaded on 
+Source z2 is loaded on
 	  dzwrite . gourz . atick[0]
 	+ zstepfadd
 	+ init_zf
@@ -3709,17 +3709,17 @@ if (!justify)
 
 /* Generate source alignment shift
    -------------------------------
-The source alignment shift for data move is the difference between 
-the source and destination X pointers, multiplied by the pixel 
-size.  Only the low six bits of the pointers are of interest, as 
-pixel sizes are always a power of 2 and window rows are always 
-phrase aligned.  
+The source alignment shift for data move is the difference between
+the source and destination X pointers, multiplied by the pixel
+size.  Only the low six bits of the pointers are of interest, as
+pixel sizes are always a power of 2 and window rows are always
+phrase aligned.
 
 When not in phrase mode, the top 3 bits of the shift value are
 set to zero (2/26).
 
 Source shifting is also used to extract bits for bit-to-byte
-expansion in phrase mode.  This involves only the bottom three 
+expansion in phrase mode.  This involves only the bottom three
 bits of the shift value, and is based on the offset within the
 phrase of the destination X pointer, in pixels.
 
@@ -4569,7 +4569,7 @@ cause the inner state to go active */
 //Since we don't get here until the inner loop is finished (indone = true) we can get
 //away with doing it here...!
 			ocount--;
-		
+
 			if (ocount == 0)
 				outer0 = true;
 #ifdef VERBOSE_BLITTER_LOGGING
@@ -4617,7 +4617,7 @@ fflush(stdout);
 }
 #endif
 		}
-		
+
 		if (a2update)
 		{
 #ifdef VERBOSE_BLITTER_LOGGING
@@ -4644,7 +4644,7 @@ fflush(stdout);
 #ifdef VERBOSE_BLITTER_LOGGING
 if (logBlit)
 {
-	printf("Done!\na1_x=%04X a1_y=%04X a1_frac_x=%04X a1_frac_y=%04X a2_x=%04X a2_y%04X\n", 
+	printf("Done!\na1_x=%04X a1_y=%04X a1_frac_x=%04X a1_frac_y=%04X a2_x=%04X a2_y%04X\n",
 		GET16(blitter_ram, A1_PIXEL + 2),
 		GET16(blitter_ram, A1_PIXEL + 0),
 		GET16(blitter_ram, A1_FPIXEL + 2),
@@ -4666,7 +4666,7 @@ if (logBlit)
 #ifdef VERBOSE_BLITTER_LOGGING
 if (logBlit)
 {
-	printf("Writeback!\na1_x=%04X a1_y=%04X a1_frac_x=%04X a1_frac_y=%04X a2_x=%04X a2_y%04X\n", 
+	printf("Writeback!\na1_x=%04X a1_y=%04X a1_frac_x=%04X a1_frac_y=%04X a2_x=%04X a2_y%04X\n",
 		GET16(blitter_ram, A1_PIXEL + 2),
 		GET16(blitter_ram, A1_PIXEL + 0),
 		GET16(blitter_ram, A1_FPIXEL + 2),
@@ -5119,7 +5119,7 @@ addasel[0..2] select the register to add
 adda_xconst[0..2] generate a power of 2 in the range 1-64 or all zeroes when
 they are all 1.
 
-addareg selects register value to be added as opposed to constant 
+addareg selects register value to be added as opposed to constant
 value.
 
 suba_x, suba_y complement the X and Y values
@@ -5154,7 +5154,7 @@ void ADDAMUX(int16 &adda_x, int16 &adda_y, uint8 addasel, int16 a1_step_x, int16
 	bool adda_yconst, bool addareg, bool suba_x, bool suba_y)
 {
 
-/*INT16/	addac_x, addac_y, addar_x, addar_y, addart_x, addart_y, 
+/*INT16/	addac_x, addac_y, addar_x, addar_y, addart_x, addart_y,
 INT16/	addas_x, addas_y, suba_x16, suba_y16
 :LOCAL;
 BEGIN
@@ -5177,7 +5177,7 @@ Addar_y		:= MX2 (addar_y, addart_y, a2_step_y, addaselb[2]);*/
 	int16 addar_y = (addasel & 0x04 ? a2_step_y : yterm[addasel & 0x03]);
 //////////////////////////////////////////////////////////////////////////////////////
 
-/* Generate a constant value - this is a power of 2 in the range 
+/* Generate a constant value - this is a power of 2 in the range
 0-64, or zero.  The control bits are adda_xconst[0..2], when they
 are all 1  the result is 0.
 Constants for Y can only be 0 or 1 */
@@ -5186,7 +5186,7 @@ Constants for Y can only be 0 or 1 */
 Unused[0]	:= DUMMY (unused[0]);
 
 Addac_x		:= JOIN (addac_x, addac_x[0..6], zero, zero, zero, zero, zero, zero, zero, zero, zero);
-Addac_y		:= JOIN (addac_y, adda_yconst, zero, zero, zero, zero, zero, zero, zero, zero, zero, zero, 
+Addac_y		:= JOIN (addac_y, adda_yconst, zero, zero, zero, zero, zero, zero, zero, zero, zero, zero,
 			zero, zero, zero, zero, zero);*/
 ////////////////////////////////////// C++ CODE //////////////////////////////////////
 	int16 addac_x = (adda_xconst == 0x07 ? 0 : 1 << adda_xconst);
@@ -5204,9 +5204,9 @@ Addas_y		:= MX2 (addas_y, addac_y, addar_y, addareg);*/
 
 /* Complement these values (complement flag gives adder carry in)*/
 
-/*Suba_x16	:= JOIN (suba_x16, suba_x, suba_x, suba_x, suba_x, suba_x, suba_x, suba_x, suba_x, suba_x, 
+/*Suba_x16	:= JOIN (suba_x16, suba_x, suba_x, suba_x, suba_x, suba_x, suba_x, suba_x, suba_x, suba_x,
 			suba_x, suba_x, suba_x, suba_x, suba_x, suba_x, suba_x);
-Suba_y16	:= JOIN (suba_y16, suba_y, suba_y, suba_y, suba_y, suba_y, suba_y, suba_y, suba_y, suba_y, 
+Suba_y16	:= JOIN (suba_y16, suba_y, suba_y, suba_y, suba_y, suba_y, suba_y, suba_y, suba_y, suba_y,
 			suba_y, suba_y, suba_y, suba_y, suba_y, suba_y, suba_y);
 Adda_x		:= EO (adda_x, suba_x16, addas_x);
 Adda_y		:= EO (adda_y, suba_y16, addas_y);*/
@@ -5220,9 +5220,9 @@ Adda_y		:= EO (adda_y, suba_y16, addas_y);*/
 
 /**  ADDBMUX - Address adder input B selection  *******************
 
-This module selects the register to be updated by the address 
-adder.  This can be one of three registers, the A1 and A2 
-pointers, or the A1 fractional part. It can also be zero, so that the step 
+This module selects the register to be updated by the address
+adder.  This can be one of three registers, the A1 and A2
+pointers, or the A1 fractional part. It can also be zero, so that the step
 registers load directly into the pointers.
 */
 
@@ -5245,7 +5245,7 @@ void ADDBMUX(int16 &addb_x, int16 &addb_y, uint8 addbsel, int16 a1_x, int16 a1_y
 {
 
 /*Zero		:= TIE0 (zero);
-Zero16		:= JOIN (zero16, zero, zero, zero, zero, zero, zero, zero, 
+Zero16		:= JOIN (zero16, zero, zero, zero, zero, zero, zero, zero,
 			zero, zero, zero, zero, zero, zero, zero, zero, zero);
 Addbselb[0-1]	:= BUF8 (addbselb[0-1], addbsel[0-1]);
 Addb_x		:= MX4 (addb_x, a1_x, a2_x, a1_frac_x, zero16, addbselb[0..1]);
@@ -5301,10 +5301,10 @@ addradd
 
 Blitter Address Adder
 ---------------------
-The blitter address adder is a pair of sixteen bit adders, one 
-each for X and Y.  The multiplexing of the input terms is 
-performed elsewhere, but this adder can also perform modulo 
-arithmetic to align X-addresses onto phrase boundaries. 
+The blitter address adder is a pair of sixteen bit adders, one
+each for X and Y.  The multiplexing of the input terms is
+performed elsewhere, but this adder can also perform modulo
+arithmetic to align X-addresses onto phrase boundaries.
 
 modx[0..2] take values
 000	no mask
@@ -5330,7 +5330,7 @@ INT16/	addb_y
 		modx[0..2]
 		suba_x
 		suba_y
-		:IN); 
+		:IN);
 
 BEGIN
 
@@ -5394,7 +5394,7 @@ DEF DATA (
 		dcomp[0..7]		// data byte equal flags
 		srcd[0..7]		// bits to use for bit to byte expansion
 		zcomp[0..3]		// output from Z comparators
-		:OUT; 
+		:OUT;
 		a1_x[0..1]		// low two bits of A1 X pointer
 		big_pix			// pixel organisation is big-endian
 		blitter_active	// blitter is active
@@ -5477,13 +5477,13 @@ Srcd[0-7]	:= JOIN (srcd[0-7], srcdlo{0-7});
 Srcd[8-31]	:= JOIN (srcd[8-31], srcdlo{8-31});
 Srcd[32-63]	:= JOIN (srcd[32-63], srcdhi{0-31});*/
 
-// Destination data registers 
+// Destination data registers
 
 /*Data_dst	:= DATA_DST (dstd[0..63], dstz[0..1], clk, dstdld[0..1], dstzld[0..1], load_data[0..1]);
 Dstdlo		:= JOIN (dstdlo, dstd[0..31]);
 Dstdhi		:= JOIN (dstdhi, dstd[32..63]);*/
 
-// Pattern and Color data registers 
+// Pattern and Color data registers
 
 // Looks like this is simply another register file for the pattern data registers. No adding or anything funky
 // going on. Note that patd & patdv will output the same info.
@@ -5497,7 +5497,7 @@ Patdhi		:= JOIN (patdhi, patd[32..63]);*/
 
 // Multiplying data Mixer (NOT IN JAGUAR I)
 
-/*Datamix		:= DATAMIX (patdo[0..1], clk, colord[0..15], dpipe[1], dstd[0..63], int0dp[8..10], int1dp[8..10], 
+/*Datamix		:= DATAMIX (patdo[0..1], clk, colord[0..15], dpipe[1], dstd[0..63], int0dp[8..10], int1dp[8..10],
 			int2dp[8..10], int3dp[8..10], mixsel[0..2], patd[0..63], pdsel[0..1], srcd[0..63], textrgb, txtd[0..63]);*/
 
 // Logic function unit
@@ -5513,7 +5513,7 @@ Patdhi		:= JOIN (patdhi, patd[32..63]);*/
 //////////////////////////////////////////////////////////////////////////////////////
 
 // Increment and Step Registers
-   
+
 // Does it do anything without the step add lines? Check it!
 // No. This is pretty much just a register file without the Jaguar II lines...
 /*Inc_step	:= INC_STEP (iinc, istep[0..31], zinc, zstep[0..31], clk, ext_int, gpu_din, iincld, iincldx, istepadd,
@@ -5609,7 +5609,7 @@ if (logBlit)
 // 22 Mar 94
 // The data initializer - allows all four initial values to be computed from one (NOT IN JAGUAR I)
 
-/*Datinit		:= DATINIT (initcin[0..3], initinc[0..63], initpix[0..15], a1_x[0..1], big_pix, clk, iinc, init_if, init_ii, 
+/*Datinit		:= DATINIT (initcin[0..3], initinc[0..63], initpix[0..15], a1_x[0..1], big_pix, clk, iinc, init_if, init_ii,
 			init_zf, istep[0..31], zinc, zstep[0..31]);*/
 
 // Adder array for Z and intensity increments
@@ -5738,7 +5738,7 @@ Maskt[9-14]	:= OAN1P (maskt[9-14], maskt[8-13], s_coarse[2-7], e_coarse\[2-7]);*
 //////////////////////////////////////////////////////////////////////////////////////
 
 /* The bit terms are mirrored for big-endian pixels outside phrase
-mode.  The byte terms are mirrored for big-endian pixels in phrase 
+mode.  The byte terms are mirrored for big-endian pixels in phrase
 mode.  */
 
 /*Mirror_bit	:= AN2M (mir_bit, phrase_mode\, big_pix);
@@ -5887,7 +5887,7 @@ END;*/
 /**  COMP_CTRL - Comparator output control logic  *****************
 
 This block is responsible for taking the comparator outputs and
-using them as appropriate to inhibit writes.  Two methods are 
+using them as appropriate to inhibit writes.  Two methods are
 supported for inhibiting write data:
 
 -	suppression of the inner loop controlled write operation
@@ -5900,13 +5900,13 @@ and sixteen bit pixel modes.
 Writes can be suppressed by data being equal, by the Z comparator
 conditions being met, or by the bit to pixel expansion scheme.
 
-Pipe-lining issues: the data derived comparator outputs are stable 
+Pipe-lining issues: the data derived comparator outputs are stable
 until the next data read, well after the affected write from this
 operation.  However, the inner counter bits can count immediately
-before the ack for the last write.  Therefore, it is necessary to 
+before the ack for the last write.  Therefore, it is necessary to
 delay bcompbit select terms by one inner loop pipe-line stage,
 when generating the select for the data control - the output is
-delayed one further tick to give it write data timing (2/34). 
+delayed one further tick to give it write data timing (2/34).
 
 There is also a problem with computed data - the new values are
 calculated before the write associated with the old value has been
@@ -5955,7 +5955,7 @@ In phrase mode, the eight bits are used directly, and this mode is
 only applicable to 8-bit pixel mode (2/34) */
 
 /*Bcompselt[0-2]	:= EO (bcompselt[0-2], icount[0-2], big_pix);
-Bcompbit	:= MX8 (bcompbit, srcd[7], srcd[6], srcd[5], 
+Bcompbit	:= MX8 (bcompbit, srcd[7], srcd[6], srcd[5],
 			srcd[4], srcd[3], srcd[2], srcd[1], srcd[0], bcompselt[0..2]);
 Bcompbit\	:= INV1 (bcompbit\, bcompbit);*/
 ////////////////////////////////////// C++ CODE //////////////////////////////////////
@@ -5974,14 +5974,14 @@ if (logBlit)
 
 /* pipe-line the count */
 /*Bcompsel[0-2]	:= FDSYNC (bcompsel[0-2], bcompselt[0-2], step_inner, clk);
-Bcompbt		:= MX8 (bcompbitpt, srcd[7], srcd[6], srcd[5], 
+Bcompbt		:= MX8 (bcompbitpt, srcd[7], srcd[6], srcd[5],
 			srcd[4], srcd[3], srcd[2], srcd[1], srcd[0], bcompsel[0..2]);
 Bcompbitp	:= FD1Q (bcompbitp, bcompbitpt, clk);
 Bcompbitp\	:= INV1 (bcompbitp\, bcompbitp);*/
 
 /* For pixel mode, generate the write inhibit signal for all modes
 on bit inhibit, for 8 and 16 bit modes on comparator inhibit, and
-for 16 bit mode on Z inhibit 
+for 16 bit mode on Z inhibit
 
 Nowrite = bcompen . /bcompbit . /phrase_mode
 	+ dcompen . dcomp[0] . /phrase_mode . pixsize = 011
@@ -6023,7 +6023,7 @@ if (logBlit)
 //////////////////////////////////////////////////////////////////////////////////////
 
 /* For phrase mode, generate the byte inhibit signals for eight bit
-mode 011, or sixteen bit mode 100 
+mode 011, or sixteen bit mode 100
 dbinh\[0] =  pixsize[2] . zcomp[0]
 	 +  pixsize[2] . dcomp[0] . dcomp[1] . dcompen
 	 + /pixsize[2] . dcomp[0] . dcompen

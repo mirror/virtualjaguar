@@ -248,16 +248,16 @@
 
 #include <string.h>								// For memset()
 #include <stdlib.h>								// For rand()
-#include "video.h"
-#include "gpu.h"
-#include "objectp.h"
+#include "blitter.h"
 #include "cry2rgb.h"
-#include "settings.h"
-#include "clock.h"
+#include "event.h"
+#include "gpu.h"
 #include "jaguar.h"
 #include "log.h"
-#include "blitter.h"
 #include "m68k.h"
+#include "objectp.h"
+#include "settings.h"
+#include "video.h"
 
 #define NEW_TIMER_SYSTEM
 
@@ -316,8 +316,8 @@
 
 extern uint8 objectp_running;
 
-uint8 tom_ram_8[0x4000];
-uint32 tom_width, tom_height;
+uint8 tomRam8[0x4000];
+uint32 tomWidth, tomHeight;
 static uint32 tom_timer_prescaler;
 static uint32 tom_timer_divider;
 static int32 tom_timer_counter;
@@ -564,11 +564,11 @@ void TOMFillLookupTables(void)
 		uint32 chrm = (i & 0xF000) >> 12,
 			chrl = (i & 0x0F00) >> 8,
 			y = (i & 0x00FF);
-				
+
 		uint32 r = (((uint32)redcv[chrm][chrl]) * y) >> 8,
 			g = (((uint32)greencv[chrm][chrl]) * y) >> 8,
 			b = (((uint32)bluecv[chrm][chrl]) * y) >> 8;
-		
+
 		CRY16ToRGB32[i] = 0xFF000000 | (b << 16) | (g << 8) | r;
 		MIX16ToRGB32[i] = CRY16ToRGB32[i];
 	}
@@ -578,48 +578,48 @@ void TOMFillLookupTables(void)
 			MIX16ToRGB32[i] = RGB16ToRGB32[i];
 }
 
-void tom_set_pending_jerry_int(void)
+void TOMSetPendingJERRYInt(void)
 {
 	tom_jerry_int_pending = 1;
 }
 
-void tom_set_pending_timer_int(void)
+void TOMSetPendingTimerInt(void)
 {
 	tom_timer_int_pending = 1;
 }
 
-void tom_set_pending_object_int(void)
+void TOMSetPendingObjectInt(void)
 {
 	tom_object_int_pending = 1;
 }
 
-void tom_set_pending_gpu_int(void)
+void TOMSetPendingGPUInt(void)
 {
 	tom_gpu_int_pending = 1;
 }
 
-void tom_set_pending_video_int(void)
+void TOMSetPendingVideoInt(void)
 {
 	tom_video_int_pending = 1;
 }
 
-uint8 * tom_get_ram_pointer(void)
+uint8 * TOMGetRamPointer(void)
 {
-	return tom_ram_8;
+	return tomRam8;
 }
 
-uint8 tom_getVideoMode(void)
+uint8 TOMGetVideoMode(void)
 {
-	uint16 vmode = GET16(tom_ram_8, VMODE);
+	uint16 vmode = GET16(tomRam8, VMODE);
 	return ((vmode & VARMOD) >> 6) | ((vmode & MODE) >> 1);
 }
 
 //Used in only one place (and for debug purposes): OBJECTP.CPP
-uint16 tom_get_vdb(void)
+uint16 TOMGetVDB(void)
 {
 // This in NOT VDB!!!
-//	return GET16(tom_ram_8, VBE);
-	return GET16(tom_ram_8, VDB);
+//	return GET16(tomRam8, VBE);
+	return GET16(tomRam8, VDB);
 }
 
 //
@@ -628,14 +628,14 @@ uint16 tom_get_vdb(void)
 void tom_render_16bpp_cry_rgb_mix_scanline(uint32 * backbuffer)
 {
 //CHANGED TO 32BPP RENDERING
-	uint16 width = tom_width;
-	uint8 * current_line_buffer = (uint8 *)&tom_ram_8[0x1800];
-	
+	uint16 width = tomWidth;
+	uint8 * current_line_buffer = (uint8 *)&tomRam8[0x1800];
+
 	//New stuff--restrict our drawing...
-	uint8 pwidth = ((GET16(tom_ram_8, VMODE) & PWIDTH) >> 9) + 1;
+	uint8 pwidth = ((GET16(tomRam8, VMODE) & PWIDTH) >> 9) + 1;
 	//NOTE: May have to check HDB2 as well!
 	// Get start position in HC ticks
-	int16 startPos = GET16(tom_ram_8, HDB1) - (vjs.hardwareTypeNTSC ? LEFT_VISIBLE_HC : LEFT_VISIBLE_HC_PAL);
+	int16 startPos = GET16(tomRam8, HDB1) - (vjs.hardwareTypeNTSC ? LEFT_VISIBLE_HC : LEFT_VISIBLE_HC_PAL);
 	startPos /= pwidth;
 	if (startPos < 0)
 		current_line_buffer += 2 * -startPos;
@@ -661,13 +661,13 @@ void tom_render_16bpp_cry_rgb_mix_scanline(uint32 * backbuffer)
 void tom_render_16bpp_cry_scanline(uint32 * backbuffer)
 {
 //CHANGED TO 32BPP RENDERING
-	uint16 width = tom_width;
-	uint8 * current_line_buffer = (uint8 *)&tom_ram_8[0x1800];
+	uint16 width = tomWidth;
+	uint8 * current_line_buffer = (uint8 *)&tomRam8[0x1800];
 
 	//New stuff--restrict our drawing...
-	uint8 pwidth = ((GET16(tom_ram_8, VMODE) & PWIDTH) >> 9) + 1;
+	uint8 pwidth = ((GET16(tomRam8, VMODE) & PWIDTH) >> 9) + 1;
 	//NOTE: May have to check HDB2 as well!
-	int16 startPos = GET16(tom_ram_8, HDB1) - (vjs.hardwareTypeNTSC ? LEFT_VISIBLE_HC : LEFT_VISIBLE_HC_PAL);// Get start position in HC ticks
+	int16 startPos = GET16(tomRam8, HDB1) - (vjs.hardwareTypeNTSC ? LEFT_VISIBLE_HC : LEFT_VISIBLE_HC_PAL);// Get start position in HC ticks
 	startPos /= pwidth;
 	if (startPos < 0)
 		current_line_buffer += 2 * -startPos;
@@ -690,13 +690,13 @@ void tom_render_16bpp_cry_scanline(uint32 * backbuffer)
 void tom_render_24bpp_scanline(uint32 * backbuffer)
 {
 //CHANGED TO 32BPP RENDERING
-	uint16 width = tom_width;
-	uint8 * current_line_buffer = (uint8 *)&tom_ram_8[0x1800];
-	
+	uint16 width = tomWidth;
+	uint8 * current_line_buffer = (uint8 *)&tomRam8[0x1800];
+
 	//New stuff--restrict our drawing...
-	uint8 pwidth = ((GET16(tom_ram_8, VMODE) & PWIDTH) >> 9) + 1;
+	uint8 pwidth = ((GET16(tomRam8, VMODE) & PWIDTH) >> 9) + 1;
 	//NOTE: May have to check HDB2 as well!
-	int16 startPos = GET16(tom_ram_8, HDB1) - (vjs.hardwareTypeNTSC ? LEFT_VISIBLE_HC : LEFT_VISIBLE_HC_PAL);	// Get start position in HC ticks
+	int16 startPos = GET16(tomRam8, HDB1) - (vjs.hardwareTypeNTSC ? LEFT_VISIBLE_HC : LEFT_VISIBLE_HC_PAL);	// Get start position in HC ticks
 	startPos /= pwidth;
 	if (startPos < 0)
 		current_line_buffer += 4 * -startPos;
@@ -722,9 +722,9 @@ void tom_render_24bpp_scanline(uint32 * backbuffer)
 //
 void tom_render_16bpp_direct_scanline(uint32 * backbuffer)
 {
-	uint16 width = tom_width;
-	uint8 * current_line_buffer = (uint8 *)&tom_ram_8[0x1800];
-	
+	uint16 width = tomWidth;
+	uint8 * current_line_buffer = (uint8 *)&tomRam8[0x1800];
+
 	while (width)
 	{
 		uint16 color = (*current_line_buffer++) << 8;
@@ -742,13 +742,13 @@ void tom_render_16bpp_rgb_scanline(uint32 * backbuffer)
 //CHANGED TO 32BPP RENDERING
 	// 16 BPP RGB: 0-5 green, 6-10 blue, 11-15 red
 
-	uint16 width = tom_width;
-	uint8 * current_line_buffer = (uint8 *)&tom_ram_8[0x1800];
-	
+	uint16 width = tomWidth;
+	uint8 * current_line_buffer = (uint8 *)&tomRam8[0x1800];
+
 	//New stuff--restrict our drawing...
-	uint8 pwidth = ((GET16(tom_ram_8, VMODE) & PWIDTH) >> 9) + 1;
+	uint8 pwidth = ((GET16(tomRam8, VMODE) & PWIDTH) >> 9) + 1;
 	//NOTE: May have to check HDB2 as well!
-	int16 startPos = GET16(tom_ram_8, HDB1) - (vjs.hardwareTypeNTSC ? LEFT_VISIBLE_HC : LEFT_VISIBLE_HC_PAL);	// Get start position in HC ticks
+	int16 startPos = GET16(tomRam8, HDB1) - (vjs.hardwareTypeNTSC ? LEFT_VISIBLE_HC : LEFT_VISIBLE_HC_PAL);	// Get start position in HC ticks
 	startPos /= pwidth;
 
 	if (startPos < 0)
@@ -773,9 +773,9 @@ void tom_render_16bpp_rgb_scanline(uint32 * backbuffer)
 
 void tom_render_16bpp_cry_rgb_mix_stretch_scanline(uint32 *backbuffer)
 {
-	uint16 width=tom_width;
-	uint8 *current_line_buffer=(uint8*)&tom_ram_8[0x1800];
-	
+	uint16 width=tomWidth;
+	uint8 *current_line_buffer=(uint8*)&tomRam8[0x1800];
+
 	while (width)
 	{
 		uint16 color = *current_line_buffer++;
@@ -791,37 +791,37 @@ void tom_render_16bpp_cry_stretch_scanline(uint32 *backbuffer)
 {
 	uint32 chrm, chrl, y;
 
-	uint16 width=tom_width;
-	uint8 *current_line_buffer=(uint8*)&tom_ram_8[0x1800];
-	
+	uint16 width=tomWidth;
+	uint8 *current_line_buffer=(uint8*)&tomRam8[0x1800];
+
 	while (width)
 	{
 		uint16 color;
 		color=*current_line_buffer++;
 		color<<=8;
 		color|=*current_line_buffer++;
-		
-		chrm = (color & 0xF000) >> 12;    
+
+		chrm = (color & 0xF000) >> 12;
 		chrl = (color & 0x0F00) >> 8;
 		y    = (color & 0x00FF);
-				
+
 		uint16 red   =	((((uint32)redcv[chrm][chrl])*y)>>11);
 		uint16 green =	((((uint32)greencv[chrm][chrl])*y)>>11);
 		uint16 blue  =	((((uint32)bluecv[chrm][chrl])*y)>>11);
-		
+
 		uint16 color2;
 		color2=*current_line_buffer++;
 		color2<<=8;
 		color2|=*current_line_buffer++;
-		
-		chrm = (color2 & 0xF000) >> 12;    
+
+		chrm = (color2 & 0xF000) >> 12;
 		chrl = (color2 & 0x0F00) >> 8;
 		y    = (color2 & 0x00FF);
-				
+
 		uint16 red2   =	((((uint32)redcv[chrm][chrl])*y)>>11);
 		uint16 green2 =	((((uint32)greencv[chrm][chrl])*y)>>11);
 		uint16 blue2  =	((((uint32)bluecv[chrm][chrl])*y)>>11);
-		
+
 		red=(red+red2)>>1;
 		green=(green+green2)>>1;
 		blue=(blue+blue2)>>1;
@@ -833,9 +833,9 @@ void tom_render_16bpp_cry_stretch_scanline(uint32 *backbuffer)
 
 void tom_render_24bpp_stretch_scanline(uint32 *backbuffer)
 {
-	uint16 width=tom_width;
-	uint8 *current_line_buffer=(uint8*)&tom_ram_8[0x1800];
-	
+	uint16 width=tomWidth;
+	uint8 *current_line_buffer=(uint8*)&tomRam8[0x1800];
+
 	while (width)
 	{
 		uint16 green=*current_line_buffer++;
@@ -853,9 +853,9 @@ void tom_render_24bpp_stretch_scanline(uint32 *backbuffer)
 
 void tom_render_16bpp_direct_stretch_scanline(uint32 *backbuffer)
 {
-	uint16 width=tom_width;
-	uint8 *current_line_buffer=(uint8*)&tom_ram_8[0x1800];
-	
+	uint16 width=tomWidth;
+	uint8 *current_line_buffer=(uint8*)&tomRam8[0x1800];
+
 	while (width)
 	{
 		uint16 color=*current_line_buffer++;
@@ -870,9 +870,9 @@ void tom_render_16bpp_direct_stretch_scanline(uint32 *backbuffer)
 
 void tom_render_16bpp_rgb_stretch_scanline(uint32 *backbuffer)
 {
-	uint16 width=tom_width;
-	uint8 *current_line_buffer=(uint8*)&tom_ram_8[0x1800];
-	
+	uint16 width=tomWidth;
+	uint8 *current_line_buffer=(uint8*)&tomRam8[0x1800];
+
 	while (width)
 	{
 		uint16 color1=*current_line_buffer++;
@@ -909,15 +909,15 @@ void TOMExecScanline(uint16 scanline, bool render)
 	if (scanline & 0x01)							// Execute OP only on even lines (non-interlaced only!)
 		return;
 
-	if (scanline >= (uint16)GET16(tom_ram_8, VDB) && scanline < (uint16)GET16(tom_ram_8, VDE))
+	if (scanline >= (uint16)GET16(tomRam8, VDB) && scanline < (uint16)GET16(tomRam8, VDE))
 	{
 		if (render)
 		{
-			uint8 * current_line_buffer = (uint8 *)&tom_ram_8[0x1800];
-			uint8 bgHI = tom_ram_8[BG], bgLO = tom_ram_8[BG + 1];
+			uint8 * current_line_buffer = (uint8 *)&tomRam8[0x1800];
+			uint8 bgHI = tomRam8[BG], bgLO = tomRam8[BG + 1];
 
 			// Clear line buffer with BG
-			if (GET16(tom_ram_8, VMODE) & BGEN) // && (CRY or RGB16)...
+			if (GET16(tomRam8, VMODE) & BGEN) // && (CRY or RGB16)...
 				for(uint32 i=0; i<720; i++)
 					*current_line_buffer++ = bgHI, *current_line_buffer++ = bgLO;
 
@@ -940,7 +940,7 @@ void TOMExecScanline(uint16 scanline, bool render)
 		{
 //NOTE: The following doesn't put BORDER color on the sides... !!! FIX !!!
 			if (vjs.renderType == RT_NORMAL)
-				scanline_render[tom_getVideoMode()](TOMBackbuffer);
+				scanline_render[TOMGetVideoMode()](TOMBackbuffer);
 			else//TV type render
 			{
 /*
@@ -956,9 +956,9 @@ void TOMExecScanline(uint16 scanline, bool render)
 #define   MODE		0x0006		// Line buffer to video generator mode
 #define   VARMOD	0x0100		// Mixed CRY/RGB16 mode (only works in MODE 0!)
 */
-				uint8 pwidth = ((GET16(tom_ram_8, VMODE) & PWIDTH) >> 9) + 1;
-				uint8 mode = ((GET16(tom_ram_8, VMODE) & MODE) >> 1);
-				bool varmod = GET16(tom_ram_8, VMODE) & VARMOD;
+				uint8 pwidth = ((GET16(tomRam8, VMODE) & PWIDTH) >> 9) + 1;
+				uint8 mode = ((GET16(tomRam8, VMODE) & MODE) >> 1);
+				bool varmod = GET16(tomRam8, VMODE) & VARMOD;
 //The video texture line buffer ranges from 0 to 1279, with its left edge starting at LEFT_VISIBLE_HC.
 //So, we need to start writing into the backbuffer at HDB1, using pwidth as our scaling factor. The
 //way it generates its image on a real TV!
@@ -972,13 +972,13 @@ void TOMExecScanline(uint16 scanline, bool render)
 		{
 			// If outside of VDB & VDE, then display the border color
 /*			int16 * currentLineBuffer = TOMBackbuffer;
-			uint8 g = tom_ram_8[BORD1], r = tom_ram_8[BORD1 + 1], b = tom_ram_8[BORD2 + 1];
+			uint8 g = tomRam8[BORD1], r = tomRam8[BORD1 + 1], b = tomRam8[BORD2 + 1];
 			uint16 pixel = ((r & 0xF8) << 7) | ((g & 0xF8) << 2) | (b >> 3);//*/
 			uint32 * currentLineBuffer = TOMBackbuffer;
-			uint8 g = tom_ram_8[BORD1], r = tom_ram_8[BORD1 + 1], b = tom_ram_8[BORD2 + 1];
+			uint8 g = tomRam8[BORD1], r = tomRam8[BORD1 + 1], b = tomRam8[BORD2 + 1];
 			uint32 pixel = 0xFF000000 | (b << 16) | (g << 8) | r;
 
-			for(uint32 i=0; i<tom_width; i++)
+			for(uint32 i=0; i<tomWidth; i++)
 				*currentLineBuffer++ = pixel;
 		}
 
@@ -990,34 +990,28 @@ void TOMExecScanline(uint16 scanline, bool render)
 //
 // TOM initialization
 //
-void tom_init(void)
+void TOMInit(void)
 {
-//	memory_malloc_secure((void **)&tom_cry_rgb_mix_lut, 2 * 0x10000, "CRY/RGB mixed mode LUT");
-
-	op_init();
-	blitter_init();
-//This should be done by JERRY!	pcm_init();
-//	memory_malloc_secure((void **)&tom_ram_8, 0x4000, "TOM RAM");
-	tom_reset();
+	OPInit();
+	BlitterInit();
+	TOMReset();
 	// Setup the non-stretchy scanline rendering...
 	memcpy(scanline_render, scanline_render_normal, sizeof(scanline_render));
-//	tom_calc_cry_rgb_mix_lut();
 	TOMFillLookupTables();
 }
 
-void tom_done(void)
+void TOMDone(void)
 {
-	op_done();
-//This should be done by JERRY!	pcm_done();
-	blitter_done();
-	WriteLog("TOM: Resolution %i x %i %s\n", tom_getVideoModeWidth(), tom_getVideoModeHeight(),
-		videoMode_to_str[tom_getVideoMode()]);
+	OPDone();
+	BlitterDone();
+	WriteLog("TOM: Resolution %i x %i %s\n", TOMGetVideoModeWidth(), TOMGetVideoModeHeight(),
+		videoMode_to_str[TOMGetVideoMode()]);
 //	WriteLog("\ntom: object processor:\n");
 //	WriteLog("tom: pointer to object list: 0x%.8x\n",op_get_list_pointer());
 //	WriteLog("tom: INT1=0x%.2x%.2x\n",TOMReadByte(0xf000e0),TOMReadByte(0xf000e1));
 //	gpu_done();
 //	dsp_done();
-//	memory_free(tom_ram_8);
+//	memory_free(tomRam8);
 //	memory_free(tom_cry_rgb_mix_lut);
 }
 
@@ -1026,7 +1020,7 @@ void tom_done(void)
 	return hblankWidthInPixels;
 }*/
 
-uint32 tom_getVideoModeWidth(void)
+uint32 TOMGetVideoModeWidth(void)
 {
 	//These widths are pretty bogus. Should use HDB1/2 & HDE/HBB & PWIDTH to calc the width...
 //	uint32 width[8] = { 1330, 665, 443, 332, 266, 222, 190, 166 };
@@ -1049,18 +1043,18 @@ uint32 tom_getVideoModeWidth(void)
 
 	// NOTE: Even though the PWIDTH value is + 1, here we're using a zero-based index and
 	//       so we don't bother to add one...
-//	return width[(GET16(tom_ram_8, VMODE) & PWIDTH) >> 9];
+//	return width[(GET16(tomRam8, VMODE) & PWIDTH) >> 9];
 
 	// Now, we just calculate it...
-/*	uint16 hdb1 = GET16(tom_ram_8, HDB1), hde = GET16(tom_ram_8, HDE),
-		hbb = GET16(tom_ram_8, HBB), pwidth = ((GET16(tom_ram_8, VMODE) & PWIDTH) >> 9) + 1;
+/*	uint16 hdb1 = GET16(tomRam8, HDB1), hde = GET16(tomRam8, HDE),
+		hbb = GET16(tomRam8, HBB), pwidth = ((GET16(tomRam8, VMODE) & PWIDTH) >> 9) + 1;
 //	return ((hbb < hde ? hbb : hde) - hdb1) / pwidth;
 //Temporary, for testing Doom...
 	return ((hbb < hde ? hbb : hde) - hdb1) / (pwidth == 8 ? 4 : pwidth);*/
 
 	// To make it easier to make a quasi-fixed display size, we restrict the viewing
 	// area to an arbitrary range of the Horizontal Count.
-	uint16 pwidth = ((GET16(tom_ram_8, VMODE) & PWIDTH) >> 9) + 1;
+	uint16 pwidth = ((GET16(tomRam8, VMODE) & PWIDTH) >> 9) + 1;
 	return (vjs.hardwareTypeNTSC ? RIGHT_VISIBLE_HC - LEFT_VISIBLE_HC : RIGHT_VISIBLE_HC_PAL - LEFT_VISIBLE_HC_PAL) / pwidth;
 //Temporary, for testing Doom...
 //	return (RIGHT_VISIBLE_HC - LEFT_VISIBLE_HC) / (pwidth == 8 ? 4 : pwidth);
@@ -1090,15 +1084,15 @@ uint32 tom_getVideoModeWidth(void)
 // Same with the width... [Width is pretty much virtualized now.]
 
 // Now that that the width is virtualized, let's virtualize the height. :-)
-uint32 tom_getVideoModeHeight(void)
+uint32 TOMGetVideoModeHeight(void)
 {
-//	uint16 vmode = GET16(tom_ram_8, VMODE);
-//	uint16 vbe = GET16(tom_ram_8, VBE);
-//	uint16 vbb = GET16(tom_ram_8, VBB);
-//	uint16 vdb = GET16(tom_ram_8, VDB);
-//	uint16 vde = GET16(tom_ram_8, VDE);
-//	uint16 vp = GET16(tom_ram_8, VP);
-	
+//	uint16 vmode = GET16(tomRam8, VMODE);
+//	uint16 vbe = GET16(tomRam8, VBE);
+//	uint16 vbb = GET16(tomRam8, VBB);
+//	uint16 vdb = GET16(tomRam8, VDB);
+//	uint16 vde = GET16(tomRam8, VDE);
+//	uint16 vp = GET16(tomRam8, VP);
+
 /*	if (vde == 0xFFFF)
 		vde = vbb;//*/
 
@@ -1123,49 +1117,49 @@ uint32 tom_getVideoModeHeight(void)
 // TOM reset code
 // Now PAL friendly!
 //
-void tom_reset(void)
+void TOMReset(void)
 {
-	op_reset();
-	blitter_reset();
-	memset(tom_ram_8, 0x00, 0x4000);
+	OPReset();
+	BlitterReset();
+	memset(tomRam8, 0x00, 0x4000);
 
 	if (vjs.hardwareTypeNTSC)
 	{
-		SET16(tom_ram_8, MEMCON1, 0x1861);
-		SET16(tom_ram_8, MEMCON2, 0x35CC);
-		SET16(tom_ram_8, HP, 844);				// Horizontal Period (1-based; HP=845)
-		SET16(tom_ram_8, HBB, 1713);			// Horizontal Blank Begin
-		SET16(tom_ram_8, HBE, 125);				// Horizontal Blank End
-		SET16(tom_ram_8, HDE, 1665);			// Horizontal Display End
-		SET16(tom_ram_8, HDB1, 203);			// Horizontal Display Begin 1
-		SET16(tom_ram_8, VP, 523);				// Vertical Period (1-based; in this case VP = 524)
-		SET16(tom_ram_8, VBE, 24);				// Vertical Blank End
-		SET16(tom_ram_8, VDB, 38);				// Vertical Display Begin
-		SET16(tom_ram_8, VDE, 518);				// Vertical Display End
-		SET16(tom_ram_8, VBB, 500);				// Vertical Blank Begin
-		SET16(tom_ram_8, VS, 517);				// Vertical Sync
-		SET16(tom_ram_8, VMODE, 0x06C1);
+		SET16(tomRam8, MEMCON1, 0x1861);
+		SET16(tomRam8, MEMCON2, 0x35CC);
+		SET16(tomRam8, HP, 844);				// Horizontal Period (1-based; HP=845)
+		SET16(tomRam8, HBB, 1713);			// Horizontal Blank Begin
+		SET16(tomRam8, HBE, 125);				// Horizontal Blank End
+		SET16(tomRam8, HDE, 1665);			// Horizontal Display End
+		SET16(tomRam8, HDB1, 203);			// Horizontal Display Begin 1
+		SET16(tomRam8, VP, 523);				// Vertical Period (1-based; in this case VP = 524)
+		SET16(tomRam8, VBE, 24);				// Vertical Blank End
+		SET16(tomRam8, VDB, 38);				// Vertical Display Begin
+		SET16(tomRam8, VDE, 518);				// Vertical Display End
+		SET16(tomRam8, VBB, 500);				// Vertical Blank Begin
+		SET16(tomRam8, VS, 517);				// Vertical Sync
+		SET16(tomRam8, VMODE, 0x06C1);
 	}
 	else	// PAL Jaguar
 	{
-		SET16(tom_ram_8, MEMCON1, 0x1861);
-		SET16(tom_ram_8, MEMCON2, 0x35CC);
-		SET16(tom_ram_8, HP, 850);				// Horizontal Period
-		SET16(tom_ram_8, HBB, 1711);			// Horizontal Blank Begin
-		SET16(tom_ram_8, HBE, 158);				// Horizontal Blank End
-		SET16(tom_ram_8, HDE, 1665);			// Horizontal Display End
-		SET16(tom_ram_8, HDB1, 203);			// Horizontal Display Begin 1
-		SET16(tom_ram_8, VP, 623);				// Vertical Period (1-based; in this case VP = 624)
-		SET16(tom_ram_8, VBE, 34);				// Vertical Blank End
-		SET16(tom_ram_8, VDB, 38);				// Vertical Display Begin
-		SET16(tom_ram_8, VDE, 518);				// Vertical Display End
-		SET16(tom_ram_8, VBB, 600);				// Vertical Blank Begin
-		SET16(tom_ram_8, VS, 618);				// Vertical Sync
-		SET16(tom_ram_8, VMODE, 0x06C1);
+		SET16(tomRam8, MEMCON1, 0x1861);
+		SET16(tomRam8, MEMCON2, 0x35CC);
+		SET16(tomRam8, HP, 850);				// Horizontal Period
+		SET16(tomRam8, HBB, 1711);			// Horizontal Blank Begin
+		SET16(tomRam8, HBE, 158);				// Horizontal Blank End
+		SET16(tomRam8, HDE, 1665);			// Horizontal Display End
+		SET16(tomRam8, HDB1, 203);			// Horizontal Display Begin 1
+		SET16(tomRam8, VP, 623);				// Vertical Period (1-based; in this case VP = 624)
+		SET16(tomRam8, VBE, 34);				// Vertical Blank End
+		SET16(tomRam8, VDB, 38);				// Vertical Display Begin
+		SET16(tomRam8, VDE, 518);				// Vertical Display End
+		SET16(tomRam8, VBB, 600);				// Vertical Blank Begin
+		SET16(tomRam8, VS, 618);				// Vertical Sync
+		SET16(tomRam8, VMODE, 0x06C1);
 	}
 
-	tom_width = 0;
-	tom_height = 0;
+	tomWidth = 0;
+	tomHeight = 0;
 
 	tom_jerry_int_pending = 0;
 	tom_timer_int_pending = 0;
@@ -1211,7 +1205,7 @@ uint8 TOMReadByte(uint32 offset, uint32 who/*=UNKNOWN*/)
 	else if (offset == 0xF00053)
 		return tom_timer_divider & 0xFF;
 
-	return tom_ram_8[offset & 0x3FFF];
+	return tomRam8[offset & 0x3FFF];
 }
 
 //
@@ -1331,10 +1325,10 @@ void TOMWriteByte(uint32 offset, uint8 data, uint32 who/*=UNKNOWN*/)
 	{
 		// Writing to one CLUT writes to the other
 		offset &= 0x5FF;		// Mask out $F00600 (restrict to $F00400-5FF)
-		tom_ram_8[offset] = data, tom_ram_8[offset + 0x200] = data;
+		tomRam8[offset] = data, tomRam8[offset + 0x200] = data;
 	}
 
-	tom_ram_8[offset & 0x3FFF] = data;
+	tomRam8[offset & 0x3FFF] = data;
 }
 
 //
@@ -1412,8 +1406,8 @@ if (offset >= 0xF02000 && offset <= 0xF020FF)
 		// Writing to one CLUT writes to the other
 		offset &= 0x5FF;		// Mask out $F00600 (restrict to $F00400-5FF)
 // Watch out for unaligned writes here! (Not fixed yet)
-		SET16(tom_ram_8, offset, data);
-		SET16(tom_ram_8, offset + 0x200, data);
+		SET16(tomRam8, offset, data);
+		SET16(tomRam8, offset + 0x200, data);
 	}
 
 	offset &= 0x3FFF;
@@ -1455,42 +1449,42 @@ if (offset == HBB)
 if (offset == HBE)
 	WriteLog("TOM: Horizontal Blank End written by %s: %u\n", whoName[who], data);
 if (offset == VMODE)
-	WriteLog("TOM: Video Mode written by %s: %04X. PWIDTH = %u, MODE = %s, flags:%s%s (VC = %u)\n", whoName[who], data, ((data >> 9) & 0x07) + 1, videoMode_to_str[(data & MODE) >> 1], (data & BGEN ? " BGEN" : ""), (data & VARMOD ? " VARMOD" : ""), GET16(tom_ram_8, VC));
+	WriteLog("TOM: Video Mode written by %s: %04X. PWIDTH = %u, MODE = %s, flags:%s%s (VC = %u)\n", whoName[who], data, ((data >> 9) & 0x07) + 1, videoMode_to_str[(data & MODE) >> 1], (data & BGEN ? " BGEN" : ""), (data & VARMOD ? " VARMOD" : ""), GET16(tomRam8, VC));
 
 	// detect screen resolution changes
 //This may go away in the future, if we do the virtualized screen thing...
 //This may go away soon!
 	if ((offset >= 0x28) && (offset <= 0x4F))
 	{
-		uint32 width = tom_getVideoModeWidth(), height = tom_getVideoModeHeight();
+		uint32 width = TOMGetVideoModeWidth(), height = TOMGetVideoModeHeight();
 
-		if ((width != tom_width) || (height != tom_height))
+		if ((width != tomWidth) || (height != tomHeight))
 		{
-			tom_width = width, tom_height = height;
+			tomWidth = width, tomHeight = height;
 
 			if (vjs.renderType == RT_NORMAL)
-				ResizeScreen(tom_width, tom_height);
+				ResizeScreen(tomWidth, tomHeight);
 		}
 	}
 }
 
-int tom_irq_enabled(int irq)
+int TOMIRQEnabled(int irq)
 {
 	// This is the correct byte in big endian... D'oh!
 //	return jaguar_byte_read(0xF000E1) & (1 << irq);
-	return tom_ram_8[INT1 + 1/*0xE1*/] & (1 << irq);
+	return tomRam8[INT1 + 1/*0xE1*/] & (1 << irq);
 }
 
 //unused
 /*void tom_set_irq_latch(int irq, int enabled)
 {
-	tom_ram_8[0xE0] = (tom_ram_8[0xE0] & (~(1<<irq))) | (enabled ? (1<<irq) : 0);
+	tomRam8[0xE0] = (tomRam8[0xE0] & (~(1<<irq))) | (enabled ? (1<<irq) : 0);
 }*/
 
 //unused
 /*uint16 tom_irq_control_reg(void)
 {
-	return (tom_ram_8[0xE0] << 8) | tom_ram_8[0xE1];
+	return (tomRam8[0xE0] << 8) | tomRam8[0xE1];
 }*/
 
 // NEW:
@@ -1513,7 +1507,7 @@ void TOMResetPIT(void)
 #else
 	// Need to remove previous timer from the queue, if it exists...
 	RemoveCallback(TOMPITCallback);
-	
+
 	if (tom_timer_prescaler)
 	{
 		double usecs = (float)(tom_timer_prescaler + 1) * (float)(tom_timer_divider + 1) * RISC_CYCLE_IN_USEC;
@@ -1536,10 +1530,10 @@ void TOMExecPIT(uint32 cycles)
 
 		if (tom_timer_counter <= 0)
 		{
-			tom_set_pending_timer_int();
+			TOMSetPendingTimerInt();
 			GPUSetIRQLine(GPUIRQ_TIMER, ASSERT_LINE);	// GPUSetIRQLine does the 'IRQ enabled' checking
 
-			if (tom_irq_enabled(IRQ_TIMER))
+			if (TOMIRQEnabled(IRQ_TIMER))
 				m68k_set_irq(7);				// Cause a 68000 NMI...
 
 			TOMResetPIT();
@@ -1551,11 +1545,11 @@ void TOMExecPIT(uint32 cycles)
 void TOMPITCallback(void)
 {
 //	INT1_RREG |= 0x08;                         // Set TOM PIT interrupt pending
-	tom_set_pending_timer_int();
+	TOMSetPendingTimerInt();
     GPUSetIRQLine(GPUIRQ_TIMER, ASSERT_LINE);  // It does the 'IRQ enabled' checking
 
 //	if (INT1_WREG & 0x08)
-	if (tom_irq_enabled(IRQ_TIMER))
+	if (TOMIRQEnabled(IRQ_TIMER))
 		m68k_set_irq(7);                       // Generate 68K NMI
 
 	TOMResetPIT();

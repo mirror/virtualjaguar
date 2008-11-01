@@ -148,15 +148,15 @@
 
 #include <string.h>								// For memcpy
 //#include <math.h>
-#include "jaguar.h"
-#include "wavetable.h"
-#include "clock.h"
-#include "dsp.h"
-#include "dac.h"
-#include "joystick.h"
-#include "eeprom.h"
-#include "log.h"
 #include "cdrom.h"
+#include "dac.h"
+#include "dsp.h"
+#include "eeprom.h"
+#include "event.h"
+#include "jaguar.h"
+#include "joystick.h"
+#include "log.h"
+#include "wavetable.h"
 
 //Note that 44100 Hz requires samples every 22.675737 usec.
 #define NEW_TIMER_SYSTEM
@@ -196,7 +196,7 @@ void JERRYI2SCallback(void);
 
 //This is only used by the old system, so once the new timer system is working this
 //should be safe to nuke.
-void jerry_i2s_exec(uint32 cycles)
+void JERRYI2SExec(uint32 cycles)
 {
 #ifndef NEW_TIMER_SYSTEM
 	extern uint16 serialMode;						// From DAC.CPP
@@ -411,7 +411,7 @@ void JERRYI2SCallback(void)
 }
 
 
-void jerry_init(void)
+void JERRYInit(void)
 {
 //	clock_init();
 //	anajoy_init();
@@ -428,12 +428,12 @@ void jerry_init(void)
 	JERRYPIT2Divider = 0xFFFF;
 }
 
-void jerry_reset(void)
+void JERRYReset(void)
 {
 //	clock_reset();
 //	anajoy_reset();
 	JoystickReset();
-	eeprom_reset();
+	EepromReset();
 	JERRYResetI2S();
 	DACReset();
 
@@ -446,7 +446,7 @@ void jerry_reset(void)
 	jerry_timer_2_counter = 0;
 }
 
-void jerry_done(void)
+void JERRYDone(void)
 {
 	WriteLog("JERRY: M68K Interrupt control ($F10020) = %04X\n", GET16(jerry_ram_8, 0x20));
 //	memory_free(jerry_ram_8);
@@ -454,7 +454,7 @@ void jerry_done(void)
 //	anajoy_done();
 	JoystickDone();
 	DACDone();
-	eeprom_done();
+	EepromDone();
 }
 
 bool JERRYIRQEnabled(int irq)
@@ -540,9 +540,9 @@ WriteLog("JERRY: Unhandled timer read (BYTE) at %08X...\n", offset);
 //	else if (offset >= 0xF17C00 && offset <= 0xF17C01)
 //		return anajoy_byte_read(offset);
 	else if (offset >= 0xF14000 && offset <= 0xF14003)
-		return JoystickReadByte(offset) | eeprom_byte_read(offset);
+		return JoystickReadByte(offset) | EepromReadByte(offset);
 	else if (offset >= 0xF14000 && offset <= 0xF1A0FF)
-		return eeprom_byte_read(offset);
+		return EepromReadByte(offset);
 
 	return jerry_ram_8[offset & 0xFFFF];
 }
@@ -607,11 +607,11 @@ WriteLog("JERRY: Unhandled timer read (WORD) at %08X...\n", offset);
 //	else if ((offset >= 0xF17C00) && (offset <= 0xF17C01))
 //		return anajoy_word_read(offset);
 	else if (offset == 0xF14000)
-		return (JoystickReadWord(offset) & 0xFFFE) | eeprom_word_read(offset);
+		return (JoystickReadWord(offset) & 0xFFFE) | EepromReadWord(offset);
 	else if ((offset >= 0xF14002) && (offset < 0xF14003))
 		return JoystickReadWord(offset);
 	else if ((offset >= 0xF14000) && (offset <= 0xF1A0FF))
-		return eeprom_word_read(offset);
+		return EepromReadWord(offset);
 
 /*if (offset >= 0xF1D000)
 	WriteLog("JERRY: Reading word at %08X [%04X]...\n", offset, ((uint16)jerry_ram_8[(offset+0)&0xFFFF] << 8) | jerry_ram_8[(offset+1)&0xFFFF]);//*/
@@ -723,12 +723,12 @@ WriteLog("JERRY: (68K int en/lat - Unhandled!) Tried to write $%02X to $%08X!\n"
 	else if ((offset >= 0xF14000) && (offset <= 0xF14003))
 	{
 		JoystickWriteByte(offset, data);
-		eeprom_byte_write(offset, data);
+		EepromWriteByte(offset, data);
 		return;
 	}
 	else if ((offset >= 0xF14000) && (offset <= 0xF1A0FF))
 	{
-		eeprom_byte_write(offset, data);
+		EepromWriteByte(offset, data);
 		return;
 	}
 
@@ -828,12 +828,12 @@ WriteLog("JERRY: (68K int en/lat - Unhandled!) Tried to write $%04X to $%08X!\n"
 	else if (offset >= 0xF14000 && offset < 0xF14003)
 	{
 		JoystickWriteWord(offset, data);
-		eeprom_word_write(offset, data);
+		EepromWriteWord(offset, data);
 		return;
 	}
 	else if (offset >= 0xF14000 && offset <= 0xF1A0FF)
 	{
-		eeprom_word_write(offset, data);
+		EepromWriteWord(offset, data);
 		return;
 	}
 

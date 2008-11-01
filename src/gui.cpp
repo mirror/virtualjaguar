@@ -7,25 +7,25 @@
 
 #include "gui.h"
 
-#include <sys/types.h>								// For MacOS <dirent.h> dependency
-#include <dirent.h>
-#include <SDL.h>
-#include <string>
-#include <vector>
 #include <algorithm>
 #include <ctype.h>									// For toupper()
-#include "settings.h"
-#include "tom.h"
-#include "video.h"
-#include "clock.h"
+#include <SDL.h>
+#include <string>
+#include <sys/types.h>								// For MacOS <dirent.h> dependency
+#include <dirent.h>
+#include <vector>
+#include "crc32.h"
+#include "event.h"
+#include "file.h"
 #include "font1.h"
 #include "font14pt.h"								// Also 15, 16, 17, 18
 #include "guielements.h"
-#include "crc32.h"
-#include "sdlemu_opengl.h"
-#include "log.h"
 #include "jaguar.h"
-#include "file.h"
+#include "log.h"
+#include "sdlemu_opengl.h"
+#include "settings.h"
+#include "tom.h"
+#include "video.h"
 
 using namespace std;								// For STL stuff
 
@@ -1610,7 +1610,7 @@ void FillScreenRectangle(uint32 * screen, uint32 x, uint32 y, uint32 w, uint32 h
 // GUI stuff--it's not crunchy, it's GUI! ;-)
 //
 
-void InitGUI(void)
+void GUIInit(void)
 {
 	SDL_ShowCursor(SDL_DISABLE);
 	SDL_GetMouseState(&mouseX, &mouseY);
@@ -1693,13 +1693,13 @@ Bitmap ptr = { 6, 8, 4,
 //This is crappy!!! !!! FIX !!!
 //Is this even needed any more? Hmm. Maybe. Dunno.
 WriteLog("GUI: Resetting Jaguar...\n");
-	jaguar_reset();
+	JaguarReset();
 
 WriteLog("GUI: Clearing BG save...\n");
 	// Set up our background save...
 //	memset(background, 0x11, tom_getVideoModeWidth() * 240 * 2);
 //1111 -> 000100 01000 10001 -> 0001 0000 0100 0010 1000 1100 -> 10 42 8C
-	for(uint32 i=0; i<tom_getVideoModeWidth()*240; i++)
+	for(uint32 i=0; i<TOMGetVideoModeWidth()*240; i++)
 //		background[i] = 0xFF8C4210;
 		backbuffer[i] = 0xFF8C4210;
 
@@ -1774,6 +1774,12 @@ WriteLog("GUI: Entering main loop...\n");
 			}
 			else if (event.type == SDL_KEYDOWN)
 			{
+// Ugly kludge for windowed<-->fullscreen switching...
+uint8 * keystate = SDL_GetKeyState(NULL);
+
+if ((keystate[SDLK_LALT] || keystate[SDLK_RALT]) & keystate[SDLK_RETURN])
+	ToggleFullscreen();
+
 				if (mainWindow)
 					mainWindow->HandleKey(event.key.keysym.sym);
 				else
@@ -1888,21 +1894,21 @@ Window * LoadROM(void)
 
 Window * ResetJaguar(void)
 {
-	jaguar_reset();
+	JaguarReset();
 
 	return RunEmu();
 }
 
 Window * ResetJaguarCD(void)
 {
-	memcpy(jaguar_mainRom, jaguar_CDBootROM, 0x40000);
+	memcpy(jaguarMainRom, jaguarCDBootROM, 0x40000);
 	jaguarRunAddress = 0x802000;
-	jaguar_mainRom_crc32 = crc32_calcCheckSum(jaguar_mainRom, 0x40000);
-	jaguar_reset();
+	jaguarMainRomCRC32 = crc32_calcCheckSum(jaguarMainRom, 0x40000);
+	JaguarReset();
 //This is a quick kludge to get the CDBIOS to boot properly...
 //Wild speculation: It could be that this memory location is wired into the CD unit
 //somehow, which lets it know whether or not a cart is present in the unit...
-	jaguar_mainRom[0x0040B] = 0x03;
+	jaguarMainRom[0x0040B] = 0x03;
 
 	return RunEmu();
 }
@@ -2060,9 +2066,9 @@ Window * RunEmu(void)
 		cartType = 0;
 	else if (jaguarRomSize == 0x400000)
 		cartType = 1;
-	else if (jaguar_mainRom_crc32 == 0x687068D5)
+	else if (jaguarMainRomCRC32 == 0x687068D5)
 		cartType = 2;
-	else if (jaguar_mainRom_crc32 == 0x55A0669C)
+	else if (jaguarMainRomCRC32 == 0x55A0669C)
 		cartType = 3;
 
 	const char * cartTypeName[5] = { "2M Cartridge", "4M Cartridge", "CD BIOS", "CD Dev BIOS", "Homebrew" };
@@ -2087,6 +2093,8 @@ else
 
 //Add in a new function for clearing patches of screen (ClearOverlayRect)
 
+// Also: Take frame rate into account when calculating fade time...
+
 		// Some QnD GUI stuff here...
 		if (showGUI)
 		{
@@ -2101,7 +2109,7 @@ else
 		{
 			DrawString2(overlayPixels, 8, 24*FONT_HEIGHT, 0x007F63FF, transparency, "Running...");
 			DrawString2(overlayPixels, 8, 26*FONT_HEIGHT, 0x001FFF3F, transparency, "%s, run address: %06X", cartTypeName[cartType], jaguarRunAddress);
-			DrawString2(overlayPixels, 8, 27*FONT_HEIGHT, 0x001FFF3F, transparency, "CRC: %08X", jaguar_mainRom_crc32);
+			DrawString2(overlayPixels, 8, 27*FONT_HEIGHT, 0x001FFF3F, transparency, "CRC: %08X", jaguarMainRomCRC32);
 
 			if (showMsgFrames == 0)
 			{
@@ -2127,7 +2135,7 @@ doGPUDis = true;//*/
 
 	// Save the background for the GUI...
 	// In this case, we squash the color to monochrome, then force it to blue + green...
-	for(uint32 i=0; i<tom_getVideoModeWidth() * 256; i++)
+	for(uint32 i=0; i<TOMGetVideoModeWidth() * 256; i++)
 	{
 		uint32 pixel = backbuffer[i];
 		uint8 b = (pixel >> 16) & 0xFF, g = (pixel >> 8) & 0xFF, r = pixel & 0xFF;
@@ -2154,7 +2162,6 @@ Window * Quit(void)
 Window * About(void)
 {
 	char buf[512];
-//	sprintf(buf, "Virtual Jaguar CVS %s", __DATE__);
 	sprintf(buf, "SVN %s", __DATE__);
 //fprintf(fp, "VirtualJaguar v1.0.8 (Last full build was on %s %s)\n", __DATE__, __TIME__);
 //VirtualJaguar v1.0.8 (Last full build was on Dec 30 2004 20:01:31)
@@ -2213,6 +2220,33 @@ Window * MiscOptions(void)
 // * GL Filter type
 // * Window/fullscreen
 // * Key definitions
+
+	return window;
+}
+
+// Function prototype
+Window * CrashGracefullyCallback(void);
+
+//NOTE: Probably should set a flag as well telling it to do a full reset
+//      of the Jaguar hardware if this happens...
+void GUICrashGracefully(const char * reason)
+{
+	finished = true;							// We're finished for now!
+
+	// Since this is used in the menu code as well, we could create another
+	// internal function called "PushWindowOnQueue" or somesuch
+	SDL_Event event;
+	event.type = SDL_USEREVENT;
+	event.user.code = MENU_ITEM_CHOSEN;
+	event.user.data1 = (void *)CrashGracefullyCallback;
+	SDL_PushEvent(&event);
+}
+
+Window * CrashGracefullyCallback(void)
+{
+	Window * window = new Window(8, 16, 304, 192);
+
+	window->AddElement(new Text(8, 8+0*FONT_HEIGHT, "We CRASHED!!!"));
 
 	return window;
 }

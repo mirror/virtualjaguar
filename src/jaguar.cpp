@@ -10,22 +10,21 @@
 
 #include "jaguar.h"
 
-#include "video.h"
-#include "settings.h"
-//#include "m68kdasmAG.h"
-#include "clock.h"
 #include <SDL.h>
 #include "SDL_opengl.h"
-#include "m68k.h"
-#include "log.h"
-#include "tom.h"
-#include "jerry.h"
 #include "cdrom.h"
 #include "dsp.h"
+#include "event.h"
 #include "gpu.h"
-#include "memory.h"
-#include "joystick.h"
 #include "gui.h"
+#include "jerry.h"
+#include "joystick.h"
+#include "log.h"
+#include "m68k.h"
+#include "memory.h"
+#include "settings.h"
+#include "tom.h"
+#include "video.h"
 
 #define CPU_DEBUG
 //Do this in makefile??? Yes! Could, but it's easier to define here...
@@ -59,12 +58,12 @@ const char * whoName[9] =
 
 uint32 jaguar_active_memory_dumps = 0;
 
-uint32 jaguar_mainRom_crc32, jaguarRomSize, jaguarRunAddress;
+uint32 jaguarMainRomCRC32, jaguarRomSize, jaguarRunAddress;
 
-uint8 * jaguar_mainRam = NULL;
-uint8 * jaguar_mainRom = NULL;
-uint8 * jaguar_bootRom = NULL;
-uint8 * jaguar_CDBootROM = NULL;
+uint8 * jaguarMainRam = NULL;
+uint8 * jaguarMainRom = NULL;
+uint8 * jaguarBootRom = NULL;
+uint8 * jaguarCDBootROM = NULL;
 bool BIOSLoaded = false;
 bool CDBIOSLoaded = false;
 
@@ -108,9 +107,9 @@ void M68KInstructionHook(void)
 		WriteLog("M68K: Top of stack: %08X. Stack trace:\n", JaguarReadLong(topOfStack));
 		for(int i=0; i<10; i++)
 			WriteLog("%06X: %08X\n", topOfStack - (i * 4), JaguarReadLong(topOfStack - (i * 4)));
-		WriteLog("Jaguar: VBL interrupt is %s\n", ((tom_irq_enabled(IRQ_VBLANK)) && (jaguar_interrupt_handler_is_valid(64))) ? "enabled" : "disabled");
+		WriteLog("Jaguar: VBL interrupt is %s\n", ((TOMIRQEnabled(IRQ_VBLANK)) && (JaguarInterruptHandlerIsValid(64))) ? "enabled" : "disabled");
 		M68K_show_context();
-		log_done();
+		LogDone();
 		exit(0);
 	}
 
@@ -332,7 +331,7 @@ CD_switch::	-> $306C
 		WriteLog("M68K: Top of stack: %08X. Stack trace:\n", JaguarReadLong(topOfStack));
 		for(int i=0; i<10; i++)
 			WriteLog("%06X: %08X\n", topOfStack - (i * 4), JaguarReadLong(topOfStack - (i * 4)));
-		WriteLog("Jaguar: VBL interrupt is %s\n", ((tom_irq_enabled(IRQ_VBLANK)) && (jaguar_interrupt_handler_is_valid(64))) ? "enabled" : "disabled");
+		WriteLog("Jaguar: VBL interrupt is %s\n", ((TOMIRQEnabled(IRQ_VBLANK)) && (JaguarInterruptHandlerIsValid(64))) ? "enabled" : "disabled");
 		M68K_show_context();
 
 //temp
@@ -341,7 +340,7 @@ CD_switch::	-> $306C
 //	WriteLog("\n\n");
 //endoftemp
 
-		log_done();
+		LogDone();
 		exit(0);
 	}//*/
 #endif
@@ -383,12 +382,12 @@ unsigned int m68k_read_memory_8(unsigned int address)
 	unsigned int retVal = 0;
 
 	if ((address >= 0x000000) && (address <= 0x3FFFFF))
-		retVal = jaguar_mainRam[address];
+		retVal = jaguarMainRam[address];
 //	else if ((address >= 0x800000) && (address <= 0xDFFFFF))
 	else if ((address >= 0x800000) && (address <= 0xDFFEFF))
-		retVal = jaguar_mainRom[address - 0x800000];
+		retVal = jaguarMainRom[address - 0x800000];
 	else if ((address >= 0xE00000) && (address <= 0xE3FFFF))
-		retVal = jaguar_bootRom[address - 0xE00000];
+		retVal = jaguarBootRom[address - 0xE00000];
 	else if ((address >= 0xDFFF00) && (address <= 0xDFFFFF))
 		retVal = CDROMReadByte(address);
 	else if ((address >= 0xF00000) && (address <= 0xF0FFFF))
@@ -474,12 +473,12 @@ unsigned int m68k_read_memory_16(unsigned int address)
 
 	if ((address >= 0x000000) && (address <= 0x3FFFFE))
 //		retVal = (jaguar_mainRam[address] << 8) | jaguar_mainRam[address+1];
-		retVal = GET16(jaguar_mainRam, address);
+		retVal = GET16(jaguarMainRam, address);
 //	else if ((address >= 0x800000) && (address <= 0xDFFFFE))
 	else if ((address >= 0x800000) && (address <= 0xDFFEFE))
-		retVal = (jaguar_mainRom[address - 0x800000] << 8) | jaguar_mainRom[address - 0x800000 + 1];
+		retVal = (jaguarMainRom[address - 0x800000] << 8) | jaguarMainRom[address - 0x800000 + 1];
 	else if ((address >= 0xE00000) && (address <= 0xE3FFFE))
-		retVal = (jaguar_bootRom[address - 0xE00000] << 8) | jaguar_bootRom[address - 0xE00000 + 1];
+		retVal = (jaguarBootRom[address - 0xE00000] << 8) | jaguarBootRom[address - 0xE00000 + 1];
 	else if ((address >= 0xDFFF00) && (address <= 0xDFFFFE))
 		retVal = CDROMReadWord(address, M68K);
 	else if ((address >= 0xF00000) && (address <= 0xF0FFFE))
@@ -532,7 +531,7 @@ void m68k_write_memory_8(unsigned int address, unsigned int value)
 		WriteLog("M68K: Byte %02X written at %08X by 68K\n", value, address);//*/
 
 	if ((address >= 0x000000) && (address <= 0x3FFFFF))
-		jaguar_mainRam[address] = value;
+		jaguarMainRam[address] = value;
 	else if ((address >= 0xDFFF00) && (address <= 0xDFFFFF))
 		CDROMWriteByte(address, value, M68K);
 	else if ((address >= 0xF00000) && (address <= 0xF0FFFF))
@@ -592,7 +591,7 @@ if (address == 0xF02110)
 	{
 /*		jaguar_mainRam[address] = value >> 8;
 		jaguar_mainRam[address + 1] = value & 0xFF;*/
-		SET16(jaguar_mainRam, address, value);
+		SET16(jaguarMainRam, address, value);
 	}
 	else if ((address >= 0xDFFF00) && (address <= 0xDFFFFE))
 		CDROMWriteWord(address, value, M68K);
@@ -631,18 +630,15 @@ if (address == 0xF03214 && value == 0x88E30047)
 }
 
 
-uint32 jaguar_get_handler(uint32 i)
+uint32 JaguarGetHandler(uint32 i)
 {
 	return JaguarReadLong(i * 4);
 }
 
-uint32 jaguar_interrupt_handler_is_valid(uint32 i) // Debug use only...
+bool JaguarInterruptHandlerIsValid(uint32 i) // Debug use only...
 {
-	uint32 handler = jaguar_get_handler(i);
-	if (handler && (handler != 0xFFFFFFFF))
-		return 1;
-	else
-		return 0;
+	uint32 handler = JaguarGetHandler(i);
+	return (handler && (handler != 0xFFFFFFFF) ? 1 : 0);
 }
 
 void M68K_show_context(void)
@@ -656,7 +652,7 @@ void M68K_show_context(void)
 
 	WriteLog("68K disasm\n");
 //	jaguar_dasm(s68000readPC()-0x1000,0x20000);
-	jaguar_dasm(m68k_get_reg(NULL, M68K_REG_PC) - 0x80, 0x200);
+	JaguarDasm(m68k_get_reg(NULL, M68K_REG_PC) - 0x80, 0x200);
 //	jaguar_dasm(0x5000, 0x14414);
 
 //	WriteLog("\n.......[Cart start]...........\n\n");
@@ -664,10 +660,10 @@ void M68K_show_context(void)
 
 	WriteLog("..................\n");
 
-	if (tom_irq_enabled(IRQ_VBLANK))
+	if (TOMIRQEnabled(IRQ_VBLANK))
 	{
 		WriteLog("vblank int: enabled\n");
-		jaguar_dasm(jaguar_get_handler(64), 0x200);
+		JaguarDasm(JaguarGetHandler(64), 0x200);
 	}
 	else
 		WriteLog("vblank int: disabled\n");
@@ -675,7 +671,7 @@ void M68K_show_context(void)
 	WriteLog("..................\n");
 
 	for(int i=0; i<256; i++)
-		WriteLog("handler %03i at $%08X\n", i, (unsigned int)jaguar_get_handler(i));
+		WriteLog("handler %03i at $%08X\n", i, (unsigned int)JaguarGetHandler(i));
 }
 
 //
@@ -775,7 +771,7 @@ unsigned int m68k_read_disassembler_32(unsigned int address)
 	return m68k_read_memory_32(address);
 }
 
-void jaguar_dasm(uint32 offset, uint32 qt)
+void JaguarDasm(uint32 offset, uint32 qt)
 {
 #ifdef CPU_DEBUG
 	static char buffer[2048];//, mem[64];
@@ -802,13 +798,13 @@ uint8 JaguarReadByte(uint32 offset, uint32 who/*=UNKNOWN*/)
 
 	offset &= 0xFFFFFF;
 	if (offset < 0x400000)
-		data = jaguar_mainRam[offset & 0x3FFFFF];
+		data = jaguarMainRam[offset & 0x3FFFFF];
 	else if ((offset >= 0x800000) && (offset < 0xC00000))
-		data = jaguar_mainRom[offset - 0x800000];
+		data = jaguarMainRom[offset - 0x800000];
 	else if ((offset >= 0xDFFF00) && (offset <= 0xDFFFFF))
 		data = CDROMReadByte(offset, who);
 	else if ((offset >= 0xE00000) && (offset < 0xE40000))
-		data = jaguar_bootRom[offset & 0x3FFFF];
+		data = jaguarBootRom[offset & 0x3FFFF];
 	else if ((offset >= 0xF00000) && (offset < 0xF10000))
 		data = TOMReadByte(offset, who);
 	else if ((offset >= 0xF10000) && (offset < 0xF20000))
@@ -824,18 +820,18 @@ uint16 JaguarReadWord(uint32 offset, uint32 who/*=UNKNOWN*/)
 	offset &= 0xFFFFFF;
 	if (offset <= 0x3FFFFE)
 	{
-		return (jaguar_mainRam[(offset+0) & 0x3FFFFF] << 8) | jaguar_mainRam[(offset+1) & 0x3FFFFF];
+		return (jaguarMainRam[(offset+0) & 0x3FFFFF] << 8) | jaguarMainRam[(offset+1) & 0x3FFFFF];
 	}
 	else if ((offset >= 0x800000) && (offset <= 0xBFFFFE))
 	{
 		offset -= 0x800000;
-		return (jaguar_mainRom[offset+0] << 8) | jaguar_mainRom[offset+1];
+		return (jaguarMainRom[offset+0] << 8) | jaguarMainRom[offset+1];
 	}
 //	else if ((offset >= 0xDFFF00) && (offset < 0xDFFF00))
 	else if ((offset >= 0xDFFF00) && (offset <= 0xDFFFFE))
 		return CDROMReadWord(offset, who);
 	else if ((offset >= 0xE00000) && (offset <= 0xE3FFFE))
-		return (jaguar_bootRom[(offset+0) & 0x3FFFF] << 8) | jaguar_bootRom[(offset+1) & 0x3FFFF];
+		return (jaguarBootRom[(offset+0) & 0x3FFFF] << 8) | jaguarBootRom[(offset+1) & 0x3FFFF];
 	else if ((offset >= 0xF00000) && (offset <= 0xF0FFFE))
 		return TOMReadWord(offset, who);
 	else if ((offset >= 0xF10000) && (offset <= 0xF1FFFE))
@@ -854,7 +850,7 @@ void JaguarWriteByte(uint32 offset, uint8 data, uint32 who/*=UNKNOWN*/)
 	offset &= 0xFFFFFF;
 	if (offset < 0x400000)
 	{
-		jaguar_mainRam[offset & 0x3FFFFF] = data;
+		jaguarMainRam[offset & 0x3FFFFF] = data;
 		return;
 	}
 	else if ((offset >= 0xDFFF00) && (offset <= 0xDFFFFF))
@@ -982,8 +978,8 @@ if (who == GPU && (gpu_pc == 0xF03604 || gpu_pc == 0xF03638))
 if (offset == 0x11D31A + 0x48000 || offset == 0x11D31A)
 	WriteLog("JWW: %s writing star %04X at %08X...\n", whoName[who], data, offset);//*/
 
-		jaguar_mainRam[(offset+0) & 0x3FFFFF] = data >> 8;
-		jaguar_mainRam[(offset+1) & 0x3FFFFF] = data & 0xFF;
+		jaguarMainRam[(offset+0) & 0x3FFFFF] = data >> 8;
+		jaguarMainRam[(offset+1) & 0x3FFFFF] = data & 0xFF;
 		return;
 	}
 	else if (offset >= 0xDFFF00 && offset <= 0xDFFFFE)
@@ -1033,31 +1029,31 @@ void JaguarWriteLong(uint32 offset, uint32 data, uint32 who/*=UNKNOWN*/)
 //
 // Jaguar console initialization
 //
-void jaguar_init(void)
+void JaguarInit(void)
 {
 #ifdef CPU_DEBUG_MEMORY
 	memset(readMem, 0x00, 0x400000);
 	memset(writeMemMin, 0xFF, 0x400000);
 	memset(writeMemMax, 0x00, 0x400000);
 #endif
-	memory_malloc_secure((void **)&jaguar_mainRam, 0x400000, "Jaguar 68K CPU RAM");
-	memory_malloc_secure((void **)&jaguar_mainRom, 0x600000, "Jaguar 68K CPU ROM");
-	memory_malloc_secure((void **)&jaguar_bootRom, 0x040000, "Jaguar 68K CPU BIOS ROM"); // Only uses half of this!
-	memory_malloc_secure((void **)&jaguar_CDBootROM, 0x040000, "Jaguar 68K CPU CD BIOS ROM");
-	memset(jaguar_mainRam, 0x00, 0x400000);
+	memory_malloc_secure((void **)&jaguarMainRam, 0x400000, "Jaguar 68K CPU RAM");
+	memory_malloc_secure((void **)&jaguarMainRom, 0x600000, "Jaguar 68K CPU ROM");
+	memory_malloc_secure((void **)&jaguarBootRom, 0x040000, "Jaguar 68K CPU BIOS ROM"); // Only uses half of this!
+	memory_malloc_secure((void **)&jaguarCDBootROM, 0x040000, "Jaguar 68K CPU CD BIOS ROM");
+	memset(jaguarMainRam, 0x00, 0x400000);
 //	memset(jaguar_mainRom, 0xFF, 0x200000);	// & set it to all Fs...
 //	memset(jaguar_mainRom, 0x00, 0x200000);	// & set it to all 0s...
 //NOTE: This *doesn't* fix FlipOut...
 //Or does it? Hmm...
 //Seems to want $01010101... Dunno why. Investigate!
-	memset(jaguar_mainRom, 0x01, 0x600000);	// & set it to all 01s...
+	memset(jaguarMainRom, 0x01, 0x600000);	// & set it to all 01s...
 //	memset(jaguar_mainRom, 0xFF, 0x600000);	// & set it to all Fs...
 
 	m68k_set_cpu_type(M68K_CPU_TYPE_68000);
-	gpu_init();
+	GPUInit();
 	DSPInit();
-	tom_init();
-	jerry_init();
+	TOMInit();
+	JERRYInit();
 	CDROMInit();
 }
 
@@ -1065,18 +1061,18 @@ void jaguar_init(void)
 void ScanlineCallback(void);
 void RenderCallback(void);
 //extern uint32 * backbuffer;
-void jaguar_reset(void)
+void JaguarReset(void)
 {
 //NOTE: This causes a (virtual) crash if this is set in the config but not found... !!! FIX !!!
 	if (vjs.useJaguarBIOS)
-		memcpy(jaguar_mainRam, jaguar_bootRom, 8);
+		memcpy(jaguarMainRam, jaguarBootRom, 8);
 	else
-		SET32(jaguar_mainRam, 4, jaguarRunAddress);
+		SET32(jaguarMainRam, 4, jaguarRunAddress);
 
 //	WriteLog("jaguar_reset():\n");
-	tom_reset();
-	jerry_reset();
-	gpu_reset();
+	TOMReset();
+	JERRYReset();
+	GPUReset();
 	DSPReset();
 	CDROMReset();
     m68k_pulse_reset();								// Reset the 68000
@@ -1091,7 +1087,7 @@ void jaguar_reset(void)
 //	SetCallbackTime(RenderCallback, 16651.541);	// # Scanlines * scanline time
 }
 
-void jaguar_done(void)
+void JaguarDone(void)
 {
 #ifdef CPU_DEBUG_MEMORY
 /*	WriteLog("\nJaguar: Memory Usage Stats (return addresses)\n\n");
@@ -1166,20 +1162,20 @@ void jaguar_done(void)
 
 //	WriteLog("Jaguar: CD BIOS version %04X\n", JaguarReadWord(0x3004));
 	WriteLog("Jaguar: Interrupt enable = %02X\n", TOMReadByte(0xF000E1) & 0x1F);
-	WriteLog("Jaguar: VBL interrupt is %s\n", ((tom_irq_enabled(IRQ_VBLANK)) && (jaguar_interrupt_handler_is_valid(64))) ? "enabled" : "disabled");
+	WriteLog("Jaguar: VBL interrupt is %s\n", ((TOMIRQEnabled(IRQ_VBLANK)) && (JaguarInterruptHandlerIsValid(64))) ? "enabled" : "disabled");
 	M68K_show_context();
 //#endif
 
 	CDROMDone();
-	gpu_done();
+	GPUDone();
 	DSPDone();
-	tom_done();
-	jerry_done();
+	TOMDone();
+	JERRYDone();
 
-	memory_free(jaguar_mainRom);
-	memory_free(jaguar_mainRam);
-	memory_free(jaguar_bootRom);
-	memory_free(jaguar_CDBootROM);
+	memory_free(jaguarMainRom);
+	memory_free(jaguarMainRam);
+	memory_free(jaguarBootRom);
+	memory_free(jaguarCDBootROM);
 }
 
 //
@@ -1227,11 +1223,11 @@ if (effect_start)
 //Not sure if this is correct...
 //Seems to be, kinda. According to the JTRM, this should only fire on odd lines in non-interlace mode...
 //Which means that it normally wouldn't go when it's zero.
-		if (i == vi && i > 0 && tom_irq_enabled(IRQ_VBLANK))	// Time for Vertical Interrupt?
+		if (i == vi && i > 0 && TOMIRQEnabled(IRQ_VBLANK))	// Time for Vertical Interrupt?
 		{
 			// We don't have to worry about autovectors & whatnot because the Jaguar
 			// tells you through its HW registers who sent the interrupt...
-			tom_set_pending_video_int();
+			TOMSetPendingVideoInt();
 			m68k_set_irq(7);
 		}
 
@@ -1246,11 +1242,11 @@ if (effect_start)
 		JERRYExecPIT(RISCCyclesPerScanline);
 //if (start_logging)
 //	WriteLog("About to execute JERRY's SSI (%u)...\n", i);
-		jerry_i2s_exec(RISCCyclesPerScanline);
+		JERRYI2SExec(RISCCyclesPerScanline);
 		BUTCHExec(RISCCyclesPerScanline);
 //if (start_logging)
 //	WriteLog("About to execute GPU (%u)...\n", i);
-		gpu_exec(RISCCyclesPerScanline);
+		GPUExec(RISCCyclesPerScanline);
 
 		if (vjs.DSPEnabled)
 		{
@@ -1276,13 +1272,13 @@ void DumpMainMemory(void)
 	if (fp == NULL)
 		return;
 
-	fwrite(jaguar_mainRam, 1, 0x400000, fp);
+	fwrite(jaguarMainRam, 1, 0x400000, fp);
 	fclose(fp);
 }
 
 uint8 * GetRamPtr(void)
 {
-	return jaguar_mainRam;
+	return jaguarMainRam;
 }
 
 //
@@ -1401,7 +1397,7 @@ void JaguarExecuteNew(void)
 //WriteLog("JEN: Time to next event (%u) is %f usec (%u RISC cycles)...\n", nextEvent, timeToNextEvent, USEC_TO_RISC_CYCLES(timeToNextEvent));
 
 		m68k_execute(USEC_TO_M68K_CYCLES(timeToNextEvent));
-		gpu_exec(USEC_TO_RISC_CYCLES(timeToNextEvent));
+		GPUExec(USEC_TO_RISC_CYCLES(timeToNextEvent));
 
 		if (vjs.DSPEnabled)
 		{
@@ -1437,11 +1433,11 @@ void ScanlineCallback(void)
 
 //This is a crappy kludge, but maybe it'll work for now...
 //Maybe it's not so bad, since the IRQ happens on a scanline boundary...
-	if (vc == vi && vc > 0 && tom_irq_enabled(IRQ_VBLANK))	// Time for Vertical Interrupt?
+	if (vc == vi && vc > 0 && TOMIRQEnabled(IRQ_VBLANK))	// Time for Vertical Interrupt?
 	{
 		// We don't have to worry about autovectors & whatnot because the Jaguar
 		// tells you through its HW registers who sent the interrupt...
-		tom_set_pending_video_int();
+		TOMSetPendingVideoInt();
 		m68k_set_irq(7);
 	}
 

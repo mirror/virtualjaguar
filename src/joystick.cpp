@@ -8,12 +8,12 @@
 
 #include "joystick.h"
 
-#include <time.h>
 #include <SDL.h>
-#include "jaguar.h"
-#include "log.h"
+#include <time.h>
 #include "gpu.h"
 #include "gui.h"
+#include "jaguar.h"
+#include "log.h"
 #include "settings.h"
 #include "video.h"
 
@@ -72,7 +72,6 @@ void JoystickInit(void)
 
 void JoystickExec(void)
 {
-//	extern bool useJoystick;
 	uint8 * keystate = SDL_GetKeyState(NULL);
 
 	memset(joypad_0_buttons, 0, 21);
@@ -155,7 +154,7 @@ void JoystickExec(void)
 	if (keystate[SDLK_q])
 		start_logging = 1;
 	if (keystate[SDLK_w])
-		gpu_reset_stats();
+		GPUResetStats();
 //	if (keystate[SDLK_u])		jaguar_long_write(0xf1c384,jaguar_long_read(0xf1c384)+1);
 	if (keystate[SDLK_d])
 		DumpMainMemory();

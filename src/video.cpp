@@ -37,7 +37,7 @@ int frame_ticker = 0;
 //
 // Create SDL/OpenGL surfaces
 //
-bool InitVideo(void)
+bool VideoInit(void)
 {
 	// Get proper info about the platform we're running on...
 	const SDL_VideoInfo * info = SDL_GetVideoInfo();
@@ -54,7 +54,6 @@ bool InitVideo(void)
 	    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 0);
         SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 		mainSurfaceFlags = SDL_OPENGL;
-
 	}
 	else
 	{
@@ -199,9 +198,9 @@ void RenderBackbuffer(void)
 //	memcpy(surface->pixels, backbuffer, tom_getVideoModeWidth() * tom_getVideoModeHeight() * 2);
 // This memcpy is expensive--do some profiling to see what the impact is!
 	if (vjs.renderType == RT_NORMAL)
-		memcpy(surface->pixels, backbuffer, tom_getVideoModeWidth() * tom_getVideoModeHeight() * 4);
+		memcpy(surface->pixels, backbuffer, TOMGetVideoModeWidth() * TOMGetVideoModeHeight() * 4);
 	else if (vjs.renderType == RT_TV)
-		memcpy(surface->pixels, backbuffer, 1280 * tom_getVideoModeHeight() * 4);
+		memcpy(surface->pixels, backbuffer, 1280 * TOMGetVideoModeHeight() * 4);
 
 	if (SDL_MUSTLOCK(surface))
 		SDL_UnlockSurface(surface);
@@ -282,11 +281,16 @@ uint32 GetSDLScreenWidthInPixels(void)
 //
 void ToggleFullscreen(void)
 {
+	// Set our internal variable, then toggle the SDL flag
 	vjs.fullscreen = !vjs.fullscreen;
-	mainSurfaceFlags &= ~SDL_FULLSCREEN;
+	mainSurfaceFlags ^= SDL_FULLSCREEN;
+//	mainSurfaceFlags = (vjs.fullscreen ? mainSurfaceFlags | SDL_FULLSCREEN :
+//		mainSurfaceFlags & ~SDL_FULLSCREEN);
 
-	if (vjs.fullscreen)
-		mainSurfaceFlags |= SDL_FULLSCREEN;
+//	mainSurfaceFlags &= ~SDL_FULLSCREEN;
+
+//	if (vjs.fullscreen)
+//		mainSurfaceFlags |= SDL_FULLSCREEN;
 
 	if (vjs.useOpenGL)
 	{
@@ -294,7 +298,7 @@ void ToggleFullscreen(void)
 		// This way we have good scaling functionality and when the screen is resized
 		// because of the NTSC <-> PAL resize, we only have to re-create the texture
 		// instead of initializing the entire OpenGL texture en screens.
-		mainSurface = SDL_SetVideoMode(640, 480, 32, mainSurfaceFlags);//*/
+		mainSurface = SDL_SetVideoMode(640, 480, 32, mainSurfaceFlags);
 
 		// Reset viewport, etc.
 		glViewport(0, 0, mainSurface->w, mainSurface->h);

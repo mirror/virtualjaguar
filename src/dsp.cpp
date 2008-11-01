@@ -8,15 +8,15 @@
 
 #include "dsp.h"
 
+#include <SDL.h>								// Used only for SDL_GetTicks...
 #include <stdlib.h>
-#include <SDL.h>	// Used only for SDL_GetTicks...
-#include "memory.h"
-#include "log.h"
-#include "jaguar.h"
-#include "jerry.h"
 #include "gpu.h"
 #include "jagdasm.h"
+#include "jaguar.h"
+#include "jerry.h"
+#include "log.h"
 #include "m68k.h"
+#include "memory.h"
 
 //#define DSP_DEBUG
 //#define DSP_DEBUG_IRQ
@@ -231,7 +231,7 @@ static void dsp_opcode_abs(void);
 static void dsp_opcode_add(void);
 static void dsp_opcode_addc(void);
 static void dsp_opcode_addq(void);
-static void dsp_opcode_addqmod(void);	
+static void dsp_opcode_addqmod(void);
 static void dsp_opcode_addqt(void);
 static void dsp_opcode_and(void);
 static void dsp_opcode_bclr(void);
@@ -252,7 +252,7 @@ static void dsp_opcode_load_r14_indexed(void);
 static void dsp_opcode_load_r14_ri(void);
 static void dsp_opcode_load_r15_indexed(void);
 static void dsp_opcode_load_r15_ri(void);
-static void dsp_opcode_mirror(void);	
+static void dsp_opcode_mirror(void);
 static void dsp_opcode_mmult(void);
 static void dsp_opcode_move(void);
 static void dsp_opcode_movei(void);
@@ -271,8 +271,8 @@ static void dsp_opcode_resmac(void);
 static void dsp_opcode_ror(void);
 static void dsp_opcode_rorq(void);
 static void dsp_opcode_xor(void);
-static void dsp_opcode_sat16s(void);	
-static void dsp_opcode_sat32s(void);	
+static void dsp_opcode_sat16s(void);
+static void dsp_opcode_sat32s(void);
 static void dsp_opcode_sh(void);
 static void dsp_opcode_sha(void);
 static void dsp_opcode_sharq(void);
@@ -288,25 +288,25 @@ static void dsp_opcode_store_r15_ri(void);
 static void dsp_opcode_sub(void);
 static void dsp_opcode_subc(void);
 static void dsp_opcode_subq(void);
-static void dsp_opcode_subqmod(void);	
+static void dsp_opcode_subqmod(void);
 static void dsp_opcode_subqt(void);
 
 uint8 dsp_opcode_cycles[64] =
 {
-	3,  3,  3,  3,  3,  3,  3,  3,  
 	3,  3,  3,  3,  3,  3,  3,  3,
-	3,  3,  1,  3,  1, 18,  3,  3,  
 	3,  3,  3,  3,  3,  3,  3,  3,
-	3,  3,  2,  2,  2,  2,  3,  4,  
+	3,  3,  1,  3,  1, 18,  3,  3,
+	3,  3,  3,  3,  3,  3,  3,  3,
+	3,  3,  2,  2,  2,  2,  3,  4,
 	5,  4,  5,  6,  6,  1,  1,  1,
-	1,  2,  2,  2,  1,  1,  9,  3,  
+	1,  2,  2,  2,  1,  1,  9,  3,
 	3,  1,  6,  6,  2,  2,  3,  3
 };//*/
 //Here's a QnD kludge...
 //This is wrong, wrong, WRONG, but it seems to work for the time being...
 //(That is, it fixes Flip Out which relies on GPU timing rather than semaphores. Bad developers! Bad!)
 //What's needed here is a way to take pipeline effects into account (including pipeline stalls!)...
-/*uint8 dsp_opcode_cycles[64] = 
+/*uint8 dsp_opcode_cycles[64] =
 {
 	1,  1,  1,  1,  1,  1,  1,  1,
 	1,  1,  1,  1,  1,  1,  1,  1,
@@ -319,7 +319,7 @@ uint8 dsp_opcode_cycles[64] =
 };//*/
 
 void (* dsp_opcode[64])() =
-{	
+{
 	dsp_opcode_add,					dsp_opcode_addc,				dsp_opcode_addq,				dsp_opcode_addqt,
 	dsp_opcode_sub,					dsp_opcode_subc,				dsp_opcode_subq,				dsp_opcode_subqt,
 	dsp_opcode_neg,					dsp_opcode_and,					dsp_opcode_or,					dsp_opcode_xor,
@@ -341,7 +341,7 @@ void (* dsp_opcode[64])() =
 uint32 dsp_opcode_use[65];
 
 const char * dsp_opcode_str[65]=
-{	
+{
 	"add",				"addc",				"addq",				"addqt",
 	"sub",				"subc",				"subq",				"subqt",
 	"neg",				"and",				"or",				"xor",
@@ -371,7 +371,7 @@ static uint32 dsp_pointer_to_matrix;
 static uint32 dsp_data_organization;
 uint32 dsp_control;
 static uint32 dsp_div_control;
-static uint8 dsp_flag_z, dsp_flag_n, dsp_flag_c;    
+static uint8 dsp_flag_z, dsp_flag_n, dsp_flag_c;
 static uint32 * dsp_reg = NULL, * dsp_alternate_reg = NULL;
 static uint32 dsp_reg_bank_0[32], dsp_reg_bank_1[32];
 
@@ -431,7 +431,7 @@ void dsp_reset_stats(void)
 		dsp_opcode_use[i] = 0;
 }
 
-void dsp_releaseTimeslice(void)
+void DSPReleaseTimeslice(void)
 {
 //This does absolutely nothing!!! !!! FIX !!!
 	dsp_releaseTimeSlice_flag = 1;
@@ -520,7 +520,7 @@ uint8 DSPReadByte(uint32 offset, uint32 who/*=UNKNOWN*/)
 	}
 
 	return JaguarReadByte(offset, who);
-} 
+}
 
 uint16 DSPReadWord(uint32 offset, uint32 who/*=UNKNOWN*/)
 {
@@ -659,7 +659,7 @@ void DSPWriteByte(uint32 offset, uint8 data, uint32 who/*=UNKNOWN*/)
 	{
 		uint32 reg = offset & 0x1C;
 		int bytenum = offset & 0x03;
-		
+
 		if ((reg >= 0x1C) && (reg <= 0x1F))
 			dsp_div_control = (dsp_div_control & (~(0xFF << (bytenum << 3)))) | (data << (bytenum << 3));
 		else
@@ -667,7 +667,7 @@ void DSPWriteByte(uint32 offset, uint8 data, uint32 who/*=UNKNOWN*/)
 //This looks funky. !!! FIX !!!
 			uint32 old_data = DSPReadLong(offset&0xFFFFFFC, who);
 			bytenum = 3 - bytenum; // convention motorola !!!
-			old_data = (old_data & (~(0xFF << (bytenum << 3)))) | (data << (bytenum << 3));	
+			old_data = (old_data & (~(0xFF << (bytenum << 3)))) | (data << (bytenum << 3));
 			DSPWriteLong(offset & 0xFFFFFFC, old_data, who);
 		}
 		return;
@@ -840,7 +840,7 @@ if (who != DSP)
 //!!!!!!!!
 			break;
 		case 0x14:
-		{	
+		{
 //#ifdef DSP_DEBUG
 WriteLog("Write to DSP CTRL by %s: %08X\n", whoName[who], data);
 //#endif
@@ -857,7 +857,7 @@ WriteLog("Write to DSP CTRL by %s: %08X\n", whoName[who], data);
 				if (JERRYIRQEnabled(IRQ2_DSP))// && jaguar_interrupt_handler_is_valid(64))
 				{
 					JERRYSetPendingIRQ(IRQ2_DSP);
-					dsp_releaseTimeslice();
+					DSPReleaseTimeslice();
 					m68k_set_irq(7);			// Set 68000 NMI...
 				}
 				data &= ~CPUINT;
@@ -869,7 +869,7 @@ WriteLog("Write to DSP CTRL by %s: %08X\n", whoName[who], data);
 				WriteLog("DSP: CPU -> DSP interrupt\n");
 #endif
 				m68k_end_timeslice();
-				gpu_releaseTimeslice();
+				GPUReleaseTimeslice();
 				DSPSetIRQLine(DSPIRQ_CPU, ASSERT_LINE);
 				data &= ~DSPINT0;
 			}
@@ -916,7 +916,7 @@ WriteLog("\n");
 				if (who == M68K)
 					m68k_end_timeslice();
 				else if (who == GPU)
-					gpu_releaseTimeslice();
+					GPUReleaseTimeslice();
 
 				if (!wasRunning)
 					FlushDSPPipeline();
@@ -978,7 +978,7 @@ void DSPHandleIRQs(void)
 	if (!bits)										// Bail if nothing is enabled
 		return;
 
-	int which = 0;									// Determine which interrupt 
+	int which = 0;									// Determine which interrupt
 	if (bits & 0x01)
 		which = 0;
 	if (bits & 0x02)
@@ -1060,8 +1060,8 @@ ctrl2[4] = dsp_flags;
 	WriteLog(" [PC will return to %08X, R31 = %08X]\n", dsp_pc - (pipeline[plPtrExec].opcode == 38 ? 6 : (pipeline[plPtrExec].opcode == PIPELINE_STALL ? 0 : 2)), dsp_reg[31]);
 #endif
 
-	// subqt  #4,r31		; pre-decrement stack pointer 
-	// move   pc,r30		; address of interrupted code 
+	// subqt  #4,r31		; pre-decrement stack pointer
+	// move   pc,r30		; address of interrupted code
 	// store  r30,(r31)     ; store return address
 	dsp_reg[31] -= 4;
 //CC only!
@@ -1092,8 +1092,8 @@ SET32(ram2, regs2[31] - 0xF1B000, dsp_pc - 2 - (pipeline[plPtrExec].opcode == 38
 #endif
 //!!!!!!!!
 
-	// movei  #service_address,r30  ; pointer to ISR entry 
-	// jump  (r30)					; jump to ISR 
+	// movei  #service_address,r30  ; pointer to ISR entry
+	// jump  (r30)					; jump to ISR
 	// nop
 	dsp_pc = dsp_reg[30] = DSP_WORK_RAM_BASE + (which * 0x10);
 //CC only!
@@ -1144,7 +1144,7 @@ DSPUpdateRegisterBanks();
 	if (!bits)										// Bail if nothing is enabled
 		return;
 
-	int which = 0;									// Determine which interrupt 
+	int which = 0;									// Determine which interrupt
 	if (bits & 0x01)
 		which = 0;
 	if (bits & 0x02)
@@ -1173,8 +1173,8 @@ ctrl1[4] = dsp_flags;
 	WriteLog(" [PC will return to %08X, R31 = %08X]\n", dsp_pc, dsp_reg[31]);
 #endif
 
-	// subqt  #4,r31		; pre-decrement stack pointer 
-	// move   pc,r30		; address of interrupted code 
+	// subqt  #4,r31		; pre-decrement stack pointer
+	// move   pc,r30		; address of interrupted code
 	// store  r30,(r31)     ; store return address
 	dsp_reg[31] -= 4;
 //CC only!
@@ -1189,8 +1189,8 @@ SET32(ram1, regs1[31] - 0xF1B000, dsp_pc - 2);
 #endif
 //!!!!!!!!
 
-	// movei  #service_address,r30  ; pointer to ISR entry 
-	// jump  (r30)					; jump to ISR 
+	// movei  #service_address,r30  ; pointer to ISR entry
+	// jump  (r30)					; jump to ISR
 	// nop
 	dsp_pc = dsp_reg[30] = DSP_WORK_RAM_BASE + (which * 0x10);
 //CC only!
@@ -1313,9 +1313,9 @@ void DSPDone(void)
 	WriteLog("DSP: Stopped at PC=%08X dsp_modulo=%08X (dsp %s running)\n", dsp_pc, dsp_modulo, (DSP_RUNNING ? "was" : "wasn't"));
 	WriteLog("DSP: %sin interrupt handler\n", (dsp_flags & IMASK ? "" : "not "));
 
-	// get the active interrupt bits 
+	// get the active interrupt bits
 	int bits = ((dsp_control >> 10) & 0x20) | ((dsp_control >> 6) & 0x1F);
-	// get the interrupt mask 
+	// get the interrupt mask
 	int mask = ((dsp_flags >> 11) & 0x20) | ((dsp_flags >> 4) & 0x1F);
 
 	WriteLog("DSP: pending=%08X enabled=%08X\n", bits, mask);
@@ -2286,7 +2286,7 @@ static void dsp_opcode_imacn(void)
 	if (doDSPDis)
 		WriteLog("[NCZ:%u%u%u, DSP_ACC=%02X%08X]\n", dsp_flag_n, dsp_flag_c, dsp_flag_z, (uint8)(dsp_acc >> 32), (uint32)(dsp_acc & 0xFFFFFFFF));
 #endif
-} 
+}
 
 static void dsp_opcode_mtoi(void)
 {
@@ -2326,7 +2326,7 @@ static void dsp_opcode_mmult(void)
 	if (!(dsp_matrix_control & 0x10))
 	{
 		for (int i = 0; i < count; i++)
-		{ 
+		{
 			int16 a;
 			if (i&0x01)
 				a=(int16)((dsp_alternate_reg[dsp_opcode_first_parameter + (i>>1)]>>16)&0xffff);
@@ -2365,7 +2365,7 @@ static void dsp_opcode_abs(void)
 #endif
 	uint32 _Rn = RN;
 	uint32 res;
-	
+
 	if (_Rn == 0x80000000)
 		dsp_flag_n = 1;
 	else
@@ -2597,25 +2597,25 @@ void dsp_opcode_addqmod(void)
 #endif
 }
 
-void dsp_opcode_subqmod(void)	
+void dsp_opcode_subqmod(void)
 {
 	uint32 r1 = dsp_convert_zero[IMM_1];
 	uint32 r2 = RN;
 	uint32 res = r2 - r1;
 	res = (res & (~dsp_modulo)) | (r2 & dsp_modulo);
 	RN = res;
-	
+
 	SET_ZNC_SUB(r2, r1, res);
 }
 
-void dsp_opcode_mirror(void)	
+void dsp_opcode_mirror(void)
 {
 	uint32 r1 = RN;
 	RN = (mirror_table[r1 & 0xFFFF] << 16) | mirror_table[r1 >> 16];
 	SET_ZN(RN);
 }
 
-void dsp_opcode_sat32s(void)		
+void dsp_opcode_sat32s(void)
 {
 	int32 r2 = (uint32)RN;
 	int32 temp = dsp_acc >> 32;
@@ -2624,7 +2624,7 @@ void dsp_opcode_sat32s(void)
 	SET_ZN(res);
 }
 
-void dsp_opcode_sat16s(void)		
+void dsp_opcode_sat16s(void)
 {
 	int32 r2 = RN;
 	uint32 res = (r2 < -32768) ? -32768 : (r2 > 32767) ? 32767 : r2;
@@ -2640,7 +2640,7 @@ static void DSP_abs(void);
 static void DSP_add(void);
 static void DSP_addc(void);
 static void DSP_addq(void);
-static void DSP_addqmod(void);	
+static void DSP_addqmod(void);
 static void DSP_addqt(void);
 static void DSP_and(void);
 static void DSP_bclr(void);
@@ -2662,7 +2662,7 @@ static void DSP_load_r14_i(void);
 static void DSP_load_r14_r(void);
 static void DSP_load_r15_i(void);
 static void DSP_load_r15_r(void);
-static void DSP_mirror(void);	
+static void DSP_mirror(void);
 static void DSP_mmult(void);
 static void DSP_move(void);
 static void DSP_movefa(void);
@@ -2680,8 +2680,8 @@ static void DSP_or(void);
 static void DSP_resmac(void);
 static void DSP_ror(void);
 static void DSP_rorq(void);
-static void DSP_sat16s(void);	
-static void DSP_sat32s(void);	
+static void DSP_sat16s(void);
+static void DSP_sat32s(void);
 static void DSP_sh(void);
 static void DSP_sha(void);
 static void DSP_sharq(void);
@@ -2697,7 +2697,7 @@ static void DSP_store_r15_r(void);
 static void DSP_sub(void);
 static void DSP_subc(void);
 static void DSP_subq(void);
-static void DSP_subqmod(void);	
+static void DSP_subqmod(void);
 static void DSP_subqt(void);
 static void DSP_xor(void);
 
@@ -3418,7 +3418,7 @@ static void DSP_abs(void)
 		WriteLog("%06X: ABS    R%02u [NCZ:%u%u%u, R%02u=%08X] -> ", DSP_PPC, PIMM2, dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM2, PRN);
 #endif
 	uint32 _Rn = PRN;
-	
+
 	if (_Rn == 0x80000000)
 		dsp_flag_n = 1;
 	else
@@ -3641,7 +3641,7 @@ static void DSP_imacn(void)
 	if (doDSPDis)
 		WriteLog("[NCZ:%u%u%u, DSP_ACC=%02X%08X]\n", dsp_flag_n, dsp_flag_c, dsp_flag_z, (uint8)(dsp_acc >> 32), (uint32)(dsp_acc & 0xFFFFFFFF));
 #endif
-} 
+}
 
 static void DSP_imult(void)
 {
@@ -3717,7 +3717,7 @@ const char * condition[32] =
 		// Now that we've branched, we have to make sure that the following instruction
 		// is executed atomically with this one and then flush the pipeline before setting
 		// the new PC.
-		
+
 		// Step 1: Handle writebacks at stage 3 of pipeline
 /*		if (pipeline[plPtrWrite].opcode != PIPELINE_STALL)
 		{
@@ -3822,7 +3822,7 @@ const char * condition[32] =
 		// Now that we've branched, we have to make sure that the following instruction
 		// is executed atomically with this one and then flush the pipeline before setting
 		// the new PC.
-		
+
 		// Step 1: Handle writebacks at stage 3 of pipeline
 /*		if (pipeline[plPtrWrite].opcode != PIPELINE_STALL)
 		{
@@ -4000,7 +4000,7 @@ static void DSP_load_r15_r(void)
 #endif
 }
 
-static void DSP_mirror(void)	
+static void DSP_mirror(void)
 {
 	uint32 r1 = PRN;
 	PRES = (mirror_table[r1 & 0xFFFF] << 16) | mirror_table[r1 >> 16];
@@ -4017,7 +4017,7 @@ static void DSP_mmult(void)
 	if (!(dsp_matrix_control & 0x10))
 	{
 		for (int i = 0; i < count; i++)
-		{ 
+		{
 			int16 a;
 			if (i&0x01)
 				a=(int16)((dsp_alternate_reg[dsp_opcode_first_parameter + (i>>1)]>>16)&0xffff);
@@ -4279,7 +4279,7 @@ static void DSP_rorq(void)
 #endif
 }
 
-static void DSP_sat16s(void)		
+static void DSP_sat16s(void)
 {
 	int32 r2 = PRN;
 	uint32 res = (r2 < -32768) ? -32768 : (r2 > 32767) ? 32767 : r2;
@@ -4287,7 +4287,7 @@ static void DSP_sat16s(void)
 	SET_ZN(res);
 }
 
-static void DSP_sat32s(void)		
+static void DSP_sat32s(void)
 {
 	int32 r2 = (uint32)PRN;
 	int32 temp = dsp_acc >> 32;
@@ -4587,7 +4587,7 @@ static void DSP_subq(void)
 #endif
 }
 
-static void DSP_subqmod(void)	
+static void DSP_subqmod(void)
 {
 	uint32 r1 = dsp_convert_zero[PIMM1];
 	uint32 r2 = PRN;

@@ -11,9 +11,9 @@
 extern "C" {
 #endif
 
-int log_init(const char *);
-FILE * log_get(void);
-void log_done(void);
+int LogInit(const char *);
+FILE * LogGet(void);
+void LogDone(void);
 void WriteLog(const char * text, ...);
 
 #ifdef __cplusplus

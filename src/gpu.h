@@ -5,17 +5,16 @@
 #ifndef __GPU_H__
 #define __GPU_H__
 
-//#include "jaguar.h"
 #include "types.h"
 
 #define GPU_CONTROL_RAM_BASE    0x00F02100
 #define GPU_WORK_RAM_BASE		0x00F03000
 
-void gpu_init(void);
-void gpu_reset(void);
-void gpu_exec(int32);
-void gpu_done(void);
-void gpu_update_register_banks(void);
+void GPUInit(void);
+void GPUReset(void);
+void GPUExec(int32);
+void GPUDone(void);
+void GPUUpdateRegisterBanks(void);
 void GPUHandleIRQs(void);
 void GPUSetIRQLine(int irqline, int state);
 
@@ -26,10 +25,10 @@ void GPUWriteByte(uint32 offset, uint8 data, uint32 who = UNKNOWN);
 void GPUWriteWord(uint32 offset, uint16 data, uint32 who = UNKNOWN);
 void GPUWriteLong(uint32 offset, uint32 data, uint32 who = UNKNOWN);
 
-uint32 gpu_get_pc(void);
-void gpu_releaseTimeslice(void);
-void gpu_reset_stats(void);
-uint32 gpu_read_pc(void);
+uint32 GPUGetPC(void);
+void GPUReleaseTimeslice(void);
+void GPUResetStats(void);
+uint32 GPUReadPC(void);
 
 // GPU interrupt numbers (from $F00100, bits 4-8)
 

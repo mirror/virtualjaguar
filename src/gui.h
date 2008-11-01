@@ -11,14 +11,16 @@
 extern "C" {
 #endif
 
-void InitGUI(void);
+void GUIInit(void);
 void GUIDone(void);
 bool GUIMain(char *);
+void GUICrashGracefully(const char *);
 
 // Exported vars
 
 extern bool showGUI;
-extern bool finished;
+extern bool exitGUI;							// Hmm.
+extern bool finished;							// Current emulator loop is finished
 
 #ifdef __cplusplus
 }

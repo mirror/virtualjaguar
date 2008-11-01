@@ -11,7 +11,7 @@
 #define VIRTUAL_SCREEN_HEIGHT_NTSC	240
 #define VIRTUAL_SCREEN_HEIGHT_PAL	256
 
-bool InitVideo(void);
+bool VideoInit(void);
 void VideoDone(void);
 void RenderBackbuffer(void);
 void ResizeScreen(uint32 width, uint32 height);

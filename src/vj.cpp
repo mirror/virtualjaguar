@@ -6,26 +6,30 @@
 // Cleanups/fixes/enhancements by James L. Hammons and Adam Green
 //
 
-#include <time.h>
 #include <SDL.h>
-#include "jaguar.h"
-#include "video.h"
+#include <time.h>
+#include "file.h"
 #include "gui.h"
+#include "jaguar.h"
+#include "log.h"
+#include "memory.h"
 #include "sdlemu_opengl.h"
 #include "settings.h"								// Pull in "vjs" struct
-#include "log.h"
-#include "version.h"
-#include "memory.h"
-#include "file.h"
+#include "video.h"
 
 // Uncomment this to use built-in BIOS/CD-ROM BIOS
 // You'll need a copy of jagboot.h & jagcd.h for this to work...!
 //#define USE_BUILT_IN_BIOS
 
+// Uncomment this for an official Virtual Jaguar release
+//#define VJ_RELEASE_VERSION "1.1.0"
+#warning !!! FIX !!! Figure out how to use this in GUI.CPP as well!
+
 #ifdef USE_BUILT_IN_BIOS
 #include "jagboot.h"
 #include "jagcd.h"
 #endif
+
 
 // Private function prototypes
 
@@ -40,7 +44,11 @@ int main(int argc, char * argv[])
 //NOTE: This isn't actually used anywhere... !!! FIX !!!
 	int32 nFrameskip = 0;							// Default: Show every frame
 
-	printf("Virtual Jaguar GCC/SDL Portable Jaguar Emulator v1.1.0\n");
+#ifdef VJ_RELEASE_VERSION
+	printf("Virtual Jaguar GCC/SDL Portable Jaguar Emulator v%s\n", VJ_RELEASE_VERSION);
+#else
+	printf("Virtual Jaguar GCC/SDL Portable Jaguar Emulator SVN %s\n", __DATE__);
+#endif
 	printf("Based upon Virtual Jaguar core v1.0.0 by David Raingeard.\n");
 	printf("Written by Niels Wagenaar (Linux/WIN32), Carwin Jones (BeOS),\n");
 	printf("James L. Hammons (WIN32) and Adam Green (MacOS)\n");
@@ -48,7 +56,7 @@ int main(int argc, char * argv[])
 
 	bool haveCart = false;							// Assume there is no cartridge...!
 
-	log_init("vj.log");
+	LogInit("vj.log");
 	LoadVJSettings();								// Get config file settings...
 
 	// Check the switches... ;-)
@@ -149,36 +157,38 @@ int main(int argc, char * argv[])
 
 	WriteLog("VJ: SDL successfully initialized.\n");
 
-WriteLog("Initializing memory subsystem...\n");
-	InitMemory();
-WriteLog("Initializing version...\n");
-	InitVersion();
-	version_display(log_get());
-WriteLog("Initializing jaguar subsystem...\n");
-	jaguar_init();
+	WriteLog("Initializing memory subsystem...\n");
+	MemoryInit();
+#ifdef VJ_RELEASE_VERSION
+	WriteLog("Virtual Jaguar %s (Last full build was on %s %s)\n", VJ_RELEASE_VERSION, __DATE__, __TIME__);
+#else
+	WriteLog("Virtual Jaguar SVN %s (Last full build was on %s %s)\n", __DATE__, __DATE__, __TIME__);
+#endif
+	WriteLog("Initializing jaguar subsystem...\n");
+	JaguarInit();
 
 	// Get the BIOS ROM
 #ifdef USE_BUILT_IN_BIOS
 	WriteLog("VJ: Using built in BIOS/CD BIOS...\n");
-	memcpy(jaguar_bootRom, jagBootROM, 0x20000);
-	memcpy(jaguar_CDBootROM, jagCDROM, 0x40000);
+	memcpy(jaguarBootRom, jagBootROM, 0x20000);
+	memcpy(jaguarCDBootROM, jagCDROM, 0x40000);
 	BIOSLoaded = CDBIOSLoaded = true;
 #else
 // What would be nice here would be a way to check if the BIOS was loaded so that we
 // could disable the pushbutton on the Misc Options menu... !!! FIX !!! [DONE here, but needs to be fixed in GUI as well!]
 WriteLog("About to attempt to load BIOSes...\n");
-	BIOSLoaded = (JaguarLoadROM(jaguar_bootRom, vjs.jagBootPath) == 0x20000 ? true : false);
+	BIOSLoaded = (JaguarLoadROM(jaguarBootRom, vjs.jagBootPath) == 0x20000 ? true : false);
 	WriteLog("VJ: BIOS is %savailable...\n", (BIOSLoaded ? "" : "not "));
-	CDBIOSLoaded = (JaguarLoadROM(jaguar_CDBootROM, vjs.CDBootPath) == 0x40000 ? true : false);
+	CDBIOSLoaded = (JaguarLoadROM(jaguarCDBootROM, vjs.CDBootPath) == 0x40000 ? true : false);
 	WriteLog("VJ: CD BIOS is %savailable...\n", (CDBIOSLoaded ? "" : "not "));
 #endif
 
-	SET32(jaguar_mainRam, 0, 0x00200000);			// Set top of stack...
+	SET32(jaguarMainRam, 0, 0x00200000);			// Set top of stack...
 
 WriteLog("Initializing video subsystem...\n");
-	InitVideo();
+	VideoInit();
 WriteLog("Initializing GUI subsystem...\n");
-	InitGUI();
+	GUIInit();
 
 	// Now with crunchy GUI goodness!
 WriteLog("About to start GUI...\n");
@@ -189,11 +199,10 @@ WriteLog("About to start GUI...\n");
 //	int fps = (1000 * totalFrames) / elapsedTime;
 //	WriteLog("VJ: Ran at an average of %i FPS.\n", fps);
 
-	jaguar_done();
-	VersionDone();
-	MemoryDone();
+	JaguarDone();
 	VideoDone();
-	log_done();
+	MemoryDone();
+	LogDone();
 
 	// Free SDL components last...!
 	SDL_QuitSubSystem(SDL_INIT_VIDEO | SDL_INIT_JOYSTICK | SDL_INIT_AUDIO | SDL_INIT_TIMER);

@@ -65,14 +65,20 @@ LIBS = -L/usr/local/lib -L/usr/lib `sdl-config $(SDLLIBTYPE)` -lstdc++ -lz $(GLL
 INCS = -I. -I./src -I/usr/local/include -I/usr/include
 
 OBJS = \
+	obj/m68kcpu.o       \
+	obj/m68kops.o       \
+	obj/m68kopac.o      \
+	obj/m68kopdm.o      \
+	obj/m68kopnz.o      \
+	obj/m68kdasm.o      \
 	obj/blitter.o       \
 	obj/cdrom.o         \
 	obj/cdintf.o        \
-	obj/clock.o         \
 	obj/crc32.o         \
 	obj/dac.o           \
 	obj/dsp.o           \
 	obj/eeprom.o        \
+	obj/event.o         \
 	obj/file.o          \
 	obj/gpu.o           \
 	obj/gui.o           \
@@ -81,12 +87,6 @@ OBJS = \
 	obj/jerry.o         \
 	obj/joystick.o      \
 	obj/log.o           \
-	obj/m68kcpu.o       \
-	obj/m68kops.o       \
-	obj/m68kopac.o      \
-	obj/m68kopdm.o      \
-	obj/m68kopnz.o      \
-	obj/m68kdasm.o      \
 	obj/memory.o        \
 	obj/objectp.o       \
 	obj/sdlemu_config.o \
@@ -94,7 +94,6 @@ OBJS = \
 	obj/settings.o      \
 	obj/tom.o           \
 	obj/unzip.o         \
-	obj/version.o       \
 	obj/video.o         \
 	obj/vj.o            \
 	$(ICON)

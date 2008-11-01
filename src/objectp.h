@@ -7,15 +7,15 @@
 
 #include "types.h"
 
-void op_init(void);
-void op_reset(void);
-void op_done(void);
+void OPInit(void);
+void OPReset(void);
+void OPDone(void);
 
 void OPProcessList(int scanline, bool render);
-uint32 op_get_list_pointer(void);
-void op_set_status_register(uint32 data);
-uint32 op_get_status_register(void);
-void op_set_current_object(uint64 object);
+uint32 OPGetListPointer(void);
+void OPSetStatusRegister(uint32 data);
+uint32 OPGetStatusRegister(void);
+void OPSetCurrentObject(uint64 object);
 
 //uint8 OPReadByte(uint32, uint32 who = UNKNOWN);
 //uint16 OPReadWord(uint32, uint32 who = UNKNOWN);

@@ -1,11 +1,15 @@
+//
+// Jaguar blitter implementation
+//
+
 #ifndef __BLITTER_H__
 #define __BLITTER_H__
 
 #include "types.h"
 
-void blitter_init(void);
-void blitter_reset(void);
-void blitter_done(void);
+void BlitterInit(void);
+void BlitterReset(void);
+void BlitterDone(void);
 
 uint8 BlitterReadByte(uint32, uint32 who = UNKNOWN);
 uint16 BlitterReadWord(uint32, uint32 who = UNKNOWN);

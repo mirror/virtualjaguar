@@ -22,10 +22,11 @@
 #include "dac.h"
 
 #include "SDL.h"
-#include "m68k.h"
+#include "gui.h"
 #include "jaguar.h"
-#include "settings.h"
 #include "log.h"
+#include "m68k.h"
+#include "settings.h"
 
 //#define DEBUG_DAC
 
@@ -219,8 +220,10 @@ WriteLog("Tail=%X, Head=%X", ltail, lhead);
 	WriteLog("LTail=%X, LHead=%X, BUFFER_SIZE-1=%X\n", LeftFIFOTailPtr, LeftFIFOHeadPtr, BUFFER_SIZE - 1);
 	WriteLog("RTail=%X, RHead=%X, BUFFER_SIZE-1=%X\n", RightFIFOTailPtr, RightFIFOHeadPtr, BUFFER_SIZE - 1);
 	WriteLog("From while: Tail=%X, Head=%X", (LeftFIFOTailPtr + 2) & (BUFFER_SIZE - 1), LeftFIFOHeadPtr);
-	log_done();
-	exit(0);
+//	LogDone();
+//	exit(0);
+	GUICrashGracefully("Stuck in left DAC spinlock!");
+	return;
 }
 		}//*/
 
@@ -306,8 +309,10 @@ WriteLog("Tail=%X, Head=%X", rtail, rhead);
 	WriteLog("LTail=%X, LHead=%X, BUFFER_SIZE-1=%X\n", LeftFIFOTailPtr, LeftFIFOHeadPtr, BUFFER_SIZE - 1);
 	WriteLog("RTail=%X, RHead=%X, BUFFER_SIZE-1=%X\n", RightFIFOTailPtr, RightFIFOHeadPtr, BUFFER_SIZE - 1);
 	WriteLog("From while: Tail=%X, Head=%X", (RightFIFOTailPtr + 2) & (BUFFER_SIZE - 1), RightFIFOHeadPtr);
-	log_done();
-	exit(0);
+//	LogDone();
+//	exit(0);
+	GUICrashGracefully("Stuck in right DAC spinlock!");
+	return;
 }
 		}//*/
 
@@ -342,8 +347,10 @@ WriteLog("Tail=%X, Head=%X", rtail, rhead);
 // This is bad, Bad, BAD !!! DON'T ABORT BECAUSE WE DIDN'T GET OUR FREQ! !!! FIX !!!
 #warning !!! FIX !!! Aborting because of SDL audio problem is bad!
 						WriteLog("DAC: Failed to initialize SDL sound: %s.\nDesired freq: %u\nShutting down!\n", SDL_GetError(), desired.freq);
-						log_done();
-						exit(1);
+//						LogDone();
+//						exit(1);
+						GUICrashGracefully("Failed to initialize SDL sound!");
+						return;
 					}
 				}
 
