@@ -71,6 +71,9 @@ OBJS = \
 	obj/m68kopdm.o      \
 	obj/m68kopnz.o      \
 	obj/m68kdasm.o      \
+\
+	obj/gui.o           \
+\
 	obj/blitter.o       \
 	obj/cdrom.o         \
 	obj/cdintf.o        \
@@ -81,7 +84,6 @@ OBJS = \
 	obj/event.o         \
 	obj/file.o          \
 	obj/gpu.o           \
-	obj/gui.o           \
 	obj/jagdasm.o       \
 	obj/jaguar.o        \
 	obj/jerry.o         \
@@ -148,6 +150,10 @@ obj/%.o: src/%.c
 	@$(CC) $(CFLAGS) $(INCS) -c $< -o $@
 
 obj/%.o: src/%.cpp
+	@echo "*** Compiling $<..."
+	@$(CC) $(CPPFLAGS) $(INCS) -c $< -o $@
+
+obj/%.o: src/gui/%.cpp
 	@echo "*** Compiling $<..."
 	@$(CC) $(CPPFLAGS) $(INCS) -c $< -o $@
 

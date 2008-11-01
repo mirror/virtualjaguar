@@ -292,6 +292,8 @@ LTail=60D8, LHead=60D8, BUFFER_SIZE-1=FFFF
 RTail=DB, RHead=60D9, BUFFER_SIZE-1=FFFF
 From while: Tail=60DA, Head=60D8
 */
+#warning Spinlock problem--!!! FIX !!!
+#warning Odd: The right FIFO is empty, but the left FIFO is full!
 		// Spin until buffer has been drained (for too fast processors!)...
 uint32 spin = 0;
 		while (((RightFIFOTailPtr + 2) & (BUFFER_SIZE - 1)) == RightFIFOHeadPtr)//;

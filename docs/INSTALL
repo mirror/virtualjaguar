@@ -14,8 +14,8 @@ requirements for compiling the sources:
 - ZLIB v1.2.3
 - libcdio v0.80 or higher
 - OpenGL libraries
-- supported OS (BeOS, Linux, FreeBSD and WIN32 through mingw); other OSs may
-  work to but you may need to change some items in the Makefile.
+- supported OS (BeOS, Linux, FreeBSD and WIN32 through mingw, MacOS); other OSs
+  may work to but you may need to change some items in the Makefile.
 
 Optionally you need a Atari Jaguar boot ROM (and/or CD boot ROM) which is
 available on the Internet. We can't include the boot ROM since it's still

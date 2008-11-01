@@ -50,9 +50,9 @@ bool VideoInit(void)
 
 	if (vjs.useOpenGL)
 	{
-	    // Initializing SDL attributes with OpenGL
-	    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 0);
-        SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+		// Initializing SDL attributes with OpenGL
+		SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 0);
+		SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 		mainSurfaceFlags = SDL_OPENGL;
 	}
 	else
