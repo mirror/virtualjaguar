@@ -9,10 +9,6 @@
 
 #include "types.h"
 
-//#ifdef __cplusplus
-//extern "C" {
-//#endif
-
 #if 0
 // Okay, this is ugly but works and I can't think of any better way to handle this. So what
 // we do when we pass the GIMP bitmaps into a function is pass them as a (void *) and then
@@ -104,8 +100,8 @@ const struct {
 uint8 pbUp[] = {
 //  16, 16, 4,
 //nonportable--!!! FIX !!!
-	"\01\0\0\0"
-	"\01\0\0\0"
+	"\020\0\0\0"
+	"\020\0\0\0"
 	"\4\0\0\0"
   "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\26\26\26\40`__\203\205rr\305\216mm\344\205"
   "cc\345kWW\306@??\202\16\16\16\37\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
@@ -179,8 +175,8 @@ const struct {
 uint8 pbDown[] = {
 //  16, 16, 4,
 //nonportable--!!! FIX !!!
-	"\01\0\0\0"
-	"\01\0\0\0"
+	"\020\0\0\0"
+	"\020\0\0\0"
 	"\4\0\0\0"
   "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\261\261\261\36\276\276\276\200\272\272\272"
   "\302\255\255\255\343\236\236\236\343\214\214\214\302~~~\177uuu\35\0\0\0\0"
@@ -348,11 +344,5 @@ uint32 closeBoxDown[] = {
 	0xFF3838ED, 0xFF1D1DE2, 0xFF2B2BC0, 0xFF2B2BC0, 0xFF2B2BC0, 0xFF2B2BC0, 0xFF2B2BC0, 0xFF2B2BC0, 0xFF2B2BC0, 0xFF2B2BC0, 0xFF2B2BC0, 0xFF2B2BC0, 0xFF2B2BC0, 0xFF1D1DE2, 0xFF3838ED,
 	0x00000000, 0xFF3838ED, 0xFF3838ED, 0xFF3838ED, 0xFF3838ED, 0xFF3838ED, 0xFF3838ED, 0xFF3838ED, 0xFF3838ED, 0xFF3838ED, 0xFF3838ED, 0xFF3838ED, 0xFF3838ED, 0xFF3838ED, 0x00000000
 };
-
-//#include "vj_title_small.c"
-
-//#ifdef __cplusplus
-//}
-//#endif
 
 #endif	// __GUIELEMENTS_H__
