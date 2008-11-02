@@ -7,9 +7,11 @@ Virtual Jaguar v1.1.0 GCC/SDL
   such can happen when they're supposed to. [Shamus]
 * Fixed blitter writes so that Intensity[0-3] and Z[0-3] are written in the
   correct order. [Shamus]
-* Rewrote blitter to conform the the Oberon ASIC nets. This should fix a
+* Major rewrite of blitter to conform the the TOM ASIC nets. This should fix a
   bunch of stuff that wasn't working correctly before. [Shamus]
 * Fixed writes to 64 bit blitter registers. [Shamus]
+* Refactored GUI to be more maintainable, better looking and more responsive.
+  [Shamus]
 
 
 Virtual Jaguar v1.0.7 GCC/SDL

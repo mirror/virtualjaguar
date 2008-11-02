@@ -1,12 +1,19 @@
 /* GIMP RGBA C-Source image dump (vj-title-small.c) */
 
+#if 0
 static const struct {
   unsigned int 	 width;
   unsigned int 	 height;
-  unsigned int 	 bytes_per_pixel; /* 3:RGB, 4:RGBA */ 
+  unsigned int 	 bytes_per_pixel; /* 3:RGB, 4:RGBA */
   unsigned char	 pixel_data[197 * 89 * 4 + 1];
-} vj_title_small = {
-  197, 89, 4,
+}
+#endif
+#warning Nonportable!--!!! FIX !!!
+uint8 vj_title_small[] = {
+//  197, 89, 4,
+	"\305\0\0\0"
+	"\131\0\0\0"
+	"\4\0\0\0"
   "\0\0\0\0\0\0\0\0\0\0\0\0\0\231\372\21\0\231\372K\0\231\372`\0\231\372C\0"
   "\231\372\6\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
   "\0\0\231\3721\0\231\372w\0\231\3724\0\0\0\0\0\0\0\0\0\231\372\23\0\231\372"

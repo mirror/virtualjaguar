@@ -72,7 +72,19 @@ OBJS = \
 	obj/m68kopnz.o      \
 	obj/m68kdasm.o      \
 \
+	obj/button.o        \
+	obj/element.o       \
+	obj/filelist.o      \
 	obj/gui.o           \
+	obj/guimisc.o       \
+	obj/image.o         \
+	obj/listbox.o       \
+	obj/menu.o          \
+	obj/pushbutton.o    \
+	obj/slideswitch.o   \
+	obj/text.o          \
+	obj/textedit.o      \
+	obj/window.o        \
 \
 	obj/blitter.o       \
 	obj/cdrom.o         \
@@ -102,37 +114,37 @@ OBJS = \
 
 all: checkenv message obj $(TARGET)$(EXESUFFIX)
 	@echo
-	@echo "*** Looks like it compiled OK... Give it a whirl!"
+	@echo -e "\033[01;33m***\033[00;32m Looks like it compiled OK... Give it a whirl!\033[00m"
 
 # Check the compilation environment, barf if not appropriate
 
 checkenv:
 	@echo
-	@echo -n "*** Checking compilation environment... "
+	@echo -en "\033[01;33m***\033[00;32m Checking compilation environment... \033[00m"
 ifeq "" "$(shell which sdl-config)"
 	@echo
 	@echo
-	@echo "It seems that you don't have the SDL development libraries installed. If you"
-	@echo "have installed them, make sure that the sdl-config file is somewhere in your"
-	@echo "path and is executable."
+	@echo -e "\033[01;33mIt seems that you don't have the SDL development libraries installed. If you"
+	@echo -e "have installed them, make sure that the sdl-config file is somewhere in your"
+	@echo -e "path and is executable.\033[00m"
 	@echo
 #Is there a better way to break out of the makefile?
-	@break
+	@breaky
 else
-	@echo "OK"
+	@echo -e "\033[01;37mOK\033[00m"
 endif
-# !!! NOTE !!! Need to put a check here for libcdio, GL, etc.
+# !!! NOTE !!! Need to put a check here for libcdio, GL, zlib
 
 message:
 	@echo
-	@echo "*** Building Virtual Jaguar for $(MSG)..."
+	@echo -e "\033[01;33m***\033[00;32m Building Virtual Jaguar for $(MSG)...\033[00m"
 	@echo
 
 clean:
-	@echo -n "*** Cleaning out the garbage..."
+	@echo -en "\033[01;33m***\033[00;32m Cleaning out the garbage...\033[00m"
 	@rm -rf obj
 	@rm -f ./$(TARGET)$(EXESUFFIX)
-	@echo done!
+	@echo -e "\033[01;37mdone!\033[00m"
 
 obj:
 	@mkdir obj
@@ -141,24 +153,24 @@ obj:
 
 ifneq "" "$(ICON)"
 $(ICON): res/$(TARGET).rc res/$(TARGET).ico
-	@echo \*\*\* Processing icon...
+	@echo -e "\033[01;33m***\033[00;32m Processing icon...\033[00m"
 	@windres -i res/$(TARGET).rc -o $(ICON) --include-dir=./res
 endif
 
 obj/%.o: src/%.c
-	@echo "*** Compiling $<..."
+	@echo -e "\033[01;33m***\033[00;32m Compiling $<...\033[00m"
 	@$(CC) $(CFLAGS) $(INCS) -c $< -o $@
 
 obj/%.o: src/%.cpp
-	@echo "*** Compiling $<..."
+	@echo -e "\033[01;33m***\033[00;32m Compiling $<...\033[00m"
 	@$(CC) $(CPPFLAGS) $(INCS) -c $< -o $@
 
 obj/%.o: src/gui/%.cpp
-	@echo "*** Compiling $<..."
+	@echo -e "\033[01;33m***\033[00;32m Compiling $<...\033[00m"
 	@$(CC) $(CPPFLAGS) $(INCS) -c $< -o $@
 
 $(TARGET)$(EXESUFFIX): $(OBJS)
-	@echo "*** Linking it all together..."
+	@echo -e "\033[01;33m***\033[00;32m Linking it all together...\033[00m"
 	@$(LD) $(LDFLAGS) -o $@ $(OBJS) $(LIBS)
 #	strip --strip-all vj$(EXESUFFIX)
 #	upx -9 vj$(EXESUFFIX)
@@ -182,32 +194,32 @@ $(TARGET)$(EXESUFFIX): $(OBJS)
 #NOTE: The above doesn't work for some reason...
 
 obj/m68kcpu.o: obj/m68kops.h src/m68k.h src/m68kconf.h
-	@echo "*** Compiling m68kcpu.c..."
+	@echo -e "\033[01;33m***\033[00;32m Compiling m68kcpu.c...\033[00m"
 	@$(CC) $(CFLAGS) -Iobj -c src/m68kcpu.c -o obj/m68kcpu.o
 
 obj/m68kops.o: obj/m68kmake$(EXESUFFIX) obj/m68kops.h obj/m68kops.c src/m68k.h src/m68kconf.h
-	@echo "*** Compiling m68kops.c..."
+	@echo -e "\033[01;33m***\033[00;32m Compiling m68kops.c...\033[00m"
 	@$(CC) $(CFLAGS) -Isrc -c obj/m68kops.c -o obj/m68kops.o
 
 obj/m68kopac.o: obj/m68kmake$(EXESUFFIX) obj/m68kops.h obj/m68kopac.c src/m68k.h src/m68kconf.h
-	@echo "*** Compiling m68kopac.c..."
+	@echo -e "\033[01;33m***\033[00;32m Compiling m68kopac.c...\033[00m"
 	@$(CC) $(CFLAGS) -Isrc -c obj/m68kopac.c -o obj/m68kopac.o
 
 obj/m68kopdm.o: obj/m68kmake$(EXESUFFIX) obj/m68kops.h obj/m68kopdm.c src/m68k.h src/m68kconf.h
-	@echo "*** Compiling m68kopdm.c..."
+	@echo -e "\033[01;33m***\033[00;32m Compiling m68kopdm.c...\033[00m"
 	@$(CC) $(CFLAGS) -Isrc -c obj/m68kopdm.c -o obj/m68kopdm.o
 
 obj/m68kopnz.o: obj/m68kmake$(EXESUFFIX) obj/m68kops.h obj/m68kopnz.c src/m68k.h src/m68kconf.h
-	@echo "*** Compiling m68kopnz.c..."
+	@echo -e "\033[01;33m***\033[00;32m Compiling m68kopnz.c...\033[00m"
 	@$(CC) $(CFLAGS) -Isrc -c obj/m68kopnz.c -o obj/m68kopnz.o
 
 obj/m68kdasm.o: src/m68kdasm.c src/m68k.h src/m68kconf.h
-	@echo "*** Compiling m68kdasm.c..."
+	@echo -e "\033[01;33m***\033[00;32m Compiling m68kdasm.c...\033[00m"
 	@$(CC) $(CFLAGS) -Isrc -c src/m68kdasm.c -o obj/m68kdasm.o
 
 obj/m68kops.h: obj/m68kmake$(EXESUFFIX)
 	@obj/m68kmake obj src/m68k_in.c
 
 obj/m68kmake$(EXESUFFIX): src/m68kmake.c src/m68k_in.c
-	@echo "*** Preparing to make the Musashi core..."
+	@echo -e "\033[01;33m***\033[00;32m Preparing to make the Musashi core...\033[00m"
 	@$(CC) $(WARNINGS) src/m68kmake.c -o obj/m68kmake$(EXESUFFIX)
