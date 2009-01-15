@@ -13,10 +13,10 @@ original work by David Raingeard of Potato Emulation. For requirements please
 consult the INSTALL file for more information about supported OS's and
 software requirements.
 
-The use of this software is entirely at your own risk. We can't be held
-responsible for damage done to you hardware and/or software. While it won't
-rape your dog, it might do other nasty things. You have been warned. This
-software requires the use of the Atari Jaguar (CD) boot ROM and/or Commercial
+The use of this software is entirely at your own risk. While it won't rape
+your dog, it might do other nasty things. We can't be held responsible for
+damage done to you hardware and/or software. You have been warned! This
+software may require the use of the Atari Jaguar boot ROMs and/or Commercial
 ROM images. You may only use the ROM images if you own the cartridges itself.
 The use of Commercial ROMs without owning the original cartridge is illegal in
 most countries and could result in fines and/or legal actions.
@@ -27,8 +27,9 @@ may not commercially sell this software. If you make changes, release the
 source code to the public and send the changes you made to the original
 authors.
 
-The products and brands used in these documents and/or sourcecode are owned by
-their respective companies and/or successors in interest.
+The products, trademarks and/or brands used in these documents and/or
+sourcecode are owned by their respective companies and/or successors in
+interest.
 
 ----------------------------------------------------------------
 - IMPORTANT NOTE ABOUT JAGUAR FILE FORMATS--READ THIS OR ELSE! -
@@ -86,14 +87,14 @@ a standard PC. The software was originally developed by David Raingeard of
 Potato Emulation [http://potato.emu-france.com] and was released under the GPL
 on 25 June 2003.
 
-Virtual Jaguar GCC/SDL is not only a port of the MS Visual C++/SDL sourcecode
+Virtual Jaguar GCC/SDL is not just a port of the MS Visual C++/SDL sourcecode
 but has also been extended and rewritten so that we can enjoy Atari Jaguar
-emulation on every platform which uses the GCC compiler and that can make use
-of the Simple Directmedia Layer library (SDL).
+emulation on every platform that has a GCC compiler and a port of the Simple
+Directmedia Layer library (SDL).
 
 Currently Virtual Jaguar GCC/SDL compiles on WIN32 using mingw, and several
-UN*X based systems (BeOS, Linux and FreeBSD). It may run on other systems
-as well but we can not guarantee that.
+UN*X based systems (BeOS, Linux, FreeBSD and MacOS). It may run on other
+systems as well but we can not guarantee that.
 
 The port was done by the SDLEMU crew (http://sdlemu.ngemu.com) and especially
 by Niels Wagenaar and Carwin Jones. A major portion of the rewrite was done by
@@ -101,7 +102,8 @@ James L. Hammons. You may contact us by e-mail (sdlemu@ngemu.com) or leave a
 message on the SDLEMU Official Forum (see the website). Patches and bugfixes
 are particularly welcome! :)
 
-More information about SDL can be found at http://www.libsdl.org.
+More information about the incredible SDL libraries can be found at
+http://www.libsdl.org. Thanks Sam--you rock! :)
 
 --------------------------------
 - Using Virtual Jaguar GCC/SDL -
@@ -110,14 +112,15 @@ More information about SDL can be found at http://www.libsdl.org.
 After compiling the binary (see INSTALL) you can now run original Atari Jaguar
 games. These games are distributed on cartridges and can therefore cannot be
 used on a PC (we're still waiting for that Jaguar-on-a-PCI-card that you plug
-into your late model PC, complete with cartridge slot ;-). To use these games
-on Virtual Jaguar GCC/SDL you need to get ROM images. Besides the ROM images
-from commercial games you must also obtain the Atari Jaguar (CD) boot ROM
-which you must copy to the BIOS directory. For legal issues concerning ROM
-images please consult the DISCLAIMER at the beginning of this file.
+into your late model PC, complete with cartridge slot and controller connectors
+;-). To use these games on Virtual Jaguar GCC/SDL you need to get ROM images.
+Besides the ROM images from commercial games, you may also need to obtain the
+Atari Jaguar boot ROM (and/or CD boot ROM) which you must copy to the BIOS
+directory. For legal issues concerning ROM images please consult the DISCLAIMER
+at the beginning of this file.
 
-After obtaining the Atari Jaguar (CD) boot ROM and several ROMs you can now
-use Virtual Jaguar using the following command:
+After obtaining the Atari Jaguar boot ROM (and/or CD boot ROM) and several game
+ROMs you can now use Virtual Jaguar using the following command:
 
 ./vj [romfile] [-switches]
 

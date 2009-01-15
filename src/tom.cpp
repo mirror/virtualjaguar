@@ -314,8 +314,6 @@
 //(It's easier to do it here, though...)
 //#define TOM_DEBUG
 
-extern uint8 objectp_running;
-
 uint8 tomRam8[0x4000];
 uint32 tomWidth, tomHeight;
 static uint32 tom_timer_prescaler;
@@ -939,6 +937,7 @@ void TOMExecScanline(uint16 scanline, bool render)
 		if (inActiveDisplayArea)
 		{
 //NOTE: The following doesn't put BORDER color on the sides... !!! FIX !!!
+#warning The following doesn't put BORDER color on the sides... !!! FIX !!!
 			if (vjs.renderType == RT_NORMAL)
 				scanline_render[TOMGetVideoMode()](TOMBackbuffer);
 			else//TV type render
@@ -959,21 +958,51 @@ void TOMExecScanline(uint16 scanline, bool render)
 				uint8 pwidth = ((GET16(tomRam8, VMODE) & PWIDTH) >> 9) + 1;
 				uint8 mode = ((GET16(tomRam8, VMODE) & MODE) >> 1);
 				bool varmod = GET16(tomRam8, VMODE) & VARMOD;
-//The video texture line buffer ranges from 0 to 1279, with its left edge starting at LEFT_VISIBLE_HC.
-//So, we need to start writing into the backbuffer at HDB1, using pwidth as our scaling factor. The
-//way it generates its image on a real TV!
+//The video texture line buffer ranges from 0 to 1279, with its left edge starting at
+//LEFT_VISIBLE_HC. So, we need to start writing into the backbuffer at HDB1, using pwidth
+//as our scaling factor. The way it generates its image on a real TV!
 
-//So, for example, if HDB1 is less than LEFT_VISIBLE_HC, then we have to figure out where in the VTLB
-//that we start writing pixels from the Jaguar line buffer (VTLB start=0, JLB=something).
+//So, for example, if HDB1 is less than LEFT_VISIBLE_HC, then we have to figure out where
+//in the VTLB that we start writing pixels from the Jaguar line buffer (VTLB start=0,
+//JLB=something).
+#if 0
+//
+// 24 BPP mode rendering
+//
+void tom_render_24bpp_scanline(uint32 * backbuffer)
+{
+//CHANGED TO 32BPP RENDERING
+	uint16 width = tomWidth;
+	uint8 * current_line_buffer = (uint8 *)&tomRam8[0x1800];
+
+	//New stuff--restrict our drawing...
+	uint8 pwidth = ((GET16(tomRam8, VMODE) & PWIDTH) >> 9) + 1;
+	//NOTE: May have to check HDB2 as well!
+	int16 startPos = GET16(tomRam8, HDB1) - (vjs.hardwareTypeNTSC ? LEFT_VISIBLE_HC : LEFT_VISIBLE_HC_PAL);	// Get start position in HC ticks
+	startPos /= pwidth;
+	if (startPos < 0)
+		current_line_buffer += 4 * -startPos;
+	else
+//This should likely be 4 instead of 2 (?--not sure)
+		backbuffer += 2 * startPos, width -= startPos;
+
+	while (width)
+	{
+		uint32 g = *current_line_buffer++;
+		uint32 r = *current_line_buffer++;
+		current_line_buffer++;
+		uint32 b = *current_line_buffer++;
+		*backbuffer++ = 0xFF000000 | (b << 16) | (g << 8) | r;
+		width--;
+	}
+}
+#endif
 
 			}
 		}
 		else
 		{
 			// If outside of VDB & VDE, then display the border color
-/*			int16 * currentLineBuffer = TOMBackbuffer;
-			uint8 g = tomRam8[BORD1], r = tomRam8[BORD1 + 1], b = tomRam8[BORD2 + 1];
-			uint16 pixel = ((r & 0xF8) << 7) | ((g & 0xF8) << 2) | (b >> 3);//*/
 			uint32 * currentLineBuffer = TOMBackbuffer;
 			uint8 g = tomRam8[BORD1], r = tomRam8[BORD1 + 1], b = tomRam8[BORD2 + 1];
 			uint32 pixel = 0xFF000000 | (b << 16) | (g << 8) | r;
@@ -982,7 +1011,6 @@ void TOMExecScanline(uint16 scanline, bool render)
 				*currentLineBuffer++ = pixel;
 		}
 
-//		TOMBackbuffer += GetSDLScreenPitch() / 2;	// Returns bytes, but we need words
 		TOMBackbuffer += GetSDLScreenWidthInPixels();
 	}
 }

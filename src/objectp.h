@@ -22,4 +22,8 @@ void OPSetCurrentObject(uint64 object);
 //void OPWriteByte(uint32, uint8, uint32 who = UNKNOWN);
 //void OPWriteWord(uint32, uint16, uint32 who = UNKNOWN);
 
+// Exported variables
+
+extern uint8 objectp_running;
+
 #endif	// __OBJECTP_H__

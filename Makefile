@@ -106,6 +106,7 @@ OBJS = \
 	obj/sdlemu_config.o \
 	obj/sdlemu_opengl.o \
 	obj/settings.o      \
+	obj/state.o         \
 	obj/tom.o           \
 	obj/unzip.o         \
 	obj/video.o         \
