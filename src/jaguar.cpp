@@ -25,6 +25,10 @@
 #include "settings.h"
 #include "tom.h"
 #include "video.h"
+#include "blitter.h"
+#include "jerry.h"
+#include "dac.h"
+#include "eeprom.h"
 
 #define CPU_DEBUG
 //Do this in makefile??? Yes! Could, but it's easier to define here...
@@ -44,7 +48,6 @@ void M68K_show_context(void);
 
 // External variables
 
-//extern bool hardwareTypeNTSC;						// Set to false for PAL
 #ifdef CPU_DEBUG_MEMORY
 extern bool startMemLog;							// Set by "e" key
 extern int effect_start;
@@ -58,14 +61,18 @@ const char * whoName[9] =
 
 uint32 jaguar_active_memory_dumps = 0;
 
-uint32 jaguarMainRomCRC32, jaguarRomSize, jaguarRunAddress;
+uint32 jaguarMainROMCRC32, jaguarROMSize, jaguarRunAddress;
 
-uint8 * jaguarMainRam = NULL;
-uint8 * jaguarMainRom = NULL;
-uint8 * jaguarBootRom = NULL;
-uint8 * jaguarCDBootROM = NULL;
+uint8 jaguarMainRAM[0x400000];						// 68K CPU RAM
+uint8 jaguarMainROM[0x600000];						// 68K CPU ROM
+uint8 jaguarBootROM[0x040000];						// 68K CPU BIOS ROM--uses only half of this!
+uint8 jaguarCDBootROM[0x040000];					// 68K CPU CD BIOS ROM
 bool BIOSLoaded = false;
 bool CDBIOSLoaded = false;
+
+uint8 cdRAM[0x100];
+uint8 tomRAM[0x4000];
+uint8 jerryRAM[0x10000];
 
 #ifdef CPU_DEBUG_MEMORY
 uint8 writeMemMax[0x400000], writeMemMin[0x400000];
@@ -81,7 +88,8 @@ uint32 pcQPtr = 0;
 //
 void GPUDumpDisassembly(void);
 void GPUDumpRegisters(void);
-	static bool start = false;
+static bool start = false;
+
 void M68KInstructionHook(void)
 {
 	uint32 m68kPC = m68k_get_reg(NULL, M68K_REG_PC);
@@ -345,6 +353,321 @@ CD_switch::	-> $306C
 	}//*/
 #endif
 }
+
+#if 0
+Now here be dragons...
+Here is how memory ranges are defined in the CoJag driver.
+Note that we only have to be concerned with 3 entities read/writing anything:
+The main CPU, the GPU, and the DSP. Everything else is unnecessary. So we can keep our main memory
+checking in jaguar.cpp, gpu.cpp and dsp.cpp. There should be NO checking in TOM, JERRY, etc. other than
+things that are entirely internal to those modules. This way we should be able to get a handle on all
+this crap which is currently scattered over Hell's Half Acre(tm).
+
+Also: We need to distinguish whether or not we need .b, .w, and .dw versions of everything, or if there
+is a good way to collapse that shit.
+
+/*************************************
+ *
+ *  Main CPU memory handlers
+ *
+ *************************************/
+
+static ADDRESS_MAP_START( m68020_map, ADDRESS_SPACE_PROGRAM, 32 )
+	AM_RANGE(0x000000, 0x7fffff) AM_RAM AM_BASE(&jaguar_shared_ram) AM_SHARE(1)
+	AM_RANGE(0x800000, 0x9fffff) AM_ROM AM_REGION(REGION_USER1, 0) AM_BASE(&rom_base)
+	AM_RANGE(0xa00000, 0xa1ffff) AM_RAM
+	AM_RANGE(0xa20000, 0xa21fff) AM_READWRITE(eeprom_data_r, eeprom_data_w) AM_BASE(&generic_nvram32) AM_SIZE(&generic_nvram_size)
+	AM_RANGE(0xa30000, 0xa30003) AM_WRITE(watchdog_reset32_w)
+	AM_RANGE(0xa40000, 0xa40003) AM_WRITE(eeprom_enable_w)
+	AM_RANGE(0xb70000, 0xb70003) AM_READWRITE(misc_control_r, misc_control_w)
+	AM_RANGE(0xc00000, 0xdfffff) AM_ROMBANK(2)
+	AM_RANGE(0xe00000, 0xe003ff) AM_DEVREADWRITE(IDE_CONTROLLER, "ide",  ide_controller32_r, ide_controller32_w)
+	AM_RANGE(0xf00000, 0xf003ff) AM_READWRITE(jaguar_tom_regs32_r, jaguar_tom_regs32_w)
+	AM_RANGE(0xf00400, 0xf007ff) AM_RAM AM_BASE(&jaguar_gpu_clut) AM_SHARE(2)
+	AM_RANGE(0xf02100, 0xf021ff) AM_READWRITE(gpuctrl_r, gpuctrl_w)
+	AM_RANGE(0xf02200, 0xf022ff) AM_READWRITE(jaguar_blitter_r, jaguar_blitter_w)
+	AM_RANGE(0xf03000, 0xf03fff) AM_MIRROR(0x008000) AM_RAM AM_BASE(&jaguar_gpu_ram) AM_SHARE(3)
+	AM_RANGE(0xf10000, 0xf103ff) AM_READWRITE(jaguar_jerry_regs32_r, jaguar_jerry_regs32_w)
+	AM_RANGE(0xf16000, 0xf1600b) AM_READ(cojag_gun_input_r)	// GPI02
+	AM_RANGE(0xf17000, 0xf17003) AM_READ(status_r)			// GPI03
+//  AM_RANGE(0xf17800, 0xf17803) AM_WRITE(latch_w)  // GPI04
+	AM_RANGE(0xf17c00, 0xf17c03) AM_READ(jamma_r)			// GPI05
+	AM_RANGE(0xf1a100, 0xf1a13f) AM_READWRITE(dspctrl_r, dspctrl_w)
+	AM_RANGE(0xf1a140, 0xf1a17f) AM_READWRITE(jaguar_serial_r, jaguar_serial_w)
+	AM_RANGE(0xf1b000, 0xf1cfff) AM_RAM AM_BASE(&jaguar_dsp_ram) AM_SHARE(4)
+ADDRESS_MAP_END
+
+/*************************************
+ *
+ *  GPU memory handlers
+ *
+ *************************************/
+
+static ADDRESS_MAP_START( gpu_map, ADDRESS_SPACE_PROGRAM, 32 )
+	AM_RANGE(0x000000, 0x7fffff) AM_RAM AM_SHARE(1)
+	AM_RANGE(0x800000, 0xbfffff) AM_ROMBANK(8)
+	AM_RANGE(0xc00000, 0xdfffff) AM_ROMBANK(9)
+	AM_RANGE(0xe00000, 0xe003ff) AM_DEVREADWRITE(IDE_CONTROLLER, "ide", ide_controller32_r, ide_controller32_w)
+	AM_RANGE(0xf00000, 0xf003ff) AM_READWRITE(jaguar_tom_regs32_r, jaguar_tom_regs32_w)
+	AM_RANGE(0xf00400, 0xf007ff) AM_RAM AM_SHARE(2)
+	AM_RANGE(0xf02100, 0xf021ff) AM_READWRITE(gpuctrl_r, gpuctrl_w)
+	AM_RANGE(0xf02200, 0xf022ff) AM_READWRITE(jaguar_blitter_r, jaguar_blitter_w)
+	AM_RANGE(0xf03000, 0xf03fff) AM_RAM AM_SHARE(3)
+	AM_RANGE(0xf10000, 0xf103ff) AM_READWRITE(jaguar_jerry_regs32_r, jaguar_jerry_regs32_w)
+ADDRESS_MAP_END
+
+/*************************************
+ *
+ *  DSP memory handlers
+ *
+ *************************************/
+
+static ADDRESS_MAP_START( dsp_map, ADDRESS_SPACE_PROGRAM, 32 )
+	AM_RANGE(0x000000, 0x7fffff) AM_RAM AM_SHARE(1)
+	AM_RANGE(0x800000, 0xbfffff) AM_ROMBANK(8)
+	AM_RANGE(0xc00000, 0xdfffff) AM_ROMBANK(9)
+	AM_RANGE(0xf10000, 0xf103ff) AM_READWRITE(jaguar_jerry_regs32_r, jaguar_jerry_regs32_w)
+	AM_RANGE(0xf1a100, 0xf1a13f) AM_READWRITE(dspctrl_r, dspctrl_w)
+	AM_RANGE(0xf1a140, 0xf1a17f) AM_READWRITE(jaguar_serial_r, jaguar_serial_w)
+	AM_RANGE(0xf1b000, 0xf1cfff) AM_RAM AM_SHARE(4)
+	AM_RANGE(0xf1d000, 0xf1dfff) AM_READ(jaguar_wave_rom_r) AM_BASE(&jaguar_wave_rom)
+ADDRESS_MAP_END
+*/
+#endif
+
+#define EXPERIMENTAL_MEMORY_HANDLING
+// Experimental memory mappage...
+// Dunno if this is a good approach or not, but it seems to make better
+// sense to have all this crap in one spot intstead of scattered all over
+// the place the way it is now.
+#ifdef EXPERIMENTAL_MEMORY_HANDLING
+// Needed defines...
+#define NEW_TIMER_SYSTEM
+void WriteByte(uint32 address, uint8 byte, uint32 who/*=UNKNOWN*/)
+{
+	// Not sure, but I think the system only has 24 address bits...
+	address &= 0x00FFFFFF;
+
+	// RAM			($000000 - $3FFFFF)		4M
+	if (address <= 0x3FFFFF)
+		jaguarMainRAM[address] = byte;
+	// hole			($400000 - $7FFFFF)		4M
+	else if (address <= 0x7FFFFF)
+		;	// Do nothing
+	// GAME ROM		($800000 - $DFFEFF)		6M - 256 bytes
+	else if (address <= 0xDFFEFF)
+		;	// Do nothing
+	// CDROM		($DFFF00 - $DFFFFF)		256 bytes
+	else if (address <= 0xDFFFFF)
+	{
+		cdRAM[address & 0xFF] = byte;
+#ifdef CDROM_LOG
+		if ((address & 0xFF) < 12 * 4)
+			WriteLog("[%s] ", BReg[(address & 0xFF) / 4]);
+		WriteLog("CDROM: %s writing byte $%02X at $%08X [68K PC=$%08X]\n", whoName[who], data, offset, m68k_get_reg(NULL, M68K_REG_PC));
+#endif
+	}
+	// BIOS ROM		($E00000 - $E3FFFF)		256K
+	else if (address <= 0xE3FFFF)
+		;	// Do nothing
+	// hole			($E40000 - $EFFFFF)		768K
+	else if (address <= 0xEFFFFF)
+		;	// Do nothing
+	// TOM			($F00000 - $F0FFFF)		64K
+	else if (address <= 0xF0FFFF)
+//		;	// Do nothing
+	{
+		if (address == 0xF00050)
+		{
+			tomTimerPrescaler = (tomTimerPrescaler & 0x00FF) | ((uint16)byte << 8);
+			TOMResetPIT();
+			return;
+		}
+		else if (address == 0xF00051)
+		{
+			tomTimerPrescaler = (tomTimerPrescaler & 0xFF00) | byte;
+			TOMResetPIT();
+			return;
+		}
+		else if (address == 0xF00052)
+		{
+			tomTimerDivider = (tomTimerDivider & 0x00FF) | ((uint16)byte << 8);
+			TOMResetPIT();
+			return;
+		}
+		else if (address == 0xF00053)
+		{
+			tomTimerDivider = (tomTimerDivider & 0xFF00) | byte;
+			TOMResetPIT();
+			return;
+		}
+		else if (address >= 0xF00400 && address <= 0xF007FF)	// CLUT (A & B)
+		{
+			// Writing to one CLUT writes to the other
+			address &= 0x5FF;		// Mask out $F00600 (restrict to $F00400-5FF)
+			tomRAM[address] = tomRAM[address + 0x200] = byte;
+			return;
+		}
+		//What about LBUF writes???
+		else if ((address >= 0xF02100) && (address <= 0xF0211F))	// GPU CONTROL
+		{
+			GPUWriteByte(address, byte, who);
+			return;
+		}
+		else if ((address >= 0xF02200) && (address <= 0xF0229F))	// BLITTER
+		{
+			BlitterWriteByte(address, byte, who);
+			return;
+		}
+		else if ((address >= 0xF03000) && (address <= 0xF03FFF))	// GPU RAM
+		{
+			GPUWriteByte(address, byte, who);
+			return;
+		}
+
+		tomRAM[address & 0x3FFF] = byte;
+	}
+	// JERRY		($F10000 - $F1FFFF)		64K
+	else if (address <= 0xF1FFFF)
+//		;	// Do nothing
+	{
+#ifdef JERRY_DEBUG
+		WriteLog("jerry: writing byte %.2x at 0x%.6x\n", byte, address);
+#endif
+		if ((address >= DSP_CONTROL_RAM_BASE) && (address < DSP_CONTROL_RAM_BASE+0x20))
+		{
+			DSPWriteByte(address, byte, who);
+			return;
+		}
+		else if ((address >= DSP_WORK_RAM_BASE) && (address < DSP_WORK_RAM_BASE+0x2000))
+		{
+			DSPWriteByte(address, byte, who);
+			return;
+		}
+		// SCLK ($F1A150--8 bits wide)
+//NOTE: This should be taken care of in DAC...
+		else if ((address >= 0xF1A152) && (address <= 0xF1A153))
+		{
+//		WriteLog("JERRY: Writing %02X to SCLK...\n", data);
+			if ((address & 0x03) == 2)
+				JERRYI2SInterruptDivide = (JERRYI2SInterruptDivide & 0x00FF) | ((uint32)byte << 8);
+			else
+				JERRYI2SInterruptDivide = (JERRYI2SInterruptDivide & 0xFF00) | (uint32)byte;
+
+			JERRYI2SInterruptTimer = -1;
+#ifndef NEW_TIMER_SYSTEM
+			jerry_i2s_exec(0);
+#else
+			RemoveCallback(JERRYI2SCallback);
+			JERRYI2SCallback();
+#endif
+//			return;
+		}
+		// LTXD/RTXD/SCLK/SMODE $F1A148/4C/50/54 (really 16-bit registers...)
+		else if (address >= 0xF1A148 && address <= 0xF1A157)
+		{
+			DACWriteByte(address, byte, who);
+			return;
+		}
+		else if (address >= 0xF10000 && address <= 0xF10007)
+		{
+#ifndef NEW_TIMER_SYSTEM
+			switch (address & 0x07)
+			{
+			case 0:
+				JERRYPIT1Prescaler = (JERRYPIT1Prescaler & 0x00FF) | (byte << 8);
+				JERRYResetPIT1();
+				break;
+			case 1:
+				JERRYPIT1Prescaler = (JERRYPIT1Prescaler & 0xFF00) | byte;
+				JERRYResetPIT1();
+				break;
+			case 2:
+				JERRYPIT1Divider = (JERRYPIT1Divider & 0x00FF) | (byte << 8);
+				JERRYResetPIT1();
+				break;
+			case 3:
+				JERRYPIT1Divider = (JERRYPIT1Divider & 0xFF00) | byte;
+				JERRYResetPIT1();
+				break;
+			case 4:
+				JERRYPIT2Prescaler = (JERRYPIT2Prescaler & 0x00FF) | (byte << 8);
+				JERRYResetPIT2();
+				break;
+			case 5:
+				JERRYPIT2Prescaler = (JERRYPIT2Prescaler & 0xFF00) | byte;
+				JERRYResetPIT2();
+				break;
+			case 6:
+				JERRYPIT2Divider = (JERRYPIT2Divider & 0x00FF) | (byte << 8);
+				JERRYResetPIT2();
+				break;
+			case 7:
+				JERRYPIT2Divider = (JERRYPIT2Divider & 0xFF00) | byte;
+				JERRYResetPIT2();
+			}
+#else
+WriteLog("JERRY: Unhandled timer write (BYTE) at %08X...\n", address);
+#endif
+			return;
+		}
+/*	else if ((offset >= 0xF10010) && (offset <= 0xF10015))
+	{
+		clock_byte_write(offset, byte);
+		return;
+	}//*/
+	// JERRY -> 68K interrupt enables/latches (need to be handled!)
+		else if (address >= 0xF10020 && address <= 0xF10023)
+		{
+WriteLog("JERRY: (68K int en/lat - Unhandled!) Tried to write $%02X to $%08X!\n", byte, address);
+		}
+/*	else if ((offset >= 0xF17C00) && (offset <= 0xF17C01))
+	{
+		anajoy_byte_write(offset, byte);
+		return;
+	}*/
+		else if ((address >= 0xF14000) && (address <= 0xF14003))
+		{
+			JoystickWriteByte(address, byte);
+			EepromWriteByte(address, byte);
+			return;
+		}
+		else if ((address >= 0xF14004) && (address <= 0xF1A0FF))
+		{
+			EepromWriteByte(address, byte);
+			return;
+		}
+//Need to protect write attempts to Wavetable ROM (F1D000-FFF)
+		else if (address >= 0xF1D000 && address <= 0xF1DFFF)
+			return;
+
+		jerryRAM[address & 0xFFFF] = byte;
+	}
+	// hole			($F20000 - $FFFFFF)		1M - 128K
+	else
+		;	// Do nothing
+}
+
+void WriteWord(uint32 adddress, uint16 word)
+{
+}
+
+void WriteDWord(uint32 adddress, uint32 dword)
+{
+}
+
+uint8 ReadByte(uint32 adddress)
+{
+}
+
+uint16 ReadWord(uint32 adddress)
+{
+}
+
+uint32 ReadDWord(uint32 adddress)
+{
+}
+#endif
 
 //
 // Musashi 68000 read/write/IRQ functions
@@ -638,7 +961,7 @@ uint32 JaguarGetHandler(uint32 i)
 bool JaguarInterruptHandlerIsValid(uint32 i) // Debug use only...
 {
 	uint32 handler = JaguarGetHandler(i);
-	return (handler && (handler != 0xFFFFFFFF) ? 1 : 0);
+	return (handler && (handler != 0xFFFFFFFF) ? true : false);
 }
 
 void M68K_show_context(void)
@@ -1036,10 +1359,6 @@ void JaguarInit(void)
 	memset(writeMemMin, 0xFF, 0x400000);
 	memset(writeMemMax, 0x00, 0x400000);
 #endif
-	memory_malloc_secure((void **)&jaguarMainRam, 0x400000, "Jaguar 68K CPU RAM");
-	memory_malloc_secure((void **)&jaguarMainRom, 0x600000, "Jaguar 68K CPU ROM");
-	memory_malloc_secure((void **)&jaguarBootRom, 0x040000, "Jaguar 68K CPU BIOS ROM"); // Only uses half of this!
-	memory_malloc_secure((void **)&jaguarCDBootROM, 0x040000, "Jaguar 68K CPU CD BIOS ROM");
 	memset(jaguarMainRam, 0x00, 0x400000);
 //	memset(jaguar_mainRom, 0xFF, 0x200000);	// & set it to all Fs...
 //	memset(jaguar_mainRom, 0x00, 0x200000);	// & set it to all 0s...
@@ -1171,11 +1490,6 @@ void JaguarDone(void)
 	DSPDone();
 	TOMDone();
 	JERRYDone();
-
-	memory_free(jaguarMainRom);
-	memory_free(jaguarMainRam);
-	memory_free(jaguarBootRom);
-	memory_free(jaguarCDBootROM);
 }
 
 //
@@ -1197,14 +1511,13 @@ void JaguarExecute(uint32 * backbuffer, bool render)
 //	uint16 vde = TOMReadWord(0xF00048);
 
 	uint16 refreshRate = (vjs.hardwareTypeNTSC ? 60 : 50);
+	uint32 m68kCockRate = (vjs.hardwareTypeNTSC ? M68K_CLOCK_RATE_NTSC : M68K_CLOCK_RATE_PAL);
 //Not sure the above is correct, since the number of lines and timings given in the JTRM
 //seem to indicate the refresh rate is *half* the above...
 //	uint16 refreshRate = (vjs.hardwareTypeNTSC ? 30 : 25);
 	// Should these be hardwired or read from VP? Yes, from VP!
-	uint32 M68KCyclesPerScanline
-		= (vjs.hardwareTypeNTSC ? M68K_CLOCK_RATE_NTSC : M68K_CLOCK_RATE_PAL) / (vp * refreshRate);
-	uint32 RISCCyclesPerScanline
-		= (vjs.hardwareTypeNTSC ? RISC_CLOCK_RATE_NTSC : RISC_CLOCK_RATE_PAL) / (vp * refreshRate);
+	uint32 M68KCyclesPerScanline = m68kClockRate / (vp * refreshRate);
+	uint32 RISCCyclesPerScanline = m68kClockRate / (vp * refreshRate);
 
 	TOMResetBackbuffer(backbuffer);
 /*extern int effect_start;

@@ -22,6 +22,19 @@ Uint32 mainSurfaceFlags;
 //int16 * backbuffer;
 uint32 * backbuffer;
 
+#if SDL_BYTEORDER == SDL_BIG_ENDIAN
+	#define RMASK 0xFF000000
+	#define GMASK 0x00FF0000
+	#define BMASK 0x0000FF00
+	#define AMASK 0x000000FF
+#else
+	#define RMASK 0x000000FF
+	#define GMASK 0x0000FF00
+	#define BMASK 0x00FF0000
+	#define AMASK 0xFF000000
+#endif
+
+
 // One of the reasons why OpenGL is slower then normal SDL rendering, is because
 // the data is being pumped into the buffer every frame with a overflow as result.
 // So, we going tot render every 1 frame instead of every 0 frame.
@@ -111,12 +124,7 @@ bool VideoInit(void)
 //		vsWidth = 1280;
 //24BPP
 //	surface = SDL_CreateRGBSurface(SDL_SWSURFACE, VIRTUAL_SCREEN_WIDTH,
-	surface = SDL_CreateRGBSurface(SDL_SWSURFACE, vsWidth, vsHeight, 32,
-#if SDL_BYTEORDER == SDL_BIG_ENDIAN
-		 0xFF000000, 0x00FF0000, 0x0000FF00, 0x000000FF);
-#else
-		 0x000000FF, 0x0000FF00, 0x00FF0000, 0xFF000000);
-#endif//*/
+	surface = SDL_CreateRGBSurface(SDL_SWSURFACE, vsWidth, vsHeight, 32, RMASK, GMASK, BMASK, AMASK);
 
 	if (surface == NULL)
 	{
@@ -226,12 +234,7 @@ void RenderBackbuffer(void)
 void ResizeScreen(uint32 width, uint32 height)
 {
 	SDL_FreeSurface(surface);
-	surface = SDL_CreateRGBSurface(SDL_SWSURFACE, width, height, 32,
-#if SDL_BYTEORDER == SDL_BIG_ENDIAN
-		 0xFF000000, 0x00FF0000, 0x0000FF00, 0x000000FF);
-#else
-		 0x000000FF, 0x0000FF00, 0x00FF0000, 0xFF000000);
-#endif//*/
+	surface = SDL_CreateRGBSurface(SDL_SWSURFACE, width, height, 32, RMASK, GMASK, BMASK, AMASK);
 
 	if (surface == NULL)
 	{

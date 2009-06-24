@@ -56,5 +56,8 @@ void TOMResetBackbuffer(uint32 * backbuffer);
 extern uint32 tomWidth;
 extern uint32 tomHeight;
 extern uint8 tomRam8[];
+extern uint32 tomTimerPrescaler;
+extern uint32 tomTimerDivider;
+extern int32 tomTimerCounter;
 
 #endif	// __TOM_H__

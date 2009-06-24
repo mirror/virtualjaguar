@@ -8,7 +8,7 @@
 // to Curt. ;-) Without that excellent documentation which shows *exactly*
 // what's going on inside the TOM chip, we'd all still be guessing as to how
 // the wily blitter and other pieces of the Jaguar puzzle actually work.
-// Now how about those JERRY ASIC nets gentlemen...? ;-)
+// Now how about those JERRY ASIC nets gentlemen...? [We have those now!] ;-)
 //
 
 #include "blitter.h"

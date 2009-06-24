@@ -175,8 +175,8 @@ static uint32 JERRYPIT2Divider;
 static int32 jerry_timer_1_counter;
 static int32 jerry_timer_2_counter;
 
-static uint32 jerry_i2s_interrupt_divide = 8;
-static int32 jerry_i2s_interrupt_timer = -1;
+uint32 JERRYI2SInterruptDivide = 8;
+int32 JERRYI2SInterruptTimer = -1;
 uint32 jerryI2SCycles;
 uint32 jerryIntPending;
 

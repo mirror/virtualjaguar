@@ -26,4 +26,13 @@ enum { IRQ2_EXTERNAL = 0, IRQ2_DSP, IRQ2_TIMER1, IRQ2_TIMER2, IRQ2_ASI, IRQ2_SSI
 bool JERRYIRQEnabled(int irq);
 void JERRYSetPendingIRQ(int irq);
 
+// This should stay inside this file, but it's here for now...
+// Need to set up an interface function so that this can go back
+void JERRYI2SCallback(void);
+
+// External variables
+
+extern uint32 JERRYI2SInterruptDivide;
+extern int32 JERRYI2SInterruptTimer;
+
 #endif

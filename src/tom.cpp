@@ -316,9 +316,9 @@
 
 uint8 tomRam8[0x4000];
 uint32 tomWidth, tomHeight;
-static uint32 tom_timer_prescaler;
-static uint32 tom_timer_divider;
-static int32 tom_timer_counter;
+uint32 tomTimerPrescaler;
+uint32 tomTimerDivider;
+int32 tomTimerCounter;
 //uint32 tom_scanline;
 //uint32 hblankWidthInPixels = 0;
 uint16 tom_jerry_int_pending, tom_timer_int_pending, tom_object_int_pending,

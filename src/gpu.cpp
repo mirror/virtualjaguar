@@ -1,3 +1,5 @@
+#if 1
+
 //
 // GPU Core
 //
@@ -2419,3 +2421,13 @@ static void gpu_opcode_sh(void)
 //Temporary: Testing only!
 //#include "gpu2.cpp"
 //#include "gpu3.cpp"
+
+#else
+
+// New thread-safe GPU core
+
+int GPUCore(void * data)
+{
+}
+
+#endif

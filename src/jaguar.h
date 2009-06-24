@@ -23,10 +23,10 @@ void JaguarExecuteNew(void);
 
 // Exports from JAGUAR.CPP
 
-extern uint8 * jaguarMainRam;
-extern uint8 * jaguarMainRom;
-extern uint8 * jaguarBootRom;
-extern uint8 * jaguarCDBootROM;
+extern uint8 jaguarMainRam[];
+extern uint8 jaguarMainRom[];
+extern uint8 jaguarBootRom[];
+extern uint8 jaguarCDBootROM[];
 extern bool BIOSLoaded;
 extern bool CDBIOSLoaded;
 extern int32 jaguarCPUInExec;
