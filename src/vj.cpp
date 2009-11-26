@@ -170,20 +170,20 @@ int main(int argc, char * argv[])
 	// Get the BIOS ROM
 #ifdef USE_BUILT_IN_BIOS
 	WriteLog("VJ: Using built in BIOS/CD BIOS...\n");
-	memcpy(jaguarBootRom, jagBootROM, 0x20000);
+	memcpy(jaguarBootROM, jagBootROM, 0x20000);
 	memcpy(jaguarCDBootROM, jagCDROM, 0x40000);
 	BIOSLoaded = CDBIOSLoaded = true;
 #else
 // What would be nice here would be a way to check if the BIOS was loaded so that we
 // could disable the pushbutton on the Misc Options menu... !!! FIX !!! [DONE here, but needs to be fixed in GUI as well!]
 WriteLog("About to attempt to load BIOSes...\n");
-	BIOSLoaded = (JaguarLoadROM(jaguarBootRom, vjs.jagBootPath) == 0x20000 ? true : false);
+	BIOSLoaded = (JaguarLoadROM(jaguarBootROM, vjs.jagBootPath) == 0x20000 ? true : false);
 	WriteLog("VJ: BIOS is %savailable...\n", (BIOSLoaded ? "" : "not "));
 	CDBIOSLoaded = (JaguarLoadROM(jaguarCDBootROM, vjs.CDBootPath) == 0x40000 ? true : false);
 	WriteLog("VJ: CD BIOS is %savailable...\n", (CDBIOSLoaded ? "" : "not "));
 #endif
 
-	SET32(jaguarMainRam, 0, 0x00200000);			// Set top of stack...
+	SET32(jaguarMainRAM, 0, 0x00200000);			// Set top of stack...
 
 WriteLog("Initializing video subsystem...\n");
 	VideoInit();

@@ -7,13 +7,22 @@
 // Note: Endian wrongness probably stems from the MAME origins of this emu and
 //       the braindead way in which MAME handles memory. :-)
 //
+// JLH = James L. Hammons
+//
+// WHO  WHEN        WHAT
+// ---  ----------  -----------------------------------------------------------
+// JLH  11/25/2009  Major rewrite of memory subsystem and handlers
+//
 
 #include "jaguar.h"
 
 #include <SDL.h>
 #include "SDL_opengl.h"
+#include "blitter.h"
 #include "cdrom.h"
+#include "dac.h"
 #include "dsp.h"
+#include "eeprom.h"
 #include "event.h"
 #include "gpu.h"
 #include "gui.h"
@@ -22,13 +31,10 @@
 #include "log.h"
 #include "m68k.h"
 #include "memory.h"
+#include "mmu.h"
 #include "settings.h"
 #include "tom.h"
 #include "video.h"
-#include "blitter.h"
-#include "jerry.h"
-#include "dac.h"
-#include "eeprom.h"
 
 #define CPU_DEBUG
 //Do this in makefile??? Yes! Could, but it's easier to define here...
@@ -436,7 +442,7 @@ ADDRESS_MAP_END
 */
 #endif
 
-#define EXPERIMENTAL_MEMORY_HANDLING
+//#define EXPERIMENTAL_MEMORY_HANDLING
 // Experimental memory mappage...
 // Dunno if this is a good approach or not, but it seems to make better
 // sense to have all this crap in one spot intstead of scattered all over
@@ -799,6 +805,8 @@ int irq_ack_handler(int level)
 	return vector;
 }
 
+#define USE_NEW_MMU
+
 unsigned int m68k_read_memory_8(unsigned int address)
 {
 #ifdef CPU_DEBUG_MEMORY
@@ -813,15 +821,16 @@ unsigned int m68k_read_memory_8(unsigned int address)
 /*	if (address == 0x51136 || address == 0x51138 || address == 0xFB074 || address == 0xFB076
 		|| address == 0x1AF05E)
 		WriteLog("[RM8  PC=%08X] Addr: %08X, val: %02X\n", m68k_get_reg(NULL, M68K_REG_PC), address, jaguar_mainRam[address]);//*/
+#ifndef USE_NEW_MMU
 	unsigned int retVal = 0;
 
 	if ((address >= 0x000000) && (address <= 0x3FFFFF))
-		retVal = jaguarMainRam[address];
+		retVal = jaguarMainRAM[address];
 //	else if ((address >= 0x800000) && (address <= 0xDFFFFF))
 	else if ((address >= 0x800000) && (address <= 0xDFFEFF))
-		retVal = jaguarMainRom[address - 0x800000];
+		retVal = jaguarMainROM[address - 0x800000];
 	else if ((address >= 0xE00000) && (address <= 0xE3FFFF))
-		retVal = jaguarBootRom[address - 0xE00000];
+		retVal = jaguarBootROM[address - 0xE00000];
 	else if ((address >= 0xDFFF00) && (address <= 0xDFFFFF))
 		retVal = CDROMReadByte(address);
 	else if ((address >= 0xF00000) && (address <= 0xF0FFFF))
@@ -836,6 +845,9 @@ unsigned int m68k_read_memory_8(unsigned int address)
 //if (address >= 0x8B5E4 && address <= 0x8B5E4 + 16)
 //	WriteLog("M68K: Read byte $%02X at $%08X [PC=%08X]\n", retVal, address, m68k_get_reg(NULL, M68K_REG_PC));
     return retVal;
+#else
+	return MMURead8(address, M68K);
+#endif
 }
 
 void gpu_dump_disassembly(void);
@@ -903,16 +915,17 @@ unsigned int m68k_read_memory_16(unsigned int address)
 /*	if (address == 0x51136 || address == 0x51138 || address == 0xFB074 || address == 0xFB076
 		|| address == 0x1AF05E)
 		WriteLog("[RM16  PC=%08X] Addr: %08X, val: %04X\n", m68k_get_reg(NULL, M68K_REG_PC), address, GET16(jaguar_mainRam, address));//*/
+#ifndef USE_NEW_MMU
     unsigned int retVal = 0;
 
 	if ((address >= 0x000000) && (address <= 0x3FFFFE))
 //		retVal = (jaguar_mainRam[address] << 8) | jaguar_mainRam[address+1];
-		retVal = GET16(jaguarMainRam, address);
+		retVal = GET16(jaguarMainRAM, address);
 //	else if ((address >= 0x800000) && (address <= 0xDFFFFE))
 	else if ((address >= 0x800000) && (address <= 0xDFFEFE))
-		retVal = (jaguarMainRom[address - 0x800000] << 8) | jaguarMainRom[address - 0x800000 + 1];
+		retVal = (jaguarMainROM[address - 0x800000] << 8) | jaguarMainROM[address - 0x800000 + 1];
 	else if ((address >= 0xE00000) && (address <= 0xE3FFFE))
-		retVal = (jaguarBootRom[address - 0xE00000] << 8) | jaguarBootRom[address - 0xE00000 + 1];
+		retVal = (jaguarBootROM[address - 0xE00000] << 8) | jaguarBootROM[address - 0xE00000 + 1];
 	else if ((address >= 0xDFFF00) && (address <= 0xDFFFFE))
 		retVal = CDROMReadWord(address, M68K);
 	else if ((address >= 0xF00000) && (address <= 0xF0FFFE))
@@ -931,6 +944,9 @@ unsigned int m68k_read_memory_16(unsigned int address)
 //if (address >= 0x8B5E4 && address <= 0x8B5E4 + 16)
 //	WriteLog("M68K: Read word $%04X at $%08X [PC=%08X]\n", retVal, address, m68k_get_reg(NULL, M68K_REG_PC));
     return retVal;
+#else
+	return MMURead16(address, M68K);
+#endif
 }
 
 unsigned int m68k_read_memory_32(unsigned int address)
@@ -940,7 +956,11 @@ unsigned int m68k_read_memory_32(unsigned int address)
 		WriteLog("[RM32  PC=%08X] Addr: %08X, val: %08X\n", m68k_get_reg(NULL, M68K_REG_PC), address, (m68k_read_memory_16(address) << 16) | m68k_read_memory_16(address + 2));//*/
 
 //WriteLog("--> [RM32]\n");
+#ifndef USE_NEW_MMU
     return (m68k_read_memory_16(address) << 16) | m68k_read_memory_16(address + 2);
+#else
+	return MMURead32(address, M68K);
+#endif
 }
 
 void m68k_write_memory_8(unsigned int address, unsigned int value)
@@ -964,8 +984,9 @@ void m68k_write_memory_8(unsigned int address, unsigned int value)
 	if (address >= 0x18FA70 && address < (0x18FA70 + 8000))
 		WriteLog("M68K: Byte %02X written at %08X by 68K\n", value, address);//*/
 
+#ifndef USE_NEW_MMU
 	if ((address >= 0x000000) && (address <= 0x3FFFFF))
-		jaguarMainRam[address] = value;
+		jaguarMainRAM[address] = value;
 	else if ((address >= 0xDFFF00) && (address <= 0xDFFFFF))
 		CDROMWriteByte(address, value, M68K);
 	else if ((address >= 0xF00000) && (address <= 0xF0FFFF))
@@ -974,6 +995,9 @@ void m68k_write_memory_8(unsigned int address, unsigned int value)
 		JERRYWriteByte(address, value, M68K);
 	else
 		jaguar_unknown_writebyte(address, value, M68K);
+#else
+	MMUWrite8(address, value, M68K);
+#endif
 }
 
 void m68k_write_memory_16(unsigned int address, unsigned int value)
@@ -1021,11 +1045,12 @@ if (address == 0xF02110)
 		|| address == 0x1AF05E)
 		WriteLog("[WM16  PC=%08X] Addr: %08X, val: %04X\n", m68k_get_reg(NULL, M68K_REG_PC), address, value);//*/
 
+#ifndef USE_NEW_MMU
 	if ((address >= 0x000000) && (address <= 0x3FFFFE))
 	{
 /*		jaguar_mainRam[address] = value >> 8;
 		jaguar_mainRam[address + 1] = value & 0xFF;*/
-		SET16(jaguarMainRam, address, value);
+		SET16(jaguarMainRAM, address, value);
 	}
 	else if ((address >= 0xDFFF00) && (address <= 0xDFFFFE))
 		CDROMWriteWord(address, value, M68K);
@@ -1040,8 +1065,11 @@ if (address == 0xF02110)
 		WriteLog("\tA0=%08X, A1=%08X, D0=%08X, D1=%08X\n",
 			m68k_get_reg(NULL, M68K_REG_A0), m68k_get_reg(NULL, M68K_REG_A1),
 			m68k_get_reg(NULL, M68K_REG_D0), m68k_get_reg(NULL, M68K_REG_D1));
-#endif
 	}
+#endif
+#else
+	MMUWrite16(address, value, M68K);
+#endif
 }
 
 void m68k_write_memory_32(unsigned int address, unsigned int value)
@@ -1059,8 +1087,12 @@ if (address == 0xF03214 && value == 0x88E30047)
 /*	if (address == 0x51136 || address == 0xFB074)
 		WriteLog("[WM32  PC=%08X] Addr: %08X, val: %02X\n", m68k_get_reg(NULL, M68K_REG_PC), address, value);//*/
 
+#ifndef USE_NEW_MMU
 	m68k_write_memory_16(address, value >> 16);
 	m68k_write_memory_16(address + 2, value & 0xFFFF);
+#else
+	MMUWrite32(address, value, M68K);
+#endif
 }
 
 
@@ -1232,13 +1264,13 @@ uint8 JaguarReadByte(uint32 offset, uint32 who/*=UNKNOWN*/)
 
 	offset &= 0xFFFFFF;
 	if (offset < 0x400000)
-		data = jaguarMainRam[offset & 0x3FFFFF];
+		data = jaguarMainRAM[offset & 0x3FFFFF];
 	else if ((offset >= 0x800000) && (offset < 0xC00000))
-		data = jaguarMainRom[offset - 0x800000];
+		data = jaguarMainROM[offset - 0x800000];
 	else if ((offset >= 0xDFFF00) && (offset <= 0xDFFFFF))
 		data = CDROMReadByte(offset, who);
 	else if ((offset >= 0xE00000) && (offset < 0xE40000))
-		data = jaguarBootRom[offset & 0x3FFFF];
+		data = jaguarBootROM[offset & 0x3FFFF];
 	else if ((offset >= 0xF00000) && (offset < 0xF10000))
 		data = TOMReadByte(offset, who);
 	else if ((offset >= 0xF10000) && (offset < 0xF20000))
@@ -1254,18 +1286,18 @@ uint16 JaguarReadWord(uint32 offset, uint32 who/*=UNKNOWN*/)
 	offset &= 0xFFFFFF;
 	if (offset <= 0x3FFFFE)
 	{
-		return (jaguarMainRam[(offset+0) & 0x3FFFFF] << 8) | jaguarMainRam[(offset+1) & 0x3FFFFF];
+		return (jaguarMainRAM[(offset+0) & 0x3FFFFF] << 8) | jaguarMainRAM[(offset+1) & 0x3FFFFF];
 	}
 	else if ((offset >= 0x800000) && (offset <= 0xBFFFFE))
 	{
 		offset -= 0x800000;
-		return (jaguarMainRom[offset+0] << 8) | jaguarMainRom[offset+1];
+		return (jaguarMainROM[offset+0] << 8) | jaguarMainROM[offset+1];
 	}
 //	else if ((offset >= 0xDFFF00) && (offset < 0xDFFF00))
 	else if ((offset >= 0xDFFF00) && (offset <= 0xDFFFFE))
 		return CDROMReadWord(offset, who);
 	else if ((offset >= 0xE00000) && (offset <= 0xE3FFFE))
-		return (jaguarBootRom[(offset+0) & 0x3FFFF] << 8) | jaguarBootRom[(offset+1) & 0x3FFFF];
+		return (jaguarBootROM[(offset+0) & 0x3FFFF] << 8) | jaguarBootROM[(offset+1) & 0x3FFFF];
 	else if ((offset >= 0xF00000) && (offset <= 0xF0FFFE))
 		return TOMReadWord(offset, who);
 	else if ((offset >= 0xF10000) && (offset <= 0xF1FFFE))
@@ -1284,7 +1316,7 @@ void JaguarWriteByte(uint32 offset, uint8 data, uint32 who/*=UNKNOWN*/)
 	offset &= 0xFFFFFF;
 	if (offset < 0x400000)
 	{
-		jaguarMainRam[offset & 0x3FFFFF] = data;
+		jaguarMainRAM[offset & 0x3FFFFF] = data;
 		return;
 	}
 	else if ((offset >= 0xDFFF00) && (offset <= 0xDFFFFF))
@@ -1412,8 +1444,8 @@ if (who == GPU && (gpu_pc == 0xF03604 || gpu_pc == 0xF03638))
 if (offset == 0x11D31A + 0x48000 || offset == 0x11D31A)
 	WriteLog("JWW: %s writing star %04X at %08X...\n", whoName[who], data, offset);//*/
 
-		jaguarMainRam[(offset+0) & 0x3FFFFF] = data >> 8;
-		jaguarMainRam[(offset+1) & 0x3FFFFF] = data & 0xFF;
+		jaguarMainRAM[(offset+0) & 0x3FFFFF] = data >> 8;
+		jaguarMainRAM[(offset+1) & 0x3FFFFF] = data & 0xFF;
 		return;
 	}
 	else if (offset >= 0xDFFF00 && offset <= 0xDFFFFE)
@@ -1470,13 +1502,13 @@ void JaguarInit(void)
 	memset(writeMemMin, 0xFF, 0x400000);
 	memset(writeMemMax, 0x00, 0x400000);
 #endif
-	memset(jaguarMainRam, 0x00, 0x400000);
+	memset(jaguarMainRAM, 0x00, 0x400000);
 //	memset(jaguar_mainRom, 0xFF, 0x200000);	// & set it to all Fs...
 //	memset(jaguar_mainRom, 0x00, 0x200000);	// & set it to all 0s...
 //NOTE: This *doesn't* fix FlipOut...
 //Or does it? Hmm...
 //Seems to want $01010101... Dunno why. Investigate!
-	memset(jaguarMainRom, 0x01, 0x600000);	// & set it to all 01s...
+	memset(jaguarMainROM, 0x01, 0x600000);	// & set it to all 01s...
 //	memset(jaguar_mainRom, 0xFF, 0x600000);	// & set it to all Fs...
 
 	m68k_set_cpu_type(M68K_CPU_TYPE_68000);
@@ -1495,9 +1527,9 @@ void JaguarReset(void)
 {
 //NOTE: This causes a (virtual) crash if this is set in the config but not found... !!! FIX !!!
 	if (vjs.useJaguarBIOS)
-		memcpy(jaguarMainRam, jaguarBootRom, 8);
+		memcpy(jaguarMainRAM, jaguarBootROM, 8);
 	else
-		SET32(jaguarMainRam, 4, jaguarRunAddress);
+		SET32(jaguarMainRAM, 4, jaguarRunAddress);
 
 //	WriteLog("jaguar_reset():\n");
 	TOMReset();
@@ -1696,13 +1728,13 @@ void DumpMainMemory(void)
 	if (fp == NULL)
 		return;
 
-	fwrite(jaguarMainRam, 1, 0x400000, fp);
+	fwrite(jaguarMainRAM, 1, 0x400000, fp);
 	fclose(fp);
 }
 
 uint8 * GetRamPtr(void)
 {
-	return jaguarMainRam;
+	return jaguarMainRAM;
 }
 
 //

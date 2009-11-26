@@ -347,14 +347,14 @@ Window * ResetJaguar(void)
 
 Window * ResetJaguarCD(void)
 {
-	memcpy(jaguarMainRom, jaguarCDBootROM, 0x40000);
+	memcpy(jaguarMainROM, jaguarCDBootROM, 0x40000);
 	jaguarRunAddress = 0x802000;
-	jaguarMainRomCRC32 = crc32_calcCheckSum(jaguarMainRom, 0x40000);
+	jaguarMainROMCRC32 = crc32_calcCheckSum(jaguarMainROM, 0x40000);
 	JaguarReset();
 //This is a quick kludge to get the CDBIOS to boot properly...
 //Wild speculation: It could be that this memory location is wired into the CD unit
 //somehow, which lets it know whether or not a cart is present in the unit...
-	jaguarMainRom[0x0040B] = 0x03;
+	jaguarMainROM[0x0040B] = 0x03;
 
 	return RunEmu();
 }
@@ -508,13 +508,13 @@ Window * RunEmu(void)
 	debounceRunKey = true;
 
 	uint32 cartType = 4;
-	if (jaguarRomSize == 0x200000)
+	if (jaguarROMSize == 0x200000)
 		cartType = 0;
-	else if (jaguarRomSize == 0x400000)
+	else if (jaguarROMSize == 0x400000)
 		cartType = 1;
-	else if (jaguarMainRomCRC32 == 0x687068D5)
+	else if (jaguarMainROMCRC32 == 0x687068D5)
 		cartType = 2;
-	else if (jaguarMainRomCRC32 == 0x55A0669C)
+	else if (jaguarMainROMCRC32 == 0x55A0669C)
 		cartType = 3;
 
 	const char * cartTypeName[5] = { "2M Cartridge", "4M Cartridge", "CD BIOS", "CD Dev BIOS", "Homebrew" };
@@ -555,7 +555,7 @@ else
 		{
 			DrawString2(overlayPixels, 8, 24*FONT_HEIGHT, 0x007F63FF, transparency, "Running...");
 			DrawString2(overlayPixels, 8, 26*FONT_HEIGHT, 0x001FFF3F, transparency, "%s, run address: %06X", cartTypeName[cartType], jaguarRunAddress);
-			DrawString2(overlayPixels, 8, 27*FONT_HEIGHT, 0x001FFF3F, transparency, "CRC: %08X", jaguarMainRomCRC32);
+			DrawString2(overlayPixels, 8, 27*FONT_HEIGHT, 0x001FFF3F, transparency, "CRC: %08X", jaguarMainROMCRC32);
 
 			if (showMsgFrames == 0)
 			{

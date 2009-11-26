@@ -5,144 +5,151 @@
 // GCC/SDL port by Niels Wagenaar (Linux/WIN32) and Carwin Jones (BeOS)
 // Cleanups/rewrites/fixes by James L. Hammons
 //
-//	------------------------------------------------------------
-//	JERRY REGISTERS (Mapped by Aaron Giles)
-//	------------------------------------------------------------
-//	F10000-F13FFF   R/W   xxxxxxxx xxxxxxxx   Jerry
-//	F10000            W   xxxxxxxx xxxxxxxx   JPIT1 - timer 1 pre-scaler
-//	F10002            W   xxxxxxxx xxxxxxxx   JPIT2 - timer 1 divider
-//	F10004            W   xxxxxxxx xxxxxxxx   JPIT3 - timer 2 pre-scaler
-//	F10008            W   xxxxxxxx xxxxxxxx   JPIT4 - timer 2 divider
-//	F10010            W   ------xx xxxxxxxx   CLK1 - processor clock divider
-//	F10012            W   ------xx xxxxxxxx   CLK2 - video clock divider
-//	F10014            W   -------- --xxxxxx   CLK3 - chroma clock divider
-//	F10020          R/W   ---xxxxx ---xxxxx   JINTCTRL - interrupt control register
-//	                  W   ---x---- --------      (J_SYNCLR - clear synchronous serial intf ints)
-//	                  W   ----x--- --------      (J_ASYNCLR - clear asynchronous serial intf ints)
-//	                  W   -----x-- --------      (J_TIM2CLR - clear timer 2 [tempo] interrupts)
-//	                  W   ------x- --------      (J_TIM1CLR - clear timer 1 [sample] interrupts)
-//	                  W   -------x --------      (J_EXTCLR - clear external interrupts)
-//	                R/W   -------- ---x----      (J_SYNENA - enable synchronous serial intf ints)
-//	                R/W   -------- ----x---      (J_ASYNENA - enable asynchronous serial intf ints)
-//	                R/W   -------- -----x--      (J_TIM2ENA - enable timer 2 [tempo] interrupts)
-//	                R/W   -------- ------x-      (J_TIM1ENA - enable timer 1 [sample] interrupts)
-//	                R/W   -------- -------x      (J_EXTENA - enable external interrupts)
-//	F10030          R/W   -------- xxxxxxxx   ASIDATA - asynchronous serial data
-//	F10032            W   -x------ -xxxxxxx   ASICTRL - asynchronous serial control
-//	                  W   -x------ --------      (TXBRK - transmit break)
-//	                  W   -------- -x------      (CLRERR - clear error)
-//	                  W   -------- --x-----      (RINTEN - enable receiver interrupts)
-//	                  W   -------- ---x----      (TINTEN - enable transmitter interrupts)
-//	                  W   -------- ----x---      (RXIPOL - receiver input polarity)
-//	                  W   -------- -----x--      (TXOPOL - transmitter output polarity)
-//	                  W   -------- ------x-      (PAREN - parity enable)
-//	                  W   -------- -------x      (ODD - odd parity select)
-//	F10032          R     xxx-xxxx x-xxxxxx   ASISTAT - asynchronous serial status
-//	                R     x------- --------      (ERROR - OR of PE,FE,OE)
-//	                R     -x------ --------      (TXBRK - transmit break)
-//	                R     --x----- --------      (SERIN - serial input)
-//	                R     ----x--- --------      (OE - overrun error)
-//	                R     -----x-- --------      (FE - framing error)
-//	                R     ------x- --------      (PE - parity error)
-//	                R     -------x --------      (TBE - transmit buffer empty)
-//	                R     -------- x-------      (RBF - receive buffer full)
-//	                R     -------- ---x----      (TINTEN - enable transmitter interrupts)
-//	                R     -------- ----x---      (RXIPOL - receiver input polarity)
-//	                R     -------- -----x--      (TXOPOL - transmitter output polarity)
-//	                R     -------- ------x-      (PAREN - parity enable)
-//	                R     -------- -------x      (ODD - odd parity)
-//	F10034          R/W   xxxxxxxx xxxxxxxx   ASICLK - asynchronous serial interface clock
-//	F10036          R     xxxxxxxx xxxxxxxx   JPIT1 - timer 1 pre-scaler
-//	F10038          R     xxxxxxxx xxxxxxxx   JPIT2 - timer 1 divider
-//	F1003A          R     xxxxxxxx xxxxxxxx   JPIT3 - timer 2 pre-scaler
-//	F1003C          R     xxxxxxxx xxxxxxxx   JPIT4 - timer 2 divider
-//	------------------------------------------------------------
-//	F14000-F17FFF   R/W   xxxxxxxx xxxxxxxx   Joysticks and GPIO0-5
-//	F14000          R     xxxxxxxx xxxxxxxx   JOYSTICK - read joystick state
-//	F14000            W   x------- xxxxxxxx   JOYSTICK - latch joystick output
-//	                  W   x------- --------      (enable joystick outputs)
-//	                  W   -------- xxxxxxxx      (joystick output data)
-//	F14002          R     xxxxxxxx xxxxxxxx   JOYBUTS - button register
-//	F14800-F14FFF   R/W   xxxxxxxx xxxxxxxx   GPI00 - reserved (CD-ROM? no.)
-//	F15000-F15FFF   R/W   xxxxxxxx xxxxxxxx   GPI01 - reserved
-//	F16000-F16FFF   R/W   xxxxxxxx xxxxxxxx   GPI02 - reserved
-//	F17000-F177FF   R/W   xxxxxxxx xxxxxxxx   GPI03 - reserved
-//	F17800-F17BFF   R/W   xxxxxxxx xxxxxxxx   GPI04 - reserved
-//	F17C00-F17FFF   R/W   xxxxxxxx xxxxxxxx   GPI05 - reserved
-//	------------------------------------------------------------
-//	F18000-F1FFFF   R/W   xxxxxxxx xxxxxxxx   Jerry DSP
-//	F1A100          R/W   xxxxxxxx xxxxxxxx   D_FLAGS - DSP flags register
-//	                R/W   x------- --------      (DMAEN - DMA enable)
-//	                R/W   -x------ --------      (REGPAGE - register page)
-//	                  W   --x----- --------      (D_EXT0CLR - clear external interrupt 0)
-//	                  W   ---x---- --------      (D_TIM2CLR - clear timer 2 interrupt)
-//	                  W   ----x--- --------      (D_TIM1CLR - clear timer 1 interrupt)
-//	                  W   -----x-- --------      (D_I2SCLR - clear I2S interrupt)
-//	                  W   ------x- --------      (D_CPUCLR - clear CPU interrupt)
-//	                R/W   -------x --------      (D_EXT0ENA - enable external interrupt 0)
-//	                R/W   -------- x-------      (D_TIM2ENA - enable timer 2 interrupt)
-//	                R/W   -------- -x------      (D_TIM1ENA - enable timer 1 interrupt)
-//	                R/W   -------- --x-----      (D_I2SENA - enable I2S interrupt)
-//	                R/W   -------- ---x----      (D_CPUENA - enable CPU interrupt)
-//	                R/W   -------- ----x---      (IMASK - interrupt mask)
-//	                R/W   -------- -----x--      (NEGA_FLAG - ALU negative)
-//	                R/W   -------- ------x-      (CARRY_FLAG - ALU carry)
-//	                R/W   -------- -------x      (ZERO_FLAG - ALU zero)
-//	F1A102          R/W   -------- ------xx   D_FLAGS - upper DSP flags
-//	                R/W   -------- ------x-      (D_EXT1ENA - enable external interrupt 1)
-//	                R/W   -------- -------x      (D_EXT1CLR - clear external interrupt 1)
-//	F1A104            W   -------- ----xxxx   D_MTXC - matrix control register
-//	                  W   -------- ----x---      (MATCOL - column/row major)
-//	                  W   -------- -----xxx      (MATRIX3-15 - matrix width)
-//	F1A108            W   ----xxxx xxxxxx--   D_MTXA - matrix address register
-//	F1A10C            W   -------- -----x-x   D_END - data organization register
-//	                  W   -------- -----x--      (BIG_INST - big endian instruction fetch)
-//	                  W   -------- -------x      (BIG_IO - big endian I/O)
-//	F1A110          R/W   xxxxxxxx xxxxxxxx   D_PC - DSP program counter
-//	F1A114          R/W   xxxxxxxx xx-xxxxx   D_CTRL - DSP control/status register
-//	                R     xxxx---- --------      (VERSION - DSP version code)
-//	                R/W   ----x--- --------      (BUS_HOG - hog the bus!)
-//	                R/W   -----x-- --------      (D_EXT0LAT - external interrupt 0 latch)
-//	                R/W   ------x- --------      (D_TIM2LAT - timer 2 interrupt latch)
-//	                R/W   -------x --------      (D_TIM1LAT - timer 1 interrupt latch)
-//	                R/W   -------- x-------      (D_I2SLAT - I2S interrupt latch)
-//	                R/W   -------- -x------      (D_CPULAT - CPU interrupt latch)
-//	                R/W   -------- ---x----      (SINGLE_GO - single step one instruction)
-//	                R/W   -------- ----x---      (SINGLE_STEP - single step mode)
-//	                R/W   -------- -----x--      (FORCEINT0 - cause interrupt 0 on GPU)
-//	                R/W   -------- ------x-      (CPUINT - send GPU interrupt to CPU)
-//	                R/W   -------- -------x      (DSPGO - enable DSP execution)
-//	F1A116          R/W   -------- -------x   D_CTRL - upper DSP control/status register
-//	                R/W   -------- -------x      (D_EXT1LAT - external interrupt 1 latch)
-//	F1A118-F1A11B     W   xxxxxxxx xxxxxxxx   D_MOD - modulo instruction mask
-//	F1A11C-F1A11F   R     xxxxxxxx xxxxxxxx   D_REMAIN - divide unit remainder
-//	F1A11C            W   -------- -------x   D_DIVCTRL - divide unit control
-//	                  W   -------- -------x      (DIV_OFFSET - 1=16.16 divide, 0=32-bit divide)
-//	F1A120-F1A123   R     xxxxxxxx xxxxxxxx   D_MACHI - multiply & accumulate high bits
-//	F1A148            W   xxxxxxxx xxxxxxxx   R_DAC - right transmit data
-//	F1A14C            W   xxxxxxxx xxxxxxxx   L_DAC - left transmit data
-//	F1A150            W   -------- xxxxxxxx   SCLK - serial clock frequency
-//	F1A150          R     -------- ------xx   SSTAT
-//	                R     -------- ------x-      (left - no description)
-//	                R     -------- -------x      (WS - word strobe status)
-//	F1A154            W   -------- --xxxx-x   SMODE - serial mode
-//	                  W   -------- --x-----      (EVERYWORD - interrupt on MSB of every word)
-//	                  W   -------- ---x----      (FALLING - interrupt on falling edge)
-//	                  W   -------- ----x---      (RISING - interrupt of rising edge)
-//	                  W   -------- -----x--      (WSEN - enable word strobes)
-//	                  W   -------- -------x      (INTERNAL - enables serial clock)
-//	------------------------------------------------------------
-//	F1B000-F1CFFF   R/W   xxxxxxxx xxxxxxxx   Local DSP RAM
-//	------------------------------------------------------------
-//	F1D000          R     xxxxxxxx xxxxxxxx   ROM_TRI - triangle wave
-//	F1D200          R     xxxxxxxx xxxxxxxx   ROM_SINE - full sine wave
-//	F1D400          R     xxxxxxxx xxxxxxxx   ROM_AMSINE - amplitude modulated sine wave
-//	F1D600          R     xxxxxxxx xxxxxxxx   ROM_12W - sine wave and second order harmonic
-//	F1D800          R     xxxxxxxx xxxxxxxx   ROM_CHIRP16 - chirp
-//	F1DA00          R     xxxxxxxx xxxxxxxx   ROM_NTRI - traingle wave with noise
-//	F1DC00          R     xxxxxxxx xxxxxxxx   ROM_DELTA - spike
-//	F1DE00          R     xxxxxxxx xxxxxxxx   ROM_NOISE - white noise
-//	------------------------------------------------------------
+// JLH = James L. Hammons
+//
+// WHO  WHEN        WHAT
+// ---  ----------  -----------------------------------------------------------
+// JLH  11/25/2009  Major rewrite of memory subsystem and handlers
+//
+
+// ------------------------------------------------------------
+// JERRY REGISTERS (Mapped by Aaron Giles)
+// ------------------------------------------------------------
+// F10000-F13FFF   R/W   xxxxxxxx xxxxxxxx   Jerry
+// F10000            W   xxxxxxxx xxxxxxxx   JPIT1 - timer 1 pre-scaler
+// F10002            W   xxxxxxxx xxxxxxxx   JPIT2 - timer 1 divider
+// F10004            W   xxxxxxxx xxxxxxxx   JPIT3 - timer 2 pre-scaler
+// F10008            W   xxxxxxxx xxxxxxxx   JPIT4 - timer 2 divider
+// F10010            W   ------xx xxxxxxxx   CLK1 - processor clock divider
+// F10012            W   ------xx xxxxxxxx   CLK2 - video clock divider
+// F10014            W   -------- --xxxxxx   CLK3 - chroma clock divider
+// F10020          R/W   ---xxxxx ---xxxxx   JINTCTRL - interrupt control register
+//                   W   ---x---- --------      (J_SYNCLR - clear synchronous serial intf ints)
+//                   W   ----x--- --------      (J_ASYNCLR - clear asynchronous serial intf ints)
+//                   W   -----x-- --------      (J_TIM2CLR - clear timer 2 [tempo] interrupts)
+//                   W   ------x- --------      (J_TIM1CLR - clear timer 1 [sample] interrupts)
+//                   W   -------x --------      (J_EXTCLR - clear external interrupts)
+//                 R/W   -------- ---x----      (J_SYNENA - enable synchronous serial intf ints)
+//                 R/W   -------- ----x---      (J_ASYNENA - enable asynchronous serial intf ints)
+//                 R/W   -------- -----x--      (J_TIM2ENA - enable timer 2 [tempo] interrupts)
+//                 R/W   -------- ------x-      (J_TIM1ENA - enable timer 1 [sample] interrupts)
+//                 R/W   -------- -------x      (J_EXTENA - enable external interrupts)
+// F10030          R/W   -------- xxxxxxxx   ASIDATA - asynchronous serial data
+// F10032            W   -x------ -xxxxxxx   ASICTRL - asynchronous serial control
+//                   W   -x------ --------      (TXBRK - transmit break)
+//                   W   -------- -x------      (CLRERR - clear error)
+//                   W   -------- --x-----      (RINTEN - enable receiver interrupts)
+//                   W   -------- ---x----      (TINTEN - enable transmitter interrupts)
+//                   W   -------- ----x---      (RXIPOL - receiver input polarity)
+//                   W   -------- -----x--      (TXOPOL - transmitter output polarity)
+//                   W   -------- ------x-      (PAREN - parity enable)
+//                   W   -------- -------x      (ODD - odd parity select)
+// F10032          R     xxx-xxxx x-xxxxxx   ASISTAT - asynchronous serial status
+//                 R     x------- --------      (ERROR - OR of PE,FE,OE)
+//                 R     -x------ --------      (TXBRK - transmit break)
+//                 R     --x----- --------      (SERIN - serial input)
+//                 R     ----x--- --------      (OE - overrun error)
+//                 R     -----x-- --------      (FE - framing error)
+//                 R     ------x- --------      (PE - parity error)
+//                 R     -------x --------      (TBE - transmit buffer empty)
+//                 R     -------- x-------      (RBF - receive buffer full)
+//                 R     -------- ---x----      (TINTEN - enable transmitter interrupts)
+//                 R     -------- ----x---      (RXIPOL - receiver input polarity)
+//                 R     -------- -----x--      (TXOPOL - transmitter output polarity)
+//                 R     -------- ------x-      (PAREN - parity enable)
+//                 R     -------- -------x      (ODD - odd parity)
+// F10034          R/W   xxxxxxxx xxxxxxxx   ASICLK - asynchronous serial interface clock
+// F10036          R     xxxxxxxx xxxxxxxx   JPIT1 - timer 1 pre-scaler
+// F10038          R     xxxxxxxx xxxxxxxx   JPIT2 - timer 1 divider
+// F1003A          R     xxxxxxxx xxxxxxxx   JPIT3 - timer 2 pre-scaler
+// F1003C          R     xxxxxxxx xxxxxxxx   JPIT4 - timer 2 divider
+// ------------------------------------------------------------
+// F14000-F17FFF   R/W   xxxxxxxx xxxxxxxx   Joysticks and GPIO0-5
+// F14000          R     xxxxxxxx xxxxxxxx   JOYSTICK - read joystick state
+// F14000            W   x------- xxxxxxxx   JOYSTICK - latch joystick output
+//                   W   x------- --------      (enable joystick outputs)
+//                   W   -------- xxxxxxxx      (joystick output data)
+// F14002          R     xxxxxxxx xxxxxxxx   JOYBUTS - button register
+// F14800-F14FFF   R/W   xxxxxxxx xxxxxxxx   GPI00 - reserved (CD-ROM? no.)
+// F15000-F15FFF   R/W   xxxxxxxx xxxxxxxx   GPI01 - reserved
+// F16000-F16FFF   R/W   xxxxxxxx xxxxxxxx   GPI02 - reserved
+// F17000-F177FF   R/W   xxxxxxxx xxxxxxxx   GPI03 - reserved
+// F17800-F17BFF   R/W   xxxxxxxx xxxxxxxx   GPI04 - reserved
+// F17C00-F17FFF   R/W   xxxxxxxx xxxxxxxx   GPI05 - reserved
+// ------------------------------------------------------------
+// F18000-F1FFFF   R/W   xxxxxxxx xxxxxxxx   Jerry DSP
+// F1A100          R/W   xxxxxxxx xxxxxxxx   D_FLAGS - DSP flags register
+//                 R/W   x------- --------      (DMAEN - DMA enable)
+//                 R/W   -x------ --------      (REGPAGE - register page)
+//                   W   --x----- --------      (D_EXT0CLR - clear external interrupt 0)
+//                   W   ---x---- --------      (D_TIM2CLR - clear timer 2 interrupt)
+//                   W   ----x--- --------      (D_TIM1CLR - clear timer 1 interrupt)
+//                   W   -----x-- --------      (D_I2SCLR - clear I2S interrupt)
+//                   W   ------x- --------      (D_CPUCLR - clear CPU interrupt)
+//                 R/W   -------x --------      (D_EXT0ENA - enable external interrupt 0)
+//                 R/W   -------- x-------      (D_TIM2ENA - enable timer 2 interrupt)
+//                 R/W   -------- -x------      (D_TIM1ENA - enable timer 1 interrupt)
+//                 R/W   -------- --x-----      (D_I2SENA - enable I2S interrupt)
+//                 R/W   -------- ---x----      (D_CPUENA - enable CPU interrupt)
+//                 R/W   -------- ----x---      (IMASK - interrupt mask)
+//                 R/W   -------- -----x--      (NEGA_FLAG - ALU negative)
+//                 R/W   -------- ------x-      (CARRY_FLAG - ALU carry)
+//                 R/W   -------- -------x      (ZERO_FLAG - ALU zero)
+// F1A102          R/W   -------- ------xx   D_FLAGS - upper DSP flags
+//                 R/W   -------- ------x-      (D_EXT1ENA - enable external interrupt 1)
+//                 R/W   -------- -------x      (D_EXT1CLR - clear external interrupt 1)
+// F1A104            W   -------- ----xxxx   D_MTXC - matrix control register
+//                   W   -------- ----x---      (MATCOL - column/row major)
+//                   W   -------- -----xxx      (MATRIX3-15 - matrix width)
+// F1A108            W   ----xxxx xxxxxx--   D_MTXA - matrix address register
+// F1A10C            W   -------- -----x-x   D_END - data organization register
+//                   W   -------- -----x--      (BIG_INST - big endian instruction fetch)
+//                   W   -------- -------x      (BIG_IO - big endian I/O)
+// F1A110          R/W   xxxxxxxx xxxxxxxx   D_PC - DSP program counter
+// F1A114          R/W   xxxxxxxx xx-xxxxx   D_CTRL - DSP control/status register
+//                 R     xxxx---- --------      (VERSION - DSP version code)
+//                 R/W   ----x--- --------      (BUS_HOG - hog the bus!)
+//                 R/W   -----x-- --------      (D_EXT0LAT - external interrupt 0 latch)
+//                 R/W   ------x- --------      (D_TIM2LAT - timer 2 interrupt latch)
+//                 R/W   -------x --------      (D_TIM1LAT - timer 1 interrupt latch)
+//                 R/W   -------- x-------      (D_I2SLAT - I2S interrupt latch)
+//                 R/W   -------- -x------      (D_CPULAT - CPU interrupt latch)
+//                 R/W   -------- ---x----      (SINGLE_GO - single step one instruction)
+//                 R/W   -------- ----x---      (SINGLE_STEP - single step mode)
+//                 R/W   -------- -----x--      (FORCEINT0 - cause interrupt 0 on GPU)
+//                 R/W   -------- ------x-      (CPUINT - send GPU interrupt to CPU)
+//                 R/W   -------- -------x      (DSPGO - enable DSP execution)
+// F1A116          R/W   -------- -------x   D_CTRL - upper DSP control/status register
+//                 R/W   -------- -------x      (D_EXT1LAT - external interrupt 1 latch)
+// F1A118-F1A11B     W   xxxxxxxx xxxxxxxx   D_MOD - modulo instruction mask
+// F1A11C-F1A11F   R     xxxxxxxx xxxxxxxx   D_REMAIN - divide unit remainder
+// F1A11C            W   -------- -------x   D_DIVCTRL - divide unit control
+//                   W   -------- -------x      (DIV_OFFSET - 1=16.16 divide, 0=32-bit divide)
+// F1A120-F1A123   R     xxxxxxxx xxxxxxxx   D_MACHI - multiply & accumulate high bits
+// F1A148            W   xxxxxxxx xxxxxxxx   R_DAC - right transmit data
+// F1A14C            W   xxxxxxxx xxxxxxxx   L_DAC - left transmit data
+// F1A150            W   -------- xxxxxxxx   SCLK - serial clock frequency
+// F1A150          R     -------- ------xx   SSTAT
+//                 R     -------- ------x-      (left - no description)
+//                 R     -------- -------x      (WS - word strobe status)
+// F1A154            W   -------- --xxxx-x   SMODE - serial mode
+//                   W   -------- --x-----      (EVERYWORD - interrupt on MSB of every word)
+//                   W   -------- ---x----      (FALLING - interrupt on falling edge)
+//                   W   -------- ----x---      (RISING - interrupt of rising edge)
+//                   W   -------- -----x--      (WSEN - enable word strobes)
+//                   W   -------- -------x      (INTERNAL - enables serial clock)
+// ------------------------------------------------------------
+// F1B000-F1CFFF   R/W   xxxxxxxx xxxxxxxx   Local DSP RAM
+// ------------------------------------------------------------
+// F1D000          R     xxxxxxxx xxxxxxxx   ROM_TRI - triangle wave
+// F1D200          R     xxxxxxxx xxxxxxxx   ROM_SINE - full sine wave
+// F1D400          R     xxxxxxxx xxxxxxxx   ROM_AMSINE - amplitude modulated sine wave
+// F1D600          R     xxxxxxxx xxxxxxxx   ROM_12W - sine wave and second order harmonic
+// F1D800          R     xxxxxxxx xxxxxxxx   ROM_CHIRP16 - chirp
+// F1DA00          R     xxxxxxxx xxxxxxxx   ROM_NTRI - traingle wave with noise
+// F1DC00          R     xxxxxxxx xxxxxxxx   ROM_DELTA - spike
+// F1DE00          R     xxxxxxxx xxxxxxxx   ROM_NOISE - white noise
+// ------------------------------------------------------------
 
 #include "jerry.h"
 
@@ -199,15 +206,16 @@ void JERRYI2SCallback(void);
 void JERRYI2SExec(uint32 cycles)
 {
 #ifndef NEW_TIMER_SYSTEM
+#warning "externed var in source--should be in header file. !!! FIX !!!"
 	extern uint16 serialMode;						// From DAC.CPP
 	if (serialMode & 0x01)							// INTERNAL flag (JERRY is master)
 	{
 
 	// Why is it called this? Instead of SCLK? Shouldn't this be read from DAC.CPP???
 //Yes, it should. !!! FIX !!!
-		jerry_i2s_interrupt_divide &= 0xFF;
+		JERRYI2SInterruptDivide &= 0xFF;
 
-		if (jerry_i2s_interrupt_timer == -1)
+		if (JERRYI2SInterruptTimer == -1)
 		{
 		// We don't have to divide the RISC clock rate by this--the reason is a bit
 		// convoluted. Will put explanation here later...
@@ -215,18 +223,18 @@ void JERRYI2SExec(uint32 cycles)
 // in one second. For example, if the sample rate is 44100, we divide the clock rate by
 // this: 26590906 / 44100 = 602 cycles.
 // Which means, every 602 cycles that go by we have to generate an interrupt.
-			jerryI2SCycles = 32 * (2 * (jerry_i2s_interrupt_divide + 1));
+			jerryI2SCycles = 32 * (2 * (JERRYI2SInterruptDivide + 1));
 		}
 
-		jerry_i2s_interrupt_timer -= cycles;
-		if (jerry_i2s_interrupt_timer <= 0)
+		JERYI2SInterruptTimer -= cycles;
+		if (JERRYI2SInterruptTimer <= 0)
 		{
 //This is probably wrong as well (i.e., need to check enable lines)... !!! FIX !!!
 			DSPSetIRQLine(DSPIRQ_SSI, ASSERT_LINE);
-			jerry_i2s_interrupt_timer += jerryI2SCycles;
+			JERRYI2SInterruptTimer += jerryI2SCycles;
 #ifdef JERRY_DEBUG
-			if (jerry_i2s_interrupt_timer < 0)
-				WriteLog("JERRY: Missed generating an interrupt (missed %u)!\n", (-jerry_i2s_interrupt_timer / jerryI2SCycles) + 1);
+			if (JERRYI2SInterruptTimer < 0)
+				WriteLog("JERRY: Missed generating an interrupt (missed %u)!\n", (-JERRYI2SInterruptTimer / jerryI2SCycles) + 1);
 #endif
 		}
 	}
@@ -237,8 +245,8 @@ void JERRYI2SExec(uint32 cycles)
 // The whole interrupt system is pretty much borked and is need of an overhaul.
 // What we need is a way of handling these interrupts when they happen instead of
 // scanline boundaries the way it is now.
-		jerry_i2s_interrupt_timer -= cycles;
-		if (jerry_i2s_interrupt_timer <= 0)
+		JERRYI2SInterruptTimer -= cycles;
+		if (JERRYI2SInterruptTimer <= 0)
 		{
 //This is probably wrong as well (i.e., need to check enable lines)... !!! FIX !!! [DONE]
 			if (ButchIsReadyToSend())//Not sure this is right spot to check...
@@ -247,7 +255,7 @@ void JERRYI2SExec(uint32 cycles)
 				SetSSIWordsXmittedFromButch();
 				DSPSetIRQLine(DSPIRQ_SSI, ASSERT_LINE);
 			}
-			jerry_i2s_interrupt_timer += 602;
+			JERRYI2SInterruptTimer += 602;
 		}
 	}
 #else
@@ -288,8 +296,8 @@ void JERRYResetI2S(void)
 {
 	//WriteLog("i2s: reseting\n");
 //This is really SCLK... !!! FIX !!!
-	jerry_i2s_interrupt_divide = 8;
-	jerry_i2s_interrupt_timer = -1;
+	JERRYI2SInterruptDivide = 8;
+	JERRYI2SInterruptTimer = -1;
 }
 
 void JERRYResetPIT1(void)
@@ -356,15 +364,15 @@ void JERRYI2SCallback(void)
 {
 	// Why is it called this? Instead of SCLK? Shouldn't this be read from DAC.CPP???
 //Yes, it should. !!! FIX !!!
-#warning "Yes, it should. !!! FIX !!!"
-	jerry_i2s_interrupt_divide &= 0xFF;
+#warning "Why is it called this? Instead of SCLK? Shouldn't this be read from DAC.CPP??? Yes, it should. !!! FIX !!!"
+	JERRYI2SInterruptDivide &= 0xFF;
 	// We don't have to divide the RISC clock rate by this--the reason is a bit
 	// convoluted. Will put explanation here later...
 // What's needed here is to find the ratio of the frequency to the number of clock cycles
 // in one second. For example, if the sample rate is 44100, we divide the clock rate by
 // this: 26590906 / 44100 = 602 cycles.
 // Which means, every 602 cycles that go by we have to generate an interrupt.
-	jerryI2SCycles = 32 * (2 * (jerry_i2s_interrupt_divide + 1));
+	jerryI2SCycles = 32 * (2 * (JERRYI2SInterruptDivide + 1));
 
 //This should be in this file with an extern reference in the header file so that
 //DAC.CPP can see it... !!! FIX !!!
@@ -644,11 +652,11 @@ void JERRYWriteByte(uint32 offset, uint8 data, uint32 who/*=UNKNOWN*/)
 	{
 //		WriteLog("JERRY: Writing %02X to SCLK...\n", data);
 		if ((offset & 0x03) == 2)
-			jerry_i2s_interrupt_divide = (jerry_i2s_interrupt_divide & 0x00FF) | ((uint32)data << 8);
+			JERRYI2SInterruptDivide = (JERRYI2SInterruptDivide & 0x00FF) | ((uint32)data << 8);
 		else
-			jerry_i2s_interrupt_divide = (jerry_i2s_interrupt_divide & 0xFF00) | (uint32)data;
+			JERRYI2SInterruptDivide = (JERRYI2SInterruptDivide & 0xFF00) | (uint32)data;
 
-		jerry_i2s_interrupt_timer = -1;
+		JERRYI2SInterruptTimer = -1;
 #ifndef NEW_TIMER_SYSTEM
 		jerry_i2s_exec(0);
 #else
@@ -763,8 +771,8 @@ void JERRYWriteWord(uint32 offset, uint16 data, uint32 who/*=UNKNOWN*/)
 	{
 		WriteLog("JERRY: Writing %04X to SCLK (by %s)...\n", data, whoName[who]);
 //This should *only* be enabled when SMODE has its INTERNAL bit set! !!! FIX !!!
-		jerry_i2s_interrupt_divide = (uint8)data;
-		jerry_i2s_interrupt_timer = -1;
+		JERRYI2SInterruptDivide = (uint8)data;
+		JERRYI2SInterruptTimer = -1;
 #ifndef NEW_TIMER_SYSTEM
 		jerry_i2s_exec(0);
 #else

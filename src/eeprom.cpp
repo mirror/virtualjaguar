@@ -48,7 +48,7 @@ static bool foundEEPROM = false;
 
 void EepromInit(void)
 {
-	sprintf(eeprom_filename, "%s%08X.eep", vjs.EEPROMPath, (unsigned int)jaguarMainRomCRC32);
+	sprintf(eeprom_filename, "%s%08X.eep", vjs.EEPROMPath, (unsigned int)jaguarMainROMCRC32);
 	FILE * fp = fopen(eeprom_filename, "rb");
 
 	if (fp)

@@ -96,7 +96,7 @@ else
 bool JaguarLoadFile(char * path)
 {
 //	jaguarRomSize = JaguarLoadROM(mem, path);
-	jaguarRomSize = JaguarLoadROM(jaguarMainRom, path);
+	jaguarROMSize = JaguarLoadROM(jaguarMainROM, path);
 
 /*//This is not *nix friendly for some reason...
 //		if (!UserSelectFile(path, newPath))
@@ -107,7 +107,7 @@ bool JaguarLoadFile(char * path)
 		exit(0);
 	}*/
 
-	if (jaguarRomSize == 0)
+	if (jaguarROMSize == 0)
 	{
 //			WriteLog("VJ: Could not load ROM from file \"%s\"...\nAborting!\n", newPath);
 		WriteLog("GUI: Could not load ROM from file \"%s\"...\nAborting load!\n", path);
@@ -117,8 +117,8 @@ bool JaguarLoadFile(char * path)
 		return false;								// This is a start...
 	}
 
-	jaguarMainRomCRC32 = crc32_calcCheckSum(jaguarMainRom, jaguarRomSize);
-	WriteLog("CRC: %08X\n", (unsigned int)jaguarMainRomCRC32);
+	jaguarMainROMCRC32 = crc32_calcCheckSum(jaguarMainROM, jaguarROMSize);
+	WriteLog("CRC: %08X\n", (unsigned int)jaguarMainROMCRC32);
 	EepromInit();
 
 	jaguarRunAddress = 0x802000;
@@ -129,12 +129,12 @@ bool JaguarLoadFile(char * path)
 	if (strcasecmp(ext, ".rom") == 0)
 	{
 		// File extension ".ROM": Alpine image that loads/runs at $802000
-		WriteLog("GUI: Setting up homebrew (ROM)... Run address: 00802000, length: %08X\n", jaguarRomSize);
+		WriteLog("GUI: Setting up homebrew (ROM)... Run address: 00802000, length: %08X\n", jaguarROMSize);
 
-		for(int i=jaguarRomSize-1; i>=0; i--)
-			jaguarMainRom[0x2000 + i] = jaguarMainRom[i];
+		for(int i=jaguarROMSize-1; i>=0; i--)
+			jaguarMainROM[0x2000 + i] = jaguarMainROM[i];
 
-		memset(jaguarMainRom, 0xFF, 0x2000);
+		memset(jaguarMainROM, 0xFF, 0x2000);
 /*		memcpy(jaguar_mainRam, jaguar_mainRom, jaguarRomSize);
 		memset(jaguar_mainRom, 0xFF, 0x600000);
 		memcpy(jaguar_mainRom + 0x2000, jaguar_mainRam, jaguarRomSize);
@@ -184,8 +184,8 @@ Let's try setting up the illegal instruction vector for a stubulated jaguar...
 
 		// Try setting the vector to say, $1000 and putting an instruction there that loops forever:
 		// This kludge works! Yeah!
-		SET32(jaguarMainRam, 0x10, 0x00001000);
-		SET16(jaguarMainRam, 0x1000, 0x60FE);		// Here: bra Here
+		SET32(jaguarMainRAM, 0x10, 0x00001000);
+		SET16(jaguarMainRAM, 0x1000, 0x60FE);		// Here: bra Here
 	}
 	else if (strcasecmp(ext, ".abs") == 0)
 	{
@@ -237,18 +237,18 @@ Starting Address for executable = 0x00802000
 Start of Text Segment = 0x00802000
 Start of Data Segment = 0x00803dd0
 */
-		if (jaguarMainRom[0] == 0x60 && jaguarMainRom[1] == 0x1B)
+		if (jaguarMainROM[0] == 0x60 && jaguarMainROM[1] == 0x1B)
 		{
-			uint32 loadAddress = GET32(jaguarMainRom, 0x16), //runAddress = GET32(jaguar_mainRom, 0x2A),
-				codeSize = GET32(jaguarMainRom, 0x02) + GET32(jaguarMainRom, 0x06);
+			uint32 loadAddress = GET32(jaguarMainROM, 0x16), //runAddress = GET32(jaguar_mainRom, 0x2A),
+				codeSize = GET32(jaguarMainROM, 0x02) + GET32(jaguarMainROM, 0x06);
 			WriteLog("GUI: Setting up homebrew (ABS-1)... Run address: %08X, length: %08X\n", loadAddress, codeSize);
 
 			if (loadAddress < 0x800000)
-				memcpy(jaguarMainRam + loadAddress, jaguarMainRom + 0x24, codeSize);
+				memcpy(jaguarMainRAM + loadAddress, jaguarMainROM + 0x24, codeSize);
 			else
 			{
 				for(int i=codeSize-1; i>=0; i--)
-					jaguarMainRom[(loadAddress - 0x800000) + i] = jaguarMainRom[i + 0x24];
+					jaguarMainROM[(loadAddress - 0x800000) + i] = jaguarMainROM[i + 0x24];
 /*				memcpy(jaguar_mainRam, jaguar_mainRom + 0x24, codeSize);
 				memset(jaguar_mainRom, 0xFF, 0x600000);
 				memcpy(jaguar_mainRom + (loadAddress - 0x800000), jaguar_mainRam, codeSize);
@@ -257,18 +257,18 @@ Start of Data Segment = 0x00803dd0
 
 			jaguarRunAddress = loadAddress;
 		}
-		else if (jaguarMainRom[0] == 0x01 && jaguarMainRom[1] == 0x50)
+		else if (jaguarMainROM[0] == 0x01 && jaguarMainROM[1] == 0x50)
 		{
-			uint32 loadAddress = GET32(jaguarMainRom, 0x28), runAddress = GET32(jaguarMainRom, 0x24),
-				codeSize = GET32(jaguarMainRom, 0x18) + GET32(jaguarMainRom, 0x1C);
+			uint32 loadAddress = GET32(jaguarMainROM, 0x28), runAddress = GET32(jaguarMainROM, 0x24),
+				codeSize = GET32(jaguarMainROM, 0x18) + GET32(jaguarMainROM, 0x1C);
 			WriteLog("GUI: Setting up homebrew (ABS-2)... Run address: %08X, length: %08X\n", runAddress, codeSize);
 
 			if (loadAddress < 0x800000)
-				memcpy(jaguarMainRam + loadAddress, jaguarMainRom + 0xA8, codeSize);
+				memcpy(jaguarMainRAM + loadAddress, jaguarMainROM + 0xA8, codeSize);
 			else
 			{
 				for(int i=codeSize-1; i>=0; i--)
-					jaguarMainRom[(loadAddress - 0x800000) + i] = jaguarMainRom[i + 0xA8];
+					jaguarMainROM[(loadAddress - 0x800000) + i] = jaguarMainROM[i + 0xA8];
 /*				memcpy(jaguar_mainRam, jaguar_mainRom + 0xA8, codeSize);
 				memset(jaguar_mainRom, 0xFF, 0x600000);
 				memcpy(jaguar_mainRom + (loadAddress - 0x800000), jaguar_mainRam, codeSize);
@@ -279,7 +279,7 @@ Start of Data Segment = 0x00803dd0
 		}
 		else
 		{
-			WriteLog("GUI: Couldn't find correct ABS format: %02X %02X\n", jaguarMainRom[0], jaguarMainRom[1]);
+			WriteLog("GUI: Couldn't find correct ABS format: %02X %02X\n", jaguarMainROM[0], jaguarMainROM[1]);
 			return false;
 		}
 	}
@@ -288,9 +288,9 @@ Start of Data Segment = 0x00803dd0
 		// File extension ".JAG": Atari server file with header
 //NOTE: The bytes 'JAGR' should also be at position $1C...
 //      Also, there's *always* a $601A header at position $00...
-		if (jaguarMainRom[0] == 0x60 && jaguarMainRom[1] == 0x1A)
+		if (jaguarMainROM[0] == 0x60 && jaguarMainROM[1] == 0x1A)
 		{
-			uint32 loadAddress = GET32(jaguarMainRom, 0x22), runAddress = GET32(jaguarMainRom, 0x2A);
+			uint32 loadAddress = GET32(jaguarMainROM, 0x22), runAddress = GET32(jaguarMainROM, 0x2A);
 //This is not always right! Especially when converted via bin2jag1!!!
 //We should have access to the length of the furshlumiger file that was loaded anyway!
 //Now, we do! ;-)
@@ -299,8 +299,8 @@ Start of Data Segment = 0x00803dd0
 //jaguarRunAddress
 //			WriteLog("Jaguar: Setting up PD ROM... Run address: %08X, length: %08X\n", runAddress, progLength);
 //			memcpy(jaguar_mainRam + loadAddress, jaguar_mainRom + 0x2E, progLength);
-			WriteLog("GUI: Setting up homebrew (JAG)... Run address: %08X, length: %08X\n", runAddress, jaguarRomSize - 0x2E);
-			memcpy(jaguarMainRam + loadAddress, jaguarMainRom + 0x2E, jaguarRomSize - 0x2E);
+			WriteLog("GUI: Setting up homebrew (JAG)... Run address: %08X, length: %08X\n", runAddress, jaguarROMSize - 0x2E);
+			memcpy(jaguarMainRAM + loadAddress, jaguarMainROM + 0x2E, jaguarROMSize - 0x2E);
 //		SET32(jaguar_mainRam, 4, runAddress);
 			jaguarRunAddress = runAddress;
 		}

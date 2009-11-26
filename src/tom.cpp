@@ -937,7 +937,7 @@ void TOMExecScanline(uint16 scanline, bool render)
 		if (inActiveDisplayArea)
 		{
 //NOTE: The following doesn't put BORDER color on the sides... !!! FIX !!!
-#warning The following doesn't put BORDER color on the sides... !!! FIX !!!
+#warning "The following doesn't put BORDER color on the sides... !!! FIX !!!"
 			if (vjs.renderType == RT_NORMAL)
 				scanline_render[TOMGetVideoMode()](TOMBackbuffer);
 			else//TV type render
@@ -1195,9 +1195,9 @@ void TOMReset(void)
 	tom_gpu_int_pending = 0;
 	tom_video_int_pending = 0;
 
-	tom_timer_prescaler = 0;					// TOM PIT is disabled
-	tom_timer_divider = 0;
-	tom_timer_counter = 0;
+	tomTimerPrescaler = 0;					// TOM PIT is disabled
+	tomTimerDivider = 0;
+	tomTimerCounter = 0;
 	memcpy(scanline_render, scanline_render_normal, sizeof(scanline_render));
 }
 
@@ -1225,13 +1225,13 @@ uint8 TOMReadByte(uint32 offset, uint32 who/*=UNKNOWN*/)
 	else if ((offset >= 0xF02200) && (offset < 0xF022A0))
 		return BlitterReadByte(offset, who);
 	else if (offset == 0xF00050)
-		return tom_timer_prescaler >> 8;
+		return tomTimerPrescaler >> 8;
 	else if (offset == 0xF00051)
-		return tom_timer_prescaler & 0xFF;
+		return tomTimerPrescaler & 0xFF;
 	else if (offset == 0xF00052)
-		return tom_timer_divider >> 8;
+		return tomTimerDivider >> 8;
 	else if (offset == 0xF00053)
-		return tom_timer_divider & 0xFF;
+		return tomTimerDivider & 0xFF;
 
 	return tomRam8[offset & 0x3FFF];
 }
@@ -1284,9 +1284,9 @@ if (offset >= 0xF02000 && offset <= 0xF020FF)
 	else if ((offset >= 0xF02200) && (offset < 0xF022A0))
 		return BlitterReadWord(offset, who);
 	else if (offset == 0xF00050)
-		return tom_timer_prescaler;
+		return tomTimerPrescaler;
 	else if (offset == 0xF00052)
-		return tom_timer_divider;
+		return tomTimerDivider;
 
 	offset &= 0x3FFF;
 	return (TOMReadByte(offset, who) << 8) | TOMReadByte(offset + 1, who);
@@ -1327,25 +1327,25 @@ void TOMWriteByte(uint32 offset, uint8 data, uint32 who/*=UNKNOWN*/)
 	}
 	else if (offset == 0xF00050)
 	{
-		tom_timer_prescaler = (tom_timer_prescaler & 0x00FF) | (data << 8);
+		tomTimerPrescaler = (tomTimerPrescaler & 0x00FF) | (data << 8);
 		TOMResetPIT();
 		return;
 	}
 	else if (offset == 0xF00051)
 	{
-		tom_timer_prescaler = (tom_timer_prescaler & 0xFF00) | data;
+		tomTimerPrescaler = (tomTimerPrescaler & 0xFF00) | data;
 		TOMResetPIT();
 		return;
 	}
 	else if (offset == 0xF00052)
 	{
-		tom_timer_divider = (tom_timer_divider & 0x00FF) | (data << 8);
+		tomTimerDivider = (tomTimerDivider & 0x00FF) | (data << 8);
 		TOMResetPIT();
 		return;
 	}
 	else if (offset == 0xF00053)
 	{
-		tom_timer_divider = (tom_timer_divider & 0xFF00) | data;
+		tomTimerDivider = (tomTimerDivider & 0xFF00) | data;
 		TOMResetPIT();
 		return;
 	}
@@ -1400,13 +1400,13 @@ if (offset >= 0xF02000 && offset <= 0xF020FF)
 	}*/
 	else if (offset == 0xF00050)
 	{
-		tom_timer_prescaler = data;
+		tomTimerPrescaler = data;
 		TOMResetPIT();
 		return;
 	}
 	else if (offset == 0xF00052)
 	{
-		tom_timer_divider = data;
+		tomTimerDivider = data;
 		TOMResetPIT();
 		return;
 	}
@@ -1536,9 +1536,9 @@ void TOMResetPIT(void)
 	// Need to remove previous timer from the queue, if it exists...
 	RemoveCallback(TOMPITCallback);
 
-	if (tom_timer_prescaler)
+	if (tomTimerPrescaler)
 	{
-		double usecs = (float)(tom_timer_prescaler + 1) * (float)(tom_timer_divider + 1) * RISC_CYCLE_IN_USEC;
+		double usecs = (float)(tomTimerPrescaler + 1) * (float)(tomTimerDivider + 1) * RISC_CYCLE_IN_USEC;
 		SetCallbackTime(TOMPITCallback, usecs);
 	}
 #endif
@@ -1552,11 +1552,11 @@ void TOMResetPIT(void)
 //      once the timer system is stable.
 void TOMExecPIT(uint32 cycles)
 {
-	if (tom_timer_prescaler)
+	if (tomTimerPrescaler)
 	{
-		tom_timer_counter -= cycles;
+		tomTimerCounter -= cycles;
 
-		if (tom_timer_counter <= 0)
+		if (tomTimerCounter <= 0)
 		{
 			TOMSetPendingTimerInt();
 			GPUSetIRQLine(GPUIRQ_TIMER, ASSERT_LINE);	// GPUSetIRQLine does the 'IRQ enabled' checking
