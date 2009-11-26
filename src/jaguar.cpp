@@ -70,7 +70,8 @@ uint8 jaguarCDBootROM[0x040000];					// 68K CPU CD BIOS ROM
 bool BIOSLoaded = false;
 bool CDBIOSLoaded = false;
 
-uint8 cdRAM[0x100];
+//uint8 cdRAM[0x100];
+uint8 * cdRAM = &jaguarMainROM[0x5FFF00];
 uint8 tomRAM[0x4000];
 uint8 jerryRAM[0x10000];
 
@@ -364,7 +365,7 @@ things that are entirely internal to those modules. This way we should be able t
 this crap which is currently scattered over Hell's Half Acre(tm).
 
 Also: We need to distinguish whether or not we need .b, .w, and .dw versions of everything, or if there
-is a good way to collapse that shit.
+is a good way to collapse that shit (look below for inspiration). Current method works, but is error prone.
 
 /*************************************
  *
@@ -443,6 +444,116 @@ ADDRESS_MAP_END
 #ifdef EXPERIMENTAL_MEMORY_HANDLING
 // Needed defines...
 #define NEW_TIMER_SYSTEM
+
+/*
+uint8 jaguarMainRAM[0x400000];						// 68K CPU RAM
+uint8 jaguarMainROM[0x600000];						// 68K CPU ROM
+uint8 jaguarBootROM[0x040000];						// 68K CPU BIOS ROM--uses only half of this!
+uint8 jaguarCDBootROM[0x040000];					// 68K CPU CD BIOS ROM
+bool BIOSLoaded = false;
+bool CDBIOSLoaded = false;
+
+uint8 cdRAM[0x100];
+uint8 tomRAM[0x4000];
+uint8 jerryRAM[0x10000];
+static uint16 eeprom_ram[64];
+
+// NOTE: CD BIOS ROM is read from cartridge space @ $802000 (it's a cartridge, after all)
+*/
+
+enum MemType { MM_NOP = 0, MM_RAM, MM_ROM, MM_IO };
+
+// M68K Memory map/handlers
+uint32 	{
+	{ 0x000000, 0x3FFFFF, MM_RAM, jaguarMainRAM },
+	{ 0x800000, 0xDFFEFF, MM_ROM, jaguarMainROM },
+// Note that this is really memory mapped I/O region...
+//	{ 0xDFFF00, 0xDFFFFF, MM_RAM, cdRAM },
+	{ 0xDFFF00, 0xDFFF03, MM_IO,  cdBUTCH }, // base of Butch == interrupt control register, R/W
+	{ 0xDFFF04, 0xDFFF07, MM_IO,  cdDSCNTRL }, // DSA control register, R/W
+	{ 0xDFFF0A, 0xDFFF0B, MM_IO,  cdDS_DATA }, // DSA TX/RX data, R/W
+	{ 0xDFFF10, 0xDFFF13, MM_IO,  cdI2CNTRL }, // i2s bus control register, R/W
+	{ 0xDFFF14, 0xDFFF17, MM_IO,  cdSBCNTRL }, // CD subcode control register, R/W
+	{ 0xDFFF18, 0xDFFF1B, MM_IO,  cdSUBDATA }, // Subcode data register A
+	{ 0xDFFF1C, 0xDFFF1F, MM_IO,  cdSUBDATB }, // Subcode data register B
+	{ 0xDFFF20, 0xDFFF23, MM_IO,  cdSB_TIME }, // Subcode time and compare enable (D24)
+	{ 0xDFFF24, 0xDFFF27, MM_IO,  cdFIFO_DATA }, // i2s FIFO data
+	{ 0xDFFF28, 0xDFFF2B, MM_IO,  cdI2SDAT2 }, // i2s FIFO data (old)
+	{ 0xDFFF2C, 0xDFFF2F, MM_IO,  cdUNKNOWN }, // Seems to be some sort of I2S interface
+
+	{ 0xE00000, 0xE3FFFF, MM_ROM, jaguarBootROM },
+
+//	{ 0xF00000, 0xF0FFFF, MM_IO,  TOM_REGS_RW },
+	{ 0xF00050, 0xF00051, MM_IO,  tomTimerPrescaler },
+	{ 0xF00052, 0xF00053, MM_IO,  tomTimerDivider },
+	{ 0xF00400, 0xF005FF, MM_RAM, tomRAM }, // CLUT A&B: How to link these? Write to one writes to the other...
+	{ 0xF00600, 0xF007FF, MM_RAM, tomRAM }, // Actually, this is a good approach--just make the reads the same as well
+	//What about LBUF writes???
+	{ 0xF02100, 0xF0211F, MM_IO,  GPUWriteByte }, // GPU CONTROL
+	{ 0xF02200, 0xF0229F, MM_IO,  BlitterWriteByte }, // BLITTER
+	{ 0xF03000, 0xF03FFF, MM_RAM, GPUWriteByte }, // GPU RAM
+
+	{ 0xF10000, 0xF1FFFF, MM_IO,  JERRY_REGS_RW },
+
+/*
+	EEPROM:
+	{ 0xF14001, 0xF14001, MM_IO_RO, eepromFOO }
+	{ 0xF14801, 0xF14801, MM_IO_WO, eepromBAR }
+	{ 0xF15001, 0xF15001, MM_IO_RW, eepromBAZ }
+
+	JOYSTICK:
+	{ 0xF14000, 0xF14003, MM_IO,  joystickFoo }
+	0 = pad0/1 button values (4 bits each), RO(?)
+	1 = pad0/1 index value (4 bits each), WO
+	2 = unused, RO
+	3 = NTSC/PAL, certain button states, RO
+
+JOYSTICK    $F14000               Read/Write
+            15.....8  7......0
+Read        fedcba98  7654321q    f-1    Signals J15 to J1
+                                  q      Cartridge EEPROM  output data
+Write       exxxxxxm  76543210    e      1 = enable  J7-J0 outputs
+                                         0 = disable J7-J0 outputs
+                                  x      don't care
+                                  m      Audio mute
+                                         0 = Audio muted (reset state)
+                                         1 = Audio enabled
+                                  7-4    J7-J4 outputs (port 2)
+                                  3-0    J3-J0 outputs (port 1)
+JOYBUTS     $F14002               Read Only
+            15.....8  7......0
+Read        xxxxxxxx  rrdv3210    x      don't care
+                                  r      Reserved
+                                  d      Reserved
+                                  v      1 = NTSC Video hardware
+                                         0 = PAL  Video hardware
+                                  3-2    Button inputs B3 & B2 (port 2)
+                                  1-0    Button inputs B1 & B0 (port 1)
+
+J4 J5 J6 J7  Port 2    B2     B3    J12  J13   J14  J15
+J3 J2 J1 J0  Port 1    B0     B1    J8   J9    J10  J11
+ 0  0  0  0
+ 0  0  0  1
+ 0  0  1  0
+ 0  0  1  1
+ 0  1  0  0
+ 0  1  0  1
+ 0  1  1  0
+ 0  1  1  1  Row 3     C3   Option  #     9     6     3
+ 1  0  0  0
+ 1  0  0  1
+ 1  0  1  0
+ 1  0  1  1  Row 2     C2      C    0     8     5     2
+ 1  1  0  0
+ 1  1  0  1  Row 1     C1      B    *     7     4     1
+ 1  1  1  0  Row 0   Pause     A    Up  Down  Left  Right
+ 1  1  1  1
+
+0 bit read in any position means that button is pressed.
+C3 = C2 = 1 means std. Jag. cntrlr. or nothing attached.
+*/
+};
+
 void WriteByte(uint32 address, uint8 byte, uint32 who/*=UNKNOWN*/)
 {
 	// Not sure, but I think the system only has 24 address bits...
@@ -1511,7 +1622,7 @@ void JaguarExecute(uint32 * backbuffer, bool render)
 //	uint16 vde = TOMReadWord(0xF00048);
 
 	uint16 refreshRate = (vjs.hardwareTypeNTSC ? 60 : 50);
-	uint32 m68kCockRate = (vjs.hardwareTypeNTSC ? M68K_CLOCK_RATE_NTSC : M68K_CLOCK_RATE_PAL);
+	uint32 m68kClockRate = (vjs.hardwareTypeNTSC ? M68K_CLOCK_RATE_NTSC : M68K_CLOCK_RATE_PAL);
 //Not sure the above is correct, since the number of lines and timings given in the JTRM
 //seem to indicate the refresh rate is *half* the above...
 //	uint16 refreshRate = (vjs.hardwareTypeNTSC ? 30 : 25);

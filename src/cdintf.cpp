@@ -81,7 +81,7 @@ void CDIntfDone(void)
 
 bool CDIntfReadBlock(uint32 sector, uint8 * buffer)
 {
-#warning !!! FIX !!! CDIntfReadBlock not implemented!
+#warning "!!! FIX !!! CDIntfReadBlock not implemented!"
 	// !!! FIX !!!
 	WriteLog("CDINTF: ReadBlock unimplemented!\n");
 	return false;
@@ -89,7 +89,7 @@ bool CDIntfReadBlock(uint32 sector, uint8 * buffer)
 
 uint32 CDIntfGetNumSessions(void)
 {
-#warning !!! FIX !!! CDIntfGetNumSessions not implemented!
+#warning "!!! FIX !!! CDIntfGetNumSessions not implemented!"
 	// !!! FIX !!!
 	// Still need relevant code here... !!! FIX !!!
 	return 2;
@@ -97,14 +97,14 @@ uint32 CDIntfGetNumSessions(void)
 
 void CDIntfSelectDrive(uint32 driveNum)
 {
-#warning !!! FIX !!! CDIntfSelectDrive not implemented!
+#warning "!!! FIX !!! CDIntfSelectDrive not implemented!"
 	// !!! FIX !!!
 	WriteLog("CDINTF: SelectDrive unimplemented!\n");
 }
 
 uint32 CDIntfGetCurrentDrive(void)
 {
-#warning !!! FIX !!! CDIntfGetCurrentDrive not implemented!
+#warning "!!! FIX !!! CDIntfGetCurrentDrive not implemented!"
 	// !!! FIX !!!
 	WriteLog("CDINTF: GetCurrentDrive unimplemented!\n");
 	return 0;
@@ -112,7 +112,7 @@ uint32 CDIntfGetCurrentDrive(void)
 
 const uint8 * CDIntfGetDriveName(uint32 driveNum)
 {
-#warning !!! FIX !!! CDIntfGetDriveName driveNum is currently ignored!
+#warning "!!! FIX !!! CDIntfGetDriveName driveNum is currently ignored!"
 	// driveNum is currently ignored... !!! FIX !!!
 
 #ifdef HAVE_LIB_CDIO
@@ -127,7 +127,7 @@ const uint8 * CDIntfGetDriveName(uint32 driveNum)
 
 uint8 CDIntfGetSessionInfo(uint32 session, uint32 offset)
 {
-#warning !!! FIX !!! CDIntfGetSessionInfo not implemented!
+#warning "!!! FIX !!! CDIntfGetSessionInfo not implemented!"
 	// !!! FIX !!!
 	WriteLog("CDINTF: GetSessionInfo unimplemented!\n");
 	return 0xFF;
@@ -135,7 +135,7 @@ uint8 CDIntfGetSessionInfo(uint32 session, uint32 offset)
 
 uint8 CDIntfGetTrackInfo(uint32 track, uint32 offset)
 {
-#warning !!! FIX !!! CDIntfTrackInfo not implemented!
+#warning "!!! FIX !!! CDIntfTrackInfo not implemented!"
 	// !!! FIX !!!
 	WriteLog("CDINTF: GetTrackInfo unimplemented!\n");
 	return 0xFF;

@@ -63,7 +63,7 @@
 //	                  W   x------- --------      (enable joystick outputs)
 //	                  W   -------- xxxxxxxx      (joystick output data)
 //	F14002          R     xxxxxxxx xxxxxxxx   JOYBUTS - button register
-//	F14800-F14FFF   R/W   xxxxxxxx xxxxxxxx   GPI00 - reserved (CD-ROM?)
+//	F14800-F14FFF   R/W   xxxxxxxx xxxxxxxx   GPI00 - reserved (CD-ROM? no.)
 //	F15000-F15FFF   R/W   xxxxxxxx xxxxxxxx   GPI01 - reserved
 //	F16000-F16FFF   R/W   xxxxxxxx xxxxxxxx   GPI02 - reserved
 //	F17000-F177FF   R/W   xxxxxxxx xxxxxxxx   GPI03 - reserved
@@ -356,7 +356,7 @@ void JERRYI2SCallback(void)
 {
 	// Why is it called this? Instead of SCLK? Shouldn't this be read from DAC.CPP???
 //Yes, it should. !!! FIX !!!
-#warning Yes, it should. !!! FIX !!!
+#warning "Yes, it should. !!! FIX !!!"
 	jerry_i2s_interrupt_divide &= 0xFF;
 	// We don't have to divide the RISC clock rate by this--the reason is a bit
 	// convoluted. Will put explanation here later...

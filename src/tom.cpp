@@ -1441,7 +1441,7 @@ if (offset >= 0xF02000 && offset <= 0xF020FF)
 	offset &= 0x3FFF;
 	if (offset == 0x28)			// VMODE (Why? Why not OBF?)
 //Actually, we should check to see if the Enable bit of VMODE is set before doing this... !!! FIX !!!
-#warning Actually, we should check to see if the Enable bit of VMODE is set before doing this... !!! FIX !!!
+#warning "Actually, we should check to see if the Enable bit of VMODE is set before doing this... !!! FIX !!!"
 		objectp_running = 1;
 
 	if (offset >= 0x30 && offset <= 0x4E)

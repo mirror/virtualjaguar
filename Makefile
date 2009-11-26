@@ -102,6 +102,7 @@ OBJS = \
 	obj/joystick.o      \
 	obj/log.o           \
 	obj/memory.o        \
+	obj/mmu.o           \
 	obj/objectp.o       \
 	obj/sdlemu_config.o \
 	obj/sdlemu_opengl.o \
