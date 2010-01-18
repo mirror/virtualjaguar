@@ -6,7 +6,8 @@
 #define __TOM_H__
 
 //#include "jaguar.h"
-#include "types.h"
+//#include "types.h"
+#include "memory.h"
 
 #define VIDEO_MODE_16BPP_CRY	0
 #define VIDEO_MODE_24BPP_RGB	1

@@ -9,7 +9,7 @@
 #include <SDL.h>
 #include <time.h>
 #include "file.h"
-#include "gui.h"
+//#include "gui.h"
 #include "jaguar.h"
 #include "log.h"
 #include "memory.h"
@@ -39,7 +39,7 @@
 //Maybe we should move the video stuff to TOM? Makes more sense to put it there...
 //Actually, it would probably be better served in VIDEO.CPP... !!! FIX !!! [DONE]
 //uint32 totalFrames;//temp, so we can grab this from elsewhere...
-int main(int argc, char * argv[])
+int main_old(int argc, char * argv[])
 {
 //NOTE: This isn't actually used anywhere... !!! FIX !!!
 	int32 nFrameskip = 0;							// Default: Show every frame
@@ -157,8 +157,8 @@ int main(int argc, char * argv[])
 
 	WriteLog("VJ: SDL successfully initialized.\n");
 
-	WriteLog("Initializing memory subsystem...\n");
-	MemoryInit();
+//	WriteLog("Initializing memory subsystem...\n");
+//	MemoryInit();
 #ifdef VJ_RELEASE_VERSION
 	WriteLog("Virtual Jaguar %s (Last full build was on %s %s)\n", VJ_RELEASE_VERSION, __DATE__, __TIME__);
 #else
@@ -188,11 +188,13 @@ WriteLog("About to attempt to load BIOSes...\n");
 WriteLog("Initializing video subsystem...\n");
 	VideoInit();
 WriteLog("Initializing GUI subsystem...\n");
-	GUIInit();
+#warning "!!! FIX !!! (GUIInit())"
+//	GUIInit();
 
 	// Now with crunchy GUI goodness!
 WriteLog("About to start GUI...\n");
-	GUIMain(haveCart ? argv[1] : NULL);
+#warning "!!! FIX !!! (GUIMain(...))"
+//	GUIMain(haveCart ? argv[1] : NULL);
 
 //This is no longer accurate...!
 //	int elapsedTime = clock() - startTime;
@@ -201,12 +203,12 @@ WriteLog("About to start GUI...\n");
 
 	JaguarDone();
 	VideoDone();
-	MemoryDone();
+//	MemoryDone();
 	LogDone();
 
 	// Free SDL components last...!
 	SDL_QuitSubSystem(SDL_INIT_VIDEO | SDL_INIT_JOYSTICK | SDL_INIT_AUDIO | SDL_INIT_TIMER);
 	SDL_Quit();
 
-    return 0;
+	return 0;
 }

@@ -30,7 +30,7 @@ struct VJSettings
 	bool hardwareTypeAlpine;
 	uint32 frameSkip;
 	uint32 renderType;
-	
+
 	// Keybindings in order of U, D, L, R, C, B, A, Op, Pa, 0-9, #, *
 
 	uint16 p1KeyBindings[21];
@@ -56,5 +56,8 @@ void SaveVJSettings(void);
 // Exported variables
 
 extern VJSettings vjs;
+
+// Temporary vars...
+extern bool smoothGLOutput;
 
 #endif	// __SETTINGS_H__

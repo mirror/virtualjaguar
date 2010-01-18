@@ -1,7 +1,14 @@
 //
-// ZIP file support (mostly ripped from MAME)
+// ZIP file support (mostly ripped from MAME--thx MAME team!)
 //
 // Added by James L. Hammons
+// (C) 2010 Underground Software
+//
+// JLH = James L. Hammons <jlhamm@acm.org>
+//
+// Who  When        What
+// ---  ----------  -------------------------------------------------------------
+// JLH  01/16/2010  Created this log ;-)
 //
 
 #include <stdlib.h>

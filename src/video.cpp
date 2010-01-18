@@ -2,11 +2,18 @@
 // VIDEO.CPP: SDL/local hardware specific video routines
 //
 // by James L. Hammons
+// (C) 2010 Underground Software
+//
+// JLH = James L. Hammons <jlhamm@acm.org>
+//
+// Who  When        What
+// ---  ----------  -------------------------------------------------------------
+// JLH  01/16/2010  Created this log ;-)
 //
 
 #include "video.h"
 
-#include "gui.h"								// For "finished"
+//#include "gui.h"								// For "finished"
 #include "log.h"
 #include "tom.h"
 #include "sdlemu_opengl.h"
@@ -17,7 +24,7 @@
 //shouldn't these exist here??? Prolly.
 //And now, they do! :-)
 SDL_Surface * surface, * mainSurface;
-SDL_Joystick * joystick;
+SDL_Joystick * joystick1;
 Uint32 mainSurfaceFlags;
 //int16 * backbuffer;
 uint32 * backbuffer;
@@ -151,7 +158,7 @@ bool VideoInit(void)
 		}
 		else
 		{
-			if ((joystick = SDL_JoystickOpen(vjs.joyport)) == 0)
+			if ((joystick1 = SDL_JoystickOpen(vjs.joyport)) == 0)
 			{
 				vjs.useJoystick = false;
 				printf("VJ: Unable to open a Joystick on port: %d\n", (int)vjs.joyport);
@@ -179,7 +186,7 @@ void VideoDone(void)
 	if (vjs.useOpenGL)
 		sdlemu_close_opengl();
 
-	SDL_JoystickClose(joystick);
+	SDL_JoystickClose(joystick1);
 	SDL_FreeSurface(surface);
 	free(backbuffer);
 }
@@ -243,7 +250,8 @@ void ResizeScreen(uint32 width, uint32 height)
 //as well as screwing up SDL... !!! FIX !!!
 //		exit(1);
 		// OK, this is cleaner. We can't continue if there is no surface created!
-		finished = true;
+#warning "!!! FIX !!! (finished = true)"
+//		finished = true;
 	}
 
 	if (vjs.useOpenGL)

@@ -4,6 +4,13 @@
 // Originally by David Raingeard
 // GCC/SDL port by Niels Wagenaar (Linux/WIN32) and Caz (BeOS)
 // Extensive cleanups/rewrites by James L. Hammons
+// (C) 2010 Underground Software
+//
+// JLH = James L. Hammons <jlhamm@acm.org>
+//
+// Who  When        What
+// ---  ----------  -------------------------------------------------------------
+// JLH  01/16/2010  Created this log ;-)
 //
 
 #include "dsp.h"
@@ -16,7 +23,7 @@
 #include "jerry.h"
 #include "log.h"
 #include "m68k.h"
-#include "memory.h"
+//#include "memory.h"
 
 //#define DSP_DEBUG
 //#define DSP_DEBUG_IRQ
@@ -441,7 +448,7 @@ void dsp_build_branch_condition_table(void)
 {
 	// Allocate the mirror table
 	if (!mirror_table)
-		mirror_table = (uint16 *)memory_malloc(65536 * sizeof(uint16), "DSP mirror table");
+		mirror_table = (uint16 *)malloc(65536 * sizeof(uint16));
 
 	// Fill in the mirror table
 	if (mirror_table)
@@ -457,7 +464,7 @@ void dsp_build_branch_condition_table(void)
 
 	if (!dsp_branch_condition_table)
 	{
-		dsp_branch_condition_table = (uint8 *)memory_malloc(32 * 8 * sizeof(uint8), "DSP branch condition table");
+		dsp_branch_condition_table = (uint8 *)malloc(32 * 8 * sizeof(uint8));
 
 		// Fill in the condition table
 		if (dsp_branch_condition_table)
@@ -1358,6 +1365,11 @@ void DSPDone(void)
 //	memory_free(dsp_ram_8);
 //	memory_free(dsp_reg_bank_0);
 //	memory_free(dsp_reg_bank_1);
+	if (dsp_branch_condition_table)
+		free(dsp_branch_condition_table);
+
+	if (mirror_table)
+		free(mirror_table);
 }
 
 

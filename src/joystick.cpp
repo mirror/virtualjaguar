@@ -4,6 +4,13 @@
 // by cal2
 // GCC/SDL port by Niels Wagenaar (Linux/WIN32) and Caz (BeOS)
 // Cleanups/fixes by James L. Hammons
+// (C) 2010 Underground Software
+//
+// JLH = James L. Hammons <jlhamm@acm.org>
+//
+// Who  When        What
+// ---  ----------  -------------------------------------------------------------
+// JLH  01/16/2010  Created this log ;-)
 //
 
 #include "joystick.h"
@@ -11,7 +18,7 @@
 #include <SDL.h>
 #include <time.h>
 #include "gpu.h"
-#include "gui.h"
+//#include "gui.h"
 #include "jaguar.h"
 #include "log.h"
 #include "settings.h"
@@ -134,11 +141,14 @@ void JoystickExec(void)
 	if (keystate[vjs.p1KeyBindings[20]])
 		joypad_0_buttons[BUTTON_d] = 0x01;
 
-	extern bool debounceRunKey;
+#warning "!!! FIX !!! (debounceRunKey)"
+//	extern bool debounceRunKey;
+	bool debounceRunKey;
     if (keystate[SDLK_ESCAPE])
     {
 		if (!debounceRunKey)
-	    	finished = true;
+#warning "!!! FIX !!! (finished = true)"
+;//	    	finished = true;
     }
     else
 		debounceRunKey = false;
@@ -146,7 +156,8 @@ void JoystickExec(void)
 	if (keystate[SDLK_TAB])
 	{
 		if (!GUIKeyHeld)
-			showGUI = !showGUI, GUIKeyHeld = true;
+#warning "!!! FIX !!! (showGUI = !showGUI, ...)"
+;//			showGUI = !showGUI, GUIKeyHeld = true;
 	}
 	else
 		GUIKeyHeld = false;
@@ -233,9 +244,9 @@ void JoystickExec(void)
 
     if (vjs.useJoystick)
     {
-		extern SDL_Joystick * joystick;
-		int16 x = SDL_JoystickGetAxis(joystick, 0),
-			y = SDL_JoystickGetAxis(joystick, 1);
+		extern SDL_Joystick * joystick1;
+		int16 x = SDL_JoystickGetAxis(joystick1, 0),
+			y = SDL_JoystickGetAxis(joystick1, 1);
 
 		if (x > 16384)
 			joypad_0_buttons[BUTTON_R] = 0x01;
@@ -246,11 +257,11 @@ void JoystickExec(void)
 		if (y < -16384)
 			joypad_0_buttons[BUTTON_U] = 0x01;
 
-		if (SDL_JoystickGetButton(joystick, 0) == SDL_PRESSED)
+		if (SDL_JoystickGetButton(joystick1, 0) == SDL_PRESSED)
 			joypad_0_buttons[BUTTON_A] = 0x01;
-		if (SDL_JoystickGetButton(joystick, 1) == SDL_PRESSED)
+		if (SDL_JoystickGetButton(joystick1, 1) == SDL_PRESSED)
 			joypad_0_buttons[BUTTON_B] = 0x01;
-		if (SDL_JoystickGetButton(joystick, 2) == SDL_PRESSED)
+		if (SDL_JoystickGetButton(joystick1, 2) == SDL_PRESSED)
 			joypad_0_buttons[BUTTON_C] = 0x01;
 	}
 

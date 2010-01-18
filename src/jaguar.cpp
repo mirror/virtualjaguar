@@ -25,12 +25,12 @@
 #include "eeprom.h"
 #include "event.h"
 #include "gpu.h"
-#include "gui.h"
+//#include "gui.h"
 #include "jerry.h"
 #include "joystick.h"
 #include "log.h"
 #include "m68k.h"
-#include "memory.h"
+//#include "memory.h"
 #include "mmu.h"
 #include "settings.h"
 #include "tom.h"
@@ -60,26 +60,12 @@ extern int effect_start;
 extern int effect_start2, effect_start3, effect_start4, effect_start5, effect_start6;
 #endif
 
-// Memory debugging identifiers
-
-const char * whoName[9] =
-	{ "Unknown", "Jaguar", "DSP", "GPU", "TOM", "JERRY", "M68K", "Blitter", "OP" };
-
 uint32 jaguar_active_memory_dumps = 0;
 
 uint32 jaguarMainROMCRC32, jaguarROMSize, jaguarRunAddress;
 
-uint8 jaguarMainRAM[0x400000];						// 68K CPU RAM
-uint8 jaguarMainROM[0x600000];						// 68K CPU ROM
-uint8 jaguarBootROM[0x040000];						// 68K CPU BIOS ROM--uses only half of this!
-uint8 jaguarCDBootROM[0x040000];					// 68K CPU CD BIOS ROM
 bool BIOSLoaded = false;
 bool CDBIOSLoaded = false;
-
-//uint8 cdRAM[0x100];
-uint8 * cdRAM = &jaguarMainROM[0x5FFF00];
-uint8 tomRAM[0x4000];
-uint8 jerryRAM[0x10000];
 
 #ifdef CPU_DEBUG_MEMORY
 uint8 writeMemMax[0x400000], writeMemMin[0x400000];

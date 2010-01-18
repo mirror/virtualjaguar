@@ -4,6 +4,14 @@
 // Originally by David Raingeard (cal2)
 // GCC/SDL port by Niels Wagenaar (Linux/WIN32) and Caz (BeOS)
 // Cleanups and endian wrongness amelioration by James L. Hammons
+// (C) 2010 Underground Software
+//
+// JLH = James L. Hammons <jlhamm@acm.org>
+//
+// Who  When        What
+// ---  ----------  -------------------------------------------------------------
+// JLH  01/16/2010  Created this log ;-)
+//
 // Note: Endian wrongness probably stems from the MAME origins of this emu and
 //       the braindead way in which MAME handles memory. :-)
 //
@@ -255,6 +263,7 @@
 #include "jaguar.h"
 #include "log.h"
 #include "m68k.h"
+//#include "memory.h"
 #include "objectp.h"
 #include "settings.h"
 #include "video.h"
@@ -548,6 +557,7 @@ uint32 RGB16ToRGB32[0x10000];
 uint32 CRY16ToRGB32[0x10000];
 uint32 MIX16ToRGB32[0x10000];
 
+#warning "This is not endian-safe. !!! FIX !!!"
 void TOMFillLookupTables(void)
 {
 	for(uint32 i=0; i<0x10000; i++)
@@ -568,12 +578,12 @@ void TOMFillLookupTables(void)
 			b = (((uint32)bluecv[chrm][chrl]) * y) >> 8;
 
 		CRY16ToRGB32[i] = 0xFF000000 | (b << 16) | (g << 8) | r;
-		MIX16ToRGB32[i] = CRY16ToRGB32[i];
+		MIX16ToRGB32[i] = (i & 0x01 ? RGB16ToRGB32[i] : CRY16ToRGB32[i]);
 	}
 
-	for(uint32 i=0; i<0x10000; i++)
-		if (i & 0x01)
-			MIX16ToRGB32[i] = RGB16ToRGB32[i];
+//	for(uint32 i=0; i<0x10000; i++)
+//		if (i & 0x01)
+//			MIX16ToRGB32[i] = RGB16ToRGB32[i];
 }
 
 void TOMSetPendingJERRYInt(void)
@@ -613,10 +623,9 @@ uint8 TOMGetVideoMode(void)
 }
 
 //Used in only one place (and for debug purposes): OBJECTP.CPP
+#warning "Used in only one place (and for debug purposes): OBJECTP.CPP !!! FIX !!!"
 uint16 TOMGetVDB(void)
 {
-// This in NOT VDB!!!
-//	return GET16(tomRam8, VBE);
 	return GET16(tomRam8, VDB);
 }
 

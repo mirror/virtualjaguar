@@ -163,6 +163,7 @@
 #include "jaguar.h"
 #include "joystick.h"
 #include "log.h"
+//#include "memory.h"
 #include "wavetable.h"
 
 //Note that 44100 Hz requires samples every 22.675737 usec.
@@ -428,7 +429,7 @@ void JERRYInit(void)
 //This should be handled with the cart initialization...
 //	eeprom_init();
 //	memory_malloc_secure((void **)&jerry_ram_8, 0x10000, "JERRY RAM/ROM");
-	memcpy(&jerry_ram_8[0xD000], wave_table, 0x1000);
+	memcpy(&jerry_ram_8[0xD000], waveTableROM, 0x1000);
 
 	JERRYPIT1Prescaler = 0xFFFF;
 	JERRYPIT2Prescaler = 0xFFFF;
