@@ -206,7 +206,7 @@ obj/moc_%.o: obj/moc_%.cpp
 	@echo -e "\033[01;33m***\033[00;32m Compiling $<...\033[00m"
 	@$(CC) -c $(QT_CXXFLAGS) $(QT_INCPATH) -o $@ $<
 
-obj/qrc_vj.cpp: src/gui/vj.qrc src/gui/res/vj.xpm
+obj/qrc_vj.cpp: src/gui/vj.qrc res/vj.xpm
 	@echo -e "\033[01;33m***\033[00;32m Creating qrc_vj.cpp...\033[00m"
 	@/usr/bin/rcc -name vj src/gui/vj.qrc -o obj/qrc_vj.cpp
 

@@ -1,5 +1,5 @@
 <!DOCTYPE RCC><RCC version="1.0">
 <qresource>
-	<file>res/vj.xpm</file>
+	<file>../../res/vj.xpm</file>
 </qresource>
 </RCC>
