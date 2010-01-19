@@ -31,7 +31,7 @@
 //#include "charwindow.h"
 //#include "ttedit.h"
 
-MainWin::MainWin()
+MainWin::MainWin(): running(true)
 {
 	// The way BSNES controls things is by setting a timer with a zero
 	// timeout, sleeping if not emulating anything. Seems there has to be a
@@ -41,12 +41,23 @@ MainWin::MainWin()
 	// methods, can we do something similar or should we just use the built-in
 	// QOpenGL?
 
+	// We're going to try to use the built-in OpenGL support and see how it goes.
+	// We'll make the VJ core modular so that it doesn't matter what GUI is in
+	// use, we can drop it in anywhere and use it as-is.
+
 //	((TTEdit *)qApp)->charWnd = new CharWindow(this);
 	videoWidget = new GLWidget(this);
 	setCentralWidget(videoWidget);
 	setWindowIcon(QIcon(":/res/vj.xpm"));
 	setWindowTitle("Virtual Jaguar v2.0.0");
 
+	QMenu * menu = menuBar()->addMenu(tr("&File"));
+	QToolBar * toolbar = addToolBar(tr("x1"));
+	/*QAction */ action = new QAction(tr("Toggle"), this);
+	action->setStatusTip(tr("Toggle running state"));
+	action->setCheckable(true);
+	toolbar->addAction(action);
+	connect(action, SIGNAL(triggered()), this, SLOT(ToggleRunState()));
 #if 0
 //	createActions();
 	newAct = new QAction(QIcon(":/images/new.png"), tr("&New"), this);
@@ -124,6 +135,9 @@ void MainWin::Open(void)
 
 void MainWin::Timer(void)
 {
+	if (!running)
+		return;
+
 	// Random hash & trash
 	// We try to simulate an untuned tank circuit here... :-)
 	for(int x=0; x<videoWidget->rasterWidth; x++)
@@ -136,6 +150,11 @@ void MainWin::Timer(void)
 	}
 
 	videoWidget->updateGL();
+}
+
+void MainWin::ToggleRunState(void)
+{
+	running = !running;
 }
 
 void MainWin::ReadSettings(void)

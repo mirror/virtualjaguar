@@ -31,6 +31,7 @@ class MainWin: public QMainWindow
 	private slots:
 		void Open(void);
 		void Timer(void);
+		void ToggleRunState(void);
 
 	private:
 		void ReadSettings(void);
@@ -39,8 +40,10 @@ class MainWin: public QMainWindow
 //	public:
 		GLWidget * videoWidget;
 		QTimer * timer;
+		bool running;
 //		EditWindow * editWnd;
 //		CharWindow * charWnd;
+		QAction * action;
 };
 
 #endif	// __MAINWIN_H__
