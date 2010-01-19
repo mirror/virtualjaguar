@@ -20,6 +20,7 @@
 #include "sdlemu_config.h"
 
 #include <stdlib.h>								// For atoi()
+#include <stdio.h>								// For fopen() and friends
 #include <cstring>								// For strcmp()
 #include <string>
 #include <list>
