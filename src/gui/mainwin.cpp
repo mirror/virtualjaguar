@@ -28,6 +28,7 @@
 //#include <QtGui>
 //#include <QtOpenGL>
 #include "glwidget.h"
+#include "about.h"
 #include "settings.h"
 
 // The way BSNES controls things is by setting a timer with a zero
@@ -49,6 +50,11 @@ MainWin::MainWin()
 	setWindowIcon(QIcon(":/res/vj.xpm"));
 	setWindowTitle("Virtual Jaguar v2.0.0");
 
+	aboutWin = new AboutWindow(this);
+
+    videoWidget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+    setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+
 	// Create actions
 
 	quitAppAct = new QAction(tr("E&xit"), this);
@@ -56,92 +62,67 @@ MainWin::MainWin()
 	quitAppAct->setStatusTip(tr("Quit Virtual Jaguar"));
 	connect(quitAppAct, SIGNAL(triggered()), this, SLOT(close()));
 
-	action = new QAction(QIcon(":/res/power.png"), tr("&Power"), this);
-	action->setStatusTip(tr("Toggle running state"));
-	action->setCheckable(true);
-	connect(action, SIGNAL(triggered()), this, SLOT(ToggleRunState()));
+	powerAct = new QAction(QIcon(":/res/power.png"), tr("&Power"), this);
+	powerAct->setStatusTip(tr("Toggle running state"));
+	powerAct->setCheckable(true);
+	connect(powerAct, SIGNAL(triggered()), this, SLOT(ToggleRunState()));
 
 	zoomActs = new QActionGroup(this);
 
 	x1Act = new QAction(QIcon(":/res/zoom100.png"), tr("Zoom 100%"), zoomActs);
 	x1Act->setStatusTip(tr("Set window zoom to 100%"));
 	x1Act->setCheckable(true);
-//	connect(x1Act, SIGNAL(triggered()), this, SLOT(???()));
+	connect(x1Act, SIGNAL(triggered()), this, SLOT(SetZoom100()));
 
 	x2Act = new QAction(QIcon(":/res/zoom200.png"), tr("Zoom 200%"), zoomActs);
 	x2Act->setStatusTip(tr("Set window zoom to 200%"));
 	x2Act->setCheckable(true);
-//	connect(x2Act, SIGNAL(triggered()), this, SLOT(???()));
+	connect(x2Act, SIGNAL(triggered()), this, SLOT(SetZoom200()));
 
 	x3Act = new QAction(QIcon(":/res/zoom300.png"), tr("Zoom 300%"), zoomActs);
 	x3Act->setStatusTip(tr("Set window zoom to 300%"));
 	x3Act->setCheckable(true);
-//	connect(x3Act, SIGNAL(triggered()), this, SLOT(???()));
+	connect(x3Act, SIGNAL(triggered()), this, SLOT(SetZoom300()));
+
+	tvTypeActs = new QActionGroup(this);
+
+	ntscAct = new QAction(QIcon(":/res/generic.png"), tr("NTSC"), tvTypeActs);
+	ntscAct->setStatusTip(tr("Sets OpenGL rendering to GL_NEAREST"));
+	ntscAct->setCheckable(true);
+	connect(ntscAct, SIGNAL(triggered()), this, SLOT(SetNTSC()));
+
+	palAct = new QAction(QIcon(":/res/generic.png"), tr("PAL"), tvTypeActs);
+	palAct->setStatusTip(tr("Sets OpenGL rendering to GL_NEAREST"));
+	palAct->setCheckable(true);
+	connect(palAct, SIGNAL(triggered()), this, SLOT(SetPAL()));
 
 	blurAct = new QAction(QIcon(":/res/generic.png"), tr("Blur"), this);
 	blurAct->setStatusTip(tr("Sets OpenGL rendering to GL_NEAREST"));
 	blurAct->setCheckable(true);
 	connect(blurAct, SIGNAL(triggered()), this, SLOT(ToggleBlur()));
 
+	aboutAct = new QAction(QIcon(":/res/generic.png"), tr("&About..."), this);
+	aboutAct->setStatusTip(tr("Shows self-serving credits"));
+//	aboutAct->setCheckable(true);
+	connect(aboutAct, SIGNAL(triggered()), this, SLOT(ShowAboutWin()));
+
 	// Create menus & toolbars
 
-	QMenu * fileMenu = menuBar()->addMenu(tr("&File"));
-	fileMenu->addAction(action);
+	fileMenu = menuBar()->addMenu(tr("&File"));
+	fileMenu->addAction(powerAct);
 	fileMenu->addAction(quitAppAct);
 
+	fileMenu = menuBar()->addMenu(tr("&Help"));
+	fileMenu->addAction(aboutAct);
+
 	QToolBar * toolbar = addToolBar(tr("Stuff"));
-	toolbar->addAction(action);
+	toolbar->addAction(powerAct);
 	toolbar->addAction(x1Act);
 	toolbar->addAction(x2Act);
 	toolbar->addAction(x3Act);
+	toolbar->addAction(ntscAct);
+	toolbar->addAction(palAct);
 	toolbar->addAction(blurAct);
-#if 0
-//	createActions();
-	newAct = new QAction(QIcon(":/images/new.png"), tr("&New"), this);
-	newAct->setShortcuts(QKeySequence::New);
-	newAct->setStatusTip(tr("Create a new file"));
-	connect(newAct, SIGNAL(triggered()), this, SLOT(newFile()));
-
-	openAct = new QAction(QIcon(":/images/open.png"), tr("&Open..."), this);
-	openAct->setShortcuts(QKeySequence::Open);
-	openAct->setStatusTip(tr("Open an existing file"));
-	connect(openAct, SIGNAL(triggered()), this, SLOT(open()));
-
-	aboutQtAct = new QAction(tr("About &Qt"), this);
-	aboutQtAct->setStatusTip(tr("Show the Qt library's About box"));
-	connect(aboutQtAct, SIGNAL(triggered()), qApp, SLOT(aboutQt()));
-
-//	createMenus();
-	fileMenu = menuBar()->addMenu(tr("&File"));
-	fileMenu->addAction(newAct);
-	fileMenu->addAction(openAct);
-	fileMenu->addAction(saveAct);
-	fileMenu->addAction(saveAsAct);
-	fileMenu->addSeparator();
-	fileMenu->addAction(exitAct);
-
-	editMenu = menuBar()->addMenu(tr("&Edit"));
-	editMenu->addAction(cutAct);
-	editMenu->addAction(copyAct);
-	editMenu->addAction(pasteAct);
-
-	menuBar()->addSeparator();
-
-	helpMenu = menuBar()->addMenu(tr("&Help"));
-	helpMenu->addAction(aboutAct);
-	helpMenu->addAction(aboutQtAct);
-
-//	createToolBars();
-	fileToolBar = addToolBar(tr("File"));
-	fileToolBar->addAction(newAct);
-	fileToolBar->addAction(openAct);
-	fileToolBar->addAction(saveAct);
-
-	editToolBar = addToolBar(tr("Edit"));
-	editToolBar->addAction(cutAct);
-	editToolBar->addAction(copyAct);
-	editToolBar->addAction(pasteAct);
-#endif
 
 	//	Create status bar
 	statusBar()->showMessage(tr("Ready"));
@@ -151,8 +132,15 @@ MainWin::MainWin()
 
 	// Set toolbar button based on setting read in (sync the UI)...
 	blurAct->setChecked(vjs.glFilter);
-	x1Act->setChecked(true);
-	running = action->isChecked();
+	x1Act->setChecked(zoomLevel == 1);
+	x2Act->setChecked(zoomLevel == 2);
+	x3Act->setChecked(zoomLevel == 3);
+	running = powerAct->isChecked();
+	ntscAct->setChecked(vjs.hardwareTypeNTSC);
+	palAct->setChecked(!vjs.hardwareTypeNTSC);
+
+	// Do this in case original size isn't correct
+	ResizeMainWindow();
 
 	// Set up timer based loop for animation...
 	timer = new QTimer(this);
@@ -205,19 +193,59 @@ void MainWin::ToggleRunState(void)
 
 void MainWin::SetZoom100(void)
 {
+	zoomLevel = 1;
+	ResizeMainWindow();
 }
 
 void MainWin::SetZoom200(void)
 {
+	zoomLevel = 2;
+	ResizeMainWindow();
 }
 
 void MainWin::SetZoom300(void)
 {
+	zoomLevel = 3;
+	ResizeMainWindow();
+}
+
+void MainWin::SetNTSC(void)
+{
+	vjs.hardwareTypeNTSC = true;
+	ResizeMainWindow();
+}
+
+void MainWin::SetPAL(void)
+{
+	vjs.hardwareTypeNTSC = false;
+	ResizeMainWindow();
 }
 
 void MainWin::ToggleBlur(void)
 {
 	vjs.glFilter = !vjs.glFilter;
+}
+
+void MainWin::ShowAboutWin(void)
+{
+	aboutWin->show();
+//	QMessageBox::about(this, tr("About Application"),
+//		tr("The <b>Application</b> example demonstrates how to "
+//		"write modern GUI applications using Qt, with a menu bar, "
+//		"toolbars, and a status bar."));
+}
+
+void MainWin::ResizeMainWindow(void)
+{
+	videoWidget->setFixedSize(zoomLevel * 320, zoomLevel * (vjs.hardwareTypeNTSC ? 240 : 256));
+	show();
+
+	for(int i=0; i<2; i++)
+	{
+		resize(0, 0);
+		usleep(2000);
+		QApplication::processEvents();
+	}
 }
 
 void MainWin::ReadSettings(void)
@@ -227,6 +255,8 @@ void MainWin::ReadSettings(void)
 	QSize size = settings.value("size", QSize(400, 400)).toSize();
 	resize(size);
 	move(pos);
+
+	zoomLevel = settings.value("zoom", 1).toInt();
 
 	vjs.useJoystick      = settings.value("useJoystick", false).toBool();
 	vjs.joyport          = settings.value("joyport", 0).toInt();
@@ -247,6 +277,8 @@ void MainWin::WriteSettings(void)
 	settings.setValue("pos", pos());
 	settings.setValue("size", size());
 
+	settings.setValue("zoom", zoomLevel);
+
 	settings.setValue("useJoystick", vjs.useJoystick);
 	settings.setValue("joyport", vjs.joyport);
 	settings.setValue("hardwareTypeNTSC", vjs.hardwareTypeNTSC);
@@ -260,3 +292,89 @@ void MainWin::WriteSettings(void)
 	settings.setValue("renderType", vjs.renderType);
 }
 
+// Here's how Byuu does it...
+// I think I have it working now... :-)
+#if 0
+void Utility::resizeMainWindow()
+{
+  unsigned region = config().video.context->region;
+  unsigned multiplier = config().video.context->multiplier;
+  unsigned width = 256 * multiplier;
+  unsigned height = (region == 0 ? 224 : 239) * multiplier;
+
+  if(config().video.context->correctAspectRatio)
+  {
+    if(region == 0)
+	{
+      width = (double)width * config().video.ntscAspectRatio + 0.5;  //NTSC adjust
+    }
+	else
+	{
+      width = (double)width * config().video.palAspectRatio  + 0.5;  //PAL adjust
+    }
+  }
+
+  if(config().video.isFullscreen == false)
+  {
+    //get effective desktop work area region (ignore Windows taskbar, OS X dock, etc.)
+    QRect deskRect = QApplication::desktop()->availableGeometry(mainWindow);
+
+    //ensure window size will not be larger than viewable desktop area
+    constrainSize(height, width, deskRect.height()); //- frameHeight);
+    constrainSize(width, height, deskRect.width());  //- frameWidth );
+
+    mainWindow->canvas->setFixedSize(width, height);
+    mainWindow->show();
+  }
+  else
+  {
+    for(unsigned i = 0; i < 2; i++)
+	{
+      unsigned iWidth = width, iHeight = height;
+
+      constrainSize(iHeight, iWidth, mainWindow->canvasContainer->size().height());
+      constrainSize(iWidth, iHeight, mainWindow->canvasContainer->size().width());
+
+      //center canvas onscreen; ensure it is not larger than viewable area
+      mainWindow->canvas->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+      mainWindow->canvas->setFixedSize(iWidth, iHeight);
+      mainWindow->canvas->setMinimumSize(0, 0);
+
+      usleep(2000);
+      QApplication::processEvents();
+    }
+  }
+
+  //workaround for Qt/Xlib bug:
+  //if window resize occurs with cursor over it, Qt shows Qt::Size*DiagCursor;
+  //so force it to show Qt::ArrowCursor, as expected
+  mainWindow->setCursor(Qt::ArrowCursor);
+  mainWindow->canvasContainer->setCursor(Qt::ArrowCursor);
+  mainWindow->canvas->setCursor(Qt::ArrowCursor);
+
+  //workaround for DirectSound(?) bug:
+  //window resizing sometimes breaks audio sync, this call re-initializes it
+  updateAvSync();
+}
+
+void Utility::setScale(unsigned scale)
+{
+  config().video.context->multiplier = scale;
+  resizeMainWindow();
+  mainWindow->shrink();
+  mainWindow->syncUi();
+}
+
+void QbWindow::shrink()
+{
+  if(config().video.isFullscreen == false)
+  {
+    for(unsigned i = 0; i < 2; i++)
+	{
+      resize(0, 0);
+      usleep(2000);
+      QApplication::processEvents();
+    }
+  }
+}
+#endif

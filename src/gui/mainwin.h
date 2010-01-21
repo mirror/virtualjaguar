@@ -14,6 +14,7 @@
 // Forward declarations
 
 class GLWidget;
+class AboutWindow;
 //class EditWindow;
 //class CharWindow;
 
@@ -35,26 +36,38 @@ class MainWin: public QMainWindow
 		void SetZoom100(void);
 		void SetZoom200(void);
 		void SetZoom300(void);
+		void SetNTSC(void);
+		void SetPAL(void);
 		void ToggleBlur(void);
+		void ShowAboutWin(void);
 
 	private:
+		void ResizeMainWindow(void);
 		void ReadSettings(void);
 		void WriteSettings(void);
 
 //	public:
 		GLWidget * videoWidget;
+		AboutWindow * aboutWin;
 		QTimer * timer;
 		bool running;
-//		EditWindow * editWnd;
-//		CharWindow * charWnd;
-		QActionGroup * zoomActs;
+		int zoomLevel;
 
-		QAction * action;
+		QMenu * fileMenu;
+		QMenu * helpMenu;
+
+		QActionGroup * zoomActs;
+		QActionGroup * tvTypeActs;
+
 		QAction * quitAppAct;
+		QAction * powerAct;
 		QAction * x1Act;
 		QAction * x2Act;
 		QAction * x3Act;
+		QAction * ntscAct;
+		QAction * palAct;
 		QAction * blurAct;
+		QAction * aboutAct;
 };
 
 #endif	// __MAINWIN_H__

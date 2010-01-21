@@ -16,8 +16,7 @@
 #include "settings.h"
 
 GLWidget::GLWidget(QWidget * parent/*= 0*/): QGLWidget(parent), texture(0),
-	textureWidth(0), textureHeight(0), buffer(0), rasterWidth(64), rasterHeight(64)
-//	textureWidth(0), textureHeight(0), buffer(0), rasterWidth(256), rasterHeight(256)
+	textureWidth(0), textureHeight(0), buffer(0), rasterWidth(320), rasterHeight(240)
 {
 }
 
@@ -42,6 +41,9 @@ void GLWidget::initializeGL()
 
 void GLWidget::paintGL()
 {
+//kludge
+rasterHeight = (vjs.hardwareTypeNTSC ? 240 : 256);
+
 	unsigned outputWidth  = width();
 	unsigned outputHeight = height();
 

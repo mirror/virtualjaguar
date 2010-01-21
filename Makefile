@@ -72,6 +72,7 @@ OBJS = \
 	obj/m68kopnz.o      \
 	obj/m68kdasm.o      \
 \
+	obj/about.o         \
 	obj/app.o           \
 	obj/mainwin.o       \
 	obj/moc_mainwin.o   \

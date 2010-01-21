@@ -9,10 +9,12 @@ QT += opengl
 HEADERS += app.h
 HEADERS += mainwin.h
 HEADERS += glwidget.h
+HEADERS += about.h
 
 SOURCES += app.cpp
 SOURCES += mainwin.cpp
 SOURCES += glwidget.cpp
+SOURCES += about.cpp
 
 RESOURCES += vj.qrc
 
