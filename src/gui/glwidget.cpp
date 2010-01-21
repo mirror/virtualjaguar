@@ -53,10 +53,8 @@ void GLWidget::paintGL()
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
 
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, (smoothGLOutput ? GL_LINEAR : GL_NEAREST));
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, (smoothGLOutput ? GL_LINEAR : GL_NEAREST));
-//	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST /*GL_LINEAR*/);
-//	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST /*GL_LINEAR*/);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, (vjs.glFilter ? GL_LINEAR : GL_NEAREST));
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, (vjs.glFilter ? GL_LINEAR : GL_NEAREST));
 //	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, rasterWidth, rasterHeight, GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV, buffer);
 	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, rasterWidth, rasterHeight, GL_RGBA, GL_UNSIGNED_INT_8_8_8_8, buffer);
 

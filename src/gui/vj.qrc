@@ -1,5 +1,10 @@
 <!DOCTYPE RCC><RCC version="1.0">
 <qresource>
 	<file>../../res/vj.xpm</file>
+	<file>../../res/power.png</file>
+	<file>../../res/zoom100.png</file>
+	<file>../../res/zoom200.png</file>
+	<file>../../res/zoom300.png</file>
+	<file>../../res/generic.png</file>
 </qresource>
 </RCC>

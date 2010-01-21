@@ -19,9 +19,6 @@
 #include "sdlemu_config.h"
 #include "log.h"
 
-// Temporary vars...
-bool smoothGLOutput = false;
-
 using namespace std;
 
 // Global variables

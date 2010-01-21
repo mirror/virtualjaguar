@@ -57,7 +57,4 @@ void SaveVJSettings(void);
 
 extern VJSettings vjs;
 
-// Temporary vars...
-extern bool smoothGLOutput;
-
 #endif	// __SETTINGS_H__

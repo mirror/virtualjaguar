@@ -20,3 +20,5 @@ OBJECTS_DIR = ../../obj
 MOC_DIR = ../../obj
 RCC_DIR = ../../obj
 UI_DIR = ../../obj
+#Nope, don't do dookey
+#INCLUDES_DIR = ..

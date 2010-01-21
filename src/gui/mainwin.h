@@ -32,6 +32,10 @@ class MainWin: public QMainWindow
 		void Open(void);
 		void Timer(void);
 		void ToggleRunState(void);
+		void SetZoom100(void);
+		void SetZoom200(void);
+		void SetZoom300(void);
+		void ToggleBlur(void);
 
 	private:
 		void ReadSettings(void);
@@ -43,7 +47,14 @@ class MainWin: public QMainWindow
 		bool running;
 //		EditWindow * editWnd;
 //		CharWindow * charWnd;
+		QActionGroup * zoomActs;
+
 		QAction * action;
+		QAction * quitAppAct;
+		QAction * x1Act;
+		QAction * x2Act;
+		QAction * x3Act;
+		QAction * blurAct;
 };
 
 #endif	// __MAINWIN_H__
