@@ -15,6 +15,8 @@
 
 AboutWindow::AboutWindow(QWidget * parent/*= 0*/): QWidget()
 {
+	setWindowTitle("About Virtual Jaguar...");
+
 	layout = new QVBoxLayout();
 	layout->setSizeConstraint(QLayout::SetFixedSize);
 //	layout->setMargin(Style::WindowMargin);
@@ -24,12 +26,16 @@ AboutWindow::AboutWindow(QWidget * parent/*= 0*/): QWidget()
 //  logo = new Logo;
 //  logo->setFixedSize(600, 106);
 //  layout->addWidget(logo);
+	image = new QLabel();
+	image->setPixmap(QPixmap(":/res/vj_title_small.png"));
+//hrm, this doesn't work
+	layout->addWidget(image);
 
 	text = new QLabel(tr(
 		"<table>"
 		"<tr><td align='right'><b>Version: </b></td><td>2.0.0</td></tr>"
-		"<tr><td align='right'><b>Author: </b></td><td>byuu</td></tr>"
-		"<tr><td align='right'><b>Homepage: </b></td><td>http://byuu.org/</td></tr>"
+		"<tr><td align='right'><b>Author: </b></td><td>James L. Hammons & others</td></tr>"
+		"<tr><td align='right'><b>Homepage: </b></td><td>http://icculus.org/virtualjaguar/</td></tr>"
 		"</table>"
 	));
 	layout->addWidget(text);

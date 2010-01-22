@@ -18,6 +18,7 @@ class AboutWindow: public QWidget
 	private:
 		QVBoxLayout * layout;
 		QLabel * text;
+		QLabel * image;
 };
 
 #endif	// __ABOUT_H__
