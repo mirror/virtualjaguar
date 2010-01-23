@@ -102,8 +102,7 @@ MainWin::MainWin()
 	connect(blurAct, SIGNAL(triggered()), this, SLOT(ToggleBlur()));
 
 	aboutAct = new QAction(QIcon(":/res/generic.png"), tr("&About..."), this);
-	aboutAct->setStatusTip(tr("Shows self-serving credits"));
-//	aboutAct->setCheckable(true);
+	aboutAct->setStatusTip(tr("Blatant self-promotion"));
 	connect(aboutAct, SIGNAL(triggered()), this, SLOT(ShowAboutWin()));
 
 	// Create menus & toolbars
@@ -139,7 +138,7 @@ MainWin::MainWin()
 	ntscAct->setChecked(vjs.hardwareTypeNTSC);
 	palAct->setChecked(!vjs.hardwareTypeNTSC);
 
-	// Do this in case original size isn't correct
+	// Do this in case original size isn't correct (mostly for the first-run case)
 	ResizeMainWindow();
 
 	// Set up timer based loop for animation...
@@ -229,10 +228,6 @@ void MainWin::ToggleBlur(void)
 void MainWin::ShowAboutWin(void)
 {
 	aboutWin->show();
-//	QMessageBox::about(this, tr("About Application"),
-//		tr("The <b>Application</b> example demonstrates how to "
-//		"write modern GUI applications using Qt, with a menu bar, "
-//		"toolbars, and a status bar."));
 }
 
 void MainWin::ResizeMainWindow(void)

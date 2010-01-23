@@ -74,6 +74,7 @@ OBJS = \
 \
 	obj/about.o         \
 	obj/app.o           \
+	obj/filepicker.o    \
 	obj/mainwin.o       \
 	obj/moc_mainwin.o   \
 	obj/glwidget.o      \

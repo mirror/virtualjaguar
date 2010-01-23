@@ -10,11 +10,13 @@ HEADERS += app.h
 HEADERS += mainwin.h
 HEADERS += glwidget.h
 HEADERS += about.h
+HEADERS += filepicker.h
 
 SOURCES += app.cpp
 SOURCES += mainwin.cpp
 SOURCES += glwidget.cpp
 SOURCES += about.cpp
+SOURCES += filepicker.cpp
 
 RESOURCES += vj.qrc
 
