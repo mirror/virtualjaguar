@@ -13,6 +13,8 @@
 
 #include "filepicker.h"
 
+#include "crc32.h"
+#include "settings.h"
 #include "types.h"
 
 struct RomIdentifier
@@ -98,5 +100,63 @@ in romList for future reference.
 
 When constructing the list, use the index to pull up an image of the cart and
 put that in the list. User picks from a graphical image of the cart.
+
+Ideally, the label will go into the archive along with the ROM image, but that's
+for the future...
+Maybe box art, screenshots will go as well...
 */
+
+//FilePickerWindow::FilePickerWindow(QWidget * parent/*= 0*/): QWidget(parent, Qt::Dialog)//could use Window as well...
+FilePickerWindow::FilePickerWindow(QWidget * parent/*= 0*/): QWidget(parent, Qt::Window)
+{
+	setWindowTitle("Insert Cartridge...");
+
+	fileList = new QListWidget(this);
+//	addWidget(fileList);
+
+	QVBoxLayout * layout = new QVBoxLayout();
+//	layout->setSizeConstraint(QLayout::SetFixedSize);
+	setLayout(layout);
+
+	layout->addWidget(fileList);
+
+	PopulateList();
+}
+
+void FilePickerWindow::PopulateList(void)
+{
+	QDir romDir(vjs.ROMPath);
+	QFileInfoList list = romDir.entryInfoList();
+
+	for(int i=0; i<list.size(); i++)
+	{
+		QFileInfo fileInfo = list.at(i);
+//         std::cout << qPrintable(QString("%1 %2").arg(fileInfo.size(), 10)
+//                                                 .arg(fileInfo.fileName()));
+//         std::cout << std::endl;
+		QFile file(romDir.filePath(fileInfo.fileName()));
+		uint8 * buffer = new uint8[fileInfo.size()];
+
+		if (file.open(QIODevice::ReadOnly))
+		{
+			file.read((char *)buffer, fileInfo.size());
+			uint32 crc = crc32_calcCheckSum(buffer, fileInfo.size());
+			file.close();
+//printf("FilePickerWindow: File crc == %08X...\n", crc);
+
+			for(int j=0; romList[j].crc32 != 0xFFFFFFFF; j++)
+			{
+				if (romList[j].crc32 == crc)
+				{
+printf("FilePickerWindow: Found match [%s]...\n", romList[j].name);
+					new QListWidgetItem(QIcon(":/res/generic.png"), romList[j].name, fileList);
+					break;
+				}
+			}
+		}
+
+		delete[] buffer;
+	}
+
+}
 

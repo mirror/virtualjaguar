@@ -12,11 +12,9 @@
 #include <QtGui>
 
 // Forward declarations
-
 class GLWidget;
 class AboutWindow;
-//class EditWindow;
-//class CharWindow;
+class FilePickerWindow;
 
 class MainWin: public QMainWindow
 {
@@ -40,6 +38,7 @@ class MainWin: public QMainWindow
 		void SetPAL(void);
 		void ToggleBlur(void);
 		void ShowAboutWin(void);
+		void InsertCart(void);
 
 	private:
 		void ResizeMainWindow(void);
@@ -49,6 +48,7 @@ class MainWin: public QMainWindow
 //	public:
 		GLWidget * videoWidget;
 		AboutWindow * aboutWin;
+		FilePickerWindow * filePickWin;
 		QTimer * timer;
 		bool running;
 		int zoomLevel;
@@ -68,6 +68,7 @@ class MainWin: public QMainWindow
 		QAction * palAct;
 		QAction * blurAct;
 		QAction * aboutAct;
+		QAction * filePickAct;
 };
 
 #endif	// __MAINWIN_H__

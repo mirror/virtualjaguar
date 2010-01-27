@@ -30,6 +30,7 @@
 #include "glwidget.h"
 #include "about.h"
 #include "settings.h"
+#include "filepicker.h"
 
 // The way BSNES controls things is by setting a timer with a zero
 // timeout, sleeping if not emulating anything. Seems there has to be a
@@ -50,7 +51,11 @@ MainWin::MainWin()
 	setWindowIcon(QIcon(":/res/vj.xpm"));
 	setWindowTitle("Virtual Jaguar v2.0.0");
 
+	ReadSettings();
+	setUnifiedTitleAndToolBarOnMac(true);
+
 	aboutWin = new AboutWindow(this);
+	filePickWin = new FilePickerWindow(this);
 
     videoWidget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
@@ -105,9 +110,14 @@ MainWin::MainWin()
 	aboutAct->setStatusTip(tr("Blatant self-promotion"));
 	connect(aboutAct, SIGNAL(triggered()), this, SLOT(ShowAboutWin()));
 
+	filePickAct = new QAction(QIcon(":/res/generic.png"), tr("Insert Cartridge..."), this);
+	filePickAct->setStatusTip(tr("Insert a cartridge into Virtual Jaguar"));
+	connect(filePickAct, SIGNAL(triggered()), this, SLOT(InsertCart()));
+
 	// Create menus & toolbars
 
 	fileMenu = menuBar()->addMenu(tr("&File"));
+	fileMenu->addAction(filePickAct);
 	fileMenu->addAction(powerAct);
 	fileMenu->addAction(quitAppAct);
 
@@ -125,9 +135,6 @@ MainWin::MainWin()
 
 	//	Create status bar
 	statusBar()->showMessage(tr("Ready"));
-
-	ReadSettings();
-	setUnifiedTitleAndToolBarOnMac(true);
 
 	// Set toolbar button based on setting read in (sync the UI)...
 	blurAct->setChecked(vjs.glFilter);
@@ -230,6 +237,11 @@ void MainWin::ShowAboutWin(void)
 	aboutWin->show();
 }
 
+void MainWin::InsertCart(void)
+{
+	filePickWin->show();
+}
+
 void MainWin::ResizeMainWindow(void)
 {
 	videoWidget->setFixedSize(zoomLevel * 320, zoomLevel * (vjs.hardwareTypeNTSC ? 240 : 256));
@@ -264,6 +276,9 @@ void MainWin::ReadSettings(void)
 	vjs.useOpenGL        = settings.value("useOpenGL", true).toBool();
 	vjs.glFilter         = settings.value("glFilterType", 0).toInt();
 	vjs.renderType       = settings.value("renderType", 0).toInt();
+
+	// Hardcoded, !!! FIX !!!
+	strcpy(vjs.ROMPath, "./roms");
 }
 
 void MainWin::WriteSettings(void)
