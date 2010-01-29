@@ -55,6 +55,7 @@ class MainWin: public QMainWindow
 
 		QMenu * fileMenu;
 		QMenu * helpMenu;
+		QToolBar * toolbar;
 
 		QActionGroup * zoomActs;
 		QActionGroup * tvTypeActs;

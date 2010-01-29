@@ -1,5 +1,5 @@
 //
-// filepicker.cpp - A ROM chooser
+// filethread.cpp - File discovery thread
 //
 // by James L. Hammons
 // (C) 2010 Underground Software
@@ -8,10 +8,10 @@
 //
 // Who  When        What
 // ---  ----------  -------------------------------------------------------------
-// JLH  01/22/2010  Created this file
+// JLH  01/28/2010  Created this file
 //
 
-#include "filepicker.h"
+#include "filethread.h"
 
 #include "crc32.h"
 #include "settings.h"
@@ -106,30 +106,42 @@ for the future...
 Maybe box art, screenshots will go as well...
 */
 
-//FilePickerWindow::FilePickerWindow(QWidget * parent/*= 0*/): QWidget(parent, Qt::Dialog)//could use Window as well...
-FilePickerWindow::FilePickerWindow(QWidget * parent/*= 0*/): QWidget(parent, Qt::Window)
+FileThread::FileThread(QObject * parent/*= 0*/): QThread(parent), listWidget(NULL), abort(false)
 {
-	setWindowTitle("Insert Cartridge...");
-
-	fileList = new QListWidget(this);
-//	addWidget(fileList);
-
-	QVBoxLayout * layout = new QVBoxLayout();
-//	layout->setSizeConstraint(QLayout::SetFixedSize);
-	setLayout(layout);
-
-	layout->addWidget(fileList);
-
-	PopulateList();
 }
 
-void FilePickerWindow::PopulateList(void)
+FileThread::~FileThread()
 {
+	mutex.lock();
+	abort = true;
+	condition.wakeOne();
+	mutex.unlock();
+
+	wait();
+}
+
+FileThread::Go(QListWidget * lw)
+{
+	QMutexLocker locker(&mutex);
+	this->listWidget = lw;
+	start();
+}
+
+void FileThread::run(void)
+{
+//	mutex.lock();
+//	if (abort)
+//		return;
+//	mutex.unlock();
+
 	QDir romDir(vjs.ROMPath);
 	QFileInfoList list = romDir.entryInfoList();
 
 	for(int i=0; i<list.size(); i++)
 	{
+		if (abort)
+			return;
+
 		QFileInfo fileInfo = list.at(i);
 //         std::cout << qPrintable(QString("%1 %2").arg(fileInfo.size(), 10)
 //                                                 .arg(fileInfo.fileName()));
@@ -149,7 +161,7 @@ void FilePickerWindow::PopulateList(void)
 				if (romList[j].crc32 == crc)
 				{
 printf("FilePickerWindow: Found match [%s]...\n", romList[j].name);
-					new QListWidgetItem(QIcon(":/res/generic.png"), romList[j].name, fileList);
+					new QListWidgetItem(QIcon(":/res/generic.png"), romList[j].name, listWidget);
 					break;
 				}
 			}
@@ -157,5 +169,6 @@ printf("FilePickerWindow: Found match [%s]...\n", romList[j].name);
 
 		delete[] buffer;
 	}
+
 }
 

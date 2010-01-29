@@ -92,12 +92,12 @@ MainWin::MainWin()
 	tvTypeActs = new QActionGroup(this);
 
 	ntscAct = new QAction(QIcon(":/res/generic.png"), tr("NTSC"), tvTypeActs);
-	ntscAct->setStatusTip(tr("Sets OpenGL rendering to GL_NEAREST"));
+	ntscAct->setStatusTip(tr("Sets Jaguar to NTSC mode"));
 	ntscAct->setCheckable(true);
 	connect(ntscAct, SIGNAL(triggered()), this, SLOT(SetNTSC()));
 
 	palAct = new QAction(QIcon(":/res/generic.png"), tr("PAL"), tvTypeActs);
-	palAct->setStatusTip(tr("Sets OpenGL rendering to GL_NEAREST"));
+	palAct->setStatusTip(tr("Sets Jaguar to PAL mode"));
 	palAct->setCheckable(true);
 	connect(palAct, SIGNAL(triggered()), this, SLOT(SetPAL()));
 
@@ -121,22 +121,25 @@ MainWin::MainWin()
 	fileMenu->addAction(powerAct);
 	fileMenu->addAction(quitAppAct);
 
-	fileMenu = menuBar()->addMenu(tr("&Help"));
-	fileMenu->addAction(aboutAct);
+	helpMenu = menuBar()->addMenu(tr("&Help"));
+	helpMenu->addAction(aboutAct);
 
-	QToolBar * toolbar = addToolBar(tr("Stuff"));
+	toolbar = addToolBar(tr("Stuff"));
 	toolbar->addAction(powerAct);
+	toolbar->addSeparator();
 	toolbar->addAction(x1Act);
 	toolbar->addAction(x2Act);
 	toolbar->addAction(x3Act);
+	toolbar->addSeparator();
 	toolbar->addAction(ntscAct);
 	toolbar->addAction(palAct);
+	toolbar->addSeparator();
 	toolbar->addAction(blurAct);
 
 	//	Create status bar
 	statusBar()->showMessage(tr("Ready"));
 
-	// Set toolbar button based on setting read in (sync the UI)...
+	// Set toolbar buttons/menus based on settings read in (sync the UI)...
 	blurAct->setChecked(vjs.glFilter);
 	x1Act->setChecked(zoomLevel == 1);
 	x2Act->setChecked(zoomLevel == 2);
