@@ -13,9 +13,10 @@
 
 #include "filethread.h"
 
+#include <QtGui>
 #include "crc32.h"
 #include "settings.h"
-#include "types.h"
+//#include "types.h"
 
 struct RomIdentifier
 {
@@ -120,7 +121,7 @@ FileThread::~FileThread()
 	wait();
 }
 
-FileThread::Go(QListWidget * lw)
+void FileThread::Go(QListWidget * lw)
 {
 	QMutexLocker locker(&mutex);
 	this->listWidget = lw;
@@ -129,11 +130,6 @@ FileThread::Go(QListWidget * lw)
 
 void FileThread::run(void)
 {
-//	mutex.lock();
-//	if (abort)
-//		return;
-//	mutex.unlock();
-
 	QDir romDir(vjs.ROMPath);
 	QFileInfoList list = romDir.entryInfoList();
 
@@ -143,9 +139,6 @@ void FileThread::run(void)
 			return;
 
 		QFileInfo fileInfo = list.at(i);
-//         std::cout << qPrintable(QString("%1 %2").arg(fileInfo.size(), 10)
-//                                                 .arg(fileInfo.fileName()));
-//         std::cout << std::endl;
 		QFile file(romDir.filePath(fileInfo.fileName()));
 		uint8 * buffer = new uint8[fileInfo.size()];
 
@@ -156,19 +149,31 @@ void FileThread::run(void)
 			file.close();
 //printf("FilePickerWindow: File crc == %08X...\n", crc);
 
-			for(int j=0; romList[j].crc32 != 0xFFFFFFFF; j++)
+			uint32 index = FindCRCIndexInFileList(crc);
+
+			if (index != 0xFFFFFFFF)
 			{
-				if (romList[j].crc32 == crc)
-				{
-printf("FilePickerWindow: Found match [%s]...\n", romList[j].name);
-					new QListWidgetItem(QIcon(":/res/generic.png"), romList[j].name, listWidget);
-					break;
-				}
+printf("FileThread: Found match [%s]...\n", romList[index].name);
+				new QListWidgetItem(QIcon(":/res/generic.png"), romList[index].name, listWidget);
+//				break;
 			}
 		}
 
 		delete[] buffer;
 	}
+}
 
+//
+// Find a CRC in the ROM list. If it's there, return the index, otherwise return $FFFFFFFF
+//
+uint32 FileThread::FindCRCIndexInFileList(uint32 crc)
+{
+	for(int i=0; romList[i].crc32!=0xFFFFFFFF; i++)
+	{
+		if (romList[i].crc32 == crc)
+			return i;
+	}
+
+	return 0xFFFFFFFF;
 }
 

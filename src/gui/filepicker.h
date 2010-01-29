@@ -6,6 +6,7 @@
 
 // Forward declarations
 class QListWidget;
+class FileThread;
 
 class FilePickerWindow: public QWidget
 {
@@ -17,4 +18,5 @@ class FilePickerWindow: public QWidget
 
 	private:
 		QListWidget * fileList;
+		FileThread * fileThread;
 };

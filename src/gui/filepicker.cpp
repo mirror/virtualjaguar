@@ -14,6 +14,7 @@
 #include "filepicker.h"
 
 #include "crc32.h"
+#include "filethread.h"
 #include "settings.h"
 #include "types.h"
 
@@ -24,7 +25,7 @@ struct RomIdentifier
 	const char file[128];
 };
 
-RomIdentifier romList[] = {
+RomIdentifier romList2[] = {
 	{ 0x0509C85E, "Raiden (World)", "" },
 	{ 0x08F15576, "Iron Soldier (World) (v1.04)", "" },
 	{ 0x0957A072, "Kasumi Ninja (World)", "" },
@@ -120,7 +121,9 @@ FilePickerWindow::FilePickerWindow(QWidget * parent/*= 0*/): QWidget(parent, Qt:
 
 	layout->addWidget(fileList);
 
-	PopulateList();
+//	PopulateList();
+	fileThread = new FileThread(this);
+	fileThread->Go(fileList);
 }
 
 void FilePickerWindow::PopulateList(void)
@@ -144,12 +147,12 @@ void FilePickerWindow::PopulateList(void)
 			file.close();
 //printf("FilePickerWindow: File crc == %08X...\n", crc);
 
-			for(int j=0; romList[j].crc32 != 0xFFFFFFFF; j++)
+			for(int j=0; romList2[j].crc32 != 0xFFFFFFFF; j++)
 			{
-				if (romList[j].crc32 == crc)
+				if (romList2[j].crc32 == crc)
 				{
-printf("FilePickerWindow: Found match [%s]...\n", romList[j].name);
-					new QListWidgetItem(QIcon(":/res/generic.png"), romList[j].name, fileList);
+printf("FilePickerWindow: Found match [%s]...\n", romList2[j].name);
+					new QListWidgetItem(QIcon(":/res/generic.png"), romList2[j].name, fileList);
 					break;
 				}
 			}
