@@ -14,7 +14,7 @@ class FilePickerWindow: public QWidget
 		FilePickerWindow(QWidget * parent = 0);
 
 	protected:
-		void PopulateList(void);
+//		void PopulateList(void);
 
 	private:
 		QListWidget * fileList;

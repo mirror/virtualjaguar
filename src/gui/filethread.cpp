@@ -133,10 +133,22 @@ void FileThread::run(void)
 	QDir romDir(vjs.ROMPath);
 	QFileInfoList list = romDir.entryInfoList();
 
+/*
+Another thing we'll probably have to do here is check for compressed files and
+decompress/fish around in them to find what we need. :-P
+*/
+
 	for(int i=0; i<list.size(); i++)
 	{
 		if (abort)
+#if 1
+{
+printf("FileThread: Aborting!!!\n");
+#endif
 			return;
+#if 1
+}
+#endif
 
 		QFileInfo fileInfo = list.at(i);
 		QFile file(romDir.filePath(fileInfo.fileName()));
@@ -164,7 +176,8 @@ printf("FileThread: Found match [%s]...\n", romList[index].name);
 }
 
 //
-// Find a CRC in the ROM list. If it's there, return the index, otherwise return $FFFFFFFF
+// Find a CRC in the ROM list (simple brute force algorithm).
+// If it's there, return the index, otherwise return $FFFFFFFF
 //
 uint32 FileThread::FindCRCIndexInFileList(uint32 crc)
 {

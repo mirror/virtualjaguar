@@ -833,7 +833,7 @@ static int equal_filename(const char * zipfile, const char * file)
 
 //
 // Pass the path to the zipfile and the name of the file within the zipfile.
-// buf will be set to point to the uncompressed image of that zipped file.
+// buf is set to point to the uncompressed image of that zipped file (preallocated by user!).
 // length will be set to the length of the uncompressed data.
 //
 int load_zipped_file(int pathtype, int pathindex, const char * zipfile, const char * filename, unsigned char ** buf, uint32_t * length)

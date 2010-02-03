@@ -112,6 +112,7 @@ FilePickerWindow::FilePickerWindow(QWidget * parent/*= 0*/): QWidget(parent, Qt:
 {
 	setWindowTitle("Insert Cartridge...");
 
+#if 1
 	fileList = new QListWidget(this);
 //	addWidget(fileList);
 
@@ -124,8 +125,18 @@ FilePickerWindow::FilePickerWindow(QWidget * parent/*= 0*/): QWidget(parent, Qt:
 //	PopulateList();
 	fileThread = new FileThread(this);
 	fileThread->Go(fileList);
+#else
+QStringList numbers;
+numbers << "One" << "Two" << "Three" << "Four" << "Five";
+
+QAbstractItemModel * model = new StringListModel(numbers);
+QListView * view = new QListView;
+view->setModel(model);
+
+#endif
 }
 
+/*
 void FilePickerWindow::PopulateList(void)
 {
 	QDir romDir(vjs.ROMPath);
@@ -161,4 +172,4 @@ printf("FilePickerWindow: Found match [%s]...\n", romList2[j].name);
 		delete[] buffer;
 	}
 }
-
+*/
