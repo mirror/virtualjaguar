@@ -15,6 +15,7 @@
 
 #include <QApplication>
 #include "mainwin.h"
+#include "types.h"
 
 // Here's the main application loop--short and simple...
 int main(int argc, char * argv[])
@@ -32,6 +33,8 @@ int main(int argc, char * argv[])
 
 	Q_INIT_RESOURCE(vj);	// This must the same name as the exe filename
 //or is it the .qrc filename???
+	// This is so we can pass this stuff using signal/slot mechanism...
+//ick	int id = qRegisterMetaType<uint32>();
 
 	App app(argc, argv);						// Declare an instance of the application
 

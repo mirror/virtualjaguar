@@ -37,6 +37,7 @@ QVariant FileListModel::data(const QModelIndex & index, int role) const
 
 QVariant FileListModel::headerData(int section, Qt::Orientation orientation, int role/*= Qt::DisplayRole*/) const
 {
+#if 0
 	// Not sure that this is necessary for our purposes...
 	// Especially since this model would never make use of this info...
 	if (role != Qt::DisplayRole)
@@ -46,6 +47,13 @@ QVariant FileListModel::headerData(int section, Qt::Orientation orientation, int
 		return QString("Column %1").arg(section);
 	else
 		return QString("Row %1").arg(section);
+#else
+	// This seems more like what we want...
+	if (role == Qt::SizeHintRole)
+		return QSize(1, 1);
+
+	return QVariant();
+#endif
 }
 
 void FileListModel::AddData(QIcon pix)

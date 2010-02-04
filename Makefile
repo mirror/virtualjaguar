@@ -76,8 +76,10 @@ OBJS = \
 	obj/app.o           \
 	obj/configwin.o     \
 	obj/filepicker.o    \
+	obj/moc_filepicker.o \
 	obj/filelistmodel.o \
 	obj/filethread.o    \
+	obj/moc_filethread.o \
 	obj/mainwin.o       \
 	obj/moc_mainwin.o   \
 	obj/glwidget.o      \

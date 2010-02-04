@@ -14,6 +14,7 @@
 #include "filepicker.h"
 
 #include "crc32.h"
+#include "filelistmodel.h"
 #include "filethread.h"
 #include "settings.h"
 #include "types.h"
@@ -113,18 +114,22 @@ FilePickerWindow::FilePickerWindow(QWidget * parent/*= 0*/): QWidget(parent, Qt:
 	setWindowTitle("Insert Cartridge...");
 
 #if 1
-	fileList = new QListWidget(this);
+	fileList2 = new QListWidget(this);
 //	addWidget(fileList);
 
 	QVBoxLayout * layout = new QVBoxLayout();
 //	layout->setSizeConstraint(QLayout::SetFixedSize);
 	setLayout(layout);
 
-	layout->addWidget(fileList);
+	layout->addWidget(fileList2);
 
 //	PopulateList();
 	fileThread = new FileThread(this);
-	fileThread->Go(fileList);
+
+	/*bool b =*/ connect(fileThread, SIGNAL(FoundAFile(unsigned long)), this, SLOT(AddFileToList(unsigned long)));
+//printf("FilePickerWindow: Connection to FileThread %s...\n", (b ? "succeeded" : "failed"));
+
+	fileThread->Go(fileList2);
 #else
 QStringList numbers;
 numbers << "One" << "Two" << "Three" << "Four" << "Five";
@@ -135,6 +140,14 @@ view->setModel(model);
 
 #endif
 }
+
+// Need a slot here to pickup stuff from the thread...
+
+void FilePickerWindow::AddFileToList(unsigned long index)
+{
+	printf("--> Found CRC: %08X...\n", (uint32)index);
+}
+
 
 /*
 void FilePickerWindow::PopulateList(void)
