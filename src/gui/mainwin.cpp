@@ -110,7 +110,7 @@ MainWin::MainWin()
 	aboutAct->setStatusTip(tr("Blatant self-promotion"));
 	connect(aboutAct, SIGNAL(triggered()), this, SLOT(ShowAboutWin()));
 
-	filePickAct = new QAction(QIcon(":/res/generic.png"), tr("Insert Cartridge..."), this);
+	filePickAct = new QAction(QIcon(":/res/generic.png"), tr("&Insert Cartridge..."), this);
 	filePickAct->setStatusTip(tr("Insert a cartridge into Virtual Jaguar"));
 	connect(filePickAct, SIGNAL(triggered()), this, SLOT(InsertCart()));
 

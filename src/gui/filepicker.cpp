@@ -9,6 +9,7 @@
 // Who  When        What
 // ---  ----------  -------------------------------------------------------------
 // JLH  01/22/2010  Created this file
+// JLH  02/06/2010  Modified to use Qt model/view framework
 //
 
 #include "filepicker.h"
@@ -16,6 +17,7 @@
 #include "crc32.h"
 #include "filelistmodel.h"
 #include "filethread.h"
+#include "imagedelegate.h"
 #include "settings.h"
 #include "types.h"
 
@@ -113,7 +115,7 @@ FilePickerWindow::FilePickerWindow(QWidget * parent/*= 0*/): QWidget(parent, Qt:
 {
 	setWindowTitle("Insert Cartridge...");
 
-#if 1
+#if 0
 	fileList2 = new QListWidget(this);
 //	addWidget(fileList);
 
@@ -131,13 +133,20 @@ FilePickerWindow::FilePickerWindow(QWidget * parent/*= 0*/): QWidget(parent, Qt:
 
 	fileThread->Go(fileList2);
 #else
-QStringList numbers;
-numbers << "One" << "Two" << "Three" << "Four" << "Five";
+//is there any reason why this must be cast as a QAbstractListModel?
+//Also, need to think about data structure for the model...
+	model = new FileListModel();
+	fileList = new QListView();
+	fileList->setModel(model);
+	ImageDelegate * delegate = new ImageDelegate(this);
+	fileList->setItemDelegate(delegate);
 
-QAbstractItemModel * model = new StringListModel(numbers);
-QListView * view = new QListView;
-view->setModel(model);
+	QVBoxLayout * layout = new QVBoxLayout;
+	setLayout(layout);
 
+	layout->addWidget(fileList);
+	((FileListModel *)model)->AddData(QIcon(":/res/generic.png"));
+	((FileListModel *)model)->AddData(QIcon(":/res/generic.png"));
 #endif
 }
 
@@ -145,7 +154,7 @@ view->setModel(model);
 
 void FilePickerWindow::AddFileToList(unsigned long index)
 {
-	printf("--> Found CRC: %08X...\n", (uint32)index);
+	printf("--> Found CRC: %08X...\n", romList2[index].crc32);
 }
 
 

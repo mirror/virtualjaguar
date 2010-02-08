@@ -6,6 +6,8 @@
 	<file>../../res/zoom200.png</file>
 	<file>../../res/zoom300.png</file>
 	<file>../../res/generic.png</file>
+	<file>../../res/cart-blank.png</file>
 	<file>../../res/vj_title_small.png</file>
+	<file>../../res/labels/rayman.jpg</file>
 </qresource>
 </RCC>

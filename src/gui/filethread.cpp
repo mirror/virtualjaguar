@@ -167,7 +167,8 @@ printf("FileThread: Aborting!!!\n");
 			{
 printf("FileThread: Found match [%s]...\n", romList[index].name);
 				new QListWidgetItem(QIcon(":/res/generic.png"), romList[index].name, listWidget);
-				emit FoundAFile(romList[index].crc32);
+//				emit FoundAFile(romList[index].crc32);
+				emit FoundAFile(index);
 			}
 		}
 
