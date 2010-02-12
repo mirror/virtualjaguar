@@ -26,13 +26,15 @@ FileListModel::FileListModel(QObject * parent/*= 0*/): QAbstractListModel(parent
 
 int FileListModel::rowCount(const QModelIndex & parent/*= QModelIndex()*/) const
 {
-	return pixList.size();
+//	return pixList.size();
+	return dbIndex.size();
 }
 
 QVariant FileListModel::data(const QModelIndex & index, int role) const
 {
 //	return QVariant();
-	return pixList.at(index.row());
+//	return pixList.at(index.row());
+	return (uint)dbIndex.at(index.row());
 }
 
 QVariant FileListModel::headerData(int section, Qt::Orientation orientation, int role/*= Qt::DisplayRole*/) const
@@ -59,6 +61,12 @@ QVariant FileListModel::headerData(int section, Qt::Orientation orientation, int
 void FileListModel::AddData(QIcon pix)
 {
 	pixList.push_back(pix);
+	reset();
+}
+
+void FileListModel::AddData(unsigned long index)
+{
+	dbIndex.push_back(index);
 	reset();
 }
 

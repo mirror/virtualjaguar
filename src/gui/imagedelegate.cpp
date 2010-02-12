@@ -15,6 +15,8 @@
 // class utilized in FilePicker.
 
 #include "imagedelegate.h"
+#warning "Move ROM database to its own file... !!! FIX !!!"
+#include "filethread.h"
 
 
 ImageDelegate::ImageDelegate(QObject * parent): QAbstractItemDelegate(parent), pixelSize(12)
@@ -71,7 +73,11 @@ The foreground of the item (the circle representing a pixel) must be rendered us
 #else
 //	painter->drawPixmap(option.rect.x()+8, option.rect.y()+8, 200, 94, QPixmap(":/res/labels/rayman.jpg"));
 	painter->drawPixmap(option.rect.x(), option.rect.y(), 488/2, 395/2, QPixmap(":/res/cart-blank.png"));
-	painter->drawPixmap(option.rect.x()+13, option.rect.y()+51, 433/2, 203/2, QPixmap(":/res/labels/rayman.jpg"));
+//	painter->drawPixmap(option.rect.x()+13, option.rect.y()+51, 433/2, 203/2, QPixmap(":/res/labels/rayman.jpg"));
+	painter->drawPixmap(option.rect.x()+14, option.rect.y()+50, 433/2, 203/2, QPixmap(":/res/label-blank.png"));
+//Need to query the model for the data we're supposed to draw here...
+	unsigned long i = index.model()->data(index, Qt::DisplayRole).toUInt();
+	painter->drawText(17, 73, QString(romList[i].name));
 //26x100
 #endif
 	painter->restore();

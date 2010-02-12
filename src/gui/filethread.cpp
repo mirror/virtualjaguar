@@ -18,12 +18,14 @@
 #include "settings.h"
 //#include "types.h"
 
+#if 0
 struct RomIdentifier
 {
 	const uint32 crc32;
 	const char name[128];
 	const char file[128];
 };
+#endif
 
 RomIdentifier romList[] = {
 	{ 0x0509C85E, "Raiden (World)", "" },
@@ -107,7 +109,7 @@ for the future...
 Maybe box art, screenshots will go as well...
 */
 
-FileThread::FileThread(QObject * parent/*= 0*/): QThread(parent), listWidget(NULL), abort(false)
+FileThread::FileThread(QObject * parent/*= 0*/): QThread(parent), /*listWidget(NULL),*/ abort(false)
 {
 }
 
@@ -121,13 +123,17 @@ FileThread::~FileThread()
 	wait();
 }
 
-void FileThread::Go(QListWidget * lw)
+//void FileThread::Go(QListWidget * lw)
+void FileThread::Go(void)
 {
 	QMutexLocker locker(&mutex);
-	this->listWidget = lw;
+//	this->listWidget = lw;
 	start();
 }
 
+//
+// Here's the thread's actual execution path...
+//
 void FileThread::run(void)
 {
 	QDir romDir(vjs.ROMPath);
@@ -165,8 +171,8 @@ printf("FileThread: Aborting!!!\n");
 
 			if (index != 0xFFFFFFFF)
 			{
-printf("FileThread: Found match [%s]...\n", romList[index].name);
-				new QListWidgetItem(QIcon(":/res/generic.png"), romList[index].name, listWidget);
+//printf("FileThread: Found match [%s]...\n", romList[index].name);
+//				new QListWidgetItem(QIcon(":/res/generic.png"), romList[index].name, listWidget);
 //				emit FoundAFile(romList[index].crc32);
 				emit FoundAFile(index);
 			}

@@ -21,9 +21,11 @@ class FileListModel: public QAbstractListModel
 		QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const;
 
 		void AddData(QIcon pix);
+		void AddData(unsigned long);
 
 	private:
 		std::vector<QIcon> pixList;
+		std::vector<unsigned long> dbIndex;
 };
 
 #endif	// __FILELISTMODEL_H__

@@ -9,7 +9,7 @@
 #include "types.h"
 
 // Forward declarations
-class QListWidget;
+//class QListWidget;
 
 class FileThread: public QThread
 {
@@ -18,7 +18,8 @@ class FileThread: public QThread
 	public:
 		FileThread(QObject * parent = 0);
 		~FileThread();
-		void Go(QListWidget * lw);
+//		void Go(QListWidget * lw);
+		void Go(void);
 
 	signals:
 		void FoundAFile(unsigned long index);
@@ -28,10 +29,19 @@ class FileThread: public QThread
 		uint32 FindCRCIndexInFileList(uint32);
 
 	private:
-		QListWidget * listWidget;
+//		QListWidget * listWidget;
 		QMutex mutex;
 		QWaitCondition condition;
 		bool abort;
 };
+
+struct RomIdentifier
+{
+	const uint32 crc32;
+	const char name[128];
+	const char file[128];
+};
+
+extern RomIdentifier romList[];
 
 #endif	// __FILETHREAD_H__
