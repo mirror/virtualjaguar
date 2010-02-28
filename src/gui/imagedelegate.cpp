@@ -15,8 +15,8 @@
 // class utilized in FilePicker.
 
 #include "imagedelegate.h"
-#warning "Move ROM database to its own file... !!! FIX !!!"
-#include "filethread.h"
+
+#include "filedb.h"
 
 
 ImageDelegate::ImageDelegate(QObject * parent): QAbstractItemDelegate(parent), pixelSize(12)

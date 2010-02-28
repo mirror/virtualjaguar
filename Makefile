@@ -96,6 +96,7 @@ OBJS = \
 	obj/eeprom.o        \
 	obj/event.o         \
 	obj/file.o          \
+	obj/filedb.o        \
 	obj/gpu.o           \
 	obj/jagdasm.o       \
 	obj/jaguar.o        \

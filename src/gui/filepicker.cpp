@@ -14,11 +14,12 @@
 
 #include "filepicker.h"
 
+#include "filedb.h"
 #include "filelistmodel.h"
 #include "filethread.h"
 #include "imagedelegate.h"
-#include "settings.h"
-#include "types.h"
+//#include "settings.h"
+//#include "types.h"
 
 /*
 Our strategy here is like so:
@@ -67,7 +68,6 @@ FilePickerWindow::FilePickerWindow(QWidget * parent/*= 0*/): QWidget(parent, Qt:
 void FilePickerWindow::AddFileToList(unsigned long index)
 {
 printf("FilePickerWindow: Found match [%s]...\n", romList[index].name);
-//printf("--> Found CRC: %08X...\n", romList2[index].crc32);
 	// NOTE: The model *ignores* what you send it, so this is crap. !!! FIX !!!
 //	model->AddData(QIcon(":/res/generic.png"));
 	model->AddData(index);
