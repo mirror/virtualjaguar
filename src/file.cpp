@@ -10,6 +10,7 @@
 // Who  When        What
 // ---  ----------  -------------------------------------------------------------
 // JLH  01/16/2010  Created this log ;-)
+// JLH  02/28/2010  Added functions to look inside .ZIP files and handle contents
 //
 
 #include "file.h"
@@ -27,6 +28,7 @@
 // Private function prototypes
 
 static int gzfilelength(gzFile gd);
+static bool CheckExtension(const char * filename, const char * ext);
 
 //
 // Generic ROM loading
@@ -35,7 +37,7 @@ uint32 JaguarLoadROM(uint8 * rom, char * path)
 {
 // We really should have some kind of sanity checking for the ROM size here to prevent
 // a buffer overflow... !!! FIX !!!
-#warning !!! FIX !!! Should have sanity checking for ROM size to prevent buffer overflow!
+#warning "!!! FIX !!! Should have sanity checking for ROM size to prevent buffer overflow!"
 	uint32 romSize = 0;
 
 WriteLog("JaguarLoadROM: Attempting to load file '%s'...", path);
@@ -287,7 +289,7 @@ Start of Data Segment = 0x00803dd0
 		}
 		else
 		{
-			WriteLog("GUI: Couldn't find correct ABS format: %02X %02X\n", jaguarMainROM[0], jaguarMainROM[1]);
+			WriteLog("GUI: Couldn't find correct ABS/COF format: %02X %02X\n", jaguarMainROM[0], jaguarMainROM[1]);
 			return false;
 		}
 	}
@@ -345,3 +347,78 @@ static int gzfilelength(gzFile gd)
    gzrewind(gd);
    return length;
 }
+
+//
+// Compare extension to passed in filename. If equal, return true; otherwise false.
+//
+static bool CheckExtension(const char * filename, const char * ext)
+{
+	const char * filenameExt = strrchr(filename, '.');	// Get the file's extension (if any)
+	return (strcasecmp(filenameExt, ext) == 0 ? true : false);
+}
+
+//
+// Get file from .ZIP
+// Returns the size of the file inside the .ZIP file that we're looking at
+//
+uint32 GetFileFromZIP(const char * zipFile, FileType type, uint8 * buffer)
+{
+#warning "!!! FIX !!! Should have sanity checking for ROM size to prevent buffer overflow!"
+	const char ftStrings[5][32] = { "Software", "EEPROM", "Label", "Box Art", "Controller Overlay" };
+	ZIP * zip = openzip(0, 0, zipFile);
+
+	if (zip == NULL)
+	{
+		WriteLog("FILE: Could not open file '%s'!\n", zipFile);
+		return 0;
+	}
+
+	while (readzip(zip))
+	{
+		zipent * ze = &zip->ent;
+		bool found = false;
+
+		if ((type == FT_LABEL) && (CheckExtension(ze->name, ".png") || CheckExtension(ze->name, ".jpg") || CheckExtension(ze->name, ".gif")))
+		{
+			found = true;
+			WriteLog("FILE: Found image file '%s'.\n", ze->name);
+		}
+
+		if ((type == FT_SOFTWARE) && (CheckExtension(ze->name, ".j64") || CheckExtension(ze->name, ".rom") || CheckExtension(ze->name, ".abs") || CheckExtension(ze->name, ".cof")))
+		{
+			found = true;
+			WriteLog("FILE: Found software file '%s'.\n", ze->name);
+		}
+
+		if ((type == FT_EEPROM) && (CheckExtension(ze->name, ".eep") || CheckExtension(ze->name, ".eeprom")))
+		{
+			found = true;
+			WriteLog("FILE: Found EEPROM file '%s'.\n", ze->name);
+		}
+
+		if (found)
+		{
+			WriteLog("FILE: Uncompressing...");
+
+			if (readuncompresszip(zip, ze, (char *)buffer) == 0)
+			{
+				WriteLog("success! (%u bytes)\n", ze->uncompressed_size);
+				return ze->uncompressed_size;
+			}
+			else
+			{
+				WriteLog("FAILED!\n");
+				return 0;
+			}
+		}
+	}
+
+	closezip(zip);
+
+	WriteLog("FILE: Failed to find file of type %s...\n", ftStrings[type]);
+	// Didn't find what we're looking for...
+	return 0;
+}
+
+//ParseFileType, etc.
+

@@ -68,7 +68,7 @@ FilePickerWindow::FilePickerWindow(QWidget * parent/*= 0*/): QWidget(parent, Qt:
 void FilePickerWindow::AddFileToList(unsigned long index)
 {
 printf("FilePickerWindow: Found match [%s]...\n", romList[index].name);
-	// NOTE: The model *ignores* what you send it, so this is crap. !!! FIX !!!
+	// NOTE: The model *ignores* what you send it, so this is crap. !!! FIX !!! [DONE, somewhat]
 //	model->AddData(QIcon(":/res/generic.png"));
 	model->AddData(index);
 }

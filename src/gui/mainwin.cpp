@@ -281,7 +281,8 @@ void MainWin::ReadSettings(void)
 	vjs.renderType       = settings.value("renderType", 0).toInt();
 
 	// Hardcoded, !!! FIX !!!
-	strcpy(vjs.ROMPath, "./roms");
+#warning "!!! FIX !!! ROMPath is hardcoded!"
+	strcpy(vjs.ROMPath, "./software");
 }
 
 void MainWin::WriteSettings(void)

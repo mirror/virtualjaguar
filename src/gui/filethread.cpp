@@ -92,6 +92,7 @@ printf("FileThread: Aborting!!!\n");
 
 			uint32 index = FindCRCIndexInFileList(crc);
 
+// Mebbe we should pass a index AND a QImage here???
 			if (index != 0xFFFFFFFF && !(romList[index].flags & FF_BIOS))
 				emit FoundAFile(index);
 		}

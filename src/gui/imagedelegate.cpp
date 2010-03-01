@@ -80,13 +80,13 @@ The foreground of the item (the circle representing a pixel) must be rendered us
 	if (romList[i].file[0] == 0)
 	{
 //	painter->drawPixmap(option.rect.x()+14, option.rect.y()+50, 433/2, 203/2, QPixmap(":/res/label-blank.png"));
-	painter->drawPixmap(option.rect.x()+7, option.rect.y()+25, 433/4, 203/4, QPixmap(":/res/label-blank.png"));
+		painter->drawPixmap(option.rect.x()+7, option.rect.y()+25, 433/4, 203/4, QPixmap(":/res/label-blank.png"));
 //Need to query the model for the data we're supposed to draw here...
 //	painter->drawText(17, 73, QString(romList[i].name));
 //	painter->setPen(Qt::white);
-	painter->setPen(QColor(255, 128, 0, 255));
+		painter->setPen(QColor(255, 128, 0, 255));
 //	painter->drawText(QRect(option.rect.x()+20, option.rect.y()+73, 196, 70), Qt::TextWordWrap | Qt::AlignHCenter, QString(romList[i].name));
-	painter->drawText(QRect(option.rect.x()+10, option.rect.y()+36, 196/2, 70/2), Qt::TextWordWrap | Qt::AlignHCenter, QString(romList[i].name));
+		painter->drawText(QRect(option.rect.x()+10, option.rect.y()+36, 196/2, 70/2), Qt::TextWordWrap | Qt::AlignHCenter, QString(romList[i].name));
 	}
 	else
 	{

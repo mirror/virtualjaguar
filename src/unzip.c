@@ -1,5 +1,6 @@
 //
 // ZIP file support (mostly ripped from MAME--thx MAME team!)
+// Mostly this is here to simplify interfacing to zlib...
 //
 // Added by James L. Hammons
 // (C) 2010 Underground Software
@@ -9,6 +10,7 @@
 // Who  When        What
 // ---  ----------  -------------------------------------------------------------
 // JLH  01/16/2010  Created this log ;-)
+// JLH  02/28/2010  Removed unnecessary cruft
 //
 
 #include <stdlib.h>
@@ -40,7 +42,7 @@ void errormsg(const char * extmsg, const char * usermsg, const char * zipname)
 	if (!gUnzipQuiet)
 		printf("Error in zipfile %s\n%s\n", zipname, usermsg);
 	/* Output to log file with all informations */
-	WriteLog("Error in zipfile %s: %s\n", zipname, extmsg);
+//	WriteLog("Error in zipfile %s: %s\n", zipname, extmsg);
 }
 
 /* -------------------------------------------------------------------------
@@ -48,15 +50,17 @@ void errormsg(const char * extmsg, const char * usermsg, const char * zipname)
  ------------------------------------------------------------------------- */
 
 /* Use these to avoid structure padding and byte-ordering problems */
-static uint16_t read_word (char *buf) {
-   unsigned char *ubuf = (unsigned char *) buf;
+static uint16_t read_word(char * buf)
+{
+   unsigned char * ubuf = (unsigned char *)buf;
 
    return ((uint16_t)ubuf[1] << 8) | (uint16_t)ubuf[0];
 }
 
 /* Use these to avoid structure padding and byte-ordering problems */
-static uint32_t read_dword (char *buf) {
-   unsigned char *ubuf = (unsigned char *) buf;
+static uint32_t read_dword(char * buf)
+{
+   unsigned char * ubuf = (unsigned char *)buf;
 
    return ((uint32_t)ubuf[3] << 24) | ((uint32_t)ubuf[2] << 16) | ((uint32_t)ubuf[1] << 8) | (uint32_t)ubuf[0];
 }
@@ -68,16 +72,20 @@ static uint32_t read_dword (char *buf) {
 	==0 not found
 	!=0 found, *offset valid
 */
-static int ecd_find_sig (char *buffer, int buflen, int *offset)
+static int ecd_find_sig(char * buffer, int buflen, int * offset)
 {
 	static char ecdsig[] = { 'P', 'K', 0x05, 0x06 };
 	int i;
-	for (i=buflen-22; i>=0; i--) {
-		if (memcmp(buffer+i, ecdsig, 4) == 0) {
+
+	for(i=buflen-22; i>=0; i--)
+	{
+		if (memcmp(buffer+i, ecdsig, 4) == 0)
+		{
 			*offset = i;
 			return 1;
 		}
 	}
+
 	return 0;
 }
 
@@ -106,6 +114,7 @@ static int ecd_read(ZIP * zip)
 
 		/* allocate buffer */
 		buf = (char *)malloc(buf_length);
+
 		if (!buf)
 		{
 			return -1;
@@ -117,32 +126,34 @@ static int ecd_read(ZIP * zip)
 			return -1;
 		}
 
-		if (ecd_find_sig(buf, buf_length, &offset)) {
+		if (ecd_find_sig(buf, buf_length, &offset))
+		{
 			zip->ecd_length = buf_length - offset;
 
-			zip->ecd = (char*)malloc( zip->ecd_length );
-			if (!zip->ecd) {
+			zip->ecd = (char *)malloc(zip->ecd_length);
+
+			if (!zip->ecd)
+			{
 				free(buf);
 				return -1;
 			}
 
 			memcpy(zip->ecd, buf + offset, zip->ecd_length);
-
 			free(buf);
 			return 0;
 		}
 
 		free(buf);
 
-		if (buf_length < zip->length) {
+		if (buf_length < zip->length)
+		{
 			/* double buffer */
-			buf_length = 2*buf_length;
-
+			buf_length = 2 * buf_length;
 			WriteLog("Retry reading of zip ecd for %d bytes\n",buf_length);
 
-		} else {
-			return -1;
 		}
+		else
+			return -1;
 	}
 }
 
@@ -204,9 +215,7 @@ ZIP * openzip(int pathtype, int pathindex, const char * zipfile)
 	/* allocate */
 	ZIP * zip = (ZIP *)malloc(sizeof(ZIP));
 	if (!zip)
-	{
 		return 0;
-	}
 
 	/* open */
 	zip->fp = fopen(zipfile, "rb");
@@ -264,9 +273,9 @@ ZIP * openzip(int pathtype, int pathindex, const char * zipfile)
 	zip->zipfile_comment = zip->ecd+ZIPECOM;
 
 	/* verify that we can work with this zipfile (no disk spanning allowed) */
-	if ((zip->number_of_this_disk != zip->number_of_disk_start_cent_dir) ||
-		(zip->total_entries_cent_dir_this_disk != zip->total_entries_cent_dir) ||
-		(zip->total_entries_cent_dir < 1))
+	if ((zip->number_of_this_disk != zip->number_of_disk_start_cent_dir)
+		|| (zip->total_entries_cent_dir_this_disk != zip->total_entries_cent_dir)
+		|| (zip->total_entries_cent_dir < 1))
 	{
 		errormsg("Cannot span disks", ERROR_UNSUPPORTED, zipfile);
 		free(zip->ecd);
@@ -334,7 +343,8 @@ ZIP * openzip(int pathtype, int pathindex, const char * zipfile)
      !=0 success
      ==0 error
 */
-struct zipent* readzip(ZIP* zip) {
+struct zipent * readzip(ZIP * zip)
+{
 
 	/* end of directory */
 	if (zip->cd_pos >= zip->size_of_cent_dir)
@@ -388,9 +398,11 @@ void closezip(ZIP * zip)
 	free(zip->ent.name);
 	free(zip->cd);
 	free(zip->ecd);
+
 	/* only if not suspended */
 	if (zip->fp)
 		fclose(zip->fp);
+
 	free(zip->zip);
 	free(zip);
 }
@@ -666,137 +678,6 @@ int readuncompresszip(ZIP * zip, struct zipent * ent, char * data)
 }
 
 /* -------------------------------------------------------------------------
-   Zip cache support
- ------------------------------------------------------------------------- */
-
-/* Use the zip cache */
-// No, don't
-//#define ZIP_CACHE
-
-#ifdef ZIP_CACHE
-
-/* ZIP cache entries */
-#define ZIP_CACHE_MAX 5
-
-/* ZIP cache buffer LRU ( Last Recently Used )
-     zip_cache_map[0] is the newer
-     zip_cache_map[ZIP_CACHE_MAX-1] is the older
-*/
-static ZIP* zip_cache_map[ZIP_CACHE_MAX];
-
-static ZIP* cache_openzip(int pathtype, int pathindex, const char* zipfile) {
-	ZIP* zip;
-	unsigned i;
-
-	/* search in the cache buffer */
-	for(i=0;i<ZIP_CACHE_MAX;++i) {
-		if (zip_cache_map[i] && zip_cache_map[i]->pathtype == pathtype && zip_cache_map[i]->pathindex == pathindex && strcmp(zip_cache_map[i]->zip,zipfile)==0) {
-			/* found */
-			unsigned j;
-
-/*
-			WriteLog("Zip cache HIT  for %s\n", zipfile);
-*/
-
-			/* reset the zip directory */
-			rewindzip( zip_cache_map[i] );
-
-			/* store */
-			zip = zip_cache_map[i];
-
-			/* shift */
-			for(j=i;j>0;--j)
-				zip_cache_map[j] = zip_cache_map[j-1];
-
-			/* set the first entry */
-			zip_cache_map[0] = zip;
-
-			return zip_cache_map[0];
-		}
-	}
-	/* not found */
-
-/*
-	WriteLog("Zip cache FAIL for %s\n", zipfile);
-*/
-
-	/* open the zip */
-	zip = openzip( pathtype, pathindex, zipfile );
-	if (!zip)
-		return 0;
-
-	/* close the oldest entry */
-	if (zip_cache_map[ZIP_CACHE_MAX-1]) {
-		/* close last zip */
-		closezip(zip_cache_map[ZIP_CACHE_MAX-1]);
-		/* reset the entry */
-		zip_cache_map[ZIP_CACHE_MAX-1] = 0;
-	}
-
-	/* shift */
-	for(i=ZIP_CACHE_MAX-1;i>0;--i)
-		zip_cache_map[i] = zip_cache_map[i-1];
-
-	/* set the first entry */
-	zip_cache_map[0] = zip;
-
-	return zip_cache_map[0];
-}
-
-static void cache_closezip(ZIP* zip) {
-	unsigned i;
-
-	/* search in the cache buffer */
-	for(i=0;i<ZIP_CACHE_MAX;++i) {
-		if (zip_cache_map[i]==zip) {
-			/* close zip */
-			closezip(zip);
-
-			/* reset cache entry */
-			zip_cache_map[i] = 0;
-			return;
-
-		}
-	}
-	/* not found */
-
-	/* close zip */
-	closezip(zip);
-}
-
-/* CK980415 added to allow osd code to clear zip cache for auditing--each time
-   the user opens up an audit for a game we should reread the zip */
-void unzip_cache_clear()
-{
-	unsigned i;
-
-	/* search in the cache buffer for any zip info and clear it */
-	for(i=0;i<ZIP_CACHE_MAX;++i) {
-		if (zip_cache_map[i] != NULL) {
-			/* close zip */
-			closezip(zip_cache_map[i]);
-
-			/* reset cache entry */
-			zip_cache_map[i] = 0;
-/*			return; */
-
-		}
-	}
-}
-
-#define cache_suspendzip(a) suspendzip(a)
-
-#else
-
-#define cache_openzip(a,b,c) openzip(a,b,c)
-#define cache_closezip(a) closezip(a)
-#define cache_suspendzip(a) closezip(a)
-
-#define unzip_cache_clear()
-
-#endif
-
-/* -------------------------------------------------------------------------
    Backward MAME compatibility
  ------------------------------------------------------------------------- */
 
@@ -838,10 +719,8 @@ static int equal_filename(const char * zipfile, const char * file)
 //
 int load_zipped_file(int pathtype, int pathindex, const char * zipfile, const char * filename, unsigned char ** buf, uint32_t * length)
 {
-	ZIP * zip;
-	struct zipent * ent;
+	ZIP * zip = openzip(pathtype, pathindex, zipfile);
 
-	zip = cache_openzip(pathtype, pathindex, zipfile);
 	if (!zip)
 		return -1;
 
@@ -850,7 +729,7 @@ int load_zipped_file(int pathtype, int pathindex, const char * zipfile, const ch
 		/* NS981003: support for "load by CRC" */
 		char crc[9];
 
-		ent = &(zip->ent);
+		struct zipent * ent = &(zip->ent);
 		sprintf(crc, "%08x", (unsigned int)ent->crc32);
 
 		if (filename == NULL || equal_filename(ent->name, filename)
@@ -860,15 +739,15 @@ int load_zipped_file(int pathtype, int pathindex, const char * zipfile, const ch
 
 			if (readuncompresszip(zip, ent, (char *)*buf) != 0)
 			{
-				cache_closezip(zip);
+				closezip(zip);
 				return -1;
 			}
 
-			cache_suspendzip(zip);
+			suspendzip(zip);
 			return 0;
 		}
 	}
 
-	cache_suspendzip(zip);
+	suspendzip(zip);
 	return -1;
 }
