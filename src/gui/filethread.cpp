@@ -16,6 +16,7 @@
 
 #include <QtGui>
 #include "crc32.h"
+#include "file.h"
 #include "filedb.h"
 #include "settings.h"
 
@@ -81,23 +82,54 @@ printf("FileThread: Aborting!!!\n");
 #endif
 
 		QFileInfo fileInfo = list.at(i);
-		QFile file(romDir.filePath(fileInfo.fileName()));
-		uint8 * buffer = new uint8[fileInfo.size()];
 
-		if (file.open(QIODevice::ReadOnly))
+		if (fileInfo.suffix().compare("zip", Qt::CaseInsensitive) == 0)
 		{
-			file.read((char *)buffer, fileInfo.size());
-			uint32 crc = crc32_calcCheckSum(buffer, fileInfo.size());
-			file.close();
+			uint8 * buffer = NULL;
+			uint32 size = GetFileFromZIP(fileInfo.canonicalFilePath().toAscii(), FT_SOFTWARE, buffer);
 
-			uint32 index = FindCRCIndexInFileList(crc);
+			if (size > 0)
+			{
+//printf("FileThread: About to calc checksum on file with size %u... (buffer=%08X)\n", size, buffer);
+				uint32 crc = crc32_calcCheckSum(buffer, size);
+				uint32 index = FindCRCIndexInFileList(crc);
+				delete[] buffer;
 
 // Mebbe we should pass a index AND a QImage here???
-			if (index != 0xFFFFFFFF && !(romList[index].flags & FF_BIOS))
-				emit FoundAFile(index);
-		}
+				if (index != 0xFFFFFFFF && !(romList[index].flags & FF_BIOS))
+				{
+					QImage img;
+					size = GetFileFromZIP(fileInfo.canonicalFilePath().toAscii(), FT_LABEL, buffer);
 
-		delete[] buffer;
+					if (size > 0)
+					{
+						img.loadFromData(buffer, size);
+						delete[] buffer;
+					}
+//printf("FileThread: Attempted to load image. Size: %u x %u...\n", img.width(), img.height());
+
+					emit FoundAFile(index);
+				}
+			}
+		}
+		else
+		{
+			QFile file(romDir.filePath(fileInfo.fileName()));
+
+			if (file.open(QIODevice::ReadOnly))
+			{
+				uint8 * buffer = new uint8[fileInfo.size()];
+				file.read((char *)buffer, fileInfo.size());
+				file.close();
+				uint32 crc = crc32_calcCheckSum(buffer, fileInfo.size());
+				uint32 index = FindCRCIndexInFileList(crc);
+				delete[] buffer;
+
+// Mebbe we should pass a index AND a QImage here???
+				if (index != 0xFFFFFFFF && !(romList[index].flags & FF_BIOS))
+					emit FoundAFile(index);
+			}
+		}
 	}
 }
 

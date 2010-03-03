@@ -361,7 +361,7 @@ static bool CheckExtension(const char * filename, const char * ext)
 // Get file from .ZIP
 // Returns the size of the file inside the .ZIP file that we're looking at
 //
-uint32 GetFileFromZIP(const char * zipFile, FileType type, uint8 * buffer)
+uint32 GetFileFromZIP(const char * zipFile, FileType type, uint8 * &buffer)
 {
 #warning "!!! FIX !!! Should have sanity checking for ROM size to prevent buffer overflow!"
 	const char ftStrings[5][32] = { "Software", "EEPROM", "Label", "Box Art", "Controller Overlay" };
@@ -399,6 +399,7 @@ uint32 GetFileFromZIP(const char * zipFile, FileType type, uint8 * buffer)
 		if (found)
 		{
 			WriteLog("FILE: Uncompressing...");
+			buffer = new uint8[ze->uncompressed_size];
 
 			if (readuncompresszip(zip, ze, (char *)buffer) == 0)
 			{
@@ -408,6 +409,7 @@ uint32 GetFileFromZIP(const char * zipFile, FileType type, uint8 * buffer)
 			else
 			{
 				WriteLog("FAILED!\n");
+				delete[] buffer;
 				return 0;
 			}
 		}

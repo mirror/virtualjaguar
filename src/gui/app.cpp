@@ -14,6 +14,7 @@
 #include "app.h"
 
 #include <QApplication>
+#include "log.h"
 #include "mainwin.h"
 #include "types.h"
 
@@ -36,9 +37,12 @@ int main(int argc, char * argv[])
 	// This is so we can pass this stuff using signal/slot mechanism...
 //ick	int id = qRegisterMetaType<uint32>();
 
+	LogInit("vj.log");							// Init logfile
 	App app(argc, argv);						// Declare an instance of the application
 
-	return app.exec();							// And run it!
+	int retVal = app.exec();					// And run it!
+	LogDone();									// Close logfile
+	return retVal;
 }
 
 // Main app constructor--we stick globally accessible stuff here...
