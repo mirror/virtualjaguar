@@ -57,7 +57,8 @@ FilePickerWindow::FilePickerWindow(QWidget * parent/*= 0*/): QWidget(parent, Qt:
 	layout->addWidget(fileList);
 
 	fileThread = new FileThread(this);
-	connect(fileThread, SIGNAL(FoundAFile(unsigned long)), this, SLOT(AddFileToList(unsigned long)));
+//	connect(fileThread, SIGNAL(FoundAFile(unsigned long)), this, SLOT(AddFileToList(unsigned long)));
+	connect(fileThread, SIGNAL(FoundAFile2(unsigned long, QString, QImage *)), this, SLOT(AddFileToList2(unsigned long, QString, QImage *)));
 	fileThread->Go();
 }
 
@@ -72,3 +73,13 @@ printf("FilePickerWindow: Found match [%s]...\n", romList[index].name);
 //	model->AddData(QIcon(":/res/generic.png"));
 	model->AddData(index);
 }
+
+void FilePickerWindow::AddFileToList2(unsigned long index, QString str, QImage * img)
+{
+printf("FilePickerWindow(2): Found match [%s]...\n", romList[index].name);
+	if (img)
+		model->AddData(index, str, *img);
+	else
+		model->AddData(index, str, QImage());
+}
+

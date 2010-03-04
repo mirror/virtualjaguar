@@ -27,17 +27,26 @@ FileListModel::FileListModel(QObject * parent/*= 0*/): QAbstractListModel(parent
 int FileListModel::rowCount(const QModelIndex & parent/*= QModelIndex()*/) const
 {
 //	return pixList.size();
-	return dbIndex.size();
+//	return dbIndex.size();
+	return list.size();
 }
 
 QVariant FileListModel::data(const QModelIndex & index, int role) const
 {
 //	return QVariant();
 //	return pixList.at(index.row());
-	return (uint)dbIndex.at(index.row());
+//	return (uint)dbIndex.at(index.row());
+	if (role == Qt::DecorationRole)
+		return list.at(index.row()).label;
+	else if (role == Qt::DisplayRole)
+		return (uint)list.at(index.row()).dbIndex;
+	else if (role == Qt::EditRole)
+		return list.at(index.row()).filename;
+	else
+		return QVariant();
 }
 
-QVariant FileListModel::headerData(int section, Qt::Orientation orientation, int role/*= Qt::DisplayRole*/) const
+QVariant FileListModel::headerData(int/* section*/, Qt::Orientation/* orientation*/, int role/*= Qt::DisplayRole*/) const
 {
 #if 0
 	// Not sure that this is necessary for our purposes...
@@ -70,6 +79,23 @@ void FileListModel::AddData(unsigned long index)
 	reset();
 }
 
+void FileListModel::AddData(unsigned long index, QString str, QImage img)
+{
+	// Assuming that both QString and QImage have copy constructors, this should work.
+	FileListData data;
+
+	data.dbIndex = index;
+	data.filename = str;
+	data.label = img;
+
+	list.push_back(data);
+	reset();
+}
+
+//FileListData FileListModel::GetData(const QModelIndex & index) const
+//{
+//	return list.at(index.row());
+//}
 
 #if 0
 

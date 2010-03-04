@@ -17,6 +17,7 @@
 #include "imagedelegate.h"
 
 #include "filedb.h"
+//#include "filelistmodel.h"
 
 
 ImageDelegate::ImageDelegate(QObject * parent): QAbstractItemDelegate(parent), pixelSize(12)
@@ -75,9 +76,22 @@ The foreground of the item (the circle representing a pixel) must be rendered us
 //	painter->drawPixmap(option.rect.x()+13, option.rect.y()+51, 433/2, 203/2, QPixmap(":/res/labels/rayman.jpg"));
 //	painter->drawPixmap(option.rect.x(), option.rect.y(), 488/2, 395/2, QPixmap(":/res/cart-blank.png"));
 	painter->drawPixmap(option.rect.x(), option.rect.y(), 488/4, 395/4, QPixmap(":/res/cart-blank.png"));
+//	unsigned long i = index.model()->data(index, Qt::DisplayRole).toUInt();
 	unsigned long i = index.model()->data(index, Qt::DisplayRole).toUInt();
+	QString filename = index.model()->data(index, Qt::EditRole).toString();
+	QImage label = index.model()->data(index, Qt::DecorationRole).value<QImage>();
 
-	if (romList[i].file[0] == 0)
+#if 0
+	if (role == Qt::DecorationRole)
+		return list.at(index.row()).label;
+	else if (role == Qt::DisplayRole)
+		return (uint)list.at(index.row()).dbIndex;
+	else if (role == Qt::EditRole)
+		return list.at(index.row()).filename;
+#endif
+
+//	if (romList[i].file[0] == 0)
+	if (label.isNull())
 	{
 //	painter->drawPixmap(option.rect.x()+14, option.rect.y()+50, 433/2, 203/2, QPixmap(":/res/label-blank.png"));
 		painter->drawPixmap(option.rect.x()+7, option.rect.y()+25, 433/4, 203/4, QPixmap(":/res/label-blank.png"));
@@ -90,10 +104,14 @@ The foreground of the item (the circle representing a pixel) must be rendered us
 	}
 	else
 	{
+#if 0
 		QString filename(romList[i].file);
 		filename.prepend("./label/");
 		QImage img(filename);
 		painter->drawImage(QRect(option.rect.x()+7, option.rect.y()+25, 433/4, 203/4), img);
+#else
+		painter->drawImage(QRect(option.rect.x()+7, option.rect.y()+25, 433/4, 203/4), label);
+#endif
 	}
 //26x100
 #endif

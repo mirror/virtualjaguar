@@ -10,6 +10,7 @@
 // ---  ----------  -------------------------------------------------------------
 // JLH  01/28/2010  Created this file
 // JLH  02/16/2010  Moved RomIdentifier stuff to its own file
+// JLH  03/02/2010  Added .ZIP file fishing
 //
 
 #include "filethread.h"
@@ -83,6 +84,9 @@ printf("FileThread: Aborting!!!\n");
 
 		QFileInfo fileInfo = list.at(i);
 
+		// ZIP files are special: They contain more than just the software now... ;-)
+		// So now we fish around inside them to pull out the stuff we want.
+		// Probably also need more stringent error checking as well... :-O
 		if (fileInfo.suffix().compare("zip", Qt::CaseInsensitive) == 0)
 		{
 			uint8 * buffer = NULL;
@@ -96,6 +100,12 @@ printf("FileThread: Aborting!!!\n");
 				delete[] buffer;
 
 // Mebbe we should pass a index AND a QImage here???
+/*
+Let's think about this... What *do* we need to send out?
+we need the filename for sure. image file if it exists.
+do we need the index? I think we're only using it to pull the label from the subdir...
+we might need it if we want to pull ROM flags from the fileDB...
+*/
 				if (index != 0xFFFFFFFF && !(romList[index].flags & FF_BIOS))
 				{
 					QImage img;
@@ -108,7 +118,8 @@ printf("FileThread: Aborting!!!\n");
 					}
 //printf("FileThread: Attempted to load image. Size: %u x %u...\n", img.width(), img.height());
 
-					emit FoundAFile(index);
+//					emit FoundAFile(index);
+					emit FoundAFile2(index, fileInfo.canonicalFilePath(), &img);
 				}
 			}
 		}
@@ -127,7 +138,8 @@ printf("FileThread: Aborting!!!\n");
 
 // Mebbe we should pass a index AND a QImage here???
 				if (index != 0xFFFFFFFF && !(romList[index].flags & FF_BIOS))
-					emit FoundAFile(index);
+//					emit FoundAFile(index);
+					emit FoundAFile2(index, fileInfo.canonicalFilePath(), 0);
 			}
 		}
 	}

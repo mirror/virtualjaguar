@@ -19,6 +19,7 @@ class FileThread: public QThread
 
 	signals:
 		void FoundAFile(unsigned long index);
+		void FoundAFile2(unsigned long index, QString filename, QImage * label);
 
 	protected:
 		void run(void);
