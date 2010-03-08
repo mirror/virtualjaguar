@@ -50,16 +50,53 @@ FilePickerWindow::FilePickerWindow(QWidget * parent/*= 0*/): QWidget(parent, Qt:
 	model = new FileListModel;
 	fileList = new QListView;
 	fileList->setModel(model);
-	fileList->setItemDelegate(new ImageDelegate(this));
+//	fileList->setItemDelegate(new ImageDelegate(this));
+	fileList->setItemDelegate(new ImageDelegate());
 
-	QVBoxLayout * layout = new QVBoxLayout;
+//	QVBoxLayout * layout = new QVBoxLayout;
+	QHBoxLayout * layout = new QHBoxLayout;
 	setLayout(layout);
 	layout->addWidget(fileList);
+
+	// Weird note: This layout has to be added *before* putting anything into it...
+	QVBoxLayout * vLayout = new QVBoxLayout;
+	layout->addLayout(vLayout);
+
+	QLabel * image = new QLabel;
+//	image->setAlignment(Qt::AlignRight);
+//	image->setPixmap(QPixmap(":/res/cart-blank.png"));
+	QImage cartImg(":/res/cart-blank.png");
+	QPainter painter(&cartImg);
+	painter.drawPixmap(23, 87, 373, 172, QPixmap(":/res/label-blank.png"));
+	painter.end();
+	image->setPixmap(QPixmap::fromImage(cartImg));
+	image->setMargin(4);
+	vLayout->addWidget(image);
+
+	QLabel * text1 = new QLabel(QString(tr(
+		"<h2>Attack of the Mutant Penguins (World)</h2>"
+	)));
+	text1->setMargin(6);
+	text1->setAlignment(Qt::AlignCenter);
+	vLayout->addWidget(text1);
+
+	QLabel * text2 = new QLabel(QString(tr(
+		"<table>"
+		"<tr><td align='right'><b>Type: </b></td><td>4MB Cartridge</td></tr>"
+		"<tr><td align='right'><b>CRC32: </b></td><td>FEDCBA98</td></tr>"
+		"<tr><td align='right'><b>Compatibility: </b></td><td>DOES NOT WORK</td></tr>"
+		"<tr><td align='right'><b>Notes: </b></td><td>Universal Header detected; Requires DSP</td></tr>"
+		"</table>"
+	)));
+	vLayout->addWidget(text2);
 
 	fileThread = new FileThread(this);
 //	connect(fileThread, SIGNAL(FoundAFile(unsigned long)), this, SLOT(AddFileToList(unsigned long)));
 	connect(fileThread, SIGNAL(FoundAFile2(unsigned long, QString, QImage *)), this, SLOT(AddFileToList2(unsigned long, QString, QImage *)));
 	fileThread->Go();
+/*
+New sizes: 373x172 (label), 420x340 (cart)
+*/
 }
 
 //
@@ -82,4 +119,32 @@ printf("FilePickerWindow(2): Found match [%s]...\n", romList[index].name);
 	else
 		model->AddData(index, str, QImage());
 }
+
+/*
+    Super Duper Awesome Guy (World)
+
+         Type: 4MB Cartridge
+        CRC32: FEDCBA98
+Compatibility: DOES NOT WORK
+        Notes: Universal Header detected; Requires DSP
+
+
+    Stupid Homebrew Game That Sux
+
+         Type: ABS/COF Executable (43853 bytes)
+        CRC32: 76543210
+Compatibility: Unknown
+        Notes: $4000 Load, $4000 Run
+
+
+    Action Hopscotch Plus (Prototype)
+
+         Type: 2MB Alpine ROM
+        CRC32: 44889921
+Compatibility: 80% (or ****)
+        Notes: EEPROM available
+
+
+*/
+
 

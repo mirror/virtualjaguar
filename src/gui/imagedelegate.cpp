@@ -17,12 +17,11 @@
 #include "imagedelegate.h"
 
 #include "filedb.h"
-//#include "filelistmodel.h"
 
 
-ImageDelegate::ImageDelegate(QObject * parent): QAbstractItemDelegate(parent), pixelSize(12)
-{
-}
+//ImageDelegate::ImageDelegate(QObject * parent): QAbstractItemDelegate(parent)//, pixelSize(12)
+//{
+//}
 
 /*
 Each item is rendered by the delegate's paint() function. The view calls this function with a ready-to-use QPainter object, style information that the delegate should use to correctly draw the item, and an index to the item in the model:

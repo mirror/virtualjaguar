@@ -20,7 +20,7 @@
 
 AboutWindow::AboutWindow(QWidget * parent/*= 0*/): QWidget(parent, Qt::Dialog)
 {
-	setWindowTitle("About Virtual Jaguar...");
+	setWindowTitle(tr("About Virtual Jaguar..."));
 
 	layout = new QVBoxLayout();
 	layout->setSizeConstraint(QLayout::SetFixedSize);
