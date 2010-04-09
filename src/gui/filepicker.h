@@ -22,6 +22,7 @@ class FilePickerWindow: public QWidget
 	public slots:
 		void AddFileToList(unsigned long index);
 		void AddFileToList2(unsigned long index, QString, QImage *);
+		void UpdateSelection(const QModelIndex &, const QModelIndex &);
 
 	protected:
 //		void PopulateList(void);
@@ -29,7 +30,9 @@ class FilePickerWindow: public QWidget
 	private:
 		QListWidget * fileList2;
 		FileThread * fileThread;
-//		QAbstractItemModel * model;
 		FileListModel * model;
 		QListView * fileList;
+		QLabel * cartImage;
+		QLabel * title;
+		QLabel * data;
 };

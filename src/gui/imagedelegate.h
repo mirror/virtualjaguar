@@ -13,6 +13,7 @@ class ImageDelegate: public QAbstractItemDelegate
 
 	public:
 //		ImageDelegate(QObject * parent = 0);
+		ImageDelegate();
 
 		void paint(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &index) const;
 		QSize sizeHint(const QStyleOptionViewItem &option, const QModelIndex &index ) const;
@@ -20,8 +21,9 @@ class ImageDelegate: public QAbstractItemDelegate
 //	public slots:
 //		void setPixelSize(int size);
 
-//	private:
+	private:
 //		int pixelSize;
+		QImage cartSmall;
 };
 
 #endif	// __IMAGEDELEGATE_H__

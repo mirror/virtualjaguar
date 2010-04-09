@@ -46,7 +46,7 @@ endif
 
 CC         = gcc
 LD         = gcc
-TARGET     = vj
+TARGET     = virtualjaguar
 
 # Note that we use optimization level 2 instead of 3--3 doesn't seem to gain much over 2
 CFLAGS   = -MMD -Wall -Wno-switch -O2 -D$(SYSTYPE) -ffast-math -fomit-frame-pointer `sdl-config --cflags`

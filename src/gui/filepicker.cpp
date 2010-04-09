@@ -10,6 +10,7 @@
 // ---  ----------  -------------------------------------------------------------
 // JLH  01/22/2010  Created this file
 // JLH  02/06/2010  Modified to use Qt model/view framework
+// JLH  03/08/2010  Added large cart view and info text
 //
 
 #include "filepicker.h"
@@ -37,13 +38,24 @@ Maybe box art, screenshots will go as well...
 
 I'm thinking compatibility info should be displayed as well... Just to stop the
 inevitable stupid questions from people too lazy to do basic research for themselves.
+
+
+Data strategy:
+
+- Should keep a QImage of the blank cart with blank label
+- Should keep a QImage of the blank cart? (For overpainting the ROMs label)
+- Should we have a special Alpine image? Floppy image (for COF/ABS)?
+
+- Need some way of keeping track of cart size and compatibility info
+  [compat info needs to be BAD DUMP or % of what works]
+- Need to properly scale the thumbnails images in the list
 */
 
 //could use Window as well...
 //FilePickerWindow::FilePickerWindow(QWidget * parent/*= 0*/): QWidget(parent, Qt::Dialog)
 FilePickerWindow::FilePickerWindow(QWidget * parent/*= 0*/): QWidget(parent, Qt::Window)
 {
-	setWindowTitle("Insert Cartridge...");
+	setWindowTitle(tr("Insert Cartridge..."));
 
 //is there any reason why this must be cast as a QAbstractListModel? No
 //Also, need to think about data structure for the model...
@@ -62,24 +74,42 @@ FilePickerWindow::FilePickerWindow(QWidget * parent/*= 0*/): QWidget(parent, Qt:
 	QVBoxLayout * vLayout = new QVBoxLayout;
 	layout->addLayout(vLayout);
 
-	QLabel * image = new QLabel;
-//	image->setAlignment(Qt::AlignRight);
-//	image->setPixmap(QPixmap(":/res/cart-blank.png"));
+	cartImage = new QLabel;
 	QImage cartImg(":/res/cart-blank.png");
 	QPainter painter(&cartImg);
-	painter.drawPixmap(23, 87, 373, 172, QPixmap(":/res/label-blank.png"));
+	painter.drawPixmap(23, 87, QPixmap(":/res/label-blank.png"));
 	painter.end();
-	image->setPixmap(QPixmap::fromImage(cartImg));
-	image->setMargin(4);
-	vLayout->addWidget(image);
+	cartImage->setPixmap(QPixmap::fromImage(cartImg));
+	cartImage->setMargin(4);
+	vLayout->addWidget(cartImage);
 
-	QLabel * text1 = new QLabel(QString(tr(
-		"<h2>Attack of the Mutant Penguins (World)</h2>"
+	title = new QLabel(QString(tr("<h2>...</h2>")));
+	title->setMargin(6);
+	title->setAlignment(Qt::AlignCenter);
+	vLayout->addWidget(title);
+
+#if 1
+	QHBoxLayout * dataLayout = new QHBoxLayout;
+	vLayout->addLayout(dataLayout);
+
+	QLabel * labels = new QLabel(QString(tr(
+		"<b>Type: </b><br>"
+		"<b>CRC32: </b><br>"
+		"<b>Compatibility: </b><br>"
+		"<b>Notes:</b>"
 	)));
-	text1->setMargin(6);
-	text1->setAlignment(Qt::AlignCenter);
-	vLayout->addWidget(text1);
-
+	labels->setAlignment(Qt::AlignRight);
+	labels->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Preferred);
+	dataLayout->addWidget(labels);
+	data = new QLabel(QString(tr(
+		"4MB Cartridge<br>"
+		"FEDCBA98<br>"
+		"DOES NOT WORK<br>"
+		"Universal Header detected; Requires DSP"
+	)));
+	data->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
+	dataLayout->addWidget(data);
+#else
 	QLabel * text2 = new QLabel(QString(tr(
 		"<table>"
 		"<tr><td align='right'><b>Type: </b></td><td>4MB Cartridge</td></tr>"
@@ -89,6 +119,7 @@ FilePickerWindow::FilePickerWindow(QWidget * parent/*= 0*/): QWidget(parent, Qt:
 		"</table>"
 	)));
 	vLayout->addWidget(text2);
+#endif
 
 	fileThread = new FileThread(this);
 //	connect(fileThread, SIGNAL(FoundAFile(unsigned long)), this, SLOT(AddFileToList(unsigned long)));
@@ -97,6 +128,10 @@ FilePickerWindow::FilePickerWindow(QWidget * parent/*= 0*/): QWidget(parent, Qt:
 /*
 New sizes: 373x172 (label), 420x340 (cart)
 */
+
+//	QItemSelectionModel * ism = fileList->selectionModel();
+//	connect(ism, SIGNAL(currentChanged(const QModelIndex &, const QModelIndex &)), this, SLOT(UpdateSelection(const QModelIndex &, const QModelIndex &)));
+	connect(fileList->selectionModel(), SIGNAL(currentChanged(const QModelIndex &, const QModelIndex &)), this, SLOT(UpdateSelection(const QModelIndex &, const QModelIndex &)));
 }
 
 //
@@ -118,6 +153,31 @@ printf("FilePickerWindow(2): Found match [%s]...\n", romList[index].name);
 		model->AddData(index, str, *img);
 	else
 		model->AddData(index, str, QImage());
+}
+
+//
+// This slot gets called when the QListView gets clicked on. Updates
+// the cart graphic and accompanying text.
+//
+void FilePickerWindow::UpdateSelection(const QModelIndex & current, const QModelIndex &/*previous*/)
+{
+	QString s = current.model()->data(current, Qt::EditRole).toString();
+	unsigned long i = current.model()->data(current, Qt::DisplayRole).toUInt();
+	QImage label = current.model()->data(current, Qt::DecorationRole).value<QImage>();
+//	printf("FPW: %s\n", s.toAscii().data());
+
+	if (!label.isNull())
+	{
+		QImage cart(":/res/cart-blank.png");
+		QPainter painter(&cart);
+		painter.drawPixmap(23, 87, QPixmap::fromImage(label));
+		painter.end();
+		cartImage->setPixmap(QPixmap::fromImage(cart));
+	}
+
+	title->setText(QString("<h2>%1</h2>").arg(romList[i].name));
+	QString crcString = QString("%1").arg(romList[i].crc32, 8, 16, QChar('0')).toUpper();
+	data->setText(QString("%1<br>%2<br>%3<br>%4").arg("Cart").arg(crcString).arg("100%").arg("Requires BIOS"));
 }
 
 /*

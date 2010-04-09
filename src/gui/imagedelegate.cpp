@@ -23,6 +23,15 @@
 //{
 //}
 
+ImageDelegate::ImageDelegate()
+{
+	QImage cartImg(":/res/cart-blank.png");
+	QPainter painter(&cartImg);
+	painter.drawPixmap(23, 87, QPixmap(":/res/label-blank.png"));
+	painter.end();
+	cartSmall = cartImg.scaled(488/4, 395/4, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
+}
+
 /*
 Each item is rendered by the delegate's paint() function. The view calls this function with a ready-to-use QPainter object, style information that the delegate should use to correctly draw the item, and an index to the item in the model:
 */
@@ -74,7 +83,11 @@ The foreground of the item (the circle representing a pixel) must be rendered us
 //	painter->drawPixmap(option.rect.x()+8, option.rect.y()+8, 200, 94, QPixmap(":/res/labels/rayman.jpg"));
 //	painter->drawPixmap(option.rect.x()+13, option.rect.y()+51, 433/2, 203/2, QPixmap(":/res/labels/rayman.jpg"));
 //	painter->drawPixmap(option.rect.x(), option.rect.y(), 488/2, 395/2, QPixmap(":/res/cart-blank.png"));
-	painter->drawPixmap(option.rect.x(), option.rect.y(), 488/4, 395/4, QPixmap(":/res/cart-blank.png"));
+
+
+	// This is crappy. We really should have a properly scaled image ready to go so we
+	// don't get Qt's default ugly looking fast scaling...
+#warning "!!! FIX !!! Need to create properly scaled down cart/label images!"
 //	unsigned long i = index.model()->data(index, Qt::DisplayRole).toUInt();
 	unsigned long i = index.model()->data(index, Qt::DisplayRole).toUInt();
 	QString filename = index.model()->data(index, Qt::EditRole).toString();
@@ -93,7 +106,8 @@ The foreground of the item (the circle representing a pixel) must be rendered us
 	if (label.isNull())
 	{
 //	painter->drawPixmap(option.rect.x()+14, option.rect.y()+50, 433/2, 203/2, QPixmap(":/res/label-blank.png"));
-		painter->drawPixmap(option.rect.x()+7, option.rect.y()+25, 433/4, 203/4, QPixmap(":/res/label-blank.png"));
+//		painter->drawPixmap(option.rect.x()+7, option.rect.y()+25, 433/4, 203/4, QPixmap(":/res/label-blank.png"));
+		painter->drawImage(option.rect.x() + 2, option.rect.y() + 2, cartSmall);
 //Need to query the model for the data we're supposed to draw here...
 //	painter->drawText(17, 73, QString(romList[i].name));
 //	painter->setPen(Qt::white);
@@ -109,7 +123,8 @@ The foreground of the item (the circle representing a pixel) must be rendered us
 		QImage img(filename);
 		painter->drawImage(QRect(option.rect.x()+7, option.rect.y()+25, 433/4, 203/4), img);
 #else
-		painter->drawImage(QRect(option.rect.x()+7, option.rect.y()+25, 433/4, 203/4), label);
+		painter->drawPixmap(option.rect.x() + 2, option.rect.y() + 2, 488/4, 395/4, QPixmap(":/res/cart-blank.png"));
+		painter->drawImage(QRect(option.rect.x()+2+7, option.rect.y()+2+25, 433/4, 203/4), label);
 #endif
 	}
 //26x100
@@ -134,7 +149,7 @@ QSize ImageDelegate::sizeHint(const QStyleOptionViewItem & /* option */, const Q
 //	return QSize(100, 47);
 //	return QSize(216, 110);
 //	return QSize(488/2, 395/2);
-	return QSize(488/4, 395/4);
+	return QSize((488/4) + 4, (395/4) + 4);
 }
 
 /*
