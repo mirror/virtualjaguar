@@ -160,7 +160,7 @@ The approach here is to have a list of addresses and who handles them. Could be
 a one-to-one memory location up to a range for each function. Will look
 something like this:
 
-	{ 0xF14000, 0xF14001, MM_IO, JoystickReadHanlder, JoystickWriteHandler },
+	{ 0xF14000, 0xF14001, MM_IO, JoystickReadHandler, JoystickWriteHandler },
 
 Would be nice to have a way of either calling a handler function or reading/writing
 directly to/from a variable or array...
@@ -250,9 +250,11 @@ MemDesc memoryMap[] = {
 	{ 0xF00058, 0xF0005B, MM_IO_W, &bg }, // BG			Background Colour					F00058		WO
 	{ 0xF000E0, 0xF000E1, MM_IO,   &int1 }, // INT1		CPU Interrupt Control Register		F000E0		RW
 	{ 0xF000E2, 0xF000E3, MM_IO_W, &int2 }, // INT2		CPU Interrupt Resume Register		F000E2		WO
-	{ 0xF00400, 0xF005FF, MM_RAM,  &clut }, // CLUT		Colour Look-Up Table				F00400-7FE	RW
-	{ 0xF00600, 0xF007FF, MM_RAM,  &clut },
-	{ 0xF00800, 0xF01D9F, MM_RAM,  &lbuf }, // LBUF		Line Buffer							F00800-1D9E	RW
+//Some of these RAM spaces may be 16- or 32-bit only... in which case, we need
+//to cast appropriately (in memory.cpp, that is)...
+	{ 0xF00400, 0xF005FF, MM_RAM,  clut }, // CLUT		Colour Look-Up Table				F00400-7FE	RW
+	{ 0xF00600, 0xF007FF, MM_RAM,  clut },
+	{ 0xF00800, 0xF01D9F, MM_RAM,  lbuf }, // LBUF		Line Buffer							F00800-1D9E	RW
 //Need high speed RAM interface for GPU & DSP (we have it now...)
 
 	// GPU REGISTERS
@@ -320,7 +322,7 @@ MemDesc memoryMap[] = {
 
 	// JERRY REGISTERS
 
-	{ 0xF10000, 0xF10002, MM_IO_W, &jpit1 }, // JPIT1		Timer 1 Pre-scaler					F10000		WO
+	{ 0xF10000, 0xF10001, MM_IO_W, &jpit1 }, // JPIT1		Timer 1 Pre-scaler					F10000		WO
 	{ 0xF10002, 0xF10003, MM_IO_W, &jpit2 }, // JPIT2		Timer 1 Divider						F10002		WO
 	{ 0xF10004, 0xF10005, MM_IO_W, &jpit3 }, // JPIT3		Timer 2 Pre-scaler					F10004		WO
 	{ 0xF10006, 0xF10007, MM_IO_W, &jpit4 }, // JPIT4		Timer 2 Divider						F10006		WO

@@ -149,27 +149,116 @@ uint32 butch, dscntrl, ds_data, i2cntrl, sbcntrl, subdata, subdatb, sb_time, fif
 #define BSWAP64(x) ((htonl(x & 0xFFFFFFFF) << 32) | htonl(x >> 32))
 // Actually, we use ESAFExx() macros instead of this, and we use GCC to check the endianness...
 
-#if 0
-uint16 * memcon1_t = (uint16 *)&jagMemSpace[0xF00000];
-uint16 & memcon1 = *memcon1_t;
-#else
-uint16 & memcon1 = *((uint16 *)&jagMemSpace[0xF00000]);
-uint16 & memcon2 = *((uint16 *)&jagMemSpace[0xF00002]);
-uint16 & hc      = *((uint16 *)&jagMemSpace[0xF00004]);
-uint16 & vc      = *((uint16 *)&jagMemSpace[0xF00006]);
-uint16 & lph     = *((uint16 *)&jagMemSpace[0xF00008]);
-uint16 & lpv     = *((uint16 *)&jagMemSpace[0xF0000A]);
-#endif
-
-uint32 obData, olp, obf, vmode, bord1, bord2, hp, hbb, hbe, hs, hvs,
-	hdb1, hdb2, hde, vp, vbb, vbe, vs, vdb, vde, veb, vee, vi, pit0, pit1, heq, bg, int1, int2, clut, lbuf,
-	g_flags, g_mtxc, g_mtxa, g_end, g_pc, g_ctrl, g_hidata, g_remain, g_divctrl,
-	a1_base, a1_pixel, a1_flags, a1_clip, a1_step, a1_fstep, a1_fpixel, a1_inc, a1_finc,
-	a2_base, a2_flags, a2_pixel, a2_mask, a2_step, b_cmd, b_count, b_srcd, b_dstd, b_dstz, b_srcz1, b_srcz2,
-	b_patd, b_iinc, b_zinc, b_stop, b_i3, b_i2, b_i1, b_i0, b_z3, b_z2, b_z1, b_z0,
-	jpit1, jpit2, jpit3, jpit4, clk1, clk2, clk3, j_int, asidata, asistat, asictrl, asiclk, joystick,
-	joybuts, d_flags, d_mtxc, d_mtxa, d_end, d_pc, d_ctrl, d_mod, d_remain, d_divctrl, d_machi,
-	ltxd, rtxd, sstat, sclk, smode;
+uint16 & memcon1   = *((uint16 *)&jagMemSpace[0xF00000]);
+uint16 & memcon2   = *((uint16 *)&jagMemSpace[0xF00002]);
+uint16 & hc        = *((uint16 *)&jagMemSpace[0xF00004]);
+uint16 & vc        = *((uint16 *)&jagMemSpace[0xF00006]);
+uint16 & lph       = *((uint16 *)&jagMemSpace[0xF00008]);
+uint16 & lpv       = *((uint16 *)&jagMemSpace[0xF0000A]);
+uint64 & obData    = *((uint64 *)&jagMemSpace[0xF00010]);
+uint32 & olp       = *((uint32 *)&jagMemSpace[0xF00020]);
+uint16 & obf       = *((uint16 *)&jagMemSpace[0xF00026]);
+uint16 & vmode     = *((uint16 *)&jagMemSpace[0xF00028]);
+uint16 & bord1     = *((uint16 *)&jagMemSpace[0xF0002A]);
+uint16 & bord2     = *((uint16 *)&jagMemSpace[0xF0002C]);
+uint16 & hp        = *((uint16 *)&jagMemSpace[0xF0002E]);
+uint16 & hbb       = *((uint16 *)&jagMemSpace[0xF00030]);
+uint16 & hbe       = *((uint16 *)&jagMemSpace[0xF00032]);
+uint16 & hs        = *((uint16 *)&jagMemSpace[0xF00034]);
+uint16 & hvs       = *((uint16 *)&jagMemSpace[0xF00036]);
+uint16 & hdb1      = *((uint16 *)&jagMemSpace[0xF00038]);
+uint16 & hdb2      = *((uint16 *)&jagMemSpace[0xF0003A]);
+uint16 & hde       = *((uint16 *)&jagMemSpace[0xF0003C]);
+uint16 & vp        = *((uint16 *)&jagMemSpace[0xF0003E]);
+uint16 & vbb       = *((uint16 *)&jagMemSpace[0xF00040]);
+uint16 & vbe       = *((uint16 *)&jagMemSpace[0xF00042]);
+uint16 & vs        = *((uint16 *)&jagMemSpace[0xF00044]);
+uint16 & vdb       = *((uint16 *)&jagMemSpace[0xF00046]);
+uint16 & vde       = *((uint16 *)&jagMemSpace[0xF00048]);
+uint16 & veb       = *((uint16 *)&jagMemSpace[0xF0004A]);
+uint16 & vee       = *((uint16 *)&jagMemSpace[0xF0004C]);
+uint16 & vi        = *((uint16 *)&jagMemSpace[0xF0004E]);
+uint16 & pit0      = *((uint16 *)&jagMemSpace[0xF00050]);
+uint16 & pit1      = *((uint16 *)&jagMemSpace[0xF00052]);
+uint16 & heq       = *((uint16 *)&jagMemSpace[0xF00054]);
+uint32 & bg        = *((uint32 *)&jagMemSpace[0xF00058]);
+uint16 & int1      = *((uint16 *)&jagMemSpace[0xF000E0]);
+uint16 & int2      = *((uint16 *)&jagMemSpace[0xF000E2]);
+uint8  * clut      =   (uint8 *) &jagMemSpace[0xF00400];
+uint8  * lbuf      =   (uint8 *) &jagMemSpace[0xF00800];
+uint32 & g_flags   = *((uint32 *)&jagMemSpace[0xF02100]);
+uint32 & g_mtxc    = *((uint32 *)&jagMemSpace[0xF02104]);
+uint32 & g_mtxa    = *((uint32 *)&jagMemSpace[0xF02108]);
+uint32 & g_end     = *((uint32 *)&jagMemSpace[0xF0210C]);
+uint32 & g_pc      = *((uint32 *)&jagMemSpace[0xF02110]);
+uint32 & g_ctrl    = *((uint32 *)&jagMemSpace[0xF02114]);
+uint32 & g_hidata  = *((uint32 *)&jagMemSpace[0xF02118]);
+uint32 & g_divctrl = *((uint32 *)&jagMemSpace[0xF0211C]);
+uint32 g_remain;								// Dual register with $F0211C
+uint32 & a1_base   = *((uint32 *)&jagMemSpace[0xF02200]);
+uint32 & a1_flags  = *((uint32 *)&jagMemSpace[0xF02204]);
+uint32 & a1_clip   = *((uint32 *)&jagMemSpace[0xF02208]);
+uint32 & a1_pixel  = *((uint32 *)&jagMemSpace[0xF0220C]);
+uint32 & a1_step   = *((uint32 *)&jagMemSpace[0xF02210]);
+uint32 & a1_fstep  = *((uint32 *)&jagMemSpace[0xF02214]);
+uint32 & a1_fpixel = *((uint32 *)&jagMemSpace[0xF02218]);
+uint32 & a1_inc    = *((uint32 *)&jagMemSpace[0xF0221C]);
+uint32 & a1_finc   = *((uint32 *)&jagMemSpace[0xF02220]);
+uint32 & a2_base   = *((uint32 *)&jagMemSpace[0xF02224]);
+uint32 & a2_flags  = *((uint32 *)&jagMemSpace[0xF02228]);
+uint32 & a2_mask   = *((uint32 *)&jagMemSpace[0xF0222C]);
+uint32 & a2_pixel  = *((uint32 *)&jagMemSpace[0xF02230]);
+uint32 & a2_step   = *((uint32 *)&jagMemSpace[0xF02234]);
+uint32 & b_cmd     = *((uint32 *)&jagMemSpace[0xF02238]);
+uint32 & b_count   = *((uint32 *)&jagMemSpace[0xF0223C]);
+uint64 & b_srcd    = *((uint64 *)&jagMemSpace[0xF02240]);
+uint64 & b_dstd    = *((uint64 *)&jagMemSpace[0xF02248]);
+uint64 & b_dstz    = *((uint64 *)&jagMemSpace[0xF02250]);
+uint64 & b_srcz1   = *((uint64 *)&jagMemSpace[0xF02258]);
+uint64 & b_srcz2   = *((uint64 *)&jagMemSpace[0xF02260]);
+uint64 & b_patd    = *((uint64 *)&jagMemSpace[0xF02268]);
+uint32 & b_iinc    = *((uint32 *)&jagMemSpace[0xF02270]);
+uint32 & b_zinc    = *((uint32 *)&jagMemSpace[0xF02274]);
+uint32 & b_stop    = *((uint32 *)&jagMemSpace[0xF02278]);
+uint32 & b_i3      = *((uint32 *)&jagMemSpace[0xF0227C]);
+uint32 & b_i2      = *((uint32 *)&jagMemSpace[0xF02280]);
+uint32 & b_i1      = *((uint32 *)&jagMemSpace[0xF02284]);
+uint32 & b_i0      = *((uint32 *)&jagMemSpace[0xF02288]);
+uint32 & b_z3      = *((uint32 *)&jagMemSpace[0xF0228C]);
+uint32 & b_z2      = *((uint32 *)&jagMemSpace[0xF02290]);
+uint32 & b_z1      = *((uint32 *)&jagMemSpace[0xF02294]);
+uint32 & b_z0      = *((uint32 *)&jagMemSpace[0xF02298]);
+uint16 & jpit1     = *((uint16 *)&jagMemSpace[0xF10000]);
+uint16 & jpit2     = *((uint16 *)&jagMemSpace[0xF10002]);
+uint16 & jpit3     = *((uint16 *)&jagMemSpace[0xF10004]);
+uint16 & jpit4     = *((uint16 *)&jagMemSpace[0xF10006]);
+uint16 & clk1      = *((uint16 *)&jagMemSpace[0xF10010]);
+uint16 & clk2      = *((uint16 *)&jagMemSpace[0xF10012]);
+uint16 & clk3      = *((uint16 *)&jagMemSpace[0xF10014]);
+uint16 & j_int     = *((uint16 *)&jagMemSpace[0xF10020]);
+uint16 & asidata   = *((uint16 *)&jagMemSpace[0xF10030]);
+uint16 & asictrl   = *((uint16 *)&jagMemSpace[0xF10032]);
+uint16 asistat;									// Dual register with $F10032
+uint16 & asiclk    = *((uint16 *)&jagMemSpace[0xF10034]);
+uint16 & joystick  = *((uint16 *)&jagMemSpace[0xF14000]);
+uint16 & joybuts   = *((uint16 *)&jagMemSpace[0xF14002]);
+uint32 & d_flags   = *((uint32 *)&jagMemSpace[0xF1A100]);
+uint32 & d_mtxc    = *((uint32 *)&jagMemSpace[0xF1A104]);
+uint32 & d_mtxa    = *((uint32 *)&jagMemSpace[0xF1A108]);
+uint32 & d_end     = *((uint32 *)&jagMemSpace[0xF1A10C]);
+uint32 & d_pc      = *((uint32 *)&jagMemSpace[0xF1A110]);
+uint32 & d_ctrl    = *((uint32 *)&jagMemSpace[0xF1A114]);
+uint32 & d_mod     = *((uint32 *)&jagMemSpace[0xF1A118]);
+uint32 & d_divctrl = *((uint32 *)&jagMemSpace[0xF1A11C]);
+uint32 d_remain;								// Dual register with $F0211C
+uint32 & d_machi   = *((uint32 *)&jagMemSpace[0xF1A120]);
+uint16 & ltxd      = *((uint16 *)&jagMemSpace[0xF1A148]);
+uint16 lrxd;									// Dual register with $F1A148
+uint16 & rtxd      = *((uint16 *)&jagMemSpace[0xF1A14C]);
+uint16 rrxd;									// Dual register with $F1A14C
+uint8  & sclk      = *((uint8 *) &jagMemSpace[0xF1A150]);
+uint8 sstat;									// Dual register with $F1A150
+uint32 & smode     = *((uint32 *)&jagMemSpace[0xF1A154]);
 
 // Memory debugging identifiers
 

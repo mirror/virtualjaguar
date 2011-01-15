@@ -1,5 +1,5 @@
 --------------------------------------------
-Virtual Jaguar v1.1.0 GCC/SDL release README
+Virtual Jaguar v2.0.0 GCC/SDL release README
 --------------------------------------------
 
 --------------
@@ -192,3 +192,9 @@ David Raingeard of Potato Emulation who originally developed this emulator and
 released the sources to the public. We couldn't have done it without you!
 
 SDLEMU
+
+Stuff to add in:
+
+ - How to run ROMs from the command line with spaces in the names (quoting)
+ - The behavior of the emulator when running from the command line (passed in ROM
+   vs. non)

@@ -51,7 +51,7 @@
 
 // Global variables
 
-uint16 lrxd, rrxd;									// I2S ports (into Jaguar)
+//uint16 lrxd, rrxd;									// I2S ports (into Jaguar)
 
 // Local variables
 

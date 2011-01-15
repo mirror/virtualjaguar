@@ -21,6 +21,6 @@ uint16 DACReadWord(uint32 offset, uint32 who = UNKNOWN);
 
 // Global variables
 
-extern uint16 lrxd, rrxd;							// I2S ports (into Jaguar)
+//extern uint16 lrxd, rrxd;							// I2S ports (into Jaguar)
 
 #endif	// __DAC_H__
