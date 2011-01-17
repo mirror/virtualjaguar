@@ -5,7 +5,7 @@
 // GCC/SDL port by Niels Wagenaar (Linux/WIN32) and Carwin Jones (BeOS)
 // Cleanups and endian wrongness amelioration by James L. Hammons
 // Note: Endian wrongness probably stems from the MAME origins of this emu and
-//       the braindead way in which MAME handles memory. :-)
+//       the braindead way in which MAME handled memory when this was written. :-)
 //
 // JLH = James L. Hammons
 //
@@ -1891,7 +1891,8 @@ void ScanlineCallback(void)
 //	if (vc == vbb)
 	{
 		JoystickExec();
-		RenderBackbuffer();
+//We comment this out so that the GUI can manage this instead. Which is how it should be anyway.
+//		RenderBackbuffer();
 		TOMResetBackbuffer(backbuffer);
 		frameDone = true;
 	}//*/
