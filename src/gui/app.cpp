@@ -32,12 +32,12 @@ int main(int argc, char * argv[])
 		}
 	}
 
-	Q_INIT_RESOURCE(vj);	// This must the same name as the exe filename
+	Q_INIT_RESOURCE(virtualjaguar);	// This must the same name as the exe filename
 //or is it the .qrc filename???
 	// This is so we can pass this stuff using signal/slot mechanism...
 //ick	int id = qRegisterMetaType<uint32>();
 
-	LogInit("vj.log");							// Init logfile
+	LogInit("virtualjaguar.log");				// Init logfile
 	App app(argc, argv);						// Declare an instance of the application
 
 	int retVal = app.exec();					// And run it!

@@ -22,7 +22,7 @@ SOURCES += filepicker.cpp
 SOURCES += filethread.cpp
 SOURCES += configwin.cpp
 
-RESOURCES += vj.qrc
+RESOURCES += virtualjaguar.qrc
 
 OBJECTS_DIR = ../../obj
 MOC_DIR = ../../obj

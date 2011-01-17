@@ -791,7 +791,7 @@ int irq_ack_handler(int level)
 	return vector;
 }
 
-#define USE_NEW_MMU
+//#define USE_NEW_MMU
 
 unsigned int m68k_read_memory_8(unsigned int address)
 {
@@ -1051,8 +1051,8 @@ if (address == 0xF02110)
 		WriteLog("\tA0=%08X, A1=%08X, D0=%08X, D1=%08X\n",
 			m68k_get_reg(NULL, M68K_REG_A0), m68k_get_reg(NULL, M68K_REG_A1),
 			m68k_get_reg(NULL, M68K_REG_D0), m68k_get_reg(NULL, M68K_REG_D1));
-	}
 #endif
+	}
 #else
 	MMUWrite16(address, value, M68K);
 #endif

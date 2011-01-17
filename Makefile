@@ -72,20 +72,20 @@ OBJS = \
 	obj/m68kopnz.o      \
 	obj/m68kdasm.o      \
 \
-	obj/about.o         \
-	obj/app.o           \
-	obj/configwin.o     \
-	obj/filepicker.o    \
-	obj/moc_filepicker.o \
-	obj/filelistmodel.o \
-	obj/filethread.o    \
-	obj/imagedelegate.o \
-	obj/moc_filethread.o \
-	obj/mainwin.o       \
-	obj/moc_mainwin.o   \
-	obj/glwidget.o      \
-	obj/moc_glwidget.o  \
-	obj/qrc_vj.o        \
+	obj/about.o             \
+	obj/app.o               \
+	obj/configwin.o         \
+	obj/filepicker.o        \
+	obj/moc_filepicker.o    \
+	obj/filelistmodel.o     \
+	obj/filethread.o        \
+	obj/imagedelegate.o     \
+	obj/moc_filethread.o    \
+	obj/mainwin.o           \
+	obj/moc_mainwin.o       \
+	obj/glwidget.o          \
+	obj/moc_glwidget.o      \
+	obj/qrc_virtualjaguar.o \
 \
 	obj/blitter.o       \
 	obj/cdrom.o         \
@@ -113,7 +113,7 @@ OBJS = \
 	obj/tom.o           \
 	obj/unzip.o         \
 	obj/video.o         \
-	obj/vj.o            \
+	obj/virtualjaguar.o \
 	obj/wavetable.o     \
 	$(ICON)
 
@@ -215,9 +215,9 @@ obj/moc_%.o: obj/moc_%.cpp
 	@echo -e "\033[01;33m***\033[00;32m Compiling $<...\033[00m"
 	@$(CC) -c $(QT_CXXFLAGS) $(QT_INCPATH) -o $@ $<
 
-obj/qrc_vj.cpp: src/gui/vj.qrc res/vj.xpm
+obj/qrc_virtualjaguar.cpp: src/gui/virtualjaguar.qrc res/vj.xpm
 	@echo -e "\033[01;33m***\033[00;32m Creating qrc_vj.cpp...\033[00m"
-	@/usr/bin/rcc -name vj src/gui/vj.qrc -o obj/qrc_vj.cpp
+	@/usr/bin/rcc -name virtualjaguar src/gui/virtualjaguar.qrc -o obj/qrc_virtualjaguar.cpp
 
 obj/qrc_%.o: obj/qrc_%.cpp
 	@echo -e "\033[01;33m***\033[00;32m Compiling $<...\033[00m"

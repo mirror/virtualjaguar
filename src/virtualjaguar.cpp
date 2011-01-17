@@ -75,6 +75,7 @@ int main_old(int argc, char * argv[])
 		if (!strcmp(argv[i], "-joyport"))
 		{
 			vjs.joyport = atoi(argv[++i]) + 1;
+
 			if (vjs.joyport > 3)
 				vjs.joyport = 3;
 		}
@@ -82,6 +83,7 @@ int main_old(int argc, char * argv[])
 		if (!strcmp(argv[i], "-frameskip"))
 		{
 			nFrameskip = atoi(argv[++i]) + 1;
+
 			if (nFrameskip > 10)
 				nFrameskip = 10;
 		}
