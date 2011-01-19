@@ -240,6 +240,8 @@ void RenderBackbuffer(void)
 //
 void ResizeScreen(uint32 width, uint32 height)
 {
+// For now, we don't do anything here...
+#if 0
 	SDL_FreeSurface(surface);
 	surface = SDL_CreateRGBSurface(SDL_SWSURFACE, width, height, 32, RMASK, GMASK, BMASK, AMASK);
 
@@ -277,6 +279,7 @@ void ResizeScreen(uint32 width, uint32 height)
 
 	sprintf(window_title, "Virtual Jaguar (%i x %i)", (int)width, (int)height);
 	SDL_WM_SetCaption((vjs.useOpenGL ? "Virtual Jaguar (OpenGL)" : window_title), "Virtual Jaguar");
+#endif
 }
 
 //

@@ -336,6 +336,8 @@ uint16 tom_jerry_int_pending, tom_timer_int_pending, tom_object_int_pending,
 //int16 * TOMBackbuffer;
 uint32 * TOMBackbuffer;
 
+uint32 tomDeviceWidth;
+
 static const char * videoMode_to_str[8] =
 	{ "16 BPP CRY", "24 BPP RGB", "16 BPP DIRECT", "16 BPP RGB",
 	  "Mixed mode", "24 BPP RGB", "16 BPP DIRECT", "16 BPP RGB" };
@@ -1020,7 +1022,9 @@ void tom_render_24bpp_scanline(uint32 * backbuffer)
 				*currentLineBuffer++ = pixel;
 		}
 
-		TOMBackbuffer += GetSDLScreenWidthInPixels();
+#warning "!!! Need to move this to an interface file !!! FIX !!!"
+//		TOMBackbuffer += GetSDLScreenWidthInPixels();
+		TOMBackbuffer += tomDeviceWidth;
 	}
 }
 
@@ -1499,8 +1503,10 @@ if (offset == VMODE)
 		{
 			tomWidth = width, tomHeight = height;
 
-			if (vjs.renderType == RT_NORMAL)
-				ResizeScreen(tomWidth, tomHeight);
+#warning "!!! TOM: ResizeScreen commented out !!!"
+// No need to resize anything, since we're prepared for this...
+//			if (vjs.renderType == RT_NORMAL)
+//				ResizeScreen(tomWidth, tomHeight);
 		}
 	}
 }

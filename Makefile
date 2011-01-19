@@ -205,7 +205,7 @@ QT_CFLAGS = -MMD `pkg-config --cflags QtGui`
 QT_DEFINES = -DQT_NO_DEBUG -DQT_OPENGL_LIB -DQT_GUI_LIB -DQT_CORE_LIB -DQT_SHARED
 #QT_INCPATH = -I/usr/share/qt4/mkspecs/linux-g++ -I./src/gui -I/usr/include/qt4/QtCore -I/usr/include/qt4/QtGui -I/usr/include/qt4 -I./obj
 QT_INCPATH = -I/usr/share/qt4/mkspecs/linux-g++ -I./src -I/usr/include/qt4/QtCore -I/usr/include/qt4/QtGui -I/usr/include/qt4/QtOpenGL -I/usr/include/qt4 -I/usr/X11R6/include -I./obj
-QT_CXXFLAGS = -MMD -pipe -O2 -march=pentium-m -pipe -D_REENTRANT -Wall -W $(QT_DEFINES) -D$(SYSTYPE)
+QT_CXXFLAGS = -MMD -pipe -O2 -march=pentium-m -pipe -D_REENTRANT -Wall -W $(QT_DEFINES) -D$(SYSTYPE) -g
 
 obj/moc_%.cpp: src/gui/%.h
 	@echo -e "\033[01;33m***\033[00;32m Creating $@...\033[00m"

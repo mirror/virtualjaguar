@@ -245,7 +245,8 @@ void MainWin::Timer(void)
 	}
 #else
 	JaguarExecuteNew();
-	memcpy(videoWidget->buffer, backbuffer, videoWidget->rasterHeight * videoWidget->rasterWidth);
+//	memcpy(videoWidget->buffer, backbuffer, videoWidget->rasterHeight * videoWidget->rasterWidth);
+	memcpy(videoWidget->buffer, backbuffer, videoWidget->rasterHeight * videoWidget->textureWidth);
 //	memcpy(surface->pixels, backbuffer, TOMGetVideoModeWidth() * TOMGetVideoModeHeight() * 4);
 #endif
 
@@ -372,20 +373,23 @@ void MainWin::ToggleRunState(void)
 			for(uint32_t y=0; y<videoWidget->rasterHeight; y++)
 				videoWidget->buffer[(y * videoWidget->textureWidth) + x] = 0x00000000;
 #else
-		for(uint32_t i=0; i<TOMGetVideoModeWidth() * 256; i++)
+//		for(uint32_t i=0; i<TOMGetVideoModeWidth() * 256; i++)
+		for(uint32_t i=0; i<videoWidget->textureWidth * 256; i++)
 		{
 			uint32_t pixel = backbuffer[i];
-			uint8_t b = (pixel >> 16) & 0xFF, g = (pixel >> 8) & 0xFF, r = pixel & 0xFF;
+//			uint8_t b = (pixel >> 16) & 0xFF, g = (pixel >> 8) & 0xFF, r = pixel & 0xFF;
+			uint8_t r = (pixel >> 24) & 0xFF, g = (pixel >> 16) & 0xFF, b = (pixel >> 8) & 0xFF;
 			pixel = ((r + g + b) / 3) & 0x00FF;
-			backbuffer[i] = 0xFF000000 | (pixel << 16) | (pixel << 8);
+//			backbuffer[i] = 0xFF000000 | (pixel << 16) | (pixel << 8);
+			backbuffer[i] = 0x000000FF | (pixel << 16) | (pixel << 8);
 		}
 
-		memcpy(videoWidget->buffer, backbuffer, videoWidget->rasterHeight * videoWidget->rasterWidth);
+//		memcpy(videoWidget->buffer, backbuffer, videoWidget->rasterHeight * videoWidget->rasterWidth);
+		memcpy(videoWidget->buffer, backbuffer, videoWidget->rasterHeight * videoWidget->textureWidth);
 #endif
 
 		videoWidget->updateGL();
 	}
-
 }
 
 void MainWin::SetZoom100(void)

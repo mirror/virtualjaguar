@@ -14,14 +14,27 @@
 #include "glwidget.h"
 
 #include "settings.h"
+#include "tom.h"
+#include "video.h"
 
 GLWidget::GLWidget(QWidget * parent/*= 0*/): QGLWidget(parent), texture(0),
 	textureWidth(0), textureHeight(0), buffer(0), rasterWidth(320), rasterHeight(240)
 {
+//	tomDeviceWidth = rasterWidth;
+	tomDeviceWidth = 1024;	// It has to be the texture width...
+
+	// Set up the backbuffer
+	// To be safe, this should be 1280 * 625 * 2...
+	backbuffer = (uint32_t *)malloc(1280 * 625 * sizeof(uint32_t));
+//	memset(backbuffer, 0x44, rasterWidth *
+	memset(backbuffer, 0xFF, 1024 *
+		(vjs.hardwareTypeNTSC ? rasterHeight : VIRTUAL_SCREEN_HEIGHT_PAL)
+		* sizeof(uint32_t));
 }
 
 GLWidget::~GLWidget()
 {
+	delete[] backbuffer;
 }
 
 void GLWidget::initializeGL()

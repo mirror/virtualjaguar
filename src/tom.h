@@ -61,4 +61,6 @@ extern uint32 tomTimerPrescaler;
 extern uint32 tomTimerDivider;
 extern int32 tomTimerCounter;
 
+extern uint32 tomDeviceWidth;
+
 #endif	// __TOM_H__
