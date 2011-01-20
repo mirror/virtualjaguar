@@ -11,9 +11,10 @@
 // Who  When        What
 // ---  ----------  -------------------------------------------------------------
 // JLH  01/16/2010  Created this log ;-)
+// JLH  01/20/2011  Change rendering to RGBA, removed unnecessary code
 //
 // Note: Endian wrongness probably stems from the MAME origins of this emu and
-//       the braindead way in which MAME handles memory. :-)
+//       the braindead way in which MAME used to handle memory. :-}
 //
 // Note: TOM has only a 16K memory space
 //
@@ -328,12 +329,8 @@ uint32 tomWidth, tomHeight;
 uint32 tomTimerPrescaler;
 uint32 tomTimerDivider;
 int32 tomTimerCounter;
-//uint32 tom_scanline;
-//uint32 hblankWidthInPixels = 0;
 uint16 tom_jerry_int_pending, tom_timer_int_pending, tom_object_int_pending,
 	tom_gpu_int_pending, tom_video_int_pending;
-//uint16 * tom_cry_rgb_mix_lut;
-//int16 * TOMBackbuffer;
 uint32 * TOMBackbuffer;
 
 static const char * videoMode_to_str[8] =
@@ -350,13 +347,8 @@ void tom_render_16bpp_direct_scanline(uint32 * backbuffer);
 void tom_render_16bpp_rgb_scanline(uint32 * backbuffer);
 void tom_render_16bpp_cry_rgb_mix_scanline(uint32 * backbuffer);
 
-void tom_render_16bpp_cry_stretch_scanline(uint32 * backbuffer);
-void tom_render_24bpp_stretch_scanline(uint32 * backbuffer);
-void tom_render_16bpp_direct_stretch_scanline(uint32 * backbuffer);
-void tom_render_16bpp_rgb_stretch_scanline(uint32 * backbuffer);
-void tom_render_16bpp_cry_rgb_mix_stretch_scanline(uint32 * backbuffer);
-
-render_xxx_scanline_fn * scanline_render_normal[] =
+//render_xxx_scanline_fn * scanline_render_normal[] =
+render_xxx_scanline_fn * scanline_render[] =
 {
 	tom_render_16bpp_cry_scanline,
 	tom_render_24bpp_scanline,
@@ -367,21 +359,6 @@ render_xxx_scanline_fn * scanline_render_normal[] =
 	tom_render_16bpp_direct_scanline,
 	tom_render_16bpp_rgb_scanline
 };
-
-render_xxx_scanline_fn * scanline_render_stretch[] =
-{
-	tom_render_16bpp_cry_stretch_scanline,
-	tom_render_24bpp_stretch_scanline,
-	tom_render_16bpp_direct_stretch_scanline,
-	tom_render_16bpp_rgb_stretch_scanline,
-	tom_render_16bpp_cry_rgb_mix_stretch_scanline,
-	tom_render_24bpp_stretch_scanline,
-	tom_render_16bpp_direct_stretch_scanline,
-	tom_render_16bpp_rgb_stretch_scanline,
-};
-
-render_xxx_scanline_fn * scanline_render[8];
-
 
 // Screen info for various games [PAL]...
 /*
@@ -571,11 +548,6 @@ void TOMFillLookupTables(void)
 			| ((i & 0xF100) << 16)					// Red
 			| ((i & 0x003F) << 18)					// Green
 			| ((i & 0x07C0) << 5);					// Blue
-/*
-It does this:
-0000 0000 0000 0000 RRRR RBBB BBGG GGGG -> AAAA AAAA BBBB BBBB GGGG GGGG RRRR RRRR
-                    5432 1543 2154 3210              5432 1543 5432 1054 5432 1543
-*/
 
 	for(uint32 i=0; i<0x10000; i++)
 	{
@@ -591,10 +563,6 @@ It does this:
 		CRY16ToRGB32[i] = 0x000000FF | (r << 24) | (g << 16) | (b << 8);
 		MIX16ToRGB32[i] = (i & 0x01 ? RGB16ToRGB32[i] : CRY16ToRGB32[i]);
 	}
-
-//	for(uint32 i=0; i<0x10000; i++)
-//		if (i & 0x01)
-//			MIX16ToRGB32[i] = RGB16ToRGB32[i];
 }
 
 void TOMSetPendingJERRYInt(void)
@@ -785,132 +753,6 @@ void tom_render_16bpp_rgb_scanline(uint32 * backbuffer)
 	}
 }
 
-/////////////////////////////////////////////////////////////////////
-// This stuff may just go away by itself, especially if we do some //
-// good old OpenGL goodness...                                     //
-/////////////////////////////////////////////////////////////////////
-
-void tom_render_16bpp_cry_rgb_mix_stretch_scanline(uint32 *backbuffer)
-{
-	uint16 width=tomWidth;
-	uint8 *current_line_buffer=(uint8*)&tomRam8[0x1800];
-
-	while (width)
-	{
-		uint16 color = *current_line_buffer++;
-		color <<= 8;
-		color |= *current_line_buffer++;
-		*backbuffer++ = MIX16ToRGB32[color];
-		current_line_buffer += 2;
-		width--;
-	}
-}
-
-void tom_render_16bpp_cry_stretch_scanline(uint32 *backbuffer)
-{
-	uint32 chrm, chrl, y;
-
-	uint16 width=tomWidth;
-	uint8 *current_line_buffer=(uint8*)&tomRam8[0x1800];
-
-	while (width)
-	{
-		uint16 color;
-		color=*current_line_buffer++;
-		color<<=8;
-		color|=*current_line_buffer++;
-
-		chrm = (color & 0xF000) >> 12;
-		chrl = (color & 0x0F00) >> 8;
-		y    = (color & 0x00FF);
-
-		uint16 red   =	((((uint32)redcv[chrm][chrl])*y)>>11);
-		uint16 green =	((((uint32)greencv[chrm][chrl])*y)>>11);
-		uint16 blue  =	((((uint32)bluecv[chrm][chrl])*y)>>11);
-
-		uint16 color2;
-		color2=*current_line_buffer++;
-		color2<<=8;
-		color2|=*current_line_buffer++;
-
-		chrm = (color2 & 0xF000) >> 12;
-		chrl = (color2 & 0x0F00) >> 8;
-		y    = (color2 & 0x00FF);
-
-		uint16 red2   =	((((uint32)redcv[chrm][chrl])*y)>>11);
-		uint16 green2 =	((((uint32)greencv[chrm][chrl])*y)>>11);
-		uint16 blue2  =	((((uint32)bluecv[chrm][chrl])*y)>>11);
-
-		red=(red+red2)>>1;
-		green=(green+green2)>>1;
-		blue=(blue+blue2)>>1;
-
-		*backbuffer++=(red<<10)|(green<<5)|blue;
-		width--;
-	}
-}
-
-void tom_render_24bpp_stretch_scanline(uint32 *backbuffer)
-{
-	uint16 width=tomWidth;
-	uint8 *current_line_buffer=(uint8*)&tomRam8[0x1800];
-
-	while (width)
-	{
-		uint16 green=*current_line_buffer++;
-		uint16 red=*current_line_buffer++;
-		/*uint16 nc=*/current_line_buffer++;
-		uint16 blue=*current_line_buffer++;
-		red>>=3;
-		green>>=3;
-		blue>>=3;
-		*backbuffer++=(red<<10)|(green<<5)|blue;
-		current_line_buffer+=4;
-		width--;
-	}
-}
-
-void tom_render_16bpp_direct_stretch_scanline(uint32 *backbuffer)
-{
-	uint16 width=tomWidth;
-	uint8 *current_line_buffer=(uint8*)&tomRam8[0x1800];
-
-	while (width)
-	{
-		uint16 color=*current_line_buffer++;
-		color<<=8;
-		color|=*current_line_buffer++;
-		color>>=1;
-		*backbuffer++=color;
-		current_line_buffer+=2;
-		width--;
-	}
-}
-
-void tom_render_16bpp_rgb_stretch_scanline(uint32 *backbuffer)
-{
-	uint16 width=tomWidth;
-	uint8 *current_line_buffer=(uint8*)&tomRam8[0x1800];
-
-	while (width)
-	{
-		uint16 color1=*current_line_buffer++;
-		color1<<=8;
-		color1|=*current_line_buffer++;
-		color1>>=1;
-		uint16 color2=*current_line_buffer++;
-		color2<<=8;
-		color2|=*current_line_buffer++;
-		color2>>=1;
-		uint16 red=(((color1&0x7c00)>>10)+((color2&0x7c00)>>10))>>1;
-		uint16 green=(((color1&0x00003e0)>>5)+((color2&0x00003e0)>>5))>>1;
-		uint16 blue=(((color1&0x0000001f))+((color2&0x0000001f)))>>1;
-
-		color1=(red<<10)|(blue<<5)|green;
-		*backbuffer++=color1;
-		width--;
-	}
-}
 
 void TOMResetBackbuffer(uint32 * backbuffer)
 {
@@ -1045,12 +887,10 @@ void tom_render_24bpp_scanline(uint32 * backbuffer)
 //
 void TOMInit(void)
 {
+	TOMFillLookupTables();
 	OPInit();
 	BlitterInit();
 	TOMReset();
-	// Setup the non-stretchy scanline rendering...
-	memcpy(scanline_render, scanline_render_normal, sizeof(scanline_render));
-	TOMFillLookupTables();
 }
 
 void TOMDone(void)
@@ -1067,11 +907,6 @@ void TOMDone(void)
 //	memory_free(tomRam8);
 //	memory_free(tom_cry_rgb_mix_lut);
 }
-
-/*uint32 tom_getHBlankWidthInPixels(void)
-{
-	return hblankWidthInPixels;
-}*/
 
 uint32 TOMGetVideoModeWidth(void)
 {
@@ -1223,7 +1058,6 @@ void TOMReset(void)
 	tomTimerPrescaler = 0;					// TOM PIT is disabled
 	tomTimerDivider = 0;
 	tomTimerCounter = 0;
-	memcpy(scanline_render, scanline_render_normal, sizeof(scanline_render));
 }
 
 //
@@ -1530,18 +1364,6 @@ int TOMIRQEnabled(int irq)
 	return tomRam8[INT1 + 1/*0xE1*/] & (1 << irq);
 }
 
-//unused
-/*void tom_set_irq_latch(int irq, int enabled)
-{
-	tomRam8[0xE0] = (tomRam8[0xE0] & (~(1<<irq))) | (enabled ? (1<<irq) : 0);
-}*/
-
-//unused
-/*uint16 tom_irq_control_reg(void)
-{
-	return (tomRam8[0xE0] << 8) | tomRam8[0xE1];
-}*/
-
 // NEW:
 // TOM Programmable Interrupt Timer handler
 // NOTE: TOM's PIT is only enabled if the prescaler is != 0
@@ -1596,16 +1418,15 @@ void TOMExecPIT(uint32 cycles)
 	}
 }
 
-
 void TOMPITCallback(void)
 {
-//	INT1_RREG |= 0x08;                         // Set TOM PIT interrupt pending
+//	INT1_RREG |= 0x08;							// Set TOM PIT interrupt pending
 	TOMSetPendingTimerInt();
-    GPUSetIRQLine(GPUIRQ_TIMER, ASSERT_LINE);  // It does the 'IRQ enabled' checking
+    GPUSetIRQLine(GPUIRQ_TIMER, ASSERT_LINE);	// It does the 'IRQ enabled' checking
 
 //	if (INT1_WREG & 0x08)
 	if (TOMIRQEnabled(IRQ_TIMER))
-		m68k_set_irq(7);                       // Generate 68K NMI
+		m68k_set_irq(7);						// Generate 68K NMI
 
 	TOMResetPIT();
 }

@@ -71,9 +71,12 @@ rasterHeight = (vjs.hardwareTypeNTSC ? 240 : 256);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, (vjs.glFilter ? GL_LINEAR : GL_NEAREST));
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, (vjs.glFilter ? GL_LINEAR : GL_NEAREST));
 //	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, rasterWidth, rasterHeight, GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV, buffer);
-	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, rasterWidth, rasterHeight, GL_RGBA, GL_UNSIGNED_INT_8_8_8_8, buffer);
+//more kludge
+	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, TOMGetVideoModeWidth(), rasterHeight, GL_RGBA, GL_UNSIGNED_INT_8_8_8_8, buffer);
+//	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, rasterWidth, rasterHeight, GL_RGBA, GL_UNSIGNED_INT_8_8_8_8, buffer);
 
-	double w = (double)rasterWidth  / (double)textureWidth;
+	double w = (double)TOMGetVideoModeWidth()  / (double)textureWidth;
+//	double w = (double)rasterWidth  / (double)textureWidth;
 	double h = (double)rasterHeight / (double)textureHeight;
 	unsigned u = outputWidth;
 	unsigned v = outputHeight;
