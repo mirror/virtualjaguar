@@ -560,24 +560,35 @@ uint32 MIX16ToRGB32[0x10000];
 #warning "This is not endian-safe. !!! FIX !!!"
 void TOMFillLookupTables(void)
 {
+	// NOTE: Jaguar 16-bit (non-CRY) color is RBG 556 like so:
+	//       RRRR RBBB BBGG GGGG
 	for(uint32 i=0; i<0x10000; i++)
-		RGB16ToRGB32[i] = 0xFF000000
-			| ((i & 0xF100) >> 8)  | ((i & 0xE000) >> 13)
-			| ((i & 0x07C0) << 13) | ((i & 0x0700) << 8)
-			| ((i & 0x003F) << 10) | ((i & 0x0030) << 4);
-
+//hm.		RGB16ToRGB32[i] = 0xFF000000
+//			| ((i & 0xF100) >> 8)  | ((i & 0xE000) >> 13)
+//			| ((i & 0x07C0) << 13) | ((i & 0x0700) << 8)
+//			| ((i & 0x003F) << 10) | ((i & 0x0030) << 4);
+		RGB16ToRGB32[i] = 0x000000FF
+			| ((i & 0xF100) << 16)					// Red
+			| ((i & 0x003F) << 18)					// Green
+			| ((i & 0x07C0) << 5);					// Blue
+/*
+It does this:
+0000 0000 0000 0000 RRRR RBBB BBGG GGGG -> AAAA AAAA BBBB BBBB GGGG GGGG RRRR RRRR
+                    5432 1543 2154 3210              5432 1543 5432 1054 5432 1543
+*/
 
 	for(uint32 i=0; i<0x10000; i++)
 	{
-		uint32 chrm = (i & 0xF000) >> 12,
-			chrl = (i & 0x0F00) >> 8,
-			y = (i & 0x00FF);
+		uint32 cyan = (i & 0xF000) >> 12,
+			red = (i & 0x0F00) >> 8,
+			intensity = (i & 0x00FF);
 
-		uint32 r = (((uint32)redcv[chrm][chrl]) * y) >> 8,
-			g = (((uint32)greencv[chrm][chrl]) * y) >> 8,
-			b = (((uint32)bluecv[chrm][chrl]) * y) >> 8;
+		uint32 r = (((uint32)redcv[cyan][red]) * intensity) >> 8,
+			g = (((uint32)greencv[cyan][red]) * intensity) >> 8,
+			b = (((uint32)bluecv[cyan][red]) * intensity) >> 8;
 
-		CRY16ToRGB32[i] = 0xFF000000 | (b << 16) | (g << 8) | r;
+//hm.		CRY16ToRGB32[i] = 0xFF000000 | (b << 16) | (g << 8) | r;
+		CRY16ToRGB32[i] = 0x000000FF | (r << 24) | (g << 16) | (b << 8);
 		MIX16ToRGB32[i] = (i & 0x01 ? RGB16ToRGB32[i] : CRY16ToRGB32[i]);
 	}
 
@@ -717,7 +728,8 @@ void tom_render_24bpp_scanline(uint32 * backbuffer)
 		uint32 r = *current_line_buffer++;
 		current_line_buffer++;
 		uint32 b = *current_line_buffer++;
-		*backbuffer++ = 0xFF000000 | (b << 16) | (g << 8) | r;
+//hm.		*backbuffer++ = 0xFF000000 | (b << 16) | (g << 8) | r;
+		*backbuffer++ = 0x000000FF | (r << 24) | (g << 16) | (r << 8);
 		width--;
 	}
 }
@@ -1016,7 +1028,7 @@ void tom_render_24bpp_scanline(uint32 * backbuffer)
 			uint32 * currentLineBuffer = TOMBackbuffer;
 			uint8 g = tomRam8[BORD1], r = tomRam8[BORD1 + 1], b = tomRam8[BORD2 + 1];
 //Hm.			uint32 pixel = 0xFF000000 | (b << 16) | (g << 8) | r;
-			uint32 pixel = 0x000000FF | (r << 24) | (g << 16) | (r << 8);
+			uint32 pixel = 0x000000FF | (r << 24) | (g << 16) | (b << 8);
 
 			for(uint32 i=0; i<tomWidth; i++)
 				*currentLineBuffer++ = pixel;
