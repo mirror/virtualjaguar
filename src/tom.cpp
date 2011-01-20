@@ -336,8 +336,6 @@ uint16 tom_jerry_int_pending, tom_timer_int_pending, tom_object_int_pending,
 //int16 * TOMBackbuffer;
 uint32 * TOMBackbuffer;
 
-uint32 tomDeviceWidth;
-
 static const char * videoMode_to_str[8] =
 	{ "16 BPP CRY", "24 BPP RGB", "16 BPP DIRECT", "16 BPP RGB",
 	  "Mixed mode", "24 BPP RGB", "16 BPP DIRECT", "16 BPP RGB" };
@@ -910,6 +908,7 @@ void TOMResetBackbuffer(uint32 * backbuffer)
 //
 // Process a single scanline
 //
+uint32 tomDeviceWidth;//kludge
 void TOMExecScanline(uint16 scanline, bool render)
 {
 	bool inActiveDisplayArea = true;
@@ -1016,7 +1015,8 @@ void tom_render_24bpp_scanline(uint32 * backbuffer)
 			// If outside of VDB & VDE, then display the border color
 			uint32 * currentLineBuffer = TOMBackbuffer;
 			uint8 g = tomRam8[BORD1], r = tomRam8[BORD1 + 1], b = tomRam8[BORD2 + 1];
-			uint32 pixel = 0xFF000000 | (b << 16) | (g << 8) | r;
+//Hm.			uint32 pixel = 0xFF000000 | (b << 16) | (g << 8) | r;
+			uint32 pixel = 0x000000FF | (r << 24) | (g << 16) | (r << 8);
 
 			for(uint32 i=0; i<tomWidth; i++)
 				*currentLineBuffer++ = pixel;

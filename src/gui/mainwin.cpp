@@ -206,12 +206,14 @@ WriteLog("About to attempt to load BIOSes...\n");
 
 	SET32(jaguarMainRAM, 0, 0x00200000);			// Set top of stack...
 
+//Let's try this...
+/*if*/ JaguarLoadFile("./software/Rayman (World).j64");
+
 //This is crappy!!! !!! FIX !!!
 //Is this even needed any more? Hmm. Maybe. Dunno.
 //Seems like it is... But then again, maybe not. Have to test it to see.
 WriteLog("GUI: Resetting Jaguar...\n");
 	JaguarReset();
-
 }
 
 void MainWin::closeEvent(QCloseEvent * event)
@@ -246,7 +248,7 @@ void MainWin::Timer(void)
 #else
 	JaguarExecuteNew();
 //	memcpy(videoWidget->buffer, backbuffer, videoWidget->rasterHeight * videoWidget->rasterWidth);
-	memcpy(videoWidget->buffer, backbuffer, videoWidget->rasterHeight * videoWidget->textureWidth);
+	memcpy(videoWidget->buffer, backbuffer, videoWidget->rasterHeight * videoWidget->textureWidth * sizeof(uint32_t));
 //	memcpy(surface->pixels, backbuffer, TOMGetVideoModeWidth() * TOMGetVideoModeHeight() * 4);
 #endif
 
@@ -385,7 +387,7 @@ void MainWin::ToggleRunState(void)
 		}
 
 //		memcpy(videoWidget->buffer, backbuffer, videoWidget->rasterHeight * videoWidget->rasterWidth);
-		memcpy(videoWidget->buffer, backbuffer, videoWidget->rasterHeight * videoWidget->textureWidth);
+		memcpy(videoWidget->buffer, backbuffer, videoWidget->rasterHeight * videoWidget->textureWidth * sizeof(uint32_t));
 #endif
 
 		videoWidget->updateGL();

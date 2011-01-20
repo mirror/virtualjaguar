@@ -34,7 +34,7 @@ GLWidget::GLWidget(QWidget * parent/*= 0*/): QGLWidget(parent), texture(0),
 
 GLWidget::~GLWidget()
 {
-	delete[] backbuffer;
+	free(backbuffer);
 }
 
 void GLWidget::initializeGL()
