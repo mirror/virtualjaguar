@@ -36,14 +36,30 @@ QVariant FileListModel::data(const QModelIndex & index, int role) const
 //	return QVariant();
 //	return pixList.at(index.row());
 //	return (uint)dbIndex.at(index.row());
+//It could be that this is fucking things up...
+#if 0
 	if (role == Qt::DecorationRole)
 		return list.at(index.row()).label;
 	else if (role == Qt::DisplayRole)
 		return (uint)list.at(index.row()).dbIndex;
 	else if (role == Qt::EditRole)
 		return list.at(index.row()).filename;
+	else if (role == Qt::WhatsThisRole)
+		return (uint)list.at(index.row()).fileSize;
 	else
 		return QVariant();
+#else
+	if (role == FLM_LABEL)
+		return list.at(index.row()).label;
+	else if (role == FLM_INDEX)
+		return (uint)list.at(index.row()).dbIndex;
+	else if (role == FLM_FILENAME)
+		return list.at(index.row()).filename;
+	else if (role == FLM_FILESIZE)
+		return (uint)list.at(index.row()).fileSize;
+
+	return QVariant();
+#endif
 }
 
 QVariant FileListModel::headerData(int/* section*/, Qt::Orientation/* orientation*/, int role/*= Qt::DisplayRole*/) const
@@ -67,6 +83,7 @@ QVariant FileListModel::headerData(int/* section*/, Qt::Orientation/* orientatio
 #endif
 }
 
+/*
 void FileListModel::AddData(QIcon pix)
 {
 	pixList.push_back(pix);
@@ -78,13 +95,15 @@ void FileListModel::AddData(unsigned long index)
 	dbIndex.push_back(index);
 	reset();
 }
+*/
 
-void FileListModel::AddData(unsigned long index, QString str, QImage img)
+void FileListModel::AddData(unsigned long index, QString str, QImage img, unsigned long size)
 {
 	// Assuming that both QString and QImage have copy constructors, this should work.
 	FileListData data;
 
 	data.dbIndex = index;
+	data.fileSize = size;
 	data.filename = str;
 	data.label = img;
 

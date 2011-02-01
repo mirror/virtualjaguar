@@ -207,9 +207,9 @@ WriteLog("About to attempt to load BIOSes...\n");
 	SET32(jaguarMainRAM, 0, 0x00200000);			// Set top of stack...
 
 //Let's try this...
-//	JaguarLoadFile("./software/Rayman (World).j64");
+	JaguarLoadFile("./software/Rayman (World).j64");
 //	JaguarLoadFile("./software/I-War (World).j64");
-	JaguarLoadFile("./software/Alien vs Predator (World).j64");
+//	JaguarLoadFile("./software/Alien vs Predator (World).j64");
 
 //This is crappy!!! !!! FIX !!!
 //Is this even needed any more? Hmm. Maybe. Dunno.

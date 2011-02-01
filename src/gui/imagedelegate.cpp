@@ -17,7 +17,7 @@
 #include "imagedelegate.h"
 
 #include "filedb.h"
-
+#include "filelistmodel.h"
 
 //ImageDelegate::ImageDelegate(QObject * parent): QAbstractItemDelegate(parent)//, pixelSize(12)
 //{
@@ -89,9 +89,15 @@ The foreground of the item (the circle representing a pixel) must be rendered us
 	// don't get Qt's default ugly looking fast scaling...
 #warning "!!! FIX !!! Need to create properly scaled down cart/label images!"
 //	unsigned long i = index.model()->data(index, Qt::DisplayRole).toUInt();
+#if 0
 	unsigned long i = index.model()->data(index, Qt::DisplayRole).toUInt();
 	QString filename = index.model()->data(index, Qt::EditRole).toString();
 	QImage label = index.model()->data(index, Qt::DecorationRole).value<QImage>();
+#else
+	unsigned long i = index.model()->data(index, FLM_INDEX).toUInt();
+	QString filename = index.model()->data(index, FLM_FILENAME).toString();
+	QImage label = index.model()->data(index, FLM_LABEL).value<QImage>();
+#endif
 
 #if 0
 	if (role == Qt::DecorationRole)

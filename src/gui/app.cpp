@@ -9,10 +9,12 @@
 // Who  When        What
 // ---  ----------  -------------------------------------------------------------
 // JLH  12/23/2009  Created this file
+// JLH  01/21/2011  Added SDL initialization
 //
 
 #include "app.h"
 
+#include <SDL.h>
 #include <QApplication>
 #include "log.h"
 #include "mainwin.h"
@@ -38,9 +40,20 @@ int main(int argc, char * argv[])
 //ick	int id = qRegisterMetaType<uint32>();
 
 	LogInit("virtualjaguar.log");				// Init logfile
-	App app(argc, argv);						// Declare an instance of the application
+	int retVal = -1;							// Default is failure
 
-	int retVal = app.exec();					// And run it!
+	// Set up SDL library
+	if (SDL_Init(SDL_INIT_JOYSTICK | SDL_INIT_AUDIO) < 0)
+	{
+		WriteLog("VJ: Could not initialize the SDL library: %s\n", SDL_GetError());
+	}
+	else
+	{
+		WriteLog("VJ: SDL (joystick, audio) successfully initialized.\n");
+		App app(argc, argv);					// Declare an instance of the application
+		retVal = app.exec();					// And run it!
+	}
+
 	LogDone();									// Close logfile
 	return retVal;
 }

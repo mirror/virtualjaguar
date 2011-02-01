@@ -94,10 +94,13 @@ printf("FileThread: Aborting!!!\n");
 
 			if (size > 0)
 			{
+				uint32_t fileSize = size;
 //printf("FileThread: About to calc checksum on file with size %u... (buffer=%08X)\n", size, buffer);
 				uint32 crc = crc32_calcCheckSum(buffer, size);
 				uint32 index = FindCRCIndexInFileList(crc);
-				delete[] buffer;
+// These two are NOT interchangeable!
+//				delete[] buffer;
+				free(buffer);
 
 // Mebbe we should pass a index AND a QImage here???
 /*
@@ -108,18 +111,38 @@ we might need it if we want to pull ROM flags from the fileDB...
 */
 				if (index != 0xFFFFFFFF && !(romList[index].flags & FF_BIOS))
 				{
-					QImage img;
+//Here's a little problem. When we create the image here and pass it off to FilePicker,
+//we can clobber this image before we have a chance to copy it out in the FilePicker function
+//because we can be back here before FilePicker can respond.
+//So we need to fix this so that this does not happen. :-/
+//And now it is. :-)
+/*
+So I guess we can create an image on the heap and pass *that* to FilePicker. But then, would
+it be worthwhile to just pass the pointer into the FileListModel instead of a copy of an object?
+Maybe. We'd do like so:
+QImage * imageCopy = new QImage();
+*/
+					QImage * img = NULL;
 					size = GetFileFromZIP(fileInfo.canonicalFilePath().toAscii(), FT_LABEL, buffer);
+//printf("FT: Label size = %u bytes.\n", size);
 
 					if (size > 0)
 					{
-						img.loadFromData(buffer, size);
-						delete[] buffer;
+//#warning "!!!"
+//Not sure if this will work properly... Seems to.
+						QImage label;
+						bool success = label.loadFromData(buffer, size);
+						img = new QImage();
+						*img = label.scaled(373, 172, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
+//printf("FT: Label %s: %ux%u.\n", (success ? "succeeded" : "did not succeed"), img->width(), img->height());
+// These two are NOT interchangeable!
+//						delete[] buffer;
+						free(buffer);
 					}
 //printf("FileThread: Attempted to load image. Size: %u x %u...\n", img.width(), img.height());
 
 //					emit FoundAFile(index);
-					emit FoundAFile2(index, fileInfo.canonicalFilePath(), &img);
+					emit FoundAFile2(index, fileInfo.canonicalFilePath(), img, fileSize);
 				}
 			}
 		}
@@ -139,7 +162,7 @@ we might need it if we want to pull ROM flags from the fileDB...
 // Mebbe we should pass a index AND a QImage here???
 				if (index != 0xFFFFFFFF && !(romList[index].flags & FF_BIOS))
 //					emit FoundAFile(index);
-					emit FoundAFile2(index, fileInfo.canonicalFilePath(), 0);
+					emit FoundAFile2(index, fileInfo.canonicalFilePath(), 0, fileInfo.size());
 			}
 		}
 	}

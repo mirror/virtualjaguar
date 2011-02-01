@@ -64,6 +64,35 @@ FilePickerWindow::FilePickerWindow(QWidget * parent/*= 0*/): QWidget(parent, Qt:
 	fileList->setModel(model);
 //	fileList->setItemDelegate(new ImageDelegate(this));
 	fileList->setItemDelegate(new ImageDelegate());
+#if 0
+	//nope.
+//	fileList->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
+//	fileList->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
+//small problem with this is that it doesn't take scrollbar into account...
+QSize sbSize = fileList->verticalScrollBar()->minimumSizeHint();
+printf("VSB minimumSizeHint: %u, %u\n", sbSize.width(), sbSize.height());
+QSize sbSize2 = fileList->verticalScrollBar()->sizeHint();
+printf("VSB sizeHint: %u, %u\n", sbSize2.width(), sbSize2.height());
+QRect sbRect = fileList->verticalScrollBar()->normalGeometry();
+printf("VSB normalGeometry: %u, %u\n", sbRect.width(), sbRect.height());
+QSize sbSize3 = fileList->verticalScrollBar()->size();
+printf("VSB size: %u, %u\n", sbSize3.width(), sbSize3.height());
+//	int sbWidth = fileList->verticalScrollBar()->width();
+	int sbWidth = fileList->verticalScrollBar()->size().width();
+	fileList->setFixedWidth((488/4) + 4 + sbWidth);//ick
+#else
+	// This sets it to the "too large size" as the minimum!
+	QScrollBar * vsb = new QScrollBar(Qt::Vertical, this);
+	int sbWidth = vsb->size().width();
+	printf("VSB size width: %u\n", sbWidth);
+	int sbWidth2 = vsb->sizeHint().width();
+	printf("VSB sizeHint width: %u\n", sbWidth2);
+	delete vsb;
+
+//	fileList->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Preferred);
+//	fileList->verticalScrollBar()->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Preferred);
+	fileList->setFixedWidth((488/4) + 4 + sbWidth);//ick
+#endif
 
 //	QVBoxLayout * layout = new QVBoxLayout;
 	QHBoxLayout * layout = new QHBoxLayout;
@@ -123,7 +152,7 @@ FilePickerWindow::FilePickerWindow(QWidget * parent/*= 0*/): QWidget(parent, Qt:
 
 	fileThread = new FileThread(this);
 //	connect(fileThread, SIGNAL(FoundAFile(unsigned long)), this, SLOT(AddFileToList(unsigned long)));
-	connect(fileThread, SIGNAL(FoundAFile2(unsigned long, QString, QImage *)), this, SLOT(AddFileToList2(unsigned long, QString, QImage *)));
+	connect(fileThread, SIGNAL(FoundAFile2(unsigned long, QString, QImage *, unsigned long)), this, SLOT(AddFileToList2(unsigned long, QString, QImage *, unsigned long)));
 	fileThread->Go();
 /*
 New sizes: 373x172 (label), 420x340 (cart)
@@ -143,16 +172,20 @@ void FilePickerWindow::AddFileToList(unsigned long index)
 printf("FilePickerWindow: Found match [%s]...\n", romList[index].name);
 	// NOTE: The model *ignores* what you send it, so this is crap. !!! FIX !!! [DONE, somewhat]
 //	model->AddData(QIcon(":/res/generic.png"));
-	model->AddData(index);
+//	model->AddData(index);
 }
 
-void FilePickerWindow::AddFileToList2(unsigned long index, QString str, QImage * img)
+void FilePickerWindow::AddFileToList2(unsigned long index, QString str, QImage * img, unsigned long size)
 {
 printf("FilePickerWindow(2): Found match [%s]...\n", romList[index].name);
 	if (img)
-		model->AddData(index, str, *img);
+	{
+		model->AddData(index, str, *img, size);
+//It would be better to pass the pointer into the model though...
+		delete img;
+	}
 	else
-		model->AddData(index, str, QImage());
+		model->AddData(index, str, QImage(), size);
 }
 
 //
@@ -161,23 +194,52 @@ printf("FilePickerWindow(2): Found match [%s]...\n", romList[index].name);
 //
 void FilePickerWindow::UpdateSelection(const QModelIndex & current, const QModelIndex &/*previous*/)
 {
+#if 0
 	QString s = current.model()->data(current, Qt::EditRole).toString();
 	unsigned long i = current.model()->data(current, Qt::DisplayRole).toUInt();
 	QImage label = current.model()->data(current, Qt::DecorationRole).value<QImage>();
 //	printf("FPW: %s\n", s.toAscii().data());
-
+	unsigned long fileSize = current.model()->data(current, Qt::WhatsThisRole).toUInt();
+#else
+	QString s = current.model()->data(current, FLM_FILENAME).toString();
+	unsigned long i = current.model()->data(current, FLM_INDEX).toUInt();
+	QImage label = current.model()->data(current, FLM_LABEL).value<QImage>();
+	unsigned long fileSize = current.model()->data(current, FLM_FILESIZE).toUInt();
+//	printf("FPW: %s\n", s.toAscii().data());
+#endif
+//373x172 is label size...
 	if (!label.isNull())
 	{
+/*
+	QImage cartImg(":/res/cart-blank.png");
+	QPainter painter(&cartImg);
+	painter.drawPixmap(23, 87, QPixmap(":/res/label-blank.png"));
+	painter.end();
+	cartSmall = cartImg.scaled(488/4, 395/4, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
+*/
 		QImage cart(":/res/cart-blank.png");
 		QPainter painter(&cart);
+//Though this should probably be done when this is loaded, instead of every time here...
+//QImage scaledImg = label.scaled(373, 172, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
+//painter.drawPixmap(23, 87, QPixmap::fromImage(scaledImg));
 		painter.drawPixmap(23, 87, QPixmap::fromImage(label));
+//		painter.drawPixmap(23, 87, 373, 172, QPixmap::fromImage(label));
 		painter.end();
 		cartImage->setPixmap(QPixmap::fromImage(cart));
 	}
 
+//1048576
+//2097152
+//4194304
 	title->setText(QString("<h2>%1</h2>").arg(romList[i].name));
+//Kludge for now, we'll have to fix this later...
+	QString fileType = QString(romList[i].flags & FF_ROM ? "%1MB Cartridge" : "%1*** UNKNOWN ***")
+		.arg(fileSize / 1048576);
 	QString crcString = QString("%1").arg(romList[i].crc32, 8, 16, QChar('0')).toUpper();
-	data->setText(QString("%1<br>%2<br>%3<br>%4").arg("Cart").arg(crcString).arg("100%").arg("Requires BIOS"));
+	QString notes =
+/*	(romList[i].flags & FF_ROM ? "Jaguar ROM " : "")*/
+		QString(romList[i].flags & FF_BAD_DUMP ? "<b>BAD DUMP</b>" : "");
+	data->setText(QString("%1<br>%2<br>%3<br>%4").arg(fileType).arg(crcString).arg("???%").arg(notes));
 }
 
 /*
@@ -206,5 +268,3 @@ Compatibility: 80% (or ****)
 
 
 */
-
-

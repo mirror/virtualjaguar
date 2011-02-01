@@ -21,7 +21,7 @@ class FilePickerWindow: public QWidget
 
 	public slots:
 		void AddFileToList(unsigned long index);
-		void AddFileToList2(unsigned long index, QString, QImage *);
+		void AddFileToList2(unsigned long index, QString, QImage *, unsigned long size);
 		void UpdateSelection(const QModelIndex &, const QModelIndex &);
 
 	protected:
