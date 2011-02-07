@@ -207,10 +207,10 @@ WriteLog("About to attempt to load BIOSes...\n");
 	SET32(jaguarMainRAM, 0, 0x00200000);			// Set top of stack...
 
 //Let's try this...
-	JaguarLoadFile("./software/Rayman (World).j64");
+//	JaguarLoadFile("./software/Rayman (World).j64");
 //	JaguarLoadFile("./software/I-War (World).j64");
 //	JaguarLoadFile("./software/Alien vs Predator (World).j64");
-
+	JaguarLoadFile("./software/Rayman (USA, Europe).zip");
 //This is crappy!!! !!! FIX !!!
 //Is this even needed any more? Hmm. Maybe. Dunno.
 //Seems like it is... But then again, maybe not. Have to test it to see.
@@ -475,10 +475,15 @@ void MainWin::ReadSettings(void)
 	vjs.useOpenGL        = settings.value("useOpenGL", true).toBool();
 	vjs.glFilter         = settings.value("glFilterType", 0).toInt();
 	vjs.renderType       = settings.value("renderType", 0).toInt();
-	strcpy(vjs.jagBootPath, settings.value("JagBootROM", "./bios/jagboot.rom").toString().toAscii().data());
+	strcpy(vjs.jagBootPath, settings.value("JagBootROM", "./bios/[BIOS] Atari Jaguar (USA, Europe).zip").toString().toAscii().data());
 	strcpy(vjs.CDBootPath, settings.value("CDBootROM", "./bios/jagcd.rom").toString().toAscii().data());
 	strcpy(vjs.EEPROMPath, settings.value("EEPROMs", "./eeproms").toString().toAscii().data());
 	strcpy(vjs.ROMPath, settings.value("ROMs", "./software").toString().toAscii().data());
+WriteLog("MainWin: Paths\n");
+WriteLog("    jagBootPath = \"%s\"\n", vjs.jagBootPath);
+WriteLog("    CDBootPath  = \"%s\"\n", vjs.CDBootPath);
+WriteLog("    EEPROMPath  = \"%s\"\n", vjs.EEPROMPath);
+WriteLog("    ROMPath     = \"%s\"\n", vjs.ROMPath);
 }
 
 void MainWin::WriteSettings(void)
