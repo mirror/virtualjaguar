@@ -7,41 +7,50 @@
 # file GPL.TXT for details. ;-)
 #
 
-# NOTE: zlib and OpenGL libs are a dependency, but are not checked for.
-#       same goes for libcdio
-
 # Figure out which system we're compiling for, and set the appropriate variables
 
-ifeq "$(OSTYPE)" "msys"							# Win32
+OSTYPE := $(shell uname -a)
 
-SYSTYPE    = __GCCWIN32__
-EXESUFFIX  = .exe
-GLLIB      = -lopengl32
-ICON       = obj/icon.o
-SDLLIBTYPE = --libs
-MSG        = Win32 on MinGW
+ifeq "$(findstring Msys,$(OSTYPE))" "Msys"			# Win32
 
-else
-#ifeq "$(OSTYPE)" "darwin"
-ifeq "darwin" "$(findstring darwin,$(OSTYPE))"	# Should catch both 'darwin' and 'darwin7.0'
+SYSTYPE    := __GCCWIN32__
+EXESUFFIX  := .exe
+GLLIB      := -lopengl32
+ICON       := obj/icon.o
+SDLLIBTYPE := --libs
+MSG        := Win32 on MinGW
 
-SYSTYPE    = __GCCUNIX__ -D_OSX_
-EXESUFFIX  =
-GLLIB      =
-ICON       =
-SDLLIBTYPE = --static-libs
-MSG        = Mac OS X
+else ifeq "$(findstring Darwin,$(OSTYPE))" "Darwin"	# Should catch both 'darwin' and 'darwin7.0'
 
-else											# *nix
+SYSTYPE    := __GCCUNIX__ -D_OSX_
+EXESUFFIX  :=
+GLLIB      :=
+ICON       :=
+SDLLIBTYPE := --static-libs
+MSG        := Mac OS X
 
-SYSTYPE    = __GCCUNIX__
-EXESUFFIX  =
-GLLIB      = -lGL
-ICON       =
-SDLLIBTYPE = --libs
-MSG        = generic Unix/Linux
+else ifeq "$(findstring Linux,$(OSTYPE))" "Linux"		# Linux
+
+SYSTYPE    := __GCCUNIX__
+EXESUFFIX  :=
+GLLIB      := -lGL -lGLU
+ICON       :=
+SDLLIBTYPE := --libs
+MSG        := GNU/Linux
+
+else											# ???
+
+$(error OS TYPE UNDETECTED)
 
 endif
+
+# Set vars for libcdio
+ifneq "$(shell pkg-config --silence-errors --libs libcdio)" ""
+HAVECDIO := -DHAVE_LIB_CDIO
+CDIOLIB  := -lcdio
+else
+HAVECDIO :=
+CDIOLIB  :=
 endif
 
 CC         = gcc
@@ -51,16 +60,13 @@ TARGET     = vj
 # Note that we use optimization level 2 instead of 3--3 doesn't seem to gain much over 2
 CFLAGS   = -MMD -Wall -Wno-switch -O2 -D$(SYSTYPE) -ffast-math -fomit-frame-pointer `sdl-config --cflags`
 CPPFLAGS = -MMD -Wall -Wno-switch -Wno-non-virtual-dtor -O2 -D$(SYSTYPE) \
-		-DHAVE_LIB_CDIO -ffast-math -fomit-frame-pointer `sdl-config --cflags` -g
+		$(HAVECDIO) -ffast-math -fomit-frame-pointer `sdl-config --cflags` -g
 #		-fomit-frame-pointer `sdl-config --cflags` -g
 #		-fomit-frame-pointer `sdl-config --cflags` -DLOG_UNMAPPED_MEMORY_ACCESSES
 
 LDFLAGS =
 
-LIBS = -L/usr/local/lib -L/usr/lib `sdl-config $(SDLLIBTYPE)` -lstdc++ -lz $(GLLIB) -lcdio
-# Comment out the above and uncomment below if you don't have libcdio.
-# Also, remove the "-DHAVE_LIB_CDIO" from CPPFLAGS above.
-#LIBS = -L/usr/local/lib -L/usr/lib `sdl-config $(SDLLIBTYPE)` -lstdc++ -lz $(GLLIB)
+LIBS = -L/usr/local/lib -L/usr/lib `sdl-config $(SDLLIBTYPE)` -lstdc++ -lz $(GLLIB) $(CDIOLIB)
 
 INCS = -I. -I./src -I./src/gui -I/usr/local/include -I/usr/include
 
@@ -114,28 +120,74 @@ OBJS = \
 	obj/vj.o            \
 	$(ICON)
 
+# Targets for convenience sake, not "real" targets
+.PHONY: clean
+
 all: checkenv message obj $(TARGET)$(EXESUFFIX)
 	@echo
 	@echo -e "\033[01;33m***\033[00;32m Looks like it compiled OK... Give it a whirl!\033[00m"
+	@echo
 
 # Check the compilation environment, barf if not appropriate
 
-checkenv:
-	@echo
-	@echo -en "\033[01;33m***\033[00;32m Checking compilation environment... \033[00m"
-ifeq "" "$(shell which sdl-config)"
-	@echo
+checkenv: msg-check-env check-sdl check-zlib check-cdio check-gl ;
+
+#check-sdl: msg-ck-sdl $(if $(strip ),,msg-no-sdl stop-on-error)
+check-sdl: msg-ck-sdl $(if $(shell which sdl-config),,msg-no-sdl stop-on-error)
+	@echo -e "\033[01;37mOK\033[00m"
+
+msg-ck-sdl:
+	@echo -en "   \033[00;32mSDL... \033[00m"
+
+msg-no-sdl:
+	@echo -e "\033[01;37mNOT FOUND\033[00m"
 	@echo
 	@echo -e "\033[01;33mIt seems that you don't have the SDL development libraries installed. If you"
 	@echo -e "have installed them, make sure that the sdl-config file is somewhere in your"
 	@echo -e "path and is executable.\033[00m"
 	@echo
-#Is there a better way to break out of the makefile?
-	@breaky
-else
+
+check-zlib: msg-ck-zlib $(if $(shell pkg-config --silence-errors --libs zlib),,msg-no-zlib stop-on-error)
 	@echo -e "\033[01;37mOK\033[00m"
-endif
-# !!! NOTE !!! Need to put a check here for libcdio, GL, zlib
+
+msg-ck-zlib:
+	@echo -en "   \033[00;32mZLIB... \033[00m"
+
+msg-no-zlib:
+	@echo -e "\033[01;37mNOT FOUND\033[00m"
+	@echo
+	@echo -e "\033[01;33mIt seems that you don't have ZLIB installed. If you have installed it, make"
+	@echo -e "sure that the pkg-config file is somewhere in your path and is executable.\033[00m"
+	@echo
+
+#NOTE that this check shouldn't be fatal, we can bounce back from it by excluding CD support
+check-cdio: msg-ck-cdio $(if $(CDIOLIB),msg-cdio,msg-no-cdio) ;
+
+msg-ck-cdio:
+	@echo -en "   \033[00;32mLIBCDIO... \033[00m"
+
+msg-cdio:
+	@echo -e "\033[01;37mOK\033[00m"
+
+msg-no-cdio:
+	@echo -e "\033[01;37mNOT FOUND\033[00m"
+	@echo
+	@echo -e "\033[01;33mIt seems that you don't have LIBCDIO installed. Since this is not fatal,"
+	@echo -e "Virtual Jaguar will be built WITHOUT CD support.\033[00m"
+	@echo
+
+check-gl: msg-ck-gl
+	@echo -e "*** GL CHECK NOT IMPLEMENTED ***"
+
+msg-ck-gl:
+	@echo -en "   \033[00;32mOpenGL... \033[00m"
+
+stop-on-error: ; $(error COMPILATION ENVIRONMENT)
+
+msg-check-env:
+	@echo
+	@echo -e "\033[01;33m***\033[00;32m Checking compilation environment: \033[00m"
+	@echo
 
 message:
 	@echo

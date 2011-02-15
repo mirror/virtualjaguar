@@ -21,6 +21,7 @@
 
 #include <stdlib.h>								// For atoi()
 #include <cstring>								// For strcmp()
+#include <stdio.h>								// For file functions
 #include <string>
 #include <list>
 
