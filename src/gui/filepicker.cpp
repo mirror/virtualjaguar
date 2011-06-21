@@ -53,7 +53,8 @@ Data strategy:
 
 //could use Window as well...
 //FilePickerWindow::FilePickerWindow(QWidget * parent/*= 0*/): QWidget(parent, Qt::Dialog)
-FilePickerWindow::FilePickerWindow(QWidget * parent/*= 0*/): QWidget(parent, Qt::Window)
+FilePickerWindow::FilePickerWindow(QWidget * parent/*= 0*/): QWidget(parent, Qt::Window),
+	currentFile("")
 {
 	setWindowTitle(tr("Insert Cartridge..."));
 
@@ -138,6 +139,11 @@ printf("VSB size: %u, %u\n", sbSize3.width(), sbSize3.height());
 	)));
 	data->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
 	dataLayout->addWidget(data);
+
+	insertCart = new QPushButton(QIcon(":/res/generic.png"), "", this);
+	insertCart->setDefault(true);				// We want this button to be the default
+	insertCart->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Preferred);
+	dataLayout->addWidget(insertCart);
 #else
 	QLabel * text2 = new QLabel(QString(tr(
 		"<table>"
@@ -161,6 +167,8 @@ New sizes: 373x172 (label), 420x340 (cart)
 //	QItemSelectionModel * ism = fileList->selectionModel();
 //	connect(ism, SIGNAL(currentChanged(const QModelIndex &, const QModelIndex &)), this, SLOT(UpdateSelection(const QModelIndex &, const QModelIndex &)));
 	connect(fileList->selectionModel(), SIGNAL(currentChanged(const QModelIndex &, const QModelIndex &)), this, SLOT(UpdateSelection(const QModelIndex &, const QModelIndex &)));
+
+	connect(insertCart, SIGNAL(clicked()), this, SLOT(LoadButtonPressed()));
 }
 
 //
@@ -188,6 +196,13 @@ printf("FilePickerWindow(2): Found match [%s]...\n", romList[index].name);
 		model->AddData(index, str, QImage(), size);
 }
 
+void FilePickerWindow::LoadButtonPressed(void)
+{
+	// TODO: Get the text of the current selection, call the MainWin slot for loading
+	emit(RequestLoad(currentFile));
+	this->hide();
+}
+
 //
 // This slot gets called when the QListView gets clicked on. Updates
 // the cart graphic and accompanying text.
@@ -201,12 +216,17 @@ void FilePickerWindow::UpdateSelection(const QModelIndex & current, const QModel
 //	printf("FPW: %s\n", s.toAscii().data());
 	unsigned long fileSize = current.model()->data(current, Qt::WhatsThisRole).toUInt();
 #else
-	QString s = current.model()->data(current, FLM_FILENAME).toString();
+//	QString s = current.model()->data(current, FLM_FILENAME).toString();
+	currentFile = current.model()->data(current, FLM_FILENAME).toString();
 	unsigned long i = current.model()->data(current, FLM_INDEX).toUInt();
 	QImage label = current.model()->data(current, FLM_LABEL).value<QImage>();
 	unsigned long fileSize = current.model()->data(current, FLM_FILESIZE).toUInt();
 //	printf("FPW: %s\n", s.toAscii().data());
 #endif
+
+//hm.
+//currentFile = s;
+
 //373x172 is label size...
 	if (!label.isNull())
 	{
@@ -222,8 +242,20 @@ void FilePickerWindow::UpdateSelection(const QModelIndex & current, const QModel
 //Though this should probably be done when this is loaded, instead of every time here...
 //QImage scaledImg = label.scaled(373, 172, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
 //painter.drawPixmap(23, 87, QPixmap::fromImage(scaledImg));
+		// Now, looks like it is...
 		painter.drawPixmap(23, 87, QPixmap::fromImage(label));
 //		painter.drawPixmap(23, 87, 373, 172, QPixmap::fromImage(label));
+		painter.end();
+		cartImage->setPixmap(QPixmap::fromImage(cart));
+	}
+	else
+	{
+		// We should try to be intelligent with our updates here, and only redraw when
+		// we're going from a selection with a label to a selection without. Now, we
+		// redraw regardless.
+		QImage cart(":/res/cart-blank.png");
+		QPainter painter(&cart);
+		painter.drawPixmap(23, 87, QPixmap::fromImage(QImage(":/res/label-blank.png")));
 		painter.end();
 		cartImage->setPixmap(QPixmap::fromImage(cart));
 	}

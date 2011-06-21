@@ -122,18 +122,25 @@ at the beginning of this file.
 After obtaining the Atari Jaguar boot ROM (and/or CD boot ROM) and several game
 ROMs you can now use Virtual Jaguar using the following command:
 
-./vj [romfile] [-switches]
+./virtualjaguar [romfile] [-switches]
 
 The context of ROMFILE is the filename of the an Atari Jaguar ROM dump (can be
 either compressed or uncompressed). You can also use switches. By just typing
-./vj -? (or ./vj -help) you get an overview of the options you can use. WIN32
-users should look into the stdout.txt in the directory they ran Virtual Jaguar
-for that information.
+./virtualjaguar -? (or ./virtualjaguar -help) you get an overview of the
+options you can use. WIN32 users should look into the stdout.txt in the
+directory they ran Virtual Jaguar for that information. Also, WIN32 users
+should be aware that if their ROM filenames contain any spaces, you will have
+to enclose the ROMFILE in double quotes for Virtual Jaguar to function
+properly.
+
+Note that running Virtual Jaguar this way will cause the emulator to exit
+completely upon pressing the ESC key. If this is not what you want, then omit
+the ROMFILE and it will bring up a nice GUI instead.
 
 If you prefer a nice GUI instead of typing in command lines, you can either
-type ./vj or double click on the Virtual Jaguar executable. If you have a
-directory full of ROM files, you can tell Virtual Jaguar where they are by
-editing the appropriate line in the vj.cfg file (it assumes a ROMs directory
+type ./virtualjaguar or double click on the Virtual Jaguar executable. If you
+have a directory full of ROM files, you can tell Virtual Jaguar where they are
+by editing the appropriate line in the vj.cfg file (it assumes a ROMs directory
 under the directory where VJ lives) so that they show up when you pick the
 "Load" option from the "File" menu.
 
@@ -193,8 +200,10 @@ released the sources to the public. We couldn't have done it without you!
 
 SDLEMU
 
-Stuff to add in:
 
- - How to run ROMs from the command line with spaces in the names (quoting)
- - The behavior of the emulator when running from the command line (passed in ROM
-   vs. non)
+*** Stuff to add in:
+
+ o  Documentation needs a rewrite, more or less, as the GUI is now front and
+    center. Need to update the docs to reflect this change.
+ o  Document the new "solid" zip file archive mechanism which allows putting
+    artwork into a "ROM".

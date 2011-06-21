@@ -63,7 +63,7 @@
 // We'll make the VJ core modular so that it doesn't matter what GUI is in
 // use, we can drop it in anywhere and use it as-is.
 
-MainWin::MainWin()
+MainWin::MainWin(): showUntunedTankCircuit(true)
 {
 	videoWidget = new GLWidget(this);
 	setCentralWidget(videoWidget);
@@ -133,6 +133,9 @@ MainWin::MainWin()
 	filePickAct->setStatusTip(tr("Insert a cartridge into Virtual Jaguar"));
 	connect(filePickAct, SIGNAL(triggered()), this, SLOT(InsertCart()));
 
+	// Misc. connections...
+	connect(filePickWin, SIGNAL(RequestLoad(QString)), this, SLOT(LoadSoftware(QString)));
+
 	// Create menus & toolbars
 
 	fileMenu = menuBar()->addMenu(tr("&File"));
@@ -145,6 +148,7 @@ MainWin::MainWin()
 
 	toolbar = addToolBar(tr("Stuff"));
 	toolbar->addAction(powerAct);
+	toolbar->addAction(filePickAct);
 	toolbar->addSeparator();
 	toolbar->addAction(x1Act);
 	toolbar->addAction(x2Act);
@@ -174,6 +178,10 @@ MainWin::MainWin()
 	timer = new QTimer(this);
 	connect(timer, SIGNAL(timeout()), this, SLOT(Timer()));
 	timer->start(20);
+
+	// NOTE: Keyboards/joysticks will *not* work until SDL is brought back in, or
+	//       the key handling is improved in Qt...
+	// Wait a minute... it seems they already are... So why no keyboard love?
 
 #ifdef VJ_RELEASE_VERSION
 	WriteLog("Virtual Jaguar %s (Last full build was on %s %s)\n", VJ_RELEASE_VERSION, __DATE__, __TIME__);
@@ -210,12 +218,14 @@ WriteLog("About to attempt to load BIOSes...\n");
 //	JaguarLoadFile("./software/Rayman (World).j64");
 //	JaguarLoadFile("./software/I-War (World).j64");
 //	JaguarLoadFile("./software/Alien vs Predator (World).j64");
-	JaguarLoadFile("./software/Rayman (USA, Europe).zip");
+//no	JaguarLoadFile("./software/battlesphere.bin");
+//	JaguarLoadFile("./software/Battle Sphere Gold (World).j64");
+//	JaguarLoadFile("./software/Rayman (USA, Europe).zip");
 //This is crappy!!! !!! FIX !!!
 //Is this even needed any more? Hmm. Maybe. Dunno.
 //Seems like it is... But then again, maybe not. Have to test it to see.
-WriteLog("GUI: Resetting Jaguar...\n");
-	JaguarReset();
+//WriteLog("GUI: Resetting Jaguar...\n");
+//	JaguarReset();
 }
 
 void MainWin::closeEvent(QCloseEvent * event)
@@ -236,23 +246,27 @@ void MainWin::Timer(void)
 	if (!running)
 		return;
 
-#if 0
-	// Random hash & trash
-	// We try to simulate an untuned tank circuit here... :-)
-	for(uint32_t x=0; x<videoWidget->rasterWidth; x++)
+	if (showUntunedTankCircuit)
 	{
-		for(uint32_t y=0; y<videoWidget->rasterHeight; y++)
+		// Random hash & trash
+		// We try to simulate an untuned tank circuit here... :-)
+		for(uint32_t x=0; x<videoWidget->rasterWidth; x++)
 		{
-			videoWidget->buffer[(y * videoWidget->textureWidth) + x] = (rand() & 0xFF) << 8 | (rand() & 0xFF) << 16 | (rand() & 0xFF) << 24;// | (rand() & 0xFF);//0x000000FF;
-//			buffer[(y * textureWidth) + x] = x*y;
+			for(uint32_t y=0; y<videoWidget->rasterHeight; y++)
+			{
+				videoWidget->buffer[(y * videoWidget->textureWidth) + x] = (rand() & 0xFF) << 8 | (rand() & 0xFF) << 16 | (rand() & 0xFF) << 24;// | (rand() & 0xFF);//0x000000FF;
+	//			buffer[(y * textureWidth) + x] = x*y;
+			}
 		}
 	}
-#else
-	JaguarExecuteNew();
-//	memcpy(videoWidget->buffer, backbuffer, videoWidget->rasterHeight * videoWidget->rasterWidth);
-	memcpy(videoWidget->buffer, backbuffer, videoWidget->rasterHeight * videoWidget->textureWidth * sizeof(uint32_t));
-//	memcpy(surface->pixels, backbuffer, TOMGetVideoModeWidth() * TOMGetVideoModeHeight() * 4);
-#endif
+	else
+	{
+		// Otherwise, run the Jaguar simulation
+		JaguarExecuteNew();
+//		memcpy(videoWidget->buffer, backbuffer, videoWidget->rasterHeight * videoWidget->rasterWidth);
+		memcpy(videoWidget->buffer, backbuffer, videoWidget->rasterHeight * videoWidget->textureWidth * sizeof(uint32_t));
+//		memcpy(surface->pixels, backbuffer, TOMGetVideoModeWidth() * TOMGetVideoModeHeight() * 4);
+	}
 
 	videoWidget->updateGL();
 }
@@ -439,6 +453,19 @@ void MainWin::ShowAboutWin(void)
 void MainWin::InsertCart(void)
 {
 	filePickWin->show();
+}
+
+void MainWin::LoadSoftware(QString file)
+{
+	running = false;							//  Prevent bad things(TM) from happening...
+	SET32(jaguarMainRAM, 0, 0x00200000);			// Set top of stack...
+	showUntunedTankCircuit = (JaguarLoadFile(file.toAscii().data()) ? false : true);
+//This is crappy!!! !!! FIX !!!
+//Is this even needed any more? Hmm. Maybe. Dunno.
+//Seems like it is... But then again, maybe not. Have to test it to see.
+	WriteLog("GUI: Resetting Jaguar...\n");
+	JaguarReset();
+	running = true;
 }
 
 void MainWin::ResizeMainWindow(void)

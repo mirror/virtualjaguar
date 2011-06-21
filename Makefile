@@ -7,8 +7,7 @@
 # file GPL.TXT for details. ;-)
 #
 
-# NOTE: zlib and OpenGL libs are a dependency, but are not checked for.
-#       same goes for libcdio, Qt
+# NOTE: Qt and OpenGL libs are a dependency, but are not checked for.
 
 # Figure out which system we're compiling for, and set the appropriate variables
 
@@ -41,7 +40,7 @@ ICON       :=
 SDLLIBTYPE := --libs
 MSG        := GNU/Linux
 
-else											# *nix
+else											# ???
 
 $(error OS TYPE UNDETECTED)
 
@@ -129,9 +128,10 @@ OBJS := \
 # Targets for convenience sake, not "real" targets
 .PHONY: clean
 
-all: checkenv message2 obj $(TARGET)$(EXESUFFIX)
+all: checkenv message obj $(TARGET)$(EXESUFFIX)
 	@echo
 	@echo -e "\033[01;33m***\033[00;32m Looks like it compiled OK... Give it a whirl!\033[00m"
+	@echo
 
 # Check the compilation environment, barf if not appropriate
 
@@ -200,7 +200,7 @@ msg-check-env:
 	@echo -e "\033[01;33m***\033[00;32m Checking compilation environment: \033[00m"
 	@echo
 
-message2:
+message:
 	@echo
 	@echo -e "\033[01;33m***\033[00;32m Building Virtual Jaguar for $(MSG)...\033[00m"
 	@echo

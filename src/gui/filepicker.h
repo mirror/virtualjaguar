@@ -23,11 +23,16 @@ class FilePickerWindow: public QWidget
 		void AddFileToList(unsigned long index);
 		void AddFileToList2(unsigned long index, QString, QImage *, unsigned long size);
 		void UpdateSelection(const QModelIndex &, const QModelIndex &);
+		void LoadButtonPressed(void);
+
+	signals:
+		void RequestLoad(QString);
 
 	protected:
 //		void PopulateList(void);
 
 	private:
+		QString currentFile;
 		QListWidget * fileList2;
 		FileThread * fileThread;
 		FileListModel * model;
@@ -35,4 +40,5 @@ class FilePickerWindow: public QWidget
 		QLabel * cartImage;
 		QLabel * title;
 		QLabel * data;
+		QPushButton * insertCart;
 };

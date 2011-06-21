@@ -40,6 +40,9 @@ class MainWin: public QMainWindow
 		void ShowAboutWin(void);
 		void InsertCart(void);
 
+//	public slots:
+		void LoadSoftware(QString);
+
 	private:
 		void ResizeMainWindow(void);
 		void ReadSettings(void);
@@ -52,6 +55,7 @@ class MainWin: public QMainWindow
 		QTimer * timer;
 		bool running;
 		int zoomLevel;
+		bool showUntunedTankCircuit;
 
 		QMenu * fileMenu;
 		QMenu * helpMenu;
