@@ -18,6 +18,7 @@ class FilePickerWindow: public QWidget
 
 	public:
 		FilePickerWindow(QWidget * parent = 0);
+		QString GetSelectedPrettyName(void);
 
 	public slots:
 		void AddFileToList(unsigned long index);
@@ -33,6 +34,7 @@ class FilePickerWindow: public QWidget
 
 	private:
 		QString currentFile;
+		QString prettyFilename;
 		QListWidget * fileList2;
 		FileThread * fileThread;
 		FileListModel * model;

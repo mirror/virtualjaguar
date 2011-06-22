@@ -40,62 +40,57 @@ uint32 JaguarLoadROM(uint8 * rom, char * path)
 #warning "!!! FIX !!! Should have sanity checking for ROM size to prevent buffer overflow!"
 	uint32 romSize = 0;
 
-WriteLog("JaguarLoadROM: Attempting to load file '%s'...", path);
+	WriteLog("JaguarLoadROM: Attempting to load file '%s'...", path);
 	char * ext = strrchr(path, '.');
-if (ext == NULL)
-	WriteLog("FAILED!\n");
-else
-	WriteLog("Succeeded in finding extension (%s)!\n", ext);
 
-	if (ext != NULL)
+	// No filename extension == YUO FAIL IT (it is loading the file).
+	// This is naive, but it works. But should probably come up with something a little
+	// more robust, to prevent problems with dopes trying to exploit this.
+	if (ext == NULL)
 	{
-		WriteLog("VJ: Loading \"%s\"...", path);
-
-		if (strcasecmp(ext, ".zip") == 0)
-		{
-			// Handle ZIP file loading here...
-			WriteLog("(ZIPped)...");
-
-			if (load_zipped_file(0, 0, path, NULL, &rom, &romSize) == -1)
-			{
-				WriteLog("Failed!\n");
-				return 0;
-			}
-		}
-		else
-		{
-/*			FILE * fp = fopen(path, "rb");
-
-			if (fp == NULL)
-			{
-				WriteLog("Failed!\n");
-				return 0;
-			}
-
-			fseek(fp, 0, SEEK_END);
-			romSize = ftell(fp);
-			fseek(fp, 0, SEEK_SET);
-			fread(rom, 1, romSize, fp);
-			fclose(fp);*/
-
-			// Handle gzipped files transparently [Adam Green]...
-
-			gzFile fp = gzopen(path, "rb");
-
-			if (fp == NULL)
-			{
-				WriteLog("Failed!\n");
-				return 0;
-			}
-
-			romSize = gzfilelength(fp);
-			gzseek(fp, 0, SEEK_SET);
-			gzread(fp, rom, romSize);
-			gzclose(fp);
-		}
-
-		WriteLog("OK (%i bytes)\n", romSize);
+		WriteLog("FAILED!\n");
+		return 0;
 	}
+
+	WriteLog("Succeeded in finding extension (%s)!\n", ext);
+	WriteLog("VJ: Loading \"%s\"...", path);
+
+	if (strcasecmp(ext, ".zip") == 0)
+	{
+		// Handle ZIP file loading here...
+		WriteLog("(ZIPped)...");
+
+		uint8_t * buffer = NULL;
+		romSize = GetFileFromZIP(path, FT_SOFTWARE, buffer);
+
+		if (romSize == 0)
+		{
+			WriteLog("Failed!\n");
+			return 0;
+		}
+
+		memcpy(rom, buffer, romSize);
+		delete[] buffer;
+	}
+	else
+	{
+		// Handle gzipped files transparently [Adam Green]...
+
+		gzFile fp = gzopen(path, "rb");
+
+		if (fp == NULL)
+		{
+			WriteLog("Failed!\n");
+			return 0;
+		}
+
+		romSize = gzfilelength(fp);
+		gzseek(fp, 0, SEEK_SET);
+		gzread(fp, rom, romSize);
+		gzclose(fp);
+	}
+
+	WriteLog("OK (%i bytes)\n", romSize);
 
 	return romSize;
 }
@@ -136,6 +131,7 @@ bool JaguarLoadFile(char * path)
 	char * ext = strrchr(path, '.');				// Get the file's extension for non-cartridge checking
 
 //NOTE: Should fix JaguarLoadROM() to replace .zip with what's *in* the zip (.abs, .j64, etc.)
+#warning "!!! Need more robust file type checking in JaguarLoadROM() !!!"
 	if (strcasecmp(ext, ".rom") == 0)
 	{
 		// File extension ".ROM": Alpine image that loads/runs at $802000
@@ -360,9 +356,13 @@ static bool CheckExtension(const char * filename, const char * ext)
 //
 // Get file from .ZIP
 // Returns the size of the file inside the .ZIP file that we're looking at
+// NOTE: If the thing we're looking for is found, it allocates it in the passed in buffer.
+//       Which means we have to deallocate it later.
 //
 uint32 GetFileFromZIP(const char * zipFile, FileType type, uint8 * &buffer)
 {
+// NOTE: We could easily check for this by discarding anything that's larger than the RAM/ROM
+//       size of the Jaguar console.
 #warning "!!! FIX !!! Should have sanity checking for ROM size to prevent buffer overflow!"
 	const char ftStrings[5][32] = { "Software", "EEPROM", "Label", "Box Art", "Controller Overlay" };
 	ZIP * zip = openzip(0, 0, zipFile);
@@ -378,6 +378,10 @@ uint32 GetFileFromZIP(const char * zipFile, FileType type, uint8 * &buffer)
 		zipent * ze = &zip->ent;
 		bool found = false;
 
+		// Here we simply rely on the file extension to tell the truth, but we know
+		// that extensions lie like sons-a-bitches. So this is naive, we need to do
+		// something a little more robust to keep bad things from happening here.
+#warning "!!! Checking for image by extension can be fooled !!!"
 		if ((type == FT_LABEL) && (CheckExtension(ze->name, ".png") || CheckExtension(ze->name, ".jpg") || CheckExtension(ze->name, ".gif")))
 		{
 			found = true;
@@ -399,17 +403,21 @@ uint32 GetFileFromZIP(const char * zipFile, FileType type, uint8 * &buffer)
 		if (found)
 		{
 			WriteLog("FILE: Uncompressing...");
+// Insert file size sanity check here...
 			buffer = new uint8[ze->uncompressed_size];
 
 			if (readuncompresszip(zip, ze, (char *)buffer) == 0)
 			{
 				WriteLog("success! (%u bytes)\n", ze->uncompressed_size);
+				closezip(zip);
 				return ze->uncompressed_size;
 			}
 			else
 			{
 				WriteLog("FAILED!\n");
 				delete[] buffer;
+				buffer = NULL;
+				closezip(zip);
 				return 0;
 			}
 		}

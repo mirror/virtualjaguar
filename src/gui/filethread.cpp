@@ -99,6 +99,7 @@ printf("FileThread: Aborting!!!\n");
 				uint32 crc = crc32_calcCheckSum(buffer, size);
 				uint32 index = FindCRCIndexInFileList(crc);
 // These two are NOT interchangeable!
+//Hm, confusing. It looks like in file.cpp it uses operater new() to create the buffer...
 //				delete[] buffer;
 				free(buffer);
 
@@ -133,9 +134,11 @@ QImage * imageCopy = new QImage();
 						QImage label;
 						bool success = label.loadFromData(buffer, size);
 						img = new QImage();
-						*img = label.scaled(373, 172, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
+//						*img = label.scaled(373, 172, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
+						*img = label.scaled(365, 168, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
 //printf("FT: Label %s: %ux%u.\n", (success ? "succeeded" : "did not succeed"), img->width(), img->height());
 // These two are NOT interchangeable!
+//Hm, confusing. It looks like in file.cpp it uses operater new() to create the buffer...
 //						delete[] buffer;
 						free(buffer);
 					}

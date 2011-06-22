@@ -63,16 +63,18 @@
 // We'll make the VJ core modular so that it doesn't matter what GUI is in
 // use, we can drop it in anywhere and use it as-is.
 
-MainWin::MainWin(): showUntunedTankCircuit(true)
+MainWin::MainWin(): running(false), powerButtonOn(false), showUntunedTankCircuit(true),
+	cartridgeLoaded(false)
 {
 	videoWidget = new GLWidget(this);
 	setCentralWidget(videoWidget);
-	setWindowIcon(QIcon(":/res/vj.xpm"));
+	setWindowIcon(QIcon(":/res/vj-icon.png"));
 	setWindowTitle("Virtual Jaguar v2.0.0");
 
 	ReadSettings();
 	setUnifiedTitleAndToolBarOnMac(true);
 
+#warning "!!! Save/Restore window location for FilePickerWindow !!!"
 	aboutWin = new AboutWindow(this);
 	filePickWin = new FilePickerWindow(this);
 
@@ -87,9 +89,17 @@ MainWin::MainWin(): showUntunedTankCircuit(true)
 	connect(quitAppAct, SIGNAL(triggered()), this, SLOT(close()));
 
 	powerAct = new QAction(QIcon(":/res/power.png"), tr("&Power"), this);
-	powerAct->setStatusTip(tr("Toggle running state"));
+	powerAct->setStatusTip(tr("Powers Jaguar on/off"));
 	powerAct->setCheckable(true);
-	connect(powerAct, SIGNAL(triggered()), this, SLOT(ToggleRunState()));
+	powerAct->setChecked(false);
+	powerAct->setDisabled(true);
+	connect(powerAct, SIGNAL(triggered()), this, SLOT(TogglePowerState()));
+
+	pauseAct = new QAction(QIcon(":/res/pause.png"), tr("Pause"), this);
+	pauseAct->setStatusTip(tr("Toggles the running state"));
+	pauseAct->setCheckable(true);
+	pauseAct->setDisabled(true);
+	connect(pauseAct, SIGNAL(triggered()), this, SLOT(ToggleRunState()));
 
 	zoomActs = new QActionGroup(this);
 
@@ -129,7 +139,8 @@ MainWin::MainWin(): showUntunedTankCircuit(true)
 	aboutAct->setStatusTip(tr("Blatant self-promotion"));
 	connect(aboutAct, SIGNAL(triggered()), this, SLOT(ShowAboutWin()));
 
-	filePickAct = new QAction(QIcon(":/res/generic.png"), tr("&Insert Cartridge..."), this);
+#warning "!!! Set up a decent keyboard shortcut for Insert Cartridge !!!"
+	filePickAct = new QAction(QIcon(":/res/software.png"), tr("&Insert Cartridge..."), this);
 	filePickAct->setStatusTip(tr("Insert a cartridge into Virtual Jaguar"));
 	connect(filePickAct, SIGNAL(triggered()), this, SLOT(InsertCart()));
 
@@ -141,6 +152,7 @@ MainWin::MainWin(): showUntunedTankCircuit(true)
 	fileMenu = menuBar()->addMenu(tr("&File"));
 	fileMenu->addAction(filePickAct);
 	fileMenu->addAction(powerAct);
+	fileMenu->addAction(pauseAct);
 	fileMenu->addAction(quitAppAct);
 
 	helpMenu = menuBar()->addMenu(tr("&Help"));
@@ -148,6 +160,7 @@ MainWin::MainWin(): showUntunedTankCircuit(true)
 
 	toolbar = addToolBar(tr("Stuff"));
 	toolbar->addAction(powerAct);
+	toolbar->addAction(pauseAct);
 	toolbar->addAction(filePickAct);
 	toolbar->addSeparator();
 	toolbar->addAction(x1Act);
@@ -380,6 +393,30 @@ doGPUDis = true;//*/
 }
 #endif
 
+void MainWin::TogglePowerState(void)
+{
+	powerButtonOn = !powerButtonOn;
+
+	if (!powerButtonOn)
+	{
+		pauseAct->setChecked(false);
+		pauseAct->setDisabled(true);
+		showUntunedTankCircuit = true;
+		running = true;
+	}
+	else
+	{
+		showUntunedTankCircuit = (cartridgeLoaded ? false : true);
+		pauseAct->setDisabled(!cartridgeLoaded);
+//This is crappy!!! !!! FIX !!!
+//Is this even needed any more? Hmm. Maybe. Dunno.
+//Seems like it is... But then again, maybe not. Have to test it to see.
+		WriteLog("GUI: Resetting Jaguar...\n");
+		JaguarReset();
+		running = true;
+	}
+}
+
 void MainWin::ToggleRunState(void)
 {
 	running = !running;
@@ -459,13 +496,26 @@ void MainWin::LoadSoftware(QString file)
 {
 	running = false;							//  Prevent bad things(TM) from happening...
 	SET32(jaguarMainRAM, 0, 0x00200000);			// Set top of stack...
-	showUntunedTankCircuit = (JaguarLoadFile(file.toAscii().data()) ? false : true);
+	cartridgeLoaded = (JaguarLoadFile(file.toAscii().data()) ? true : false);
+
+#if 0
+	showUntunedTankCircuit = !cartridgeLoaded;
 //This is crappy!!! !!! FIX !!!
 //Is this even needed any more? Hmm. Maybe. Dunno.
 //Seems like it is... But then again, maybe not. Have to test it to see.
 	WriteLog("GUI: Resetting Jaguar...\n");
 	JaguarReset();
 	running = true;
+#else
+	powerAct->setDisabled(false);
+	powerAct->setChecked(true);
+	powerButtonOn = false;
+	TogglePowerState();
+#endif
+
+	QString newTitle = QString("Virtual Jaguar 2.0.0 - Now playing: %1")
+		.arg(filePickWin->GetSelectedPrettyName());
+	setWindowTitle(newTitle);
 }
 
 void MainWin::ResizeMainWindow(void)

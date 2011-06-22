@@ -30,6 +30,7 @@ class MainWin: public QMainWindow
 	private slots:
 		void Open(void);
 		void Timer(void);
+		void TogglePowerState(void);
 		void ToggleRunState(void);
 		void SetZoom100(void);
 		void SetZoom200(void);
@@ -55,7 +56,9 @@ class MainWin: public QMainWindow
 		QTimer * timer;
 		bool running;
 		int zoomLevel;
+		bool powerButtonOn;
 		bool showUntunedTankCircuit;
+		bool cartridgeLoaded;
 
 		QMenu * fileMenu;
 		QMenu * helpMenu;
@@ -66,6 +69,7 @@ class MainWin: public QMainWindow
 
 		QAction * quitAppAct;
 		QAction * powerAct;
+		QAction * pauseAct;
 		QAction * x1Act;
 		QAction * x2Act;
 		QAction * x3Act;

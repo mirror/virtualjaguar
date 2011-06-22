@@ -140,7 +140,10 @@ printf("VSB size: %u, %u\n", sbSize3.width(), sbSize3.height());
 	data->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
 	dataLayout->addWidget(data);
 
-	insertCart = new QPushButton(QIcon(":/res/generic.png"), "", this);
+//#warning "!!! Icon size for pushbutton is tiny !!!"
+	insertCart = new QPushButton(this);
+	insertCart->setIconSize(QSize(40, 40));
+	insertCart->setIcon(QIcon(":/res/insert.png"));
 	insertCart->setDefault(true);				// We want this button to be the default
 	insertCart->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Preferred);
 	dataLayout->addWidget(insertCart);
@@ -169,6 +172,11 @@ New sizes: 373x172 (label), 420x340 (cart)
 	connect(fileList->selectionModel(), SIGNAL(currentChanged(const QModelIndex &, const QModelIndex &)), this, SLOT(UpdateSelection(const QModelIndex &, const QModelIndex &)));
 
 	connect(insertCart, SIGNAL(clicked()), this, SLOT(LoadButtonPressed()));
+}
+
+QString FilePickerWindow::GetSelectedPrettyName(void)
+{
+	return prettyFilename;
 }
 
 //
@@ -228,6 +236,7 @@ void FilePickerWindow::UpdateSelection(const QModelIndex & current, const QModel
 //currentFile = s;
 
 //373x172 is label size...
+//365x168 now...
 	if (!label.isNull())
 	{
 /*
@@ -243,8 +252,14 @@ void FilePickerWindow::UpdateSelection(const QModelIndex & current, const QModel
 //QImage scaledImg = label.scaled(373, 172, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
 //painter.drawPixmap(23, 87, QPixmap::fromImage(scaledImg));
 		// Now, looks like it is...
-		painter.drawPixmap(23, 87, QPixmap::fromImage(label));
+//		painter.drawPixmap(23, 87, QPixmap::fromImage(label));
+		painter.drawPixmap(27, 89, QPixmap::fromImage(label));
 //		painter.drawPixmap(23, 87, 373, 172, QPixmap::fromImage(label));
+
+// Well, heck. This should be done to the label *before* we get here.
+		painter.drawPixmap(27, 89, QPixmap::fromImage(QImage(":/res/upper-left.png")));
+		painter.drawPixmap(27+355, 89, QPixmap::fromImage(QImage(":/res/upper-right.png")));
+
 		painter.end();
 		cartImage->setPixmap(QPixmap::fromImage(cart));
 	}
@@ -255,7 +270,8 @@ void FilePickerWindow::UpdateSelection(const QModelIndex & current, const QModel
 		// redraw regardless.
 		QImage cart(":/res/cart-blank.png");
 		QPainter painter(&cart);
-		painter.drawPixmap(23, 87, QPixmap::fromImage(QImage(":/res/label-blank.png")));
+//		painter.drawPixmap(23, 87, QPixmap::fromImage(QImage(":/res/label-blank.png")));
+		painter.drawPixmap(27, 89, QPixmap::fromImage(QImage(":/res/label-blank.png")));
 		painter.end();
 		cartImage->setPixmap(QPixmap::fromImage(cart));
 	}
@@ -263,6 +279,7 @@ void FilePickerWindow::UpdateSelection(const QModelIndex & current, const QModel
 //1048576
 //2097152
 //4194304
+	prettyFilename = romList[i].name;
 	title->setText(QString("<h2>%1</h2>").arg(romList[i].name));
 //Kludge for now, we'll have to fix this later...
 	QString fileType = QString(romList[i].flags & FF_ROM ? "%1MB Cartridge" : "%1*** UNKNOWN ***")
