@@ -251,62 +251,43 @@ void MainWin::closeEvent(QCloseEvent * event)
 
 void MainWin::keyPressEvent(QKeyEvent * e)
 {
-	// NOTE: Keys are hardwired...
-/*
-	vjs.p1KeyBindings[0] = settings.value("p1k_up", SDLK_UP).toInt();
-	vjs.p1KeyBindings[1] = settings.value("p1k_down", SDLK_DOWN).toInt();
-	vjs.p1KeyBindings[2] = settings.value("p1k_left", SDLK_LEFT).toInt();
-	vjs.p1KeyBindings[3] = settings.value("p1k_right", SDLK_RIGHT).toInt();
-	vjs.p1KeyBindings[4] = settings.value("p1k_c", SDLK_z).toInt();
-	vjs.p1KeyBindings[5] = settings.value("p1k_b", SDLK_x).toInt();
-	vjs.p1KeyBindings[6] = settings.value("p1k_a", SDLK_c).toInt();
-	vjs.p1KeyBindings[7] = settings.value("p1k_option", SDLK_QUOTE).toInt();
-	vjs.p1KeyBindings[8] = settings.value("p1k_pause", SDLK_RETURN).toInt();
-	vjs.p1KeyBindings[9] = settings.value("p1k_0", SDLK_KP0).toInt();
-	vjs.p1KeyBindings[10] = settings.value("p1k_1", SDLK_KP1).toInt();
-	vjs.p1KeyBindings[11] = settings.value("p1k_2", SDLK_KP2).toInt();
-	vjs.p1KeyBindings[12] = settings.value("p1k_3", SDLK_KP3).toInt();
-	vjs.p1KeyBindings[13] = settings.value("p1k_4", SDLK_KP4).toInt();
-	vjs.p1KeyBindings[14] = settings.value("p1k_5", SDLK_KP5).toInt();
-	vjs.p1KeyBindings[15] = settings.value("p1k_6", SDLK_KP6).toInt();
-	vjs.p1KeyBindings[16] = settings.value("p1k_7", SDLK_KP7).toInt();
-	vjs.p1KeyBindings[17] = settings.value("p1k_8", SDLK_KP8).toInt();
-	vjs.p1KeyBindings[18] = settings.value("p1k_9", SDLK_KP9).toInt();
-	vjs.p1KeyBindings[19] = settings.value("p1k_pound", SDLK_KP_DIVIDE).toInt();
-	vjs.p1KeyBindings[20] = settings.value("p1k_star", SDLK_KP_MULTIPLY).toInt();
-*/
-	if (e->key() == Qt::Key_Up)
-		keyBuffer[0] = true;
-	else if (e->key() == Qt::Key_Down)
-		keyBuffer[1] = true;
-	else if (e->key() == Qt::Key_Left)
-		keyBuffer[2] = true;
-	else if (e->key() == Qt::Key_Right)
-		keyBuffer[3] = true;
-	else if (e->key() == Qt::Key_Z)
-		keyBuffer[4] = true;
-	else if (e->key() == Qt::Key_X)
-		keyBuffer[5] = true;
-	else if (e->key() == Qt::Key_C)
-		keyBuffer[6] = true;
+	HandleKeys(e, true);
 }
 
 void MainWin::keyReleaseEvent(QKeyEvent * e)
 {
-	if (e->key() == Qt::Key_Up)
-		keyBuffer[0] = false;
-	else if (e->key() == Qt::Key_Down)
-		keyBuffer[1] = false;
-	else if (e->key() == Qt::Key_Left)
-		keyBuffer[2] = false;
-	else if (e->key() == Qt::Key_Right)
-		keyBuffer[3] = false;
-	else if (e->key() == Qt::Key_Z)
-		keyBuffer[4] = false;
-	else if (e->key() == Qt::Key_X)
-		keyBuffer[5] = false;
-	else if (e->key() == Qt::Key_C)
-		keyBuffer[6] = false;
+	HandleKeys(e, false);
+}
+
+void MainWin::HandleKeys(QKeyEvent * e, bool state)
+{
+	// We kill bad key combos here, before they can get to the emulator...
+	// This also kills the illegal instruction problem that cropped up in Rayman!
+	// May want to do this by killing the old one instead of ignoring the new one...
+	// Seems to work better that way...
+#if 0
+	if ((e->key() == vjs.p1KeyBindings[BUTTON_L] && joypad_0_buttons[BUTTON_R])
+		|| (e->key() == vjs.p1KeyBindings[BUTTON_R] && joypad_0_buttons[BUTTON_L])
+		|| (e->key() == vjs.p1KeyBindings[BUTTON_U] && joypad_0_buttons[BUTTON_D])
+		|| (e->key() == vjs.p1KeyBindings[BUTTON_D] && joypad_0_buttons[BUTTON_U]))
+		return;
+#else
+	if (e->key() == vjs.p1KeyBindings[BUTTON_L] && joypad_0_buttons[BUTTON_R])
+		joypad_0_buttons[BUTTON_R] = 0;
+	if (e->key() == vjs.p1KeyBindings[BUTTON_R] && joypad_0_buttons[BUTTON_L])
+		joypad_0_buttons[BUTTON_L] = 0;
+	if (e->key() == vjs.p1KeyBindings[BUTTON_U] && joypad_0_buttons[BUTTON_D])
+		joypad_0_buttons[BUTTON_D] = 0;
+	if (e->key() == vjs.p1KeyBindings[BUTTON_D] && joypad_0_buttons[BUTTON_U])
+		joypad_0_buttons[BUTTON_U] = 0;
+#endif
+
+	// No bad combos exist, let's stuff the emulator key buffers...!
+	for(int i=BUTTON_FIRST; i<=BUTTON_LAST; i++)
+	{
+		if (e->key() == vjs.p1KeyBindings[i])
+			joypad_0_buttons[i] = (uint8)state;
+	}
 }
 
 void MainWin::Open(void)
@@ -625,49 +606,49 @@ WriteLog("    EEPROMPath  = \"%s\"\n", vjs.EEPROMPath);
 WriteLog("    ROMPath     = \"%s\"\n", vjs.ROMPath);
 
 	// Keybindings in order of U, D, L, R, C, B, A, Op, Pa, 0-9, #, *
-	vjs.p1KeyBindings[0] = settings.value("p1k_up", SDLK_UP).toInt();
-	vjs.p1KeyBindings[1] = settings.value("p1k_down", SDLK_DOWN).toInt();
-	vjs.p1KeyBindings[2] = settings.value("p1k_left", SDLK_LEFT).toInt();
-	vjs.p1KeyBindings[3] = settings.value("p1k_right", SDLK_RIGHT).toInt();
-	vjs.p1KeyBindings[4] = settings.value("p1k_c", SDLK_z).toInt();
-	vjs.p1KeyBindings[5] = settings.value("p1k_b", SDLK_x).toInt();
-	vjs.p1KeyBindings[6] = settings.value("p1k_a", SDLK_c).toInt();
-	vjs.p1KeyBindings[7] = settings.value("p1k_option", SDLK_QUOTE).toInt();
-	vjs.p1KeyBindings[8] = settings.value("p1k_pause", SDLK_RETURN).toInt();
-	vjs.p1KeyBindings[9] = settings.value("p1k_0", SDLK_KP0).toInt();
-	vjs.p1KeyBindings[10] = settings.value("p1k_1", SDLK_KP1).toInt();
-	vjs.p1KeyBindings[11] = settings.value("p1k_2", SDLK_KP2).toInt();
-	vjs.p1KeyBindings[12] = settings.value("p1k_3", SDLK_KP3).toInt();
-	vjs.p1KeyBindings[13] = settings.value("p1k_4", SDLK_KP4).toInt();
-	vjs.p1KeyBindings[14] = settings.value("p1k_5", SDLK_KP5).toInt();
-	vjs.p1KeyBindings[15] = settings.value("p1k_6", SDLK_KP6).toInt();
-	vjs.p1KeyBindings[16] = settings.value("p1k_7", SDLK_KP7).toInt();
-	vjs.p1KeyBindings[17] = settings.value("p1k_8", SDLK_KP8).toInt();
-	vjs.p1KeyBindings[18] = settings.value("p1k_9", SDLK_KP9).toInt();
-	vjs.p1KeyBindings[19] = settings.value("p1k_pound", SDLK_KP_DIVIDE).toInt();
-	vjs.p1KeyBindings[20] = settings.value("p1k_star", SDLK_KP_MULTIPLY).toInt();
+	vjs.p1KeyBindings[BUTTON_U] = settings.value("p1k_up", Qt::Key_Up).toInt();
+	vjs.p1KeyBindings[BUTTON_D] = settings.value("p1k_down", Qt::Key_Down).toInt();
+	vjs.p1KeyBindings[BUTTON_L] = settings.value("p1k_left", Qt::Key_Left).toInt();
+	vjs.p1KeyBindings[BUTTON_R] = settings.value("p1k_right", Qt::Key_Right).toInt();
+	vjs.p1KeyBindings[BUTTON_C] = settings.value("p1k_c", Qt::Key_Z).toInt();
+	vjs.p1KeyBindings[BUTTON_B] = settings.value("p1k_b", Qt::Key_X).toInt();
+	vjs.p1KeyBindings[BUTTON_A] = settings.value("p1k_a", Qt::Key_C).toInt();
+	vjs.p1KeyBindings[BUTTON_OPTION] = settings.value("p1k_option", Qt::Key_Apostrophe).toInt();
+	vjs.p1KeyBindings[BUTTON_PAUSE] = settings.value("p1k_pause", Qt::Key_Return).toInt();
+	vjs.p1KeyBindings[BUTTON_0] = settings.value("p1k_0", Qt::Key_0).toInt();
+	vjs.p1KeyBindings[BUTTON_1] = settings.value("p1k_1", Qt::Key_1).toInt();
+	vjs.p1KeyBindings[BUTTON_2] = settings.value("p1k_2", Qt::Key_2).toInt();
+	vjs.p1KeyBindings[BUTTON_3] = settings.value("p1k_3", Qt::Key_3).toInt();
+	vjs.p1KeyBindings[BUTTON_4] = settings.value("p1k_4", Qt::Key_4).toInt();
+	vjs.p1KeyBindings[BUTTON_5] = settings.value("p1k_5", Qt::Key_5).toInt();
+	vjs.p1KeyBindings[BUTTON_6] = settings.value("p1k_6", Qt::Key_6).toInt();
+	vjs.p1KeyBindings[BUTTON_7] = settings.value("p1k_7", Qt::Key_7).toInt();
+	vjs.p1KeyBindings[BUTTON_8] = settings.value("p1k_8", Qt::Key_8).toInt();
+	vjs.p1KeyBindings[BUTTON_9] = settings.value("p1k_9", Qt::Key_9).toInt();
+	vjs.p1KeyBindings[BUTTON_d] = settings.value("p1k_pound", Qt::Key_Slash).toInt();
+	vjs.p1KeyBindings[BUTTON_s] = settings.value("p1k_star", Qt::Key_Asterisk).toInt();
 
-	vjs.p2KeyBindings[0] = settings.value("p2k_up", SDLK_UP).toInt();
-	vjs.p2KeyBindings[1] = settings.value("p2k_down", SDLK_DOWN).toInt();
-	vjs.p2KeyBindings[2] = settings.value("p2k_left", SDLK_LEFT).toInt();
-	vjs.p2KeyBindings[3] = settings.value("p2k_right", SDLK_RIGHT).toInt();
-	vjs.p2KeyBindings[4] = settings.value("p2k_c", SDLK_z).toInt();
-	vjs.p2KeyBindings[5] = settings.value("p2k_b", SDLK_x).toInt();
-	vjs.p2KeyBindings[6] = settings.value("p2k_a", SDLK_c).toInt();
-	vjs.p2KeyBindings[7] = settings.value("p2k_option", SDLK_QUOTE).toInt();
-	vjs.p2KeyBindings[8] = settings.value("p2k_pause", SDLK_RETURN).toInt();
-	vjs.p2KeyBindings[9] = settings.value("p2k_0", SDLK_KP0).toInt();
-	vjs.p2KeyBindings[10] = settings.value("p2k_1", SDLK_KP1).toInt();
-	vjs.p2KeyBindings[11] = settings.value("p2k_2", SDLK_KP2).toInt();
-	vjs.p2KeyBindings[12] = settings.value("p2k_3", SDLK_KP3).toInt();
-	vjs.p2KeyBindings[13] = settings.value("p2k_4", SDLK_KP4).toInt();
-	vjs.p2KeyBindings[14] = settings.value("p2k_5", SDLK_KP5).toInt();
-	vjs.p2KeyBindings[15] = settings.value("p2k_6", SDLK_KP6).toInt();
-	vjs.p2KeyBindings[16] = settings.value("p2k_7", SDLK_KP7).toInt();
-	vjs.p2KeyBindings[17] = settings.value("p2k_8", SDLK_KP8).toInt();
-	vjs.p2KeyBindings[18] = settings.value("p2k_9", SDLK_KP9).toInt();
-	vjs.p2KeyBindings[19] = settings.value("p2k_pound", SDLK_KP_DIVIDE).toInt();
-	vjs.p2KeyBindings[20] = settings.value("p2k_star", SDLK_KP_MULTIPLY).toInt();
+	vjs.p2KeyBindings[BUTTON_U] = settings.value("p2k_up", Qt::Key_Up).toInt();
+	vjs.p2KeyBindings[BUTTON_D] = settings.value("p2k_down", Qt::Key_Down).toInt();
+	vjs.p2KeyBindings[BUTTON_L] = settings.value("p2k_left", Qt::Key_Left).toInt();
+	vjs.p2KeyBindings[BUTTON_R] = settings.value("p2k_right", Qt::Key_Right).toInt();
+	vjs.p2KeyBindings[BUTTON_C] = settings.value("p2k_c", Qt::Key_Z).toInt();
+	vjs.p2KeyBindings[BUTTON_B] = settings.value("p2k_b", Qt::Key_X).toInt();
+	vjs.p2KeyBindings[BUTTON_A] = settings.value("p2k_a", Qt::Key_C).toInt();
+	vjs.p2KeyBindings[BUTTON_OPTION] = settings.value("p2k_option", Qt::Key_Apostrophe).toInt();
+	vjs.p2KeyBindings[BUTTON_PAUSE] = settings.value("p2k_pause", Qt::Key_Return).toInt();
+	vjs.p2KeyBindings[BUTTON_0] = settings.value("p2k_0", Qt::Key_0).toInt();
+	vjs.p2KeyBindings[BUTTON_1] = settings.value("p2k_1", Qt::Key_1).toInt();
+	vjs.p2KeyBindings[BUTTON_2] = settings.value("p2k_2", Qt::Key_2).toInt();
+	vjs.p2KeyBindings[BUTTON_3] = settings.value("p2k_3", Qt::Key_3).toInt();
+	vjs.p2KeyBindings[BUTTON_4] = settings.value("p2k_4", Qt::Key_4).toInt();
+	vjs.p2KeyBindings[BUTTON_5] = settings.value("p2k_5", Qt::Key_5).toInt();
+	vjs.p2KeyBindings[BUTTON_6] = settings.value("p2k_6", Qt::Key_6).toInt();
+	vjs.p2KeyBindings[BUTTON_7] = settings.value("p2k_7", Qt::Key_7).toInt();
+	vjs.p2KeyBindings[BUTTON_8] = settings.value("p2k_8", Qt::Key_8).toInt();
+	vjs.p2KeyBindings[BUTTON_9] = settings.value("p2k_9", Qt::Key_9).toInt();
+	vjs.p2KeyBindings[BUTTON_d] = settings.value("p2k_pound", Qt::Key_Slash).toInt();
+	vjs.p2KeyBindings[BUTTON_s] = settings.value("p2k_star", Qt::Key_Asterisk).toInt();
 }
 
 void MainWin::WriteSettings(void)
@@ -694,49 +675,49 @@ void MainWin::WriteSettings(void)
 	settings.setValue("EEPROMs", vjs.EEPROMPath);
 	settings.setValue("ROMs", vjs.ROMPath);
 
-	settings.setValue("p1k_up", vjs.p1KeyBindings[0]);
-	settings.setValue("p1k_down", vjs.p1KeyBindings[1]);
-	settings.setValue("p1k_left", vjs.p1KeyBindings[2]);
-	settings.setValue("p1k_right", vjs.p1KeyBindings[3]);
-	settings.setValue("p1k_c", vjs.p1KeyBindings[4]);
-	settings.setValue("p1k_b", vjs.p1KeyBindings[5]);
-	settings.setValue("p1k_a", vjs.p1KeyBindings[6]);
-	settings.setValue("p1k_option", vjs.p1KeyBindings[7]);
-	settings.setValue("p1k_pause", vjs.p1KeyBindings[8]);
-	settings.setValue("p1k_0", vjs.p1KeyBindings[9]);
-	settings.setValue("p1k_1", vjs.p1KeyBindings[10]);
-	settings.setValue("p1k_2", vjs.p1KeyBindings[11]);
-	settings.setValue("p1k_3", vjs.p1KeyBindings[12]);
-	settings.setValue("p1k_4", vjs.p1KeyBindings[13]);
-	settings.setValue("p1k_5", vjs.p1KeyBindings[14]);
-	settings.setValue("p1k_6", vjs.p1KeyBindings[15]);
-	settings.setValue("p1k_7", vjs.p1KeyBindings[16]);
-	settings.setValue("p1k_8", vjs.p1KeyBindings[17]);
-	settings.setValue("p1k_9", vjs.p1KeyBindings[18]);
-	settings.setValue("p1k_pound", vjs.p1KeyBindings[19]);
-	settings.setValue("p1k_star", vjs.p1KeyBindings[20]);
+	settings.setValue("p1k_up", vjs.p1KeyBindings[BUTTON_U]);
+	settings.setValue("p1k_down", vjs.p1KeyBindings[BUTTON_D]);
+	settings.setValue("p1k_left", vjs.p1KeyBindings[BUTTON_L]);
+	settings.setValue("p1k_right", vjs.p1KeyBindings[BUTTON_R]);
+	settings.setValue("p1k_c", vjs.p1KeyBindings[BUTTON_C]);
+	settings.setValue("p1k_b", vjs.p1KeyBindings[BUTTON_B]);
+	settings.setValue("p1k_a", vjs.p1KeyBindings[BUTTON_A]);
+	settings.setValue("p1k_option", vjs.p1KeyBindings[BUTTON_OPTION]);
+	settings.setValue("p1k_pause", vjs.p1KeyBindings[BUTTON_PAUSE]);
+	settings.setValue("p1k_0", vjs.p1KeyBindings[BUTTON_0]);
+	settings.setValue("p1k_1", vjs.p1KeyBindings[BUTTON_1]);
+	settings.setValue("p1k_2", vjs.p1KeyBindings[BUTTON_2]);
+	settings.setValue("p1k_3", vjs.p1KeyBindings[BUTTON_3]);
+	settings.setValue("p1k_4", vjs.p1KeyBindings[BUTTON_4]);
+	settings.setValue("p1k_5", vjs.p1KeyBindings[BUTTON_5]);
+	settings.setValue("p1k_6", vjs.p1KeyBindings[BUTTON_6]);
+	settings.setValue("p1k_7", vjs.p1KeyBindings[BUTTON_7]);
+	settings.setValue("p1k_8", vjs.p1KeyBindings[BUTTON_8]);
+	settings.setValue("p1k_9", vjs.p1KeyBindings[BUTTON_9]);
+	settings.setValue("p1k_pound", vjs.p1KeyBindings[BUTTON_d]);
+	settings.setValue("p1k_star", vjs.p1KeyBindings[BUTTON_s]);
 
-	settings.setValue("p2k_up", vjs.p2KeyBindings[0]);
-	settings.setValue("p2k_down", vjs.p2KeyBindings[1]);
-	settings.setValue("p2k_left", vjs.p2KeyBindings[2]);
-	settings.setValue("p2k_right", vjs.p2KeyBindings[3]);
-	settings.setValue("p2k_c", vjs.p2KeyBindings[4]);
-	settings.setValue("p2k_b", vjs.p2KeyBindings[5]);
-	settings.setValue("p2k_a", vjs.p2KeyBindings[6]);
-	settings.setValue("p2k_option", vjs.p2KeyBindings[7]);
-	settings.setValue("p2k_pause", vjs.p2KeyBindings[8]);
-	settings.setValue("p2k_0", vjs.p2KeyBindings[9]);
-	settings.setValue("p2k_1", vjs.p2KeyBindings[10]);
-	settings.setValue("p2k_2", vjs.p2KeyBindings[11]);
-	settings.setValue("p2k_3", vjs.p2KeyBindings[12]);
-	settings.setValue("p2k_4", vjs.p2KeyBindings[13]);
-	settings.setValue("p2k_5", vjs.p2KeyBindings[14]);
-	settings.setValue("p2k_6", vjs.p2KeyBindings[15]);
-	settings.setValue("p2k_7", vjs.p2KeyBindings[16]);
-	settings.setValue("p2k_8", vjs.p2KeyBindings[17]);
-	settings.setValue("p2k_9", vjs.p2KeyBindings[18]);
-	settings.setValue("p2k_pound", vjs.p2KeyBindings[19]);
-	settings.setValue("p2k_star", vjs.p2KeyBindings[20]);
+	settings.setValue("p2k_up", vjs.p2KeyBindings[BUTTON_U]);
+	settings.setValue("p2k_down", vjs.p2KeyBindings[BUTTON_D]);
+	settings.setValue("p2k_left", vjs.p2KeyBindings[BUTTON_L]);
+	settings.setValue("p2k_right", vjs.p2KeyBindings[BUTTON_R]);
+	settings.setValue("p2k_c", vjs.p2KeyBindings[BUTTON_C]);
+	settings.setValue("p2k_b", vjs.p2KeyBindings[BUTTON_B]);
+	settings.setValue("p2k_a", vjs.p2KeyBindings[BUTTON_A]);
+	settings.setValue("p2k_option", vjs.p2KeyBindings[BUTTON_OPTION]);
+	settings.setValue("p2k_pause", vjs.p2KeyBindings[BUTTON_PAUSE]);
+	settings.setValue("p2k_0", vjs.p2KeyBindings[BUTTON_0]);
+	settings.setValue("p2k_1", vjs.p2KeyBindings[BUTTON_1]);
+	settings.setValue("p2k_2", vjs.p2KeyBindings[BUTTON_2]);
+	settings.setValue("p2k_3", vjs.p2KeyBindings[BUTTON_3]);
+	settings.setValue("p2k_4", vjs.p2KeyBindings[BUTTON_4]);
+	settings.setValue("p2k_5", vjs.p2KeyBindings[BUTTON_5]);
+	settings.setValue("p2k_6", vjs.p2KeyBindings[BUTTON_6]);
+	settings.setValue("p2k_7", vjs.p2KeyBindings[BUTTON_7]);
+	settings.setValue("p2k_8", vjs.p2KeyBindings[BUTTON_8]);
+	settings.setValue("p2k_9", vjs.p2KeyBindings[BUTTON_9]);
+	settings.setValue("p2k_pound", vjs.p2KeyBindings[BUTTON_d]);
+	settings.setValue("p2k_star", vjs.p2KeyBindings[BUTTON_s]);
 }
 
 // Here's how Byuu does it...

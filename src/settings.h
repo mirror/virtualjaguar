@@ -33,8 +33,8 @@ struct VJSettings
 
 	// Keybindings in order of U, D, L, R, C, B, A, Op, Pa, 0-9, #, *
 
-	uint16 p1KeyBindings[21];
-	uint16 p2KeyBindings[21];
+	uint32 p1KeyBindings[21];
+	uint32 p2KeyBindings[21];
 
 	// Paths
 

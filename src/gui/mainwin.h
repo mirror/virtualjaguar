@@ -42,11 +42,10 @@ class MainWin: public QMainWindow
 		void ToggleBlur(void);
 		void ShowAboutWin(void);
 		void InsertCart(void);
-
-//	public slots:
 		void LoadSoftware(QString);
 
 	private:
+		void HandleKeys(QKeyEvent *, bool);
 		void ResizeMainWindow(void);
 		void ReadSettings(void);
 		void WriteSettings(void);

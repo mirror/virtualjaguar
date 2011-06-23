@@ -24,6 +24,7 @@
 #include "settings.h"
 #include "video.h"
 
+#if 0
 #define BUTTON_U		0
 #define BUTTON_D		1
 #define BUTTON_L		2
@@ -46,12 +47,13 @@
 #define BUTTON_C		18
 #define BUTTON_OPTION	19
 #define BUTTON_PAUSE	20
+#endif
 
 // Global vars
 
 static uint8 joystick_ram[4];
-static uint8 joypad_0_buttons[21];
-static uint8 joypad_1_buttons[21];
+uint8 joypad_0_buttons[21];
+uint8 joypad_1_buttons[21];
 
 bool keyBuffer[21];
 
@@ -82,16 +84,17 @@ void JoystickInit(void)
 
 void JoystickExec(void)
 {
-	uint8 * keystate = SDL_GetKeyState(NULL);
+//	uint8 * keystate = SDL_GetKeyState(NULL);
 
-	memset(joypad_0_buttons, 0, 21);
-	memset(joypad_1_buttons, 0, 21);
+//	memset(joypad_0_buttons, 0, 21);
+//	memset(joypad_1_buttons, 0, 21);
 	gpu_start_log = 0;							// Only log while key down!
 	effect_start = 0;
 	effect_start2 = effect_start3 = effect_start4 = effect_start5 = effect_start6 = 0;
 	blit_start_log = 0;
 	iLeft = iRight = false;
 
+#if 0
 	if ((keystate[SDLK_LALT] || keystate[SDLK_RALT]) & keystate[SDLK_RETURN])
 		ToggleFullscreen();
 
@@ -114,23 +117,6 @@ void JoystickExec(void)
 		joypad_0_buttons[BUTTON_B] = 0x01;
 	if (keystate[vjs.p1KeyBindings[6]])
 		joypad_0_buttons[BUTTON_A] = 0x01;
-#else
-	if (keyBuffer[0])
-		joypad_0_buttons[BUTTON_U] = 0x01;
-	if (keyBuffer[1])
-		joypad_0_buttons[BUTTON_D] = 0x01;
-	if (keyBuffer[2])
-		joypad_0_buttons[BUTTON_L] = 0x01;
-	if (keyBuffer[3])
-		joypad_0_buttons[BUTTON_R] = 0x01;
-	// The buttons are labelled C,B,A on the controller (going from left to right)
-	if (keyBuffer[4])
-		joypad_0_buttons[BUTTON_C] = 0x01;
-	if (keyBuffer[5])
-		joypad_0_buttons[BUTTON_B] = 0x01;
-	if (keyBuffer[6])
-		joypad_0_buttons[BUTTON_A] = 0x01;
-#endif
 //I may yet move these to O and P...
 	if (keystate[vjs.p1KeyBindings[7]])
 		joypad_0_buttons[BUTTON_OPTION] = 0x01;
@@ -161,6 +147,53 @@ void JoystickExec(void)
 		joypad_0_buttons[BUTTON_s] = 0x01;
 	if (keystate[vjs.p1KeyBindings[20]])
 		joypad_0_buttons[BUTTON_d] = 0x01;
+#else
+	if (keyBuffer[0])
+		joypad_0_buttons[BUTTON_U] = 0x01;
+	if (keyBuffer[1])
+		joypad_0_buttons[BUTTON_D] = 0x01;
+	if (keyBuffer[2])
+		joypad_0_buttons[BUTTON_L] = 0x01;
+	if (keyBuffer[3])
+		joypad_0_buttons[BUTTON_R] = 0x01;
+	// The buttons are labelled C,B,A on the controller (going from left to right)
+	if (keyBuffer[4])
+		joypad_0_buttons[BUTTON_C] = 0x01;
+	if (keyBuffer[5])
+		joypad_0_buttons[BUTTON_B] = 0x01;
+	if (keyBuffer[6])
+		joypad_0_buttons[BUTTON_A] = 0x01;
+//I may yet move these to O and P...
+	if (keyBuffer[7])
+		joypad_0_buttons[BUTTON_OPTION] = 0x01;
+	if (keyBuffer[8])
+		joypad_0_buttons[BUTTON_PAUSE] = 0x01;
+
+	if (keyBuffer[9])
+		joypad_0_buttons[BUTTON_0] = 0x01;
+	if (keyBuffer[10])
+		joypad_0_buttons[BUTTON_1] = 0x01;
+	if (keyBuffer[11])
+		joypad_0_buttons[BUTTON_2] = 0x01;
+	if (keyBuffer[12])
+		joypad_0_buttons[BUTTON_3] = 0x01;
+	if (keyBuffer[13])
+		joypad_0_buttons[BUTTON_4] = 0x01;
+	if (keyBuffer[14])
+		joypad_0_buttons[BUTTON_5] = 0x01;
+	if (keyBuffer[15])
+		joypad_0_buttons[BUTTON_6] = 0x01;
+	if (keyBuffer[16])
+		joypad_0_buttons[BUTTON_7] = 0x01;
+	if (keyBuffer[17])
+		joypad_0_buttons[BUTTON_8] = 0x01;
+	if (keyBuffer[18])
+		joypad_0_buttons[BUTTON_9] = 0x01;
+	if (keyBuffer[19])
+		joypad_0_buttons[BUTTON_s] = 0x01;
+	if (keyBuffer[20])
+		joypad_0_buttons[BUTTON_d] = 0x01;
+#endif
 
 #warning "!!! FIX !!! (debounceRunKey)"
 //	extern bool debounceRunKey;
@@ -260,6 +293,20 @@ void JoystickExec(void)
 	}
 	else
 		bssHeld = false;
+#endif
+	// We need to ensure that illegal combinations are not possible.
+	// So, we do a simple minded way here...
+	// It would be better to check to see which one was pressed last
+	// and discard that one, but for now...
+//This didn't work... Was still able to do bad combination.
+//It's because the GUI is changing this *after* we fix it here.
+#if 0
+	if (joypad_0_buttons[BUTTON_R] && joypad_0_buttons[BUTTON_L])
+		joypad_0_buttons[BUTTON_L] = 0;
+
+	if (joypad_0_buttons[BUTTON_U] && joypad_0_buttons[BUTTON_D])
+		joypad_0_buttons[BUTTON_D] = 0;
+#endif
 
 	// Joystick support [nwagenaar]
 
