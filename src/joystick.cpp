@@ -52,6 +52,9 @@
 static uint8 joystick_ram[4];
 static uint8 joypad_0_buttons[21];
 static uint8 joypad_1_buttons[21];
+
+bool keyBuffer[21];
+
 //extern bool finished;
 ////extern bool showGUI;
 bool GUIKeyHeld = false;
@@ -95,6 +98,7 @@ void JoystickExec(void)
 	// Keybindings in order of U, D, L, R, C, B, A, Op, Pa, 0-9, #, *
 //	vjs.p1KeyBindings[0] = sdlemu_getval_int("p1k_up", SDLK_UP);
 
+#if 0
 	if (keystate[vjs.p1KeyBindings[0]])
 		joypad_0_buttons[BUTTON_U] = 0x01;
 	if (keystate[vjs.p1KeyBindings[1]])
@@ -110,6 +114,23 @@ void JoystickExec(void)
 		joypad_0_buttons[BUTTON_B] = 0x01;
 	if (keystate[vjs.p1KeyBindings[6]])
 		joypad_0_buttons[BUTTON_A] = 0x01;
+#else
+	if (keyBuffer[0])
+		joypad_0_buttons[BUTTON_U] = 0x01;
+	if (keyBuffer[1])
+		joypad_0_buttons[BUTTON_D] = 0x01;
+	if (keyBuffer[2])
+		joypad_0_buttons[BUTTON_L] = 0x01;
+	if (keyBuffer[3])
+		joypad_0_buttons[BUTTON_R] = 0x01;
+	// The buttons are labelled C,B,A on the controller (going from left to right)
+	if (keyBuffer[4])
+		joypad_0_buttons[BUTTON_C] = 0x01;
+	if (keyBuffer[5])
+		joypad_0_buttons[BUTTON_B] = 0x01;
+	if (keyBuffer[6])
+		joypad_0_buttons[BUTTON_A] = 0x01;
+#endif
 //I may yet move these to O and P...
 	if (keystate[vjs.p1KeyBindings[7]])
 		joypad_0_buttons[BUTTON_OPTION] = 0x01;

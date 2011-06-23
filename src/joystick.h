@@ -16,4 +16,6 @@ uint8 JoystickReadByte(uint32);
 uint16 JoystickReadWord(uint32);
 void JoystickExec(void);
 
+extern bool keyBuffer[];
+
 #endif

@@ -25,7 +25,9 @@ class MainWin: public QMainWindow
 		MainWin();
 
 	protected:
-		void closeEvent(QCloseEvent * event);
+		void closeEvent(QCloseEvent *);
+		void keyPressEvent(QKeyEvent *);
+		void keyReleaseEvent(QKeyEvent *);
 
 	private slots:
 		void Open(void);

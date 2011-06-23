@@ -25,6 +25,7 @@
 
 #include "mainwin.h"
 
+#include "SDL.h"
 //#include <QtGui>
 //#include <QtOpenGL>
 #include "glwidget.h"
@@ -37,6 +38,7 @@
 #include "tom.h"
 #include "log.h"
 #include "file.h"
+#include "joystick.h"
 
 // Uncomment this to use built-in BIOS/CD-ROM BIOS
 // You'll need a copy of jagboot.h & jagcd.h for this to work...!
@@ -245,6 +247,66 @@ void MainWin::closeEvent(QCloseEvent * event)
 {
 	WriteSettings();
 	event->accept(); // ignore() if can't close for some reason
+}
+
+void MainWin::keyPressEvent(QKeyEvent * e)
+{
+	// NOTE: Keys are hardwired...
+/*
+	vjs.p1KeyBindings[0] = settings.value("p1k_up", SDLK_UP).toInt();
+	vjs.p1KeyBindings[1] = settings.value("p1k_down", SDLK_DOWN).toInt();
+	vjs.p1KeyBindings[2] = settings.value("p1k_left", SDLK_LEFT).toInt();
+	vjs.p1KeyBindings[3] = settings.value("p1k_right", SDLK_RIGHT).toInt();
+	vjs.p1KeyBindings[4] = settings.value("p1k_c", SDLK_z).toInt();
+	vjs.p1KeyBindings[5] = settings.value("p1k_b", SDLK_x).toInt();
+	vjs.p1KeyBindings[6] = settings.value("p1k_a", SDLK_c).toInt();
+	vjs.p1KeyBindings[7] = settings.value("p1k_option", SDLK_QUOTE).toInt();
+	vjs.p1KeyBindings[8] = settings.value("p1k_pause", SDLK_RETURN).toInt();
+	vjs.p1KeyBindings[9] = settings.value("p1k_0", SDLK_KP0).toInt();
+	vjs.p1KeyBindings[10] = settings.value("p1k_1", SDLK_KP1).toInt();
+	vjs.p1KeyBindings[11] = settings.value("p1k_2", SDLK_KP2).toInt();
+	vjs.p1KeyBindings[12] = settings.value("p1k_3", SDLK_KP3).toInt();
+	vjs.p1KeyBindings[13] = settings.value("p1k_4", SDLK_KP4).toInt();
+	vjs.p1KeyBindings[14] = settings.value("p1k_5", SDLK_KP5).toInt();
+	vjs.p1KeyBindings[15] = settings.value("p1k_6", SDLK_KP6).toInt();
+	vjs.p1KeyBindings[16] = settings.value("p1k_7", SDLK_KP7).toInt();
+	vjs.p1KeyBindings[17] = settings.value("p1k_8", SDLK_KP8).toInt();
+	vjs.p1KeyBindings[18] = settings.value("p1k_9", SDLK_KP9).toInt();
+	vjs.p1KeyBindings[19] = settings.value("p1k_pound", SDLK_KP_DIVIDE).toInt();
+	vjs.p1KeyBindings[20] = settings.value("p1k_star", SDLK_KP_MULTIPLY).toInt();
+*/
+	if (e->key() == Qt::Key_Up)
+		keyBuffer[0] = true;
+	else if (e->key() == Qt::Key_Down)
+		keyBuffer[1] = true;
+	else if (e->key() == Qt::Key_Left)
+		keyBuffer[2] = true;
+	else if (e->key() == Qt::Key_Right)
+		keyBuffer[3] = true;
+	else if (e->key() == Qt::Key_Z)
+		keyBuffer[4] = true;
+	else if (e->key() == Qt::Key_X)
+		keyBuffer[5] = true;
+	else if (e->key() == Qt::Key_C)
+		keyBuffer[6] = true;
+}
+
+void MainWin::keyReleaseEvent(QKeyEvent * e)
+{
+	if (e->key() == Qt::Key_Up)
+		keyBuffer[0] = false;
+	else if (e->key() == Qt::Key_Down)
+		keyBuffer[1] = false;
+	else if (e->key() == Qt::Key_Left)
+		keyBuffer[2] = false;
+	else if (e->key() == Qt::Key_Right)
+		keyBuffer[3] = false;
+	else if (e->key() == Qt::Key_Z)
+		keyBuffer[4] = false;
+	else if (e->key() == Qt::Key_X)
+		keyBuffer[5] = false;
+	else if (e->key() == Qt::Key_C)
+		keyBuffer[6] = false;
 }
 
 void MainWin::Open(void)
@@ -561,6 +623,51 @@ WriteLog("    jagBootPath = \"%s\"\n", vjs.jagBootPath);
 WriteLog("    CDBootPath  = \"%s\"\n", vjs.CDBootPath);
 WriteLog("    EEPROMPath  = \"%s\"\n", vjs.EEPROMPath);
 WriteLog("    ROMPath     = \"%s\"\n", vjs.ROMPath);
+
+	// Keybindings in order of U, D, L, R, C, B, A, Op, Pa, 0-9, #, *
+	vjs.p1KeyBindings[0] = settings.value("p1k_up", SDLK_UP).toInt();
+	vjs.p1KeyBindings[1] = settings.value("p1k_down", SDLK_DOWN).toInt();
+	vjs.p1KeyBindings[2] = settings.value("p1k_left", SDLK_LEFT).toInt();
+	vjs.p1KeyBindings[3] = settings.value("p1k_right", SDLK_RIGHT).toInt();
+	vjs.p1KeyBindings[4] = settings.value("p1k_c", SDLK_z).toInt();
+	vjs.p1KeyBindings[5] = settings.value("p1k_b", SDLK_x).toInt();
+	vjs.p1KeyBindings[6] = settings.value("p1k_a", SDLK_c).toInt();
+	vjs.p1KeyBindings[7] = settings.value("p1k_option", SDLK_QUOTE).toInt();
+	vjs.p1KeyBindings[8] = settings.value("p1k_pause", SDLK_RETURN).toInt();
+	vjs.p1KeyBindings[9] = settings.value("p1k_0", SDLK_KP0).toInt();
+	vjs.p1KeyBindings[10] = settings.value("p1k_1", SDLK_KP1).toInt();
+	vjs.p1KeyBindings[11] = settings.value("p1k_2", SDLK_KP2).toInt();
+	vjs.p1KeyBindings[12] = settings.value("p1k_3", SDLK_KP3).toInt();
+	vjs.p1KeyBindings[13] = settings.value("p1k_4", SDLK_KP4).toInt();
+	vjs.p1KeyBindings[14] = settings.value("p1k_5", SDLK_KP5).toInt();
+	vjs.p1KeyBindings[15] = settings.value("p1k_6", SDLK_KP6).toInt();
+	vjs.p1KeyBindings[16] = settings.value("p1k_7", SDLK_KP7).toInt();
+	vjs.p1KeyBindings[17] = settings.value("p1k_8", SDLK_KP8).toInt();
+	vjs.p1KeyBindings[18] = settings.value("p1k_9", SDLK_KP9).toInt();
+	vjs.p1KeyBindings[19] = settings.value("p1k_pound", SDLK_KP_DIVIDE).toInt();
+	vjs.p1KeyBindings[20] = settings.value("p1k_star", SDLK_KP_MULTIPLY).toInt();
+
+	vjs.p2KeyBindings[0] = settings.value("p2k_up", SDLK_UP).toInt();
+	vjs.p2KeyBindings[1] = settings.value("p2k_down", SDLK_DOWN).toInt();
+	vjs.p2KeyBindings[2] = settings.value("p2k_left", SDLK_LEFT).toInt();
+	vjs.p2KeyBindings[3] = settings.value("p2k_right", SDLK_RIGHT).toInt();
+	vjs.p2KeyBindings[4] = settings.value("p2k_c", SDLK_z).toInt();
+	vjs.p2KeyBindings[5] = settings.value("p2k_b", SDLK_x).toInt();
+	vjs.p2KeyBindings[6] = settings.value("p2k_a", SDLK_c).toInt();
+	vjs.p2KeyBindings[7] = settings.value("p2k_option", SDLK_QUOTE).toInt();
+	vjs.p2KeyBindings[8] = settings.value("p2k_pause", SDLK_RETURN).toInt();
+	vjs.p2KeyBindings[9] = settings.value("p2k_0", SDLK_KP0).toInt();
+	vjs.p2KeyBindings[10] = settings.value("p2k_1", SDLK_KP1).toInt();
+	vjs.p2KeyBindings[11] = settings.value("p2k_2", SDLK_KP2).toInt();
+	vjs.p2KeyBindings[12] = settings.value("p2k_3", SDLK_KP3).toInt();
+	vjs.p2KeyBindings[13] = settings.value("p2k_4", SDLK_KP4).toInt();
+	vjs.p2KeyBindings[14] = settings.value("p2k_5", SDLK_KP5).toInt();
+	vjs.p2KeyBindings[15] = settings.value("p2k_6", SDLK_KP6).toInt();
+	vjs.p2KeyBindings[16] = settings.value("p2k_7", SDLK_KP7).toInt();
+	vjs.p2KeyBindings[17] = settings.value("p2k_8", SDLK_KP8).toInt();
+	vjs.p2KeyBindings[18] = settings.value("p2k_9", SDLK_KP9).toInt();
+	vjs.p2KeyBindings[19] = settings.value("p2k_pound", SDLK_KP_DIVIDE).toInt();
+	vjs.p2KeyBindings[20] = settings.value("p2k_star", SDLK_KP_MULTIPLY).toInt();
 }
 
 void MainWin::WriteSettings(void)
@@ -586,6 +693,50 @@ void MainWin::WriteSettings(void)
 	settings.setValue("CDBootROM", vjs.CDBootPath);
 	settings.setValue("EEPROMs", vjs.EEPROMPath);
 	settings.setValue("ROMs", vjs.ROMPath);
+
+	settings.setValue("p1k_up", vjs.p1KeyBindings[0]);
+	settings.setValue("p1k_down", vjs.p1KeyBindings[1]);
+	settings.setValue("p1k_left", vjs.p1KeyBindings[2]);
+	settings.setValue("p1k_right", vjs.p1KeyBindings[3]);
+	settings.setValue("p1k_c", vjs.p1KeyBindings[4]);
+	settings.setValue("p1k_b", vjs.p1KeyBindings[5]);
+	settings.setValue("p1k_a", vjs.p1KeyBindings[6]);
+	settings.setValue("p1k_option", vjs.p1KeyBindings[7]);
+	settings.setValue("p1k_pause", vjs.p1KeyBindings[8]);
+	settings.setValue("p1k_0", vjs.p1KeyBindings[9]);
+	settings.setValue("p1k_1", vjs.p1KeyBindings[10]);
+	settings.setValue("p1k_2", vjs.p1KeyBindings[11]);
+	settings.setValue("p1k_3", vjs.p1KeyBindings[12]);
+	settings.setValue("p1k_4", vjs.p1KeyBindings[13]);
+	settings.setValue("p1k_5", vjs.p1KeyBindings[14]);
+	settings.setValue("p1k_6", vjs.p1KeyBindings[15]);
+	settings.setValue("p1k_7", vjs.p1KeyBindings[16]);
+	settings.setValue("p1k_8", vjs.p1KeyBindings[17]);
+	settings.setValue("p1k_9", vjs.p1KeyBindings[18]);
+	settings.setValue("p1k_pound", vjs.p1KeyBindings[19]);
+	settings.setValue("p1k_star", vjs.p1KeyBindings[20]);
+
+	settings.setValue("p2k_up", vjs.p2KeyBindings[0]);
+	settings.setValue("p2k_down", vjs.p2KeyBindings[1]);
+	settings.setValue("p2k_left", vjs.p2KeyBindings[2]);
+	settings.setValue("p2k_right", vjs.p2KeyBindings[3]);
+	settings.setValue("p2k_c", vjs.p2KeyBindings[4]);
+	settings.setValue("p2k_b", vjs.p2KeyBindings[5]);
+	settings.setValue("p2k_a", vjs.p2KeyBindings[6]);
+	settings.setValue("p2k_option", vjs.p2KeyBindings[7]);
+	settings.setValue("p2k_pause", vjs.p2KeyBindings[8]);
+	settings.setValue("p2k_0", vjs.p2KeyBindings[9]);
+	settings.setValue("p2k_1", vjs.p2KeyBindings[10]);
+	settings.setValue("p2k_2", vjs.p2KeyBindings[11]);
+	settings.setValue("p2k_3", vjs.p2KeyBindings[12]);
+	settings.setValue("p2k_4", vjs.p2KeyBindings[13]);
+	settings.setValue("p2k_5", vjs.p2KeyBindings[14]);
+	settings.setValue("p2k_6", vjs.p2KeyBindings[15]);
+	settings.setValue("p2k_7", vjs.p2KeyBindings[16]);
+	settings.setValue("p2k_8", vjs.p2KeyBindings[17]);
+	settings.setValue("p2k_9", vjs.p2KeyBindings[18]);
+	settings.setValue("p2k_pound", vjs.p2KeyBindings[19]);
+	settings.setValue("p2k_star", vjs.p2KeyBindings[20]);
 }
 
 // Here's how Byuu does it...
