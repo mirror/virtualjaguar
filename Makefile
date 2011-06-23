@@ -82,7 +82,12 @@ OBJS := \
 \
 	obj/about.o             \
 	obj/app.o               \
-	obj/configwin.o         \
+	obj/configdialog.o      \
+	obj/moc_configdialog.o  \
+	obj/generaltab.o        \
+	obj/moc_generaltab.o    \
+	obj/controllertab.o     \
+	obj/moc_controllertab.o \
 	obj/filepicker.o        \
 	obj/moc_filepicker.o    \
 	obj/filelistmodel.o     \

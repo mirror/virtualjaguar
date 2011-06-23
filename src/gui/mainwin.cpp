@@ -32,6 +32,7 @@
 #include "about.h"
 #include "settings.h"
 #include "filepicker.h"
+#include "configdialog.h"
 
 #include "jaguar.h"
 #include "video.h"
@@ -146,6 +147,10 @@ MainWin::MainWin(): running(false), powerButtonOn(false), showUntunedTankCircuit
 	filePickAct->setStatusTip(tr("Insert a cartridge into Virtual Jaguar"));
 	connect(filePickAct, SIGNAL(triggered()), this, SLOT(InsertCart()));
 
+	configAct = new QAction(QIcon(":/res/generic.png"), tr("&Configure"), this);
+	configAct->setStatusTip(tr("Configure options for Virtual Jaguar"));
+	connect(configAct, SIGNAL(triggered()), this, SLOT(Configure()));
+
 	// Misc. connections...
 	connect(filePickWin, SIGNAL(RequestLoad(QString)), this, SLOT(LoadSoftware(QString)));
 
@@ -155,6 +160,7 @@ MainWin::MainWin(): running(false), powerButtonOn(false), showUntunedTankCircuit
 	fileMenu->addAction(filePickAct);
 	fileMenu->addAction(powerAct);
 	fileMenu->addAction(pauseAct);
+	fileMenu->addAction(configAct);
 	fileMenu->addAction(quitAppAct);
 
 	helpMenu = menuBar()->addMenu(tr("&Help"));
@@ -292,6 +298,17 @@ void MainWin::HandleKeys(QKeyEvent * e, bool state)
 
 void MainWin::Open(void)
 {
+}
+
+void MainWin::Configure(void)
+{
+	// Call the configuration dialog and update settings
+	ConfigDialog dlg(this);
+
+	if (dlg.exec() == false)
+		return;
+
+	dlg.UpdateVJSettings();
 }
 
 //

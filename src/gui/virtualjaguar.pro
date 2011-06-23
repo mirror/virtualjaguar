@@ -12,7 +12,8 @@ HEADERS += glwidget.h
 HEADERS += about.h
 HEADERS += filepicker.h
 HEADERS += filethread.h
-HEADERS += configwin.h
+HEADERS += configdialog.h
+HEADERS += generaltab.h
 
 SOURCES += app.cpp
 SOURCES += mainwin.cpp
@@ -20,7 +21,8 @@ SOURCES += glwidget.cpp
 SOURCES += about.cpp
 SOURCES += filepicker.cpp
 SOURCES += filethread.cpp
-SOURCES += configwin.cpp
+SOURCES += configdialog.cpp
+SOURCES += generaltab.cpp
 
 RESOURCES += virtualjaguar.qrc
 

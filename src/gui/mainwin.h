@@ -31,6 +31,7 @@ class MainWin: public QMainWindow
 
 	private slots:
 		void Open(void);
+ 		void Configure(void);
 		void Timer(void);
 		void TogglePowerState(void);
 		void ToggleRunState(void);
@@ -79,6 +80,7 @@ class MainWin: public QMainWindow
 		QAction * blurAct;
 		QAction * aboutAct;
 		QAction * filePickAct;
+		QAction * configAct;
 };
 
 #endif	// __MAINWIN_H__
