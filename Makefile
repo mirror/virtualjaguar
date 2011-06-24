@@ -192,6 +192,7 @@ check-gl: msg-ck-gl
 msg-ck-gl:
 	@echo -en "   \033[00;32mOpenGL... \033[00m"
 
+#NOTE: Can check for Qt by using 'qmake -v'
 check-qt: msg-ck-qt
 	@echo -e "*** QT CHECK NOT IMPLEMENTED ***"
 
@@ -238,7 +239,6 @@ obj/%.o: src/%.cpp
 	@echo -e "\033[01;33m***\033[00;32m Compiling $<...\033[00m"
 	@$(CC) $(CPPFLAGS) $(INCS) -c $< -o $@
 
-#$(TARGET)$(EXESUFFIX): $(OBJS)
 $(TARGET)$(EXESUFFIX): $(OBJS)
 	@echo -e "\033[01;33m***\033[00;32m Linking it all together...\033[00m"
 	@$(LD) $(LDFLAGS) -o $@ $(OBJS) $(LIBS)
@@ -266,11 +266,9 @@ src/gui/Makefile: src/gui/vj-gui.pro src/gui/vj-gui.qrc
 #		../../obj/qrc_vj-gui.o
 QT_CFLAGS = -MMD `pkg-config --cflags QtGui`
 # !!! THESE DEFINES ARE PLATFORM DEPENDENT !!!
-#QT_DEFINES = -DQT_NO_DEBUG -DQT_GUI_LIB -DQT_CORE_LIB -DQT_SHARED
 QT_DEFINES = -DQT_NO_DEBUG -DQT_OPENGL_LIB -DQT_GUI_LIB -DQT_CORE_LIB -DQT_SHARED
-#QT_INCPATH = -I/usr/share/qt4/mkspecs/linux-g++ -I./src/gui -I/usr/include/qt4/QtCore -I/usr/include/qt4/QtGui -I/usr/include/qt4 -I./obj
 QT_INCPATH = -I/usr/share/qt4/mkspecs/linux-g++ -I./src -I/usr/include/qt4/QtCore -I/usr/include/qt4/QtGui -I/usr/include/qt4/QtOpenGL -I/usr/include/qt4 -I/usr/X11R6/include -I./obj `sdl-config --cflags`
-QT_CXXFLAGS = -MMD -pipe -O2 -march=pentium-m -pipe -D_REENTRANT -Wall -W $(QT_DEFINES) -D$(SYSTYPE) -g
+QT_CXXFLAGS = -MMD -pipe -O2 -pipe -D_REENTRANT -Wall -W $(QT_DEFINES) -D$(SYSTYPE) -g
 
 obj/moc_%.cpp: src/gui/%.h
 	@echo -e "\033[01;33m***\033[00;32m Creating $@...\033[00m"
