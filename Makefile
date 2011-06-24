@@ -193,15 +193,34 @@ msg-ck-gl:
 	@echo -en "   \033[00;32mOpenGL... \033[00m"
 
 #NOTE: Can check for Qt by using 'qmake -v'
-check-qt: msg-ck-qt
-	@echo -e "*** QT CHECK NOT IMPLEMENTED ***"
+check-qt: msg-ck-qt $(if $(shell qmake --version),,msg-no-qt stop-on-error)
+	@echo -e "\033[01;37mOK\033[00m"
 
 msg-ck-qt:
 	@echo -en "   \033[00;32mQt... \033[00m"
 
+msg-no-qt:
+	@echo -e "\033[01;37mNOT FOUND\033[00m"
+	@echo
+	@echo -e "\033[01;33mIt seems that you don't have Qt installed. If you have installed it, make"
+	@echo -e "sure that the qmake file is somewhere in your path and is executable.\033[00m"
+	@echo
+
 stop-on-error: ; $(error COMPILATION ENVIRONMENT)
 
 msg-check-env:
+	@echo "!!! NOTE !!!"
+	@echo "Virtual Jaguar's dependency on Qt is currently not built in a cross platform"
+	@echo "way. As a result of this, if you're having trouble with it, try doing:"
+	@echo
+	@echo "cd src/gui"
+	@echo "qmake virtualjaguar.pro"
+	@echo "make"
+	@echo
+	@echo "This will fail in the link step, but you should be able to do a cd ../.. and"
+	@echo "make and it should get past compiling the Qt stuff at least. We're working on"
+	@echo "fixing this, so please be patient if it doesn't work out of the box for you."
+	@echo
 	@echo
 	@echo -e "\033[01;33m***\033[00;32m Checking compilation environment: \033[00m"
 	@echo
