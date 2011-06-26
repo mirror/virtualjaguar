@@ -148,6 +148,8 @@ uint32 butch, dscntrl, ds_data, i2cntrl, sbcntrl, subdata, subdatb, sb_time, fif
 //this isn't endian safe...
 #define BSWAP64(x) ((htonl(x & 0xFFFFFFFF) << 32) | htonl(x >> 32))
 // Actually, we use ESAFExx() macros instead of this, and we use GCC to check the endianness...
+// Acutally, considering that "byteswap.h" doesn't exist elsewhere, the above
+// is probably our best bet here. Just need to rename them to ESAFExx().
 
 uint16 & memcon1   = *((uint16 *)&jagMemSpace[0xF00000]);
 uint16 & memcon2   = *((uint16 *)&jagMemSpace[0xF00002]);

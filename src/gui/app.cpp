@@ -20,6 +20,9 @@
 #include "mainwin.h"
 #include "types.h"
 
+// Apparently on other archs, SDL is hijacking main, so let's do this:
+#undef main
+
 // Here's the main application loop--short and simple...
 int main(int argc, char * argv[])
 {

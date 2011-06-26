@@ -88,6 +88,7 @@ extern const char * whoName[9];
 #define GET16(r, a)		((r[(a)] << 8) | r[(a)+1])
 
 //This doesn't seem to work on OSX. So have to figure something else out. :-(
+//byteswap.h doesn't exist on OSX.
 #if 0
 // This is GCC specific, but we can fix that if we need to...
 // Big plus of this approach is that these compile down to single instructions on little
