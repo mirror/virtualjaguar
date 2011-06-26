@@ -87,6 +87,8 @@ extern const char * whoName[9];
 #define SET16(r, a, v)	r[(a)] = ((v) & 0xFF00) >> 8, r[(a)+1] = (v) & 0xFF
 #define GET16(r, a)		((r[(a)] << 8) | r[(a)+1])
 
+//This doesn't seem to work on OSX. So have to figure something else out. :-(
+#if 0
 // This is GCC specific, but we can fix that if we need to...
 // Big plus of this approach is that these compile down to single instructions on little
 // endian machines while one big endian machines we don't have any overhead. :-)
@@ -102,6 +104,7 @@ extern const char * whoName[9];
 	#define ESAFE16(x)	(x)
 	#define ESAFE32(x)	(x)
 	#define ESAFE64(x)	(x)
+#endif
 #endif
 
 #endif	// __MEMORY_H__
