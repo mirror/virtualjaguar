@@ -13,9 +13,9 @@
 
 #include "glwidget.h"
 
+#include "jaguar.h"
 #include "settings.h"
 #include "tom.h"
-#include "video.h"
 
 GLWidget::GLWidget(QWidget * parent/*= 0*/): QGLWidget(parent), texture(0),
 	textureWidth(0), textureHeight(0), buffer(0), rasterWidth(320), rasterHeight(240)

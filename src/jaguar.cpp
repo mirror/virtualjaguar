@@ -25,7 +25,6 @@
 #include "eeprom.h"
 #include "event.h"
 #include "gpu.h"
-//#include "gui.h"
 #include "jerry.h"
 #include "joystick.h"
 #include "log.h"
@@ -34,7 +33,6 @@
 #include "mmu.h"
 #include "settings.h"
 #include "tom.h"
-#include "video.h"
 
 #define CPU_DEBUG
 //Do this in makefile??? Yes! Could, but it's easier to define here...
@@ -66,6 +64,8 @@ uint32 jaguarMainROMCRC32, jaguarROMSize, jaguarRunAddress;
 
 bool BIOSLoaded = false;
 bool CDBIOSLoaded = false;
+
+uint32 * backbuffer;
 
 #ifdef CPU_DEBUG_MEMORY
 uint8 writeMemMax[0x400000], writeMemMin[0x400000];
@@ -1909,7 +1909,7 @@ void ScanlineCallback(void)
 // This isn't currently used, but maybe it should be...
 void RenderCallback(void)
 {
-	RenderBackbuffer();
+//	RenderBackbuffer();
 	TOMResetBackbuffer(backbuffer);
 //	SetCallbackTime(RenderCallback, 33303.082);	// # Scanlines * scanline time
 	SetCallbackTime(RenderCallback, 16651.541);	// # Scanlines * scanline time

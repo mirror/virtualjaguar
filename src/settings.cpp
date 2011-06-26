@@ -13,11 +13,11 @@
 
 #include "settings.h"
 
-#include <stdlib.h>
-#include <string>
-#include "SDL.h"
-#include "sdlemu_config.h"
-#include "log.h"
+//#include <stdlib.h>
+//#include <string>
+//#include "SDL.h"
+//#include "sdlemu_config.h"
+//#include "log.h"
 
 using namespace std;
 
@@ -25,6 +25,7 @@ using namespace std;
 
 VJSettings vjs;
 
+#if 0
 // Private function prototypes
 
 void CheckForTrailingSlash(char * path);
@@ -123,3 +124,4 @@ void CheckForTrailingSlash(char * path)
 		if (path[strlen(path) - 1] != '/')
 			strcat(path, "/");	// NOTE: Possible buffer overflow
 }
+#endif

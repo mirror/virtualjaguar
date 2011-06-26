@@ -15,9 +15,11 @@
 
 bool SaveState(void)
 {
+	return false;
 }
 
 bool LoadState(void)
 {
+	return false;
 }
 

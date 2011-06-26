@@ -26,8 +26,6 @@
 #include "mainwin.h"
 
 #include "SDL.h"
-//#include <QtGui>
-//#include <QtOpenGL>
 #include "glwidget.h"
 #include "about.h"
 #include "settings.h"
@@ -35,7 +33,6 @@
 #include "configdialog.h"
 
 #include "jaguar.h"
-#include "video.h"
 #include "tom.h"
 #include "log.h"
 #include "file.h"

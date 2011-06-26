@@ -50,8 +50,8 @@ enum { RT_NORMAL = 0, RT_TV = 1 };
 
 // Exported functions
 
-void LoadVJSettings(void);
-void SaveVJSettings(void);
+//void LoadVJSettings(void);
+//void SaveVJSettings(void);
 
 // Exported variables
 

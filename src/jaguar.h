@@ -29,6 +29,7 @@ extern bool CDBIOSLoaded;
 extern int32 jaguarCPUInExec;
 extern uint32 jaguarMainROMCRC32, jaguarROMSize, jaguarRunAddress;
 extern char * jaguarEepromsPath;
+extern uint32 * backbuffer;
 
 // Various clock rates
 
@@ -41,6 +42,12 @@ extern char * jaguarEepromsPath;
 
 #define ASSERT_LINE		1
 #define CLEAR_LINE		0
+
+// Video stuff (should go in tom.h?)
+
+#define VIRTUAL_SCREEN_WIDTH            320
+#define VIRTUAL_SCREEN_HEIGHT_NTSC      240
+#define VIRTUAL_SCREEN_HEIGHT_PAL       256
 
 //Temp debug stuff (will go away soon, so don't depend on these)
 

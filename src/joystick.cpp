@@ -18,36 +18,9 @@
 #include <SDL.h>
 #include <time.h>
 #include "gpu.h"
-//#include "gui.h"
 #include "jaguar.h"
 #include "log.h"
 #include "settings.h"
-#include "video.h"
-
-#if 0
-#define BUTTON_U		0
-#define BUTTON_D		1
-#define BUTTON_L		2
-#define BUTTON_R		3
-#define BUTTON_s		4
-#define BUTTON_7		5
-#define BUTTON_4		6
-#define BUTTON_1		7
-#define BUTTON_0		8
-#define BUTTON_8		9
-#define BUTTON_5		10
-#define BUTTON_2		11
-#define BUTTON_d		12
-#define BUTTON_9		13
-#define BUTTON_6		14
-#define BUTTON_3		15
-
-#define BUTTON_A		16
-#define BUTTON_B		17
-#define BUTTON_C		18
-#define BUTTON_OPTION	19
-#define BUTTON_PAUSE	20
-#endif
 
 // Global vars
 
@@ -56,6 +29,8 @@ uint8 joypad_0_buttons[21];
 uint8 joypad_1_buttons[21];
 
 bool keyBuffer[21];
+
+SDL_Joystick * joystick1;
 
 //extern bool finished;
 ////extern bool showGUI;
