@@ -50,7 +50,17 @@ GeneralTab::GeneralTab(QWidget * parent/*= 0*/): QWidget(parent)
 	layout3->addLayout(layout1);
 	layout3->addLayout(layout2);
 
-	setLayout(layout3);
+	QVBoxLayout * layout4 = new QVBoxLayout;
+	layout4->addLayout(layout3);
+
+	// Checkboxes...
+	useBIOS = new QCheckBox(tr("Enable Jaguar BIOS"));
+	useDSP  = new QCheckBox(tr("Enable DSP"));
+
+	layout4->addWidget(useBIOS);
+	layout4->addWidget(useDSP);
+
+	setLayout(layout4);
 }
 
 GeneralTab::~GeneralTab()

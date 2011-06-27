@@ -16,6 +16,9 @@ class GeneralTab: public QWidget
 		QLineEdit * edit2;
 		QLineEdit * edit3;
 		QLineEdit * edit4;
+
+		QCheckBox * useBIOS;
+		QCheckBox * useDSP;
 };
 
 #endif	// __GENERALTAB_H__

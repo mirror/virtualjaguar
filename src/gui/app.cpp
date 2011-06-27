@@ -10,6 +10,7 @@
 // ---  ----------  -------------------------------------------------------------
 // JLH  12/23/2009  Created this file
 // JLH  01/21/2011  Added SDL initialization
+// JLH  06/26/2011  Added fix to keep SDL from hijacking main() on win32
 //
 
 #include "app.h"

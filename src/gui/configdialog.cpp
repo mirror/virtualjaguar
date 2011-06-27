@@ -52,6 +52,9 @@ void ConfigDialog::LoadDialogFromSettings(void)
 	generalTab->edit2->setText(vjs.CDBootPath);
 	generalTab->edit3->setText(vjs.EEPROMPath);
 	generalTab->edit4->setText(vjs.ROMPath);
+
+	generalTab->useBIOS->setChecked(vjs.useJaguarBIOS);
+	generalTab->useDSP->setChecked(vjs.DSPEnabled);
 }
 
 void ConfigDialog::UpdateVJSettings(void)
@@ -60,4 +63,7 @@ void ConfigDialog::UpdateVJSettings(void)
 	strcpy(vjs.CDBootPath,  generalTab->edit2->text().toAscii().data());
 	strcpy(vjs.EEPROMPath,  generalTab->edit3->text().toAscii().data());
 	strcpy(vjs.ROMPath,     generalTab->edit4->text().toAscii().data());
+
+	vjs.useJaguarBIOS = generalTab->useBIOS->isChecked();
+	vjs.DSPEnabled    = generalTab->useDSP->isChecked();
 }
