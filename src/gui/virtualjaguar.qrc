@@ -13,6 +13,8 @@
 	<file>../../res/controller.png</file>
 	<file>../../res/insert.png</file>
 	<file>../../res/software.png</file>
+	<file>../../res/ntsc.png</file>
+	<file>../../res/pal.png</file>
 	<file>../../res/upper-left.png</file>
 	<file>../../res/upper-right.png</file>
 </qresource>

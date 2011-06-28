@@ -31,6 +31,7 @@
 #include "settings.h"
 #include "filepicker.h"
 #include "configdialog.h"
+#include "version.h"
 
 #include "jaguar.h"
 #include "tom.h"
@@ -41,10 +42,6 @@
 // Uncomment this to use built-in BIOS/CD-ROM BIOS
 // You'll need a copy of jagboot.h & jagcd.h for this to work...!
 //#define USE_BUILT_IN_BIOS
-
-// Uncomment this for an official Virtual Jaguar release
-//#define VJ_RELEASE_VERSION "2.0.0"
-#warning !!! FIX !!! Figure out how to use this in GUI.CPP as well!
 
 #ifdef USE_BUILT_IN_BIOS
 #include "jagboot.h"
@@ -69,17 +66,17 @@ MainWin::MainWin(): running(false), powerButtonOn(false), showUntunedTankCircuit
 	videoWidget = new GLWidget(this);
 	setCentralWidget(videoWidget);
 	setWindowIcon(QIcon(":/res/vj-icon.png"));
-	setWindowTitle("Virtual Jaguar v2.0.0");
+//	setWindowTitle("Virtual Jaguar v2.0.0");
+	setWindowTitle("Virtual Jaguar " VJ_RELEASE_VERSION );
 
-	ReadSettings();
-	setUnifiedTitleAndToolBarOnMac(true);
-
-#warning "!!! Save/Restore window location for FilePickerWindow !!!"
 	aboutWin = new AboutWindow(this);
 	filePickWin = new FilePickerWindow(this);
 
     videoWidget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+
+	ReadSettings();
+	setUnifiedTitleAndToolBarOnMac(true);
 
 	// Create actions
 
@@ -99,6 +96,7 @@ MainWin::MainWin(): running(false), powerButtonOn(false), showUntunedTankCircuit
 	pauseAct->setStatusTip(tr("Toggles the running state"));
 	pauseAct->setCheckable(true);
 	pauseAct->setDisabled(true);
+	pauseAct->setShortcut(QKeySequence(tr("Esc")));
 	connect(pauseAct, SIGNAL(triggered()), this, SLOT(ToggleRunState()));
 
 	zoomActs = new QActionGroup(this);
@@ -120,12 +118,12 @@ MainWin::MainWin(): running(false), powerButtonOn(false), showUntunedTankCircuit
 
 	tvTypeActs = new QActionGroup(this);
 
-	ntscAct = new QAction(QIcon(":/res/generic.png"), tr("NTSC"), tvTypeActs);
+	ntscAct = new QAction(QIcon(":/res/ntsc.png"), tr("NTSC"), tvTypeActs);
 	ntscAct->setStatusTip(tr("Sets Jaguar to NTSC mode"));
 	ntscAct->setCheckable(true);
 	connect(ntscAct, SIGNAL(triggered()), this, SLOT(SetNTSC()));
 
-	palAct = new QAction(QIcon(":/res/generic.png"), tr("PAL"), tvTypeActs);
+	palAct = new QAction(QIcon(":/res/pal.png"), tr("PAL"), tvTypeActs);
 	palAct->setStatusTip(tr("Sets Jaguar to PAL mode"));
 	palAct->setCheckable(true);
 	connect(palAct, SIGNAL(triggered()), this, SLOT(SetPAL()));
@@ -135,17 +133,18 @@ MainWin::MainWin(): running(false), powerButtonOn(false), showUntunedTankCircuit
 	blurAct->setCheckable(true);
 	connect(blurAct, SIGNAL(triggered()), this, SLOT(ToggleBlur()));
 
-	aboutAct = new QAction(QIcon(":/res/generic.png"), tr("&About..."), this);
+	aboutAct = new QAction(QIcon(":/res/vj-icon.png"), tr("&About..."), this);
 	aboutAct->setStatusTip(tr("Blatant self-promotion"));
 	connect(aboutAct, SIGNAL(triggered()), this, SLOT(ShowAboutWin()));
 
-#warning "!!! Set up a decent keyboard shortcut for Insert Cartridge !!!"
 	filePickAct = new QAction(QIcon(":/res/software.png"), tr("&Insert Cartridge..."), this);
 	filePickAct->setStatusTip(tr("Insert a cartridge into Virtual Jaguar"));
+	filePickAct->setShortcut(QKeySequence(tr("Ctrl+i")));
 	connect(filePickAct, SIGNAL(triggered()), this, SLOT(InsertCart()));
 
 	configAct = new QAction(QIcon(":/res/generic.png"), tr("&Configure"), this);
 	configAct->setStatusTip(tr("Configure options for Virtual Jaguar"));
+	configAct->setShortcut(QKeySequence(tr("Ctrl+c")));
 	connect(configAct, SIGNAL(triggered()), this, SLOT(Configure()));
 
 	// Misc. connections...
@@ -197,16 +196,8 @@ MainWin::MainWin(): running(false), powerButtonOn(false), showUntunedTankCircuit
 	connect(timer, SIGNAL(timeout()), this, SLOT(Timer()));
 	timer->start(20);
 
-	// NOTE: Keyboards/joysticks will *not* work until SDL is brought back in, or
-	//       the key handling is improved in Qt...
-	// Wait a minute... it seems they already are... So why no keyboard love?
-
-#ifdef VJ_RELEASE_VERSION
 	WriteLog("Virtual Jaguar %s (Last full build was on %s %s)\n", VJ_RELEASE_VERSION, __DATE__, __TIME__);
-#else
-	WriteLog("Virtual Jaguar SVN %s (Last full build was on %s %s)\n", __DATE__, __DATE__, __TIME__);
-#endif
-	WriteLog("Initializing jaguar subsystem...\n");
+	WriteLog("VJ: Initializing jaguar subsystem...\n");
 	JaguarInit();
 
 	// Get the BIOS ROM
@@ -218,32 +209,14 @@ MainWin::MainWin(): running(false), powerButtonOn(false), showUntunedTankCircuit
 #else
 // What would be nice here would be a way to check if the BIOS was loaded so that we
 // could disable the pushbutton on the Misc Options menu... !!! FIX !!! [DONE here, but needs to be fixed in GUI as well!]
-WriteLog("About to attempt to load BIOSes...\n");
-#if 1
+	WriteLog("VJ: About to attempt to load BIOSes...\n");
 //This is short-circuiting the file finding thread... ??? WHY ???
+//Not anymore. Was related to a QImage object creation/corruption bug elsewhere.
 	BIOSLoaded = (JaguarLoadROM(jaguarBootROM, vjs.jagBootPath) == 0x20000 ? true : false);
-#else
-	BIOSLoaded = false;
-#endif
 	WriteLog("VJ: BIOS is %savailable...\n", (BIOSLoaded ? "" : "not "));
 	CDBIOSLoaded = (JaguarLoadROM(jaguarCDBootROM, vjs.CDBootPath) == 0x40000 ? true : false);
 	WriteLog("VJ: CD BIOS is %savailable...\n", (CDBIOSLoaded ? "" : "not "));
 #endif
-
-	SET32(jaguarMainRAM, 0, 0x00200000);			// Set top of stack...
-
-//Let's try this...
-//	JaguarLoadFile("./software/Rayman (World).j64");
-//	JaguarLoadFile("./software/I-War (World).j64");
-//	JaguarLoadFile("./software/Alien vs Predator (World).j64");
-//no	JaguarLoadFile("./software/battlesphere.bin");
-//	JaguarLoadFile("./software/Battle Sphere Gold (World).j64");
-//	JaguarLoadFile("./software/Rayman (USA, Europe).zip");
-//This is crappy!!! !!! FIX !!!
-//Is this even needed any more? Hmm. Maybe. Dunno.
-//Seems like it is... But then again, maybe not. Have to test it to see.
-//WriteLog("GUI: Resetting Jaguar...\n");
-//	JaguarReset();
 }
 
 void MainWin::closeEvent(QCloseEvent * event)
@@ -464,7 +437,10 @@ void MainWin::TogglePowerState(void)
 	else
 	{
 		showUntunedTankCircuit = (cartridgeLoaded ? false : true);
+		pauseAct->setChecked(false);
 		pauseAct->setDisabled(!cartridgeLoaded);
+
+//(Err, what's so crappy about this? It seems to do what it's supposed to...)
 //This is crappy!!! !!! FIX !!!
 //Is this even needed any more? Hmm. Maybe. Dunno.
 //Seems like it is... But then again, maybe not. Have to test it to see.
@@ -552,25 +528,17 @@ void MainWin::InsertCart(void)
 void MainWin::LoadSoftware(QString file)
 {
 	running = false;							//  Prevent bad things(TM) from happening...
-	SET32(jaguarMainRAM, 0, 0x00200000);			// Set top of stack...
+	SET32(jaguarMainRAM, 0, 0x00200000);		// Set top of stack...
 	cartridgeLoaded = (JaguarLoadFile(file.toAscii().data()) ? true : false);
 
-#if 0
-	showUntunedTankCircuit = !cartridgeLoaded;
-//This is crappy!!! !!! FIX !!!
-//Is this even needed any more? Hmm. Maybe. Dunno.
-//Seems like it is... But then again, maybe not. Have to test it to see.
-	WriteLog("GUI: Resetting Jaguar...\n");
-	JaguarReset();
-	running = true;
-#else
 	powerAct->setDisabled(false);
 	powerAct->setChecked(true);
 	powerButtonOn = false;
 	TogglePowerState();
-#endif
 
-	QString newTitle = QString("Virtual Jaguar 2.0.0 - Now playing: %1")
+//	QString newTitle = QString("Virtual Jaguar v2.0.0 - Now playing: %1")
+	QString newTitle = QString("Virtual Jaguar " VJ_RELEASE_VERSION
+		" - Now playing: %1")
 		.arg(filePickWin->GetSelectedPrettyName());
 	setWindowTitle(newTitle);
 }
@@ -595,6 +563,8 @@ void MainWin::ReadSettings(void)
 	QSize size = settings.value("size", QSize(400, 400)).toSize();
 	resize(size);
 	move(pos);
+	pos = settings.value("cartLoadPos", QPoint(200, 200)).toPoint();
+	filePickWin->move(pos);
 
 	zoomLevel = settings.value("zoom", 1).toInt();
 
@@ -670,6 +640,7 @@ void MainWin::WriteSettings(void)
 	QSettings settings("Underground Software", "Virtual Jaguar");
 	settings.setValue("pos", pos());
 	settings.setValue("size", size());
+	settings.setValue("cartLoadPos", filePickWin->pos());
 
 	settings.setValue("zoom", zoomLevel);
 

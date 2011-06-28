@@ -17,6 +17,7 @@
 //
 
 #include "about.h"
+#include "version.h"
 
 AboutWindow::AboutWindow(QWidget * parent/*= 0*/): QWidget(parent, Qt::Dialog)
 {
@@ -31,11 +32,13 @@ AboutWindow::AboutWindow(QWidget * parent/*= 0*/): QWidget(parent, Qt::Dialog)
 	image->setPixmap(QPixmap(":/res/vj_title_small.png"));
 	layout->addWidget(image);
 
-//	QString s = QString(tr("(Last full build was on %1 %2)<br>")).arg(__DATE__).arg(__TIME__);
-	QString s = QString(tr("SVN %1<br>")).arg(__DATE__);
+//	QString s = QString(tr("SVN %1<br>")).arg(__DATE__);
+	QString s;// = QString("");
 	s.append(tr(
 		"<table>"
-		"<tr><td align='right'><b>Version: </b></td><td>2.0.0</td></tr>"
+		"<tr><td align='right'><b>Version: </b></td><td>"
+		VJ_RELEASE_VERSION " (" VJ_RELEASE_SUBVERSION ")"
+		"</td></tr>"
 		"<tr><td align='right'><b>Coders: </b></td><td>James L. Hammons (shamus)<br>Niels Wagenaar (nwagenaar)<br>Carwin Jones (Caz)<br>Adam Green</td></tr>"
 		"<tr><td align='right'><b>Testers: </b></td><td>Guruma</td></tr>"
 		"<tr><td align='right'><b>Homepage: </b></td><td>http://icculus.org/virtualjaguar/</td></tr>"
