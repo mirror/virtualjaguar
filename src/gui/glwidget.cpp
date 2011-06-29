@@ -17,6 +17,11 @@
 #include "settings.h"
 #include "tom.h"
 
+#ifdef __GCCWIN32__
+// Apparently on win32, various OpenGL constants aren't pulled in.
+#include <GL/glext.h>
+#endif
+
 GLWidget::GLWidget(QWidget * parent/*= 0*/): QGLWidget(parent), texture(0),
 	textureWidth(0), textureHeight(0), buffer(0), rasterWidth(320), rasterHeight(240)
 {
@@ -112,6 +117,8 @@ printf("Resizing: new raster width/height = %i x %i\n", rasterWidth, rasterHeigh
 		}
 
 		buffer = new uint32_t[textureWidth * textureHeight];
+//???
+memset(buffer, 0x00, textureWidth * textureHeight * sizeof(uint32_t));
 		glGenTextures(1, &texture);
 		glBindTexture(GL_TEXTURE_2D, texture);
 		glPixelStorei(GL_UNPACK_ROW_LENGTH, textureWidth);

@@ -17,7 +17,7 @@ struct RomIdentifier
 {
 	const uint32 crc32;
 	const char name[128];
-	const char file[128];
+//	const char file[128];
 	const uint32 flags;
 };
 

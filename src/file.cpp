@@ -22,6 +22,7 @@
 #include "jaguar.h"
 #include "log.h"
 #include "memory.h"
+#include "universalhdr.h"
 #include "unzip.h"
 #include "zlib.h"
 
@@ -29,13 +30,10 @@
 
 static int gzfilelength(gzFile gd);
 static bool CheckExtension(const char * filename, const char * ext);
-static int ParseFileType(uint8 header1, uint8 header2, uint32 size);
+//static int ParseFileType(uint8 header1, uint8 header2, uint32 size);
 
 // Private variables/enums
 
-// JST = Jaguar Software Type
-enum { JST_NONE = 0, JST_ROM, JST_ALPINE, JST_ABS_TYPE1, JST_ABS_TYPE2, JST_JAGSERVER };
-//static int softwareType = JST_NONE;
 
 //
 // Generic ROM loading
@@ -529,7 +527,7 @@ uint32 GetFileFromZIP(const char * zipFile, FileType type, uint8 * &buffer)
 //
 // Parse the file type based upon file size and/or headers.
 //
-static int ParseFileType(uint8 header1, uint8 header2, uint32 size)
+uint32 ParseFileType(uint8 header1, uint8 header2, uint32 size)
 {
 	// If the file size is divisible by 1M, we probably have an regular ROM.
 	// We can also check our CRC32 against the internal ROM database to be sure.
@@ -557,6 +555,22 @@ static int ParseFileType(uint8 header1, uint8 header2, uint32 size)
 
 	// Headerless crap
 	return JST_NONE;
+}
+
+//
+// Check for universal header
+//
+bool HasUniversalHeader(uint8 * rom, uint32 romSize)
+{
+	// Sanity check
+	if (romSize < 8192)
+		return false;
+
+	for(int i=0; i<8192; i++)
+		if (rom[i] != universalCartHeader[i])
+			return false;
+
+	return true;
 }
 
 #if 0

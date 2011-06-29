@@ -39,6 +39,11 @@
 #include "file.h"
 #include "joystick.h"
 
+#ifdef __GCCWIN32__
+// Apparently on win32, usleep() is not pulled in by the usual suspects.
+#include <unistd.h>
+#endif
+
 // Uncomment this to use built-in BIOS/CD-ROM BIOS
 // You'll need a copy of jagboot.h & jagcd.h for this to work...!
 //#define USE_BUILT_IN_BIOS

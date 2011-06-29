@@ -8,6 +8,8 @@
 #
 # NOTE: Musashi is built and linked in as a library, so there should be no more
 #       problems with using the qmake build system as-is. :-)
+#       Other than on the Mac, where it stupidly defaults to making XCode binaries. >:-(
+#
 
 TARGET     = virtualjaguar
 CONFIG    += qt warn_on release debug
@@ -100,6 +102,7 @@ HEADERS += \
 	src/state.h         \
 	src/tom.h           \
 	src/unzip.h         \
+	src/universalhdr.h  \
 	src/wavetable.h
 
 SOURCES += \
@@ -125,5 +128,6 @@ SOURCES += \
 	src/settings.cpp      \
 	src/state.cpp         \
 	src/tom.cpp           \
+	src/universalhdr.cpp  \
 	src/unzip.c           \
 	src/wavetable.cpp

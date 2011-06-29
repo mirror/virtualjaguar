@@ -268,11 +268,29 @@ void FilePickerWindow::UpdateSelection(const QModelIndex & current, const QModel
 		// We should try to be intelligent with our updates here, and only redraw when
 		// we're going from a selection with a label to a selection without. Now, we
 		// redraw regardless.
+#if 0
 		QImage cart(":/res/cart-blank.png");
 		QPainter painter(&cart);
 //		painter.drawPixmap(23, 87, QPixmap::fromImage(QImage(":/res/label-blank.png")));
 		painter.drawPixmap(27, 89, QPixmap::fromImage(QImage(":/res/label-blank.png")));
 		painter.end();
+#else
+		QImage cart;
+
+		if (romList[i].flags & FF_ROM)
+		{
+			cart = QImage(":/res/cart-blank.png");
+			QPainter painter(&cart);
+			painter.drawPixmap(27, 89, QPixmap::fromImage(QImage(":/res/label-blank.png")));
+			painter.end();
+		}
+		else if (romList[i].flags & FF_ALPINE)
+		{
+			cart = QImage(":/res/alpine-file.png");
+		}
+		else
+			cart = QImage(":/res/unknown-file.png");
+#endif
 		cartImage->setPixmap(QPixmap::fromImage(cart));
 	}
 
@@ -282,8 +300,17 @@ void FilePickerWindow::UpdateSelection(const QModelIndex & current, const QModel
 	prettyFilename = romList[i].name;
 	title->setText(QString("<h2>%1</h2>").arg(romList[i].name));
 //Kludge for now, we'll have to fix this later...
-	QString fileType = QString(romList[i].flags & FF_ROM ? "%1MB Cartridge" : "%1*** UNKNOWN ***")
-		.arg(fileSize / 1048576);
+// So let's fix it now!
+	QString fileType;
+
+	if (romList[i].flags & FF_ROM)
+		fileType = QString(tr("%1MB Cartridge")).arg(fileSize / 1048576);
+	else if (romList[i].flags & FF_ALPINE)
+		fileType = QString(tr("%1MB Alpine ROM")).arg(fileSize / 1048576);
+	else
+		fileType = QString(tr("*** UNKNOWN *** (%1 bytes)")).arg(fileSize);
+//	QString fileType = QString(romList[i].flags & FF_ROM ? "%1MB Cartridge" : "%1*** UNKNOWN ***")
+//		.arg(fileSize / 1048576);
 	QString crcString = QString("%1").arg(romList[i].crc32, 8, 16, QChar('0')).toUpper();
 	QString notes =
 /*	(romList[i].flags & FF_ROM ? "Jaguar ROM " : "")*/
@@ -314,6 +341,4 @@ Compatibility: Unknown
         CRC32: 44889921
 Compatibility: 80% (or ****)
         Notes: EEPROM available
-
-
 */

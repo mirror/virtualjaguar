@@ -23,6 +23,7 @@ class FileThread: public QThread
 
 	protected:
 		void run(void);
+		void HandleFile(QFileInfo);
 		uint32 FindCRCIndexInFileList(uint32);
 
 	private:
