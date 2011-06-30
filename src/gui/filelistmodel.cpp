@@ -57,6 +57,12 @@ QVariant FileListModel::data(const QModelIndex & index, int role) const
 		return list.at(index.row()).filename;
 	else if (role == FLM_FILESIZE)
 		return (uint)list.at(index.row()).fileSize;
+	else if (role == FLM_UNIVERSALHDR)
+		return (uint)list.at(index.row()).hasUniversalHeader;
+	else if (role == FLM_FILETYPE)
+		return (uint)list.at(index.row()).fileType;
+	else if (role == FLM_CRC)
+		return (uint)list.at(index.row()).crc;
 
 	return QVariant();
 #endif
@@ -109,6 +115,33 @@ void FileListModel::AddData(unsigned long index, QString str, QImage img, unsign
 
 	list.push_back(data);
 	reset();
+}
+
+void FileListModel::AddData(unsigned long index, QString str, QImage img, unsigned long size, bool univHdr, uint32_t type, uint32_t fileCrc)
+{
+	// Assuming that both QString and QImage have copy constructors, this should work.
+	FileListData data;
+
+	data.dbIndex = index;
+	data.fileSize = size;
+	data.filename = str;
+	data.label = img;
+	data.hasUniversalHeader = univHdr;
+	data.fileType = type;
+	data.crc = fileCrc;
+
+	list.push_back(data);
+	reset();
+}
+
+void FileListModel::ClearData(void)
+{
+	if (list.size() == 0)
+		return;
+
+	beginResetModel();
+	list.clear();
+	endResetModel();
 }
 
 //FileListData FileListModel::GetData(const QModelIndex & index) const

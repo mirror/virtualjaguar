@@ -19,6 +19,7 @@ class GeneralTab: public QWidget
 
 		QCheckBox * useBIOS;
 		QCheckBox * useDSP;
+		QCheckBox * useUnknownSoftware;
 };
 
 #endif	// __GENERALTAB_H__

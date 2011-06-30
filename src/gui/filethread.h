@@ -15,11 +15,12 @@ class FileThread: public QThread
 	public:
 		FileThread(QObject * parent = 0);
 		~FileThread();
-		void Go(void);
+		void Go(bool allowUnknown = false);
 
 	signals:
 		void FoundAFile(unsigned long index);
 		void FoundAFile2(unsigned long index, QString filename, QImage * label, unsigned long);
+		void FoundAFile3(unsigned long index, QString filename, QImage * label, unsigned long, bool, unsigned long, unsigned long);
 
 	protected:
 		void run(void);
@@ -30,6 +31,7 @@ class FileThread: public QThread
 		QMutex mutex;
 		QWaitCondition condition;
 		bool abort;
+		bool allowUnknownSoftware;
 };
 
 #endif	// __FILETHREAD_H__

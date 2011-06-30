@@ -98,7 +98,15 @@ The foreground of the item (the circle representing a pixel) must be rendered us
 	QString filename = index.model()->data(index, FLM_FILENAME).toString();
 	QImage label = index.model()->data(index, FLM_LABEL).value<QImage>();
 #endif
+	QString nameToDraw;
 
+	if (i == 0xFFFFFFFF)	// Not found...
+	{
+		int lastSlashPos = filename.lastIndexOf('/');
+		nameToDraw = "\"" + filename.mid(lastSlashPos + 1) + "\"";
+	}
+	else
+		nameToDraw = romList[i].name;
 #if 0
 	if (role == Qt::DecorationRole)
 		return list.at(index.row()).label;
@@ -119,7 +127,8 @@ The foreground of the item (the circle representing a pixel) must be rendered us
 //	painter->setPen(Qt::white);
 		painter->setPen(QColor(255, 128, 0, 255));
 //	painter->drawText(QRect(option.rect.x()+20, option.rect.y()+73, 196, 70), Qt::TextWordWrap | Qt::AlignHCenter, QString(romList[i].name));
-		painter->drawText(QRect(option.rect.x()+10, option.rect.y()+36, 196/2, 70/2), Qt::TextWordWrap | Qt::AlignHCenter, QString(romList[i].name));
+		painter->drawText(QRect(option.rect.x()+10, option.rect.y()+36, 196/2, 70/2),
+			Qt::TextWordWrap | Qt::AlignHCenter, nameToDraw);
 	}
 	else
 	{

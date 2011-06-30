@@ -39,8 +39,9 @@ FileThread::~FileThread()
 	wait();
 }
 
-void FileThread::Go(void)
+void FileThread::Go(bool allowUnknown/*= false*/)
 {
+	allowUnknownSoftware = allowUnknown;
 	QMutexLocker locker(&mutex);
 	start();
 }
@@ -138,8 +139,16 @@ void FileThread::HandleFile(QFileInfo fileInfo)
 	uint32 index = FindCRCIndexInFileList(crc);
 	delete[] buffer;
 
-	if ((index == 0xFFFFFFFF) || (romList[index].flags & FF_BIOS))
-		return;									// CRC wasn't found, so bail...
+	// Here we filter out files *not* in the DB (if configured that way) and
+	// BIOS files.
+	if (index == 0xFFFFFFFF)
+	{
+		// If we allow unknown software, we pass the (-1) index on, otherwise...
+		if (!allowUnknownSoftware)
+			return;								// CRC wasn't found, so bail...
+	}
+	else if (romList[index].flags & FF_BIOS)
+		return;
 
 //Here's a little problem. When we create the image here and pass it off to FilePicker,
 //we can clobber this image before we have a chance to copy it out in the FilePicker function
@@ -165,7 +174,8 @@ void FileThread::HandleFile(QFileInfo fileInfo)
 //printf("FileThread: Attempted to load image. Size: %u x %u...\n", img.width(), img.height());
 	}
 
-	emit FoundAFile2(index, fileInfo.canonicalFilePath(), img, fileSize);
+//	emit FoundAFile2(index, fileInfo.canonicalFilePath(), img, fileSize);
+	emit FoundAFile3(index, fileInfo.canonicalFilePath(), img, fileSize, foundUniversalHeader, fileType, crc);
 }
 
 //

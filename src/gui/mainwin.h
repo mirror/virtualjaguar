@@ -61,6 +61,7 @@ class MainWin: public QMainWindow
 		bool powerButtonOn;
 		bool showUntunedTankCircuit;
 		bool cartridgeLoaded;
+		bool allowUnknownSoftware;
 
 		QMenu * fileMenu;
 		QMenu * helpMenu;

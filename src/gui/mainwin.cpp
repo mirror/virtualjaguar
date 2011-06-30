@@ -31,6 +31,7 @@
 #include "settings.h"
 #include "filepicker.h"
 #include "configdialog.h"
+#include "generaltab.h"
 #include "version.h"
 
 #include "jaguar.h"
@@ -80,7 +81,6 @@ MainWin::MainWin(): running(false), powerButtonOn(false), showUntunedTankCircuit
     videoWidget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
 
-	ReadSettings();
 	setUnifiedTitleAndToolBarOnMac(true);
 
 	// Create actions
@@ -184,6 +184,8 @@ MainWin::MainWin(): running(false), powerButtonOn(false), showUntunedTankCircuit
 	//	Create status bar
 	statusBar()->showMessage(tr("Ready"));
 
+	ReadSettings();
+
 	// Set toolbar buttons/menus based on settings read in (sync the UI)...
 	blurAct->setChecked(vjs.glFilter);
 	x1Act->setChecked(zoomLevel == 1);
@@ -222,6 +224,8 @@ MainWin::MainWin(): running(false), powerButtonOn(false), showUntunedTankCircuit
 	CDBIOSLoaded = (JaguarLoadROM(jaguarCDBootROM, vjs.CDBootPath) == 0x40000 ? true : false);
 	WriteLog("VJ: CD BIOS is %savailable...\n", (CDBIOSLoaded ? "" : "not "));
 #endif
+
+	filePickWin->ScanSoftwareFolder(allowUnknownSoftware);
 }
 
 void MainWin::closeEvent(QCloseEvent * event)
@@ -279,11 +283,27 @@ void MainWin::Configure(void)
 {
 	// Call the configuration dialog and update settings
 	ConfigDialog dlg(this);
+	//ick.
+	dlg.generalTab->useUnknownSoftware->setChecked(allowUnknownSoftware);
 
 	if (dlg.exec() == false)
 		return;
 
+	QString before = vjs.ROMPath;
 	dlg.UpdateVJSettings();
+	QString after = vjs.ROMPath;
+
+	bool allowOld = allowUnknownSoftware;
+	//ick.
+	allowUnknownSoftware = dlg.generalTab->useUnknownSoftware->isChecked();
+
+	// We rescan the "software" folder if the user either changed the path or
+	// checked/unchecked the "Allow unknown files" option in the config dialog.
+	if ((before != after) || (allowOld != allowUnknownSoftware))
+		filePickWin->ScanSoftwareFolder(allowUnknownSoftware);
+
+	// Just in case we crash before a clean exit...
+	WriteSettings();
 }
 
 //
@@ -572,6 +592,7 @@ void MainWin::ReadSettings(void)
 	filePickWin->move(pos);
 
 	zoomLevel = settings.value("zoom", 1).toInt();
+	allowUnknownSoftware = settings.value("showUnknownSoftware", false).toBool();
 
 	vjs.useJoystick      = settings.value("useJoystick", false).toBool();
 	vjs.joyport          = settings.value("joyport", 0).toInt();
@@ -648,6 +669,7 @@ void MainWin::WriteSettings(void)
 	settings.setValue("cartLoadPos", filePickWin->pos());
 
 	settings.setValue("zoom", zoomLevel);
+	settings.setValue("showUnknownSoftware", allowUnknownSoftware);
 
 	settings.setValue("useJoystick", vjs.useJoystick);
 	settings.setValue("joyport", vjs.joyport);

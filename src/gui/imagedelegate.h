@@ -15,8 +15,8 @@ class ImageDelegate: public QAbstractItemDelegate
 //		ImageDelegate(QObject * parent = 0);
 		ImageDelegate();
 
-		void paint(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &index) const;
-		QSize sizeHint(const QStyleOptionViewItem &option, const QModelIndex &index ) const;
+		void paint(QPainter * painter, const QStyleOptionViewItem & option, const QModelIndex & index) const;
+		QSize sizeHint(const QStyleOptionViewItem & option, const QModelIndex & index) const;
 
 //	public slots:
 //		void setPixelSize(int size);

@@ -15,6 +15,7 @@
 
 #include "filepicker.h"
 
+#include "file.h"
 #include "filedb.h"
 #include "filelistmodel.h"
 #include "filethread.h"
@@ -132,10 +133,10 @@ printf("VSB size: %u, %u\n", sbSize3.width(), sbSize3.height());
 	labels->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Preferred);
 	dataLayout->addWidget(labels);
 	data = new QLabel(QString(tr(
-		"4MB Cartridge<br>"
-		"FEDCBA98<br>"
-		"DOES NOT WORK<br>"
-		"Universal Header detected; Requires DSP"
+		"?MB Cartridge<br>"
+		"????????<br>"
+		"???<br>"
+		"???"
 	)));
 	data->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
 	dataLayout->addWidget(data);
@@ -161,8 +162,14 @@ printf("VSB size: %u, %u\n", sbSize3.width(), sbSize3.height());
 
 	fileThread = new FileThread(this);
 //	connect(fileThread, SIGNAL(FoundAFile(unsigned long)), this, SLOT(AddFileToList(unsigned long)));
-	connect(fileThread, SIGNAL(FoundAFile2(unsigned long, QString, QImage *, unsigned long)), this, SLOT(AddFileToList2(unsigned long, QString, QImage *, unsigned long)));
-	fileThread->Go();
+//	connect(fileThread, SIGNAL(FoundAFile2(unsigned long, QString, QImage *, unsigned long)), this, SLOT(AddFileToList2(unsigned long, QString, QImage *, unsigned long)));
+	connect(fileThread, SIGNAL(FoundAFile3(unsigned long, QString, QImage *,
+		unsigned long, bool, unsigned long, unsigned long)), this,
+		SLOT(AddFileToList3(unsigned long, QString, QImage *, unsigned long,
+		bool, unsigned long, unsigned long)));
+
+// Let's defer this to the main window, so we can have some control over when this is done.
+//	fileThread->Go();
 /*
 New sizes: 373x172 (label), 420x340 (cart)
 */
@@ -179,6 +186,13 @@ QString FilePickerWindow::GetSelectedPrettyName(void)
 	return prettyFilename;
 }
 
+void FilePickerWindow::ScanSoftwareFolder(bool allow/*= false*/)
+{
+	// "allow" is whether or not to allow scanning for unknown software.
+	model->ClearData();
+	fileThread->Go(allow);
+}
+
 //
 // This slot gets called by the FileThread's run() function when it finds a
 // match in the filesystem to a ROM on our CRC list.
@@ -193,7 +207,9 @@ printf("FilePickerWindow: Found match [%s]...\n", romList[index].name);
 
 void FilePickerWindow::AddFileToList2(unsigned long index, QString str, QImage * img, unsigned long size)
 {
-printf("FilePickerWindow(2): Found match [%s]...\n", romList[index].name);
+if (index != 0xFFFFFFFF)
+	printf("FilePickerWindow(2): Found match [%s]...\n", romList[index].name);
+
 	if (img)
 	{
 		model->AddData(index, str, *img, size);
@@ -202,6 +218,21 @@ printf("FilePickerWindow(2): Found match [%s]...\n", romList[index].name);
 	}
 	else
 		model->AddData(index, str, QImage(), size);
+}
+
+void FilePickerWindow::AddFileToList3(unsigned long index, QString str, QImage * img, unsigned long size, bool haveUniversalHeader, unsigned long fileType, unsigned long crc)
+{
+if (index != 0xFFFFFFFF)
+	printf("FilePickerWindow(3): Found match [%s]...\n", romList[index].name);
+
+	if (img)
+	{
+		model->AddData(index, str, *img, size, haveUniversalHeader, fileType, crc);
+//It would be better to pass the pointer into the model though...
+		delete img;
+	}
+	else
+		model->AddData(index, str, QImage(), size, haveUniversalHeader, fileType, crc);
 }
 
 void FilePickerWindow::LoadButtonPressed(void)
@@ -229,9 +260,15 @@ void FilePickerWindow::UpdateSelection(const QModelIndex & current, const QModel
 	unsigned long i = current.model()->data(current, FLM_INDEX).toUInt();
 	QImage label = current.model()->data(current, FLM_LABEL).value<QImage>();
 	unsigned long fileSize = current.model()->data(current, FLM_FILESIZE).toUInt();
+	bool haveUniversalHeader = current.model()->data(current, FLM_UNIVERSALHDR).toBool();
+	unsigned long fileType = current.model()->data(current, FLM_FILETYPE).toUInt();
+	uint32 crc = (uint32)current.model()->data(current, FLM_CRC).toUInt();
 //	printf("FPW: %s\n", s.toAscii().data());
+	bool haveUnknown = (i == 0xFFFFFFFF ? true : false);
 #endif
 
+	// Disallow loading completely unknown files, but allow all others.
+	insertCart->setEnabled(haveUnknown && (fileType == JST_NONE) ? false : true);
 //hm.
 //currentFile = s;
 
@@ -268,54 +305,101 @@ void FilePickerWindow::UpdateSelection(const QModelIndex & current, const QModel
 		// We should try to be intelligent with our updates here, and only redraw when
 		// we're going from a selection with a label to a selection without. Now, we
 		// redraw regardless.
-#if 0
-		QImage cart(":/res/cart-blank.png");
-		QPainter painter(&cart);
-//		painter.drawPixmap(23, 87, QPixmap::fromImage(QImage(":/res/label-blank.png")));
-		painter.drawPixmap(27, 89, QPixmap::fromImage(QImage(":/res/label-blank.png")));
-		painter.end();
-#else
 		QImage cart;
 
-		if (romList[i].flags & FF_ROM)
+// We now have to sources of data for the passed in files:
+// - The file DB
+// - The file type detection
+// This means we have to be mindful of what's passed back by that stuff.
+// We can assume that if it wasn't found in the DB, then the fileType
+// should be valid.
+// The DB takes precedence over the fileType.
+		if ((!haveUnknown && (romList[i].flags & FF_ROM))
+			|| (haveUnknown && (fileType == JST_ROM)))
 		{
 			cart = QImage(":/res/cart-blank.png");
 			QPainter painter(&cart);
 			painter.drawPixmap(27, 89, QPixmap::fromImage(QImage(":/res/label-blank.png")));
 			painter.end();
 		}
-		else if (romList[i].flags & FF_ALPINE)
+		else if ((!haveUnknown && (romList[i].flags & FF_ALPINE))
+			|| (haveUnknown && (fileType == JST_ALPINE)))
 		{
 			cart = QImage(":/res/alpine-file.png");
 		}
+		else if (haveUnknown && (fileType == JST_ABS_TYPE1 || fileType == JST_ABS_TYPE2 || fileType == JST_JAGSERVER))
+		{
+			cart = QImage(":/res/homebrew-file.png");
+		}
 		else
 			cart = QImage(":/res/unknown-file.png");
-#endif
+
 		cartImage->setPixmap(QPixmap::fromImage(cart));
 	}
 
 //1048576
 //2097152
 //4194304
-	prettyFilename = romList[i].name;
-	title->setText(QString("<h2>%1</h2>").arg(romList[i].name));
+	if (!haveUnknown)
+		prettyFilename = romList[i].name;
+	else
+	{
+		int lastSlashPos = currentFile.lastIndexOf('/');
+		prettyFilename = "\"" + currentFile.mid(lastSlashPos + 1) + "\"";
+	}
+
+	title->setText(QString("<h2>%1</h2>").arg(prettyFilename));
+
 //Kludge for now, we'll have to fix this later...
 // So let's fix it now!
-	QString fileType;
+	QString fileTypeString, crcString, notes, compatibility;
 
-	if (romList[i].flags & FF_ROM)
-		fileType = QString(tr("%1MB Cartridge")).arg(fileSize / 1048576);
-	else if (romList[i].flags & FF_ALPINE)
-		fileType = QString(tr("%1MB Alpine ROM")).arg(fileSize / 1048576);
+#if 0
+	if (!haveUnknown)
+	{
+		if (romList[i].flags & FF_ROM)
+			fileTypeString = QString(tr("%1MB Cartridge")).arg(fileSize / 1048576);
+		else if (romList[i].flags & FF_ALPINE)
+			fileTypeString = QString(tr("%1MB Alpine ROM")).arg(fileSize / 1048576);
+		else
+			fileTypeString = QString(tr("*** UNKNOWN *** (%1 bytes)")).arg(fileSize);
+	}
+#else
+	if ((!haveUnknown && (romList[i].flags & FF_ROM)) || (haveUnknown && (fileType == JST_ROM)))
+		fileTypeString = QString(tr("%1MB Cartridge")).arg(fileSize / 1048576);
+	else if ((!haveUnknown && (romList[i].flags & FF_ALPINE)) || (haveUnknown && (fileType == JST_ALPINE)))
+		fileTypeString = QString(tr("%1MB Alpine ROM")).arg(fileSize / 1048576);
+	else if (haveUnknown && (fileType == JST_ABS_TYPE1 || fileType == JST_ABS_TYPE2))
+		fileTypeString = QString(tr("ABS/COF Executable (%1 bytes)")).arg(fileSize);
+	else if (haveUnknown && (fileType == JST_JAGSERVER))
+		fileTypeString = QString(tr("Jaguar Server Executable (%1 bytes)")).arg(fileSize);
 	else
-		fileType = QString(tr("*** UNKNOWN *** (%1 bytes)")).arg(fileSize);
-//	QString fileType = QString(romList[i].flags & FF_ROM ? "%1MB Cartridge" : "%1*** UNKNOWN ***")
-//		.arg(fileSize / 1048576);
-	QString crcString = QString("%1").arg(romList[i].crc32, 8, 16, QChar('0')).toUpper();
-	QString notes =
-/*	(romList[i].flags & FF_ROM ? "Jaguar ROM " : "")*/
-		QString(romList[i].flags & FF_BAD_DUMP ? "<b>BAD DUMP</b>" : "");
-	data->setText(QString("%1<br>%2<br>%3<br>%4").arg(fileType).arg(crcString).arg("???%").arg(notes));
+		fileTypeString = QString(tr("*** UNKNOWN *** (%1 bytes)")).arg(fileSize);
+#endif
+
+//	crcString = QString("%1").arg(romList[i].crc32, 8, 16, QChar('0')).toUpper();
+	crcString = QString("%1").arg(crc, 8, 16, QChar('0')).toUpper();
+
+	if (!haveUnknown && (romList[i].flags & FF_NON_WORKING))
+		compatibility = "DOES NOT WORK";
+	else
+		compatibility = "Unknown";
+
+	// This is going to need some formatting love before long...
+	if (!haveUnknown && (romList[i].flags & FF_BAD_DUMP))
+		notes = "<b>BAD DUMP</b>";
+
+	if (haveUniversalHeader)
+		notes += " Universal Header detected";
+
+	if (!haveUnknown && (romList[i].flags & FF_REQ_DSP))
+		notes += " Requires DSP";
+
+	if (!haveUnknown && (romList[i].flags & FF_VERIFIED))
+		notes += " <i>(Verified)</i>";
+
+	data->setText(QString("%1<br>%2<br>%3<br>%4")
+		.arg(fileTypeString).arg(crcString).arg(compatibility).arg(notes));
 }
 
 /*
