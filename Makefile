@@ -9,6 +9,15 @@
 
 FIND = find
 
+# Gah
+OSTYPE := $(shell uname -a)
+
+# Should catch both 'darwin' and 'darwin7.0'
+ifeq "$(findstring Darwin,$(OSTYPE))" "Darwin"
+QMAKE_EXTRA := -spec macx-g++
+endif
+
+
 all: prepare virtualjaguar
 	@echo -e "\033[01;33m***\033[00;32m Success!\033[00m"
 
@@ -25,7 +34,7 @@ virtualjaguar: sources libs makefile-qt
 
 makefile-qt: virtualjaguar.pro
 	@echo -e "\033[01;33m***\033[00;32m Creating Qt makefile...\033[00m"
-	qmake virtualjaguar.pro -o makefile-qt
+	qmake $(QMAKE_EXTRA) virtualjaguar.pro -o makefile-qt
 
 libs: obj/libmusashi.a
 	@echo -e "\033[01;33m***\033[00;32m Libraries successfully made.\033[00m"
