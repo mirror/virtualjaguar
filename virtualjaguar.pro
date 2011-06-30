@@ -14,7 +14,8 @@
 TARGET     = virtualjaguar
 CONFIG    += qt warn_on release debug
 RESOURCES += virtualjaguar.qrc
-LIBS      += `sdl-config --libs` -lz -Lobj -lmusashi
+#LIBS      += `sdl-config --libs` -lz -Lobj -lmusashi
+LIBS      += -lz -Lobj -lmusashi
 QT        += opengl
 
 # We stuff all the intermediate crap into obj/ so it won't confuse us mere mortals ;-)
@@ -27,6 +28,10 @@ UI_DIR      = obj
 win32 { DEFINES += __GCCWIN32__ }
 macx  { DEFINES += __GCCUNIX__ _OSX_ }
 unix  { DEFINES += __GCCUNIX__ }
+
+# SDL
+macx       { LIBS += `sdl-config --static-libs` }
+win32|unix { LIBS += `sdl-config --libs` }
 
 #CFLAGS   := -MMD -Wall -Wno-switch -O2 -D$(SYSTYPE) -ffast-math -fomit-frame-pointer `sdl-config --cflags`
 #CPPFLAGS := -MMD -Wall -Wno-switch -Wno-non-virtual-dtor -O2 -D$(SYSTYPE) -Wno-trigraphs \
