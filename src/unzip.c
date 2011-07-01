@@ -13,21 +13,21 @@
 // JLH  02/28/2010  Removed unnecessary cruft
 //
 
+#include "unzip.h"
+
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
 #include <assert.h>
 #include <zlib.h>
-
-#include "unzip.h"
 #include "log.h"
 
 /* public globals */
 int	gUnzipQuiet = 0;		/* flag controls error messages */
 
 
-#define ERROR_CORRUPT "The zipfile seems to be corrupt, please check it"
-#define ERROR_FILESYSTEM "Your filesystem seems to be corrupt, please check it"
+#define ERROR_CORRUPT     "The zipfile seems to be corrupt, please check it"
+#define ERROR_FILESYSTEM  "Your filesystem seems to be corrupt, please check it"
 #define ERROR_UNSUPPORTED "The format of this zipfile is not supported, please recompress it"
 
 #define INFLATE_INPUT_BUFFER_MAX 16384
@@ -120,7 +120,7 @@ static int ecd_read(ZIP * zip)
 			return -1;
 		}
 
-		if (fread(buf, 1, buf_length, zip->fp) != buf_length)
+		if (fread(buf, 1, buf_length, zip->fp) != (unsigned int)buf_length)
 		{
 			free(buf);
 			return -1;

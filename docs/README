@@ -1,6 +1,6 @@
---------------------------------------------
-Virtual Jaguar v2.0.0 GCC/SDL release README
---------------------------------------------
+-------------------------------------------
+Virtual Jaguar v2.0.0 GCC/Qt release README
+-------------------------------------------
 
 --------------
 - DISCLAIMER -
@@ -78,21 +78,20 @@ There is a fifth type of file that is supported by Virtual Jaguar, the .j64
 file, which is simply a 1, 2, or 4 Meg dump of a Jaguar cartridge ROM which
 loads at $800000 in the Jaguar memory space.
 
------------------------------------
-- What is Virtual Jaguar GCC/SDL? -
------------------------------------
+----------------------------------
+- What is Virtual Jaguar GCC/Qt? -
+----------------------------------
 
 Virtual Jaguar is software dedicated to emulating the Atari Jaguar hardware on
 a standard PC. The software was originally developed by David Raingeard of
 Potato Emulation [http://potato.emu-france.com] and was released under the GPL
 on 25 June 2003.
 
-Virtual Jaguar GCC/SDL is not just a port of the MS Visual C++/SDL sourcecode
+Virtual Jaguar GCC/Qt is not just a port of the MS Visual C++/SDL sourcecode
 but has also been extended and rewritten so that we can enjoy Atari Jaguar
-emulation on every platform that has a GCC compiler and a port of the Simple
-Directmedia Layer library (SDL).
+emulation on every platform that has a GCC compiler and a port of Qt.
 
-Currently Virtual Jaguar GCC/SDL compiles on WIN32 using mingw, and several
+Currently Virtual Jaguar GCC/Qt compiles on WIN32 using mingw, and several
 UN*X based systems (BeOS, Linux, FreeBSD and MacOS). It may run on other
 systems as well but we can not guarantee that.
 
@@ -105,15 +104,15 @@ are particularly welcome! :)
 More information about the incredible SDL libraries can be found at
 http://www.libsdl.org. Thanks Sam--you rock! :)
 
---------------------------------
-- Using Virtual Jaguar GCC/SDL -
---------------------------------
+-------------------------------
+- Using Virtual Jaguar GCC/Qt -
+-------------------------------
 
 After compiling the binary (see INSTALL) you can now run original Atari Jaguar
 games. These games are distributed on cartridges and can therefore cannot be
 used on a PC (we're still waiting for that Jaguar-on-a-PCI-card that you plug
 into your late model PC, complete with cartridge slot and controller connectors
-;-). To use these games on Virtual Jaguar GCC/SDL you need to get ROM images.
+;-). To use these games on Virtual Jaguar GCC/Qt you need to get ROM images.
 Besides the ROM images from commercial games, you may also need to obtain the
 Atari Jaguar boot ROM (and/or CD boot ROM) which you must copy to the BIOS
 directory. For legal issues concerning ROM images please consult the DISCLAIMER
@@ -160,7 +159,7 @@ Atari RIGHT          : RIGHT or joystick RIGHT
 Atari #              : Keypad /
 Atari *              : Keypad *
 
-With ESC you can easily stop Virtual Jaguar GCC/SDL which will get you back to
+With ESC you can easily stop Virtual Jaguar GCC/Qt which will get you back to
 the GUI (pressing ESC again will take you back to the game). To exit VJ, you
 can either select File|Quit or press the "Q" key on your keyboard. If you want
 to change the key layout, simply edit the vj.cfg file and change the keys. :)

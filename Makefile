@@ -29,27 +29,31 @@ prepare:
 	@echo "#define VJ_RELEASE_SUBVERSION \"2.0.0 Prerelease\"" >> src/version.h
 
 virtualjaguar: sources libs makefile-qt
-	@echo -e "\033[01;33m***\033[00;32m Making Virtual Jaguar...\033[00m"
+	@echo -e "\033[01;33m***\033[00;32m Making Virtual Jaguar GUI...\033[00m"
 	$(MAKE) -f makefile-qt
 
 makefile-qt: virtualjaguar.pro
 	@echo -e "\033[01;33m***\033[00;32m Creating Qt makefile...\033[00m"
 	qmake $(QMAKE_EXTRA) virtualjaguar.pro -o makefile-qt
 
-libs: obj/libmusashi.a
+libs: obj/libmusashi.a obj/libjaguarcore.a
 	@echo -e "\033[01;33m***\033[00;32m Libraries successfully made.\033[00m"
 
-obj/libmusashi.a:
+obj/libmusashi.a: musashi.mak
 	@echo -e "\033[01;33m***\033[00;32m Making Musashi...\033[00m"
 	$(MAKE) -f musashi.mak
+
+obj/libjaguarcore.a: jaguarcore.mak
+	@echo -e "\033[01;33m***\033[00;32m Making Virtual Jaguar core...\033[00m"
+	$(MAKE) -f jaguarcore.mak
 
 sources: src/*.h src/*.cpp src/*.c
 
 clean:
 	@echo -ne "\033[01;33m***\033[00;32m Cleaning out the garbage...\033[00m"
 	@-rm -rf ./obj
-	@-rm makefile-qt
-	@-rm virtualjaguar
+	@-rm -rf makefile-qt
+	@-rm -rf virtualjaguar
 	@-$(FIND) . -name "*~" -exec rm -f {} \;
 	@echo "done!"
 

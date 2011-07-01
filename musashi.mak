@@ -4,7 +4,7 @@
 # by James L. Hammons
 #
 # This software is licensed under the GPL v3 or any later version. See the
-# file GPL.TXT for details. ;-)
+# file GPLv3 for details. ;-)
 #
 
 CC         := gcc
@@ -23,12 +23,10 @@ OBJS := \
 	obj/m68kopnz.o \
 	obj/m68kdasm.o
 
-TARGET     := $(OBJS)
-
 # Targets for convenience sake, not "real" targets
 .PHONY: clean
 
-all: obj $(TARGET) obj/libmusashi.a
+all: obj obj/libmusashi.a
 	@echo "Done!"
 
 obj:

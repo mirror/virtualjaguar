@@ -105,7 +105,7 @@ RomIdentifier romList[] = {
 	{ 0xC654681B, "Total Carnage (World)", FF_ROM | FF_VERIFIED },
 	{ 0xC6C7BA62, "Fight for Life (World) (alt)", FF_ROM | FF_BAD_DUMP },
 	{ 0xC9608717, "Val d'Isere Skiing and Snowboarding (World)", FF_ROM | FF_VERIFIED },
-	{ 0xCBFD822A, "Air Cars (World) (alt)", FF_ROM },
+	{ 0xCBFD822A, "Air Cars (World) (alt)", FF_ROM | FF_BAD_DUMP },
 	{ 0xCD5BF827, "Attack of the Mutant Penguins (World)", FF_ROM | FF_VERIFIED | FF_REQ_DSP },
 	{ 0xD6C19E34, "Iron Soldier 2 (World)", FF_ROM | FF_VERIFIED },
 	{ 0xD8696F23, "Breakout 2000 (alt)", FF_ALPINE },

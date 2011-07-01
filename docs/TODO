@@ -13,7 +13,7 @@ Stuff to add/fix for the next release of Virtual Jaguar
 - It would be nice to have "save states" for instant save/load capability.
   [Shamus]
 - Cycle accuracy for GPU/DSP/OP/Blitter. [Shamus]
-- Need to propogate blitter fixes in the A1 <- A2 direction to the A1 -> A2
+- Need to propagate blitter fixes in the A1 <- A2 direction to the A1 -> A2
   direction and the GPU fixes to various instructions to the DSP. [Shamus]
 - Need to fix PAL mode to work with the virtual screen code. [Shamus]
 - There are a few ROMs that use some "quasi-illegal" 68K instructions. Need
