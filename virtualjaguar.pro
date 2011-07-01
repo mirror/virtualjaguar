@@ -25,13 +25,13 @@ RCC_DIR     = obj
 UI_DIR      = obj
 
 # Platform specific defines
-win32 { DEFINES += __GCCWIN32__ }
-macx  { DEFINES += __GCCUNIX__ _OSX_ }
-unix  { DEFINES += __GCCUNIX__ }
+win32     { DEFINES += __GCCWIN32__ }
+else:macx { DEFINES += __GCCUNIX__ _OSX_ }
+else:unix { DEFINES += __GCCUNIX__ }
 
 # SDL (to link statically on Mac)
-macx       { LIBS += `sdl-config --static-libs` }
-win32|unix { LIBS += `sdl-config --libs` }
+macx { LIBS += `sdl-config --static-libs` }
+else { LIBS += `sdl-config --libs` }
 
 # C/C++ flags...
 # NOTE: May have to put -Wall back in, but only on non-release cycles. It can
@@ -76,59 +76,3 @@ SOURCES = \
 	src/gui/glwidget.cpp \
 	src/gui/imagedelegate.cpp \
 	src/gui/mainwin.cpp
-
-# The core (soon to be made into a library of its own)
-
-#HEADERS += \
-#	src/blitter.h       \
-#	src/cdintf.h        \
-#	src/cdrom.h         \
-#	src/crc32.h         \
-#	src/dac.h           \
-#	src/dsp.h           \
-#	src/eeprom.h        \
-#	src/event.h         \
-#	src/file.h          \
-#	src/filedb.h        \
-#	src/gpu.h           \
-#	src/jagdasm.h       \
-#	src/jaguar.h        \
-#	src/jerry.h         \
-#	src/joystick.h      \
-#	src/log.h           \
-#	src/memory.h        \
-#	src/mmu.h           \
-#	src/objectp.h       \
-#	src/settings.h      \
-#	src/state.h         \
-#	src/tom.h           \
-#	src/unzip.h         \
-#	src/universalhdr.h  \
-#	src/wavetable.h
-
-#SOURCES += \
-#	src/blitter.cpp       \
-#	src/cdintf.cpp        \
-#	src/cdrom.cpp         \
-#	src/crc32.cpp         \
-#	src/dac.cpp           \
-#	src/dsp.cpp           \
-#	src/eeprom.cpp        \
-#	src/event.cpp         \
-#	src/file.cpp          \
-#	src/filedb.cpp        \
-#	src/gpu.cpp           \
-#	src/jagdasm.cpp       \
-#	src/jaguar.cpp        \
-#	src/jerry.cpp         \
-#	src/joystick.cpp      \
-#	src/log.cpp           \
-#	src/memory.cpp        \
-#	src/mmu.cpp           \
-#	src/objectp.cpp       \
-#	src/settings.cpp      \
-#	src/state.cpp         \
-#	src/tom.cpp           \
-#	src/universalhdr.cpp  \
-#	src/unzip.c           \
-#	src/wavetable.cpp
