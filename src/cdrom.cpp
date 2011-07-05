@@ -4,13 +4,21 @@
 // Originally by David Raingeard
 // GCC/SDL port by Niels Wagenaar (Linux/WIN32) and Caz (BeOS)
 // Extensive rewrites/cleanups/fixes by James L. Hammons
+// (C) 2010 Underground Software
+//
+// JLH = James L. Hammons <jlhamm@acm.org>
+//
+// Who  When        What
+// ---  ----------  -------------------------------------------------------------
+// JLH  01/16/2010  Created this log ;-)
 //
 
 #include "cdrom.h"
 
 #include <string.h>									// For memset, etc.
-#include "jaguar.h"									// For GET32/SET32 macros
+//#include "jaguar.h"									// For GET32/SET32 macros
 #include "m68k.h"
+//#include "memory.h"
 #include "cdintf.h"									// System agnostic CD interface functions
 #include "log.h"
 #include "dac.h"

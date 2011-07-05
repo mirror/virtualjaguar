@@ -2,15 +2,22 @@
 // SETTINGS.CPP: Virtual Jaguar configuration loading/saving support
 //
 // by James L. Hammons
+// (C) 2010 Underground Software
+//
+// JLH = James L. Hammons <jlhamm@acm.org>
+//
+// Who  When        What
+// ---  ----------  -------------------------------------------------------------
+// JLH  01/16/2010  Created this log
 //
 
 #include "settings.h"
 
-#include <stdlib.h>
-#include <string>
-#include "SDL.h"
-#include "sdlemu_config.h"
-#include "log.h"
+//#include <stdlib.h>
+//#include <string>
+//#include "SDL.h"
+//#include "sdlemu_config.h"
+//#include "log.h"
 
 using namespace std;
 
@@ -18,6 +25,7 @@ using namespace std;
 
 VJSettings vjs;
 
+#if 0
 // Private function prototypes
 
 void CheckForTrailingSlash(char * path);
@@ -116,3 +124,4 @@ void CheckForTrailingSlash(char * path)
 		if (path[strlen(path) - 1] != '/')
 			strcat(path, "/");	// NOTE: Possible buffer overflow
 }
+#endif

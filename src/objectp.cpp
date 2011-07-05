@@ -4,6 +4,13 @@
 // Original source by David Raingeard (Cal2)
 // GCC/SDL port by Niels Wagenaar (Linux/WIN32) and Caz (BeOS)
 // Extensive cleanups/fixes/rewrites by James L. Hammons
+// (C) 2010 Underground Software
+//
+// JLH = James L. Hammons <jlhamm@acm.org>
+//
+// Who  When        What
+// ---  ----------  -------------------------------------------------------------
+// JLH  01/16/2010  Created this log ;-)
 //
 
 #include "objectp.h"
@@ -14,6 +21,7 @@
 #include "jaguar.h"
 #include "log.h"
 #include "m68k.h"
+#include "memory.h"
 #include "tom.h"
 
 //#define OP_DEBUG
@@ -312,7 +320,7 @@ void DumpFixedObject(uint64 p0, uint64 p1)
 //
 //Need to fix this so that when an GPU object IRQ happens, we can pick up OP processing
 //where we left off. !!! FIX !!!
-#warning Need to fix this so that when an GPU object IRQ happens, we can pick up OP processing where we left off. !!! FIX !!!
+#warning "Need to fix this so that when an GPU object IRQ happens, we can pick up OP processing where we left off. !!! FIX !!!"
 void OPProcessList(int scanline, bool render)
 {
 extern int op_start_log;
@@ -617,6 +625,7 @@ OP: Scaled bitmap 4x? 4bpp at 34,? hscale=80 fpix=0 data=000756E8 pitch 1 hflipp
 		case OBJECT_TYPE_GPU:
 		{
 //WriteLog("OP: Asserting GPU IRQ #3...\n");
+#warning "Need to fix OP GPU IRQ handling! !!! FIX !!!"
 			OPSetCurrentObject(p0);
 			GPUSetIRQLine(3, ASSERT_LINE);
 //Also, OP processing is suspended from this point until OBF (F00026) is written to...
@@ -656,8 +665,8 @@ OP: Scaled bitmap 4x? 4bpp at 34,? hscale=80 fpix=0 data=000756E8 pitch 1 hflipp
 				break;
 			case CONDITION_SECOND_HALF_LINE:
 				// This basically means branch if bit 10 of HC is set
+#warning "Unhandled condition code causes emulator to crash... !!! FIX !!!"
 				WriteLog("OP: Unexpected CONDITION_SECOND_HALF_LINE in BRANCH object\nOP: shuting down\n");
-//				fclose(log_get());
 				LogDone();
 				exit(0);
 				break;
@@ -693,6 +702,7 @@ OP: Scaled bitmap 4x? 4bpp at 34,? hscale=80 fpix=0 data=000756E8 pitch 1 hflipp
 		// Here is a little sanity check to keep the OP from locking up the machine
 		// when fed bad data. Better would be to count how many actual cycles it used
 		// and bail out/reenter to properly simulate an overloaded OP... !!! FIX !!!
+#warning "Better would be to count how many actual cycles it used and bail out/reenter to properly simulate an overloaded OP... !!! FIX !!!"
 		opCyclesToRun--;
 		if (!opCyclesToRun)
 			return;

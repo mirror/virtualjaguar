@@ -6,6 +6,15 @@
 // Originally by David Raingeard (Cal2)
 // GCC/SDL port by Niels Wagenaar (Linux/WIN32) and Caz (BeOS)
 // Cleanups, endian wrongness, and bad ASM amelioration by James L. Hammons
+// (C) 2010 Underground Software
+//
+// JLH = James L. Hammons <jlhamm@acm.org>
+//
+// Who  When        What
+// ---  ----------  -------------------------------------------------------------
+// JLH  01/16/2010  Created this log ;-)
+
+//
 // Note: Endian wrongness probably stems from the MAME origins of this emu and
 //       the braindead way in which MAME handles memory. :-)
 //
@@ -23,7 +32,7 @@
 #include "jaguar.h"
 #include "log.h"
 #include "m68k.h"
-#include "memory.h"
+//#include "memory.h"
 #include "tom.h"
 
 //#define GPU_DEBUG

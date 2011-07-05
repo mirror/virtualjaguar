@@ -4,6 +4,13 @@
 // Originally by David Raingeard
 // GCC/SDL port by Niels Wagenaar (Linux/WIN32) and Caz (BeOS)
 // Rewritten by James L. Hammons
+// (C) 2010 Underground Software
+//
+// JLH = James L. Hammons <jlhamm@acm.org>
+//
+// Who  When        What
+// ---  ----------  -------------------------------------------------------------
+// JLH  01/16/2010  Created this log ;-)
 //
 
 // Need to set up defaults that the BIOS sets for the SSI here in DACInit()... !!! FIX !!!
@@ -22,10 +29,11 @@
 #include "dac.h"
 
 #include "SDL.h"
-#include "gui.h"
+//#include "gui.h"
 #include "jaguar.h"
 #include "log.h"
 #include "m68k.h"
+//#include "memory.h"
 #include "settings.h"
 
 //#define DEBUG_DAC
@@ -43,7 +51,7 @@
 
 // Global variables
 
-uint16 lrxd, rrxd;									// I2S ports (into Jaguar)
+//uint16 lrxd, rrxd;									// I2S ports (into Jaguar)
 
 // Local variables
 
@@ -222,7 +230,8 @@ WriteLog("Tail=%X, Head=%X", ltail, lhead);
 	WriteLog("From while: Tail=%X, Head=%X", (LeftFIFOTailPtr + 2) & (BUFFER_SIZE - 1), LeftFIFOHeadPtr);
 //	LogDone();
 //	exit(0);
-	GUICrashGracefully("Stuck in left DAC spinlock!");
+#warning "Reimplement GUICrashGracefully!"
+//	GUICrashGracefully("Stuck in left DAC spinlock!");
 	return;
 }
 		}//*/
@@ -313,7 +322,8 @@ WriteLog("Tail=%X, Head=%X", rtail, rhead);
 	WriteLog("From while: Tail=%X, Head=%X", (RightFIFOTailPtr + 2) & (BUFFER_SIZE - 1), RightFIFOHeadPtr);
 //	LogDone();
 //	exit(0);
-	GUICrashGracefully("Stuck in right DAC spinlock!");
+#warning "Reimplement GUICrashGracefully!"
+//	GUICrashGracefully("Stuck in right DAC spinlock!");
 	return;
 }
 		}//*/
@@ -351,7 +361,8 @@ WriteLog("Tail=%X, Head=%X", rtail, rhead);
 						WriteLog("DAC: Failed to initialize SDL sound: %s.\nDesired freq: %u\nShutting down!\n", SDL_GetError(), desired.freq);
 //						LogDone();
 //						exit(1);
-						GUICrashGracefully("Failed to initialize SDL sound!");
+#warning "Reimplement GUICrashGracefully!"
+//						GUICrashGracefully("Failed to initialize SDL sound!");
 						return;
 					}
 				}

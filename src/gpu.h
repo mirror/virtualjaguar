@@ -5,7 +5,8 @@
 #ifndef __GPU_H__
 #define __GPU_H__
 
-#include "types.h"
+//#include "types.h"
+#include "memory.h"
 
 #define GPU_CONTROL_RAM_BASE    0x00F02100
 #define GPU_WORK_RAM_BASE		0x00F03000

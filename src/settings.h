@@ -30,11 +30,11 @@ struct VJSettings
 	bool hardwareTypeAlpine;
 	uint32 frameSkip;
 	uint32 renderType;
-	
+
 	// Keybindings in order of U, D, L, R, C, B, A, Op, Pa, 0-9, #, *
 
-	uint16 p1KeyBindings[21];
-	uint16 p2KeyBindings[21];
+	uint32 p1KeyBindings[21];
+	uint32 p2KeyBindings[21];
 
 	// Paths
 
@@ -50,8 +50,8 @@ enum { RT_NORMAL = 0, RT_TV = 1 };
 
 // Exported functions
 
-void LoadVJSettings(void);
-void SaveVJSettings(void);
+//void LoadVJSettings(void);
+//void SaveVJSettings(void);
 
 // Exported variables
 

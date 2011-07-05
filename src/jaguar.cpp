@@ -5,7 +5,7 @@
 // GCC/SDL port by Niels Wagenaar (Linux/WIN32) and Carwin Jones (BeOS)
 // Cleanups and endian wrongness amelioration by James L. Hammons
 // Note: Endian wrongness probably stems from the MAME origins of this emu and
-//       the braindead way in which MAME handles memory. :-)
+//       the braindead way in which MAME handled memory when this was written. :-)
 //
 // JLH = James L. Hammons
 //
@@ -25,16 +25,14 @@
 #include "eeprom.h"
 #include "event.h"
 #include "gpu.h"
-#include "gui.h"
 #include "jerry.h"
 #include "joystick.h"
 #include "log.h"
 #include "m68k.h"
-#include "memory.h"
+//#include "memory.h"
 #include "mmu.h"
 #include "settings.h"
 #include "tom.h"
-#include "video.h"
 
 #define CPU_DEBUG
 //Do this in makefile??? Yes! Could, but it's easier to define here...
@@ -60,26 +58,14 @@ extern int effect_start;
 extern int effect_start2, effect_start3, effect_start4, effect_start5, effect_start6;
 #endif
 
-// Memory debugging identifiers
-
-const char * whoName[9] =
-	{ "Unknown", "Jaguar", "DSP", "GPU", "TOM", "JERRY", "M68K", "Blitter", "OP" };
-
 uint32 jaguar_active_memory_dumps = 0;
 
 uint32 jaguarMainROMCRC32, jaguarROMSize, jaguarRunAddress;
 
-uint8 jaguarMainRAM[0x400000];						// 68K CPU RAM
-uint8 jaguarMainROM[0x600000];						// 68K CPU ROM
-uint8 jaguarBootROM[0x040000];						// 68K CPU BIOS ROM--uses only half of this!
-uint8 jaguarCDBootROM[0x040000];					// 68K CPU CD BIOS ROM
 bool BIOSLoaded = false;
 bool CDBIOSLoaded = false;
 
-//uint8 cdRAM[0x100];
-uint8 * cdRAM = &jaguarMainROM[0x5FFF00];
-uint8 tomRAM[0x4000];
-uint8 jerryRAM[0x10000];
+uint32 * backbuffer;
 
 #ifdef CPU_DEBUG_MEMORY
 uint8 writeMemMax[0x400000], writeMemMin[0x400000];
@@ -805,7 +791,7 @@ int irq_ack_handler(int level)
 	return vector;
 }
 
-#define USE_NEW_MMU
+//#define USE_NEW_MMU
 
 unsigned int m68k_read_memory_8(unsigned int address)
 {
@@ -1065,8 +1051,8 @@ if (address == 0xF02110)
 		WriteLog("\tA0=%08X, A1=%08X, D0=%08X, D1=%08X\n",
 			m68k_get_reg(NULL, M68K_REG_A0), m68k_get_reg(NULL, M68K_REG_A1),
 			m68k_get_reg(NULL, M68K_REG_D0), m68k_get_reg(NULL, M68K_REG_D1));
-	}
 #endif
+	}
 #else
 	MMUWrite16(address, value, M68K);
 #endif
@@ -1905,7 +1891,8 @@ void ScanlineCallback(void)
 //	if (vc == vbb)
 	{
 		JoystickExec();
-		RenderBackbuffer();
+//We comment this out so that the GUI can manage this instead. Which is how it should be anyway.
+//		RenderBackbuffer();
 		TOMResetBackbuffer(backbuffer);
 		frameDone = true;
 	}//*/
@@ -1922,7 +1909,7 @@ void ScanlineCallback(void)
 // This isn't currently used, but maybe it should be...
 void RenderCallback(void)
 {
-	RenderBackbuffer();
+//	RenderBackbuffer();
 	TOMResetBackbuffer(backbuffer);
 //	SetCallbackTime(RenderCallback, 33303.082);	// # Scanlines * scanline time
 	SetCallbackTime(RenderCallback, 16651.541);	// # Scanlines * scanline time

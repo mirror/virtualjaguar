@@ -1,279 +1,66 @@
+# Makefile for Virtual Jaguar
 #
-# Unified Makefile for Virtual Jaguar GCC/SDL Portable Jaguar Emulator
+# by James Hammons
+# (C) 2011 Underground Software
 #
-# by James L. Hammons
-#
-# This software is licensed under the GPL v2 or any later version. Set the
-# file GPL.TXT for details. ;-)
+# Note that we control the version information here--uncomment only one set of
+# echo's from the "prepare" recipe. :-)
 #
 
-# Figure out which system we're compiling for, and set the appropriate variables
+FIND = find
 
+# Gah
 OSTYPE := $(shell uname -a)
 
-ifeq "$(findstring Msys,$(OSTYPE))" "Msys"			# Win32
-
-SYSTYPE    := __GCCWIN32__
-EXESUFFIX  := .exe
-GLLIB      := -lopengl32
-ICON       := obj/icon.o
-SDLLIBTYPE := --libs
-MSG        := Win32 on MinGW
-
-else ifeq "$(findstring Darwin,$(OSTYPE))" "Darwin"	# Should catch both 'darwin' and 'darwin7.0'
-
-SYSTYPE    := __GCCUNIX__ -D_OSX_
-EXESUFFIX  :=
-GLLIB      :=
-ICON       :=
-SDLLIBTYPE := --static-libs
-MSG        := Mac OS X
-
-else ifeq "$(findstring Linux,$(OSTYPE))" "Linux"		# Linux
-
-SYSTYPE    := __GCCUNIX__
-EXESUFFIX  :=
-GLLIB      := -lGL -lGLU
-ICON       :=
-SDLLIBTYPE := --libs
-MSG        := GNU/Linux
-
-else											# ???
-
-$(error OS TYPE UNDETECTED)
-
+# Should catch both 'darwin' and 'darwin7.0'
+ifeq "$(findstring Darwin,$(OSTYPE))" "Darwin"
+QMAKE_EXTRA := -spec macx-g++
 endif
 
-# Set vars for libcdio
-ifneq "$(shell pkg-config --silence-errors --libs libcdio)" ""
-HAVECDIO := -DHAVE_LIB_CDIO
-CDIOLIB  := -lcdio
-else
-HAVECDIO :=
-CDIOLIB  :=
-endif
 
-CC         = gcc
-LD         = gcc
-TARGET     = vj
+all: prepare virtualjaguar
+	@echo -e "\033[01;33m***\033[00;32m Success!\033[00m"
 
-# Note that we use optimization level 2 instead of 3--3 doesn't seem to gain much over 2
-CFLAGS   = -MMD -Wall -Wno-switch -O2 -D$(SYSTYPE) -ffast-math -fomit-frame-pointer `sdl-config --cflags`
-CPPFLAGS = -MMD -Wall -Wno-switch -Wno-non-virtual-dtor -O2 -D$(SYSTYPE) \
-		$(HAVECDIO) -ffast-math -fomit-frame-pointer `sdl-config --cflags` -g
-#		-fomit-frame-pointer `sdl-config --cflags` -g
-#		-fomit-frame-pointer `sdl-config --cflags` -DLOG_UNMAPPED_MEMORY_ACCESSES
+prepare:
+	@echo -e "\033[01;33m***\033[00;32m Preparing to compile Virtual Jaguar...\033[00m"
+#	@echo "#define VJ_RELEASE_VERSION \"v2.0.0\"" > src/version.h
+#	@echo "#define VJ_RELEASE_SUBVERSION \"Final\"" >> src/version.h
+	@echo "#define VJ_RELEASE_VERSION \"SVN `svn info | grep -i revision`\"" > src/version.h
+	@echo "#define VJ_RELEASE_SUBVERSION \"2.0.0 Prerelease\"" >> src/version.h
 
-LDFLAGS =
+virtualjaguar: sources libs makefile-qt
+	@echo -e "\033[01;33m***\033[00;32m Making Virtual Jaguar GUI...\033[00m"
+	$(MAKE) -f makefile-qt
 
-LIBS = -L/usr/local/lib -L/usr/lib `sdl-config $(SDLLIBTYPE)` -lstdc++ -lz $(GLLIB) $(CDIOLIB)
+makefile-qt: virtualjaguar.pro
+	@echo -e "\033[01;33m***\033[00;32m Creating Qt makefile...\033[00m"
+	qmake $(QMAKE_EXTRA) virtualjaguar.pro -o makefile-qt
 
-INCS = -I. -I./src -I./src/gui -I/usr/local/include -I/usr/include
+libs: obj/libmusashi.a obj/libjaguarcore.a
+	@echo -e "\033[01;33m***\033[00;32m Libraries successfully made.\033[00m"
 
-OBJS = \
-	obj/m68kcpu.o       \
-	obj/m68kops.o       \
-	obj/m68kopac.o      \
-	obj/m68kopdm.o      \
-	obj/m68kopnz.o      \
-	obj/m68kdasm.o      \
-\
-	obj/button.o        \
-	obj/element.o       \
-	obj/filelist.o      \
-	obj/gui.o           \
-	obj/guimisc.o       \
-	obj/image.o         \
-	obj/listbox.o       \
-	obj/menu.o          \
-	obj/pushbutton.o    \
-	obj/slideswitch.o   \
-	obj/text.o          \
-	obj/textedit.o      \
-	obj/window.o        \
-\
-	obj/blitter.o       \
-	obj/cdrom.o         \
-	obj/cdintf.o        \
-	obj/crc32.o         \
-	obj/dac.o           \
-	obj/dsp.o           \
-	obj/eeprom.o        \
-	obj/event.o         \
-	obj/file.o          \
-	obj/gpu.o           \
-	obj/jagdasm.o       \
-	obj/jaguar.o        \
-	obj/jerry.o         \
-	obj/joystick.o      \
-	obj/log.o           \
-	obj/memory.o        \
-	obj/mmu.o           \
-	obj/objectp.o       \
-	obj/sdlemu_config.o \
-	obj/sdlemu_opengl.o \
-	obj/settings.o      \
-	obj/state.o         \
-	obj/tom.o           \
-	obj/unzip.o         \
-	obj/video.o         \
-	obj/vj.o            \
-	$(ICON)
+obj/libmusashi.a: musashi.mak
+	@echo -e "\033[01;33m***\033[00;32m Making Musashi...\033[00m"
+	$(MAKE) -f musashi.mak
 
-# Targets for convenience sake, not "real" targets
-.PHONY: clean
+obj/libjaguarcore.a: jaguarcore.mak
+	@echo -e "\033[01;33m***\033[00;32m Making Virtual Jaguar core...\033[00m"
+	$(MAKE) -f jaguarcore.mak
 
-all: checkenv message obj $(TARGET)$(EXESUFFIX)
-	@echo
-	@echo -e "\033[01;33m***\033[00;32m Looks like it compiled OK... Give it a whirl!\033[00m"
-	@echo
-
-# Check the compilation environment, barf if not appropriate
-
-checkenv: msg-check-env check-sdl check-zlib check-cdio check-gl ;
-
-#check-sdl: msg-ck-sdl $(if $(strip ),,msg-no-sdl stop-on-error)
-check-sdl: msg-ck-sdl $(if $(shell which sdl-config),,msg-no-sdl stop-on-error)
-	@echo -e "\033[01;37mOK\033[00m"
-
-msg-ck-sdl:
-	@echo -en "   \033[00;32mSDL... \033[00m"
-
-msg-no-sdl:
-	@echo -e "\033[01;37mNOT FOUND\033[00m"
-	@echo
-	@echo -e "\033[01;33mIt seems that you don't have the SDL development libraries installed. If you"
-	@echo -e "have installed them, make sure that the sdl-config file is somewhere in your"
-	@echo -e "path and is executable.\033[00m"
-	@echo
-
-check-zlib: msg-ck-zlib $(if $(shell pkg-config --silence-errors --libs zlib),,msg-no-zlib stop-on-error)
-	@echo -e "\033[01;37mOK\033[00m"
-
-msg-ck-zlib:
-	@echo -en "   \033[00;32mZLIB... \033[00m"
-
-msg-no-zlib:
-	@echo -e "\033[01;37mNOT FOUND\033[00m"
-	@echo
-	@echo -e "\033[01;33mIt seems that you don't have ZLIB installed. If you have installed it, make"
-	@echo -e "sure that the pkg-config file is somewhere in your path and is executable.\033[00m"
-	@echo
-
-#NOTE that this check shouldn't be fatal, we can bounce back from it by excluding CD support
-check-cdio: msg-ck-cdio $(if $(CDIOLIB),msg-cdio,msg-no-cdio) ;
-
-msg-ck-cdio:
-	@echo -en "   \033[00;32mLIBCDIO... \033[00m"
-
-msg-cdio:
-	@echo -e "\033[01;37mOK\033[00m"
-
-msg-no-cdio:
-	@echo -e "\033[01;37mNOT FOUND\033[00m"
-	@echo
-	@echo -e "\033[01;33mIt seems that you don't have LIBCDIO installed. Since this is not fatal,"
-	@echo -e "Virtual Jaguar will be built WITHOUT CD support.\033[00m"
-	@echo
-
-check-gl: msg-ck-gl
-	@echo -e "*** GL CHECK NOT IMPLEMENTED ***"
-
-msg-ck-gl:
-	@echo -en "   \033[00;32mOpenGL... \033[00m"
-
-stop-on-error: ; $(error COMPILATION ENVIRONMENT)
-
-msg-check-env:
-	@echo
-	@echo -e "\033[01;33m***\033[00;32m Checking compilation environment: \033[00m"
-	@echo
-
-message:
-	@echo
-	@echo -e "\033[01;33m***\033[00;32m Building Virtual Jaguar for $(MSG)...\033[00m"
-	@echo
+sources: src/*.h src/*.cpp src/*.c
 
 clean:
-	@echo -en "\033[01;33m***\033[00;32m Cleaning out the garbage...\033[00m"
-	@rm -rf obj
-	@rm -f ./$(TARGET)$(EXESUFFIX)
-	@echo -e "\033[01;37mdone!\033[00m"
+	@echo -ne "\033[01;33m***\033[00;32m Cleaning out the garbage...\033[00m"
+	@-rm -rf ./obj
+	@-rm -rf makefile-qt
+	@-rm -rf virtualjaguar
+	@-$(FIND) . -name "*~" -exec rm -f {} \;
+	@echo "done!"
 
-obj:
-	@mkdir obj
+statistics:
+	@echo -n "Lines in source files: "
+	@-$(FIND) ./src -name "*.cpp" | xargs cat | wc -l
+	@echo -n "Lines in header files: "
+	@-$(FIND) ./src -name "*.h" | xargs cat | wc -l
 
-# This is only done for Win32 at the moment...
-
-ifneq "" "$(ICON)"
-$(ICON): res/$(TARGET).rc res/$(TARGET).ico
-	@echo -e "\033[01;33m***\033[00;32m Processing icon...\033[00m"
-	@windres -i res/$(TARGET).rc -o $(ICON) --include-dir=./res
-endif
-
-obj/%.o: src/%.c
-	@echo -e "\033[01;33m***\033[00;32m Compiling $<...\033[00m"
-	@$(CC) $(CFLAGS) $(INCS) -c $< -o $@
-
-obj/%.o: src/%.cpp
-	@echo -e "\033[01;33m***\033[00;32m Compiling $<...\033[00m"
-	@$(CC) $(CPPFLAGS) $(INCS) -c $< -o $@
-
-obj/%.o: src/gui/%.cpp
-	@echo -e "\033[01;33m***\033[00;32m Compiling $<...\033[00m"
-	@$(CC) $(CPPFLAGS) $(INCS) -c $< -o $@
-
-$(TARGET)$(EXESUFFIX): $(OBJS)
-	@echo -e "\033[01;33m***\033[00;32m Linking it all together...\033[00m"
-	@$(LD) $(LDFLAGS) -o $@ $(OBJS) $(LIBS)
-#	strip --strip-all vj$(EXESUFFIX)
-#	upx -9 vj$(EXESUFFIX)
-
-# Pull in dependencies autogenerated by gcc's -MMD switch
-# The "-" in front is there just in case they haven't been created yet
-
--include obj/*.d
-
-#
-# Musashi specific stuffola
-#
-
-#obj/m68k%.o: obj/m68k%.c obj/m68kops.h
-#	$(CC) $(CFLAGS) -Iobj -c src/m68k%.c -o obj/m68k%.o
-
-#obj/m68k%.o: obj/m68k%.c obj/m68kmake$(EXESUFFIX)
-#	$(CC) $(CFLAGS) -Iobj -c src/m68k%.c -o obj/m68k%.o
-
-#see if you can collapse all this crap into one or two lines...
-#NOTE: The above doesn't work for some reason...
-
-obj/m68kcpu.o: obj/m68kops.h src/m68k.h src/m68kconf.h
-	@echo -e "\033[01;33m***\033[00;32m Compiling m68kcpu.c...\033[00m"
-	@$(CC) $(CFLAGS) -Iobj -c src/m68kcpu.c -o obj/m68kcpu.o
-
-obj/m68kops.o: obj/m68kmake$(EXESUFFIX) obj/m68kops.h obj/m68kops.c src/m68k.h src/m68kconf.h
-	@echo -e "\033[01;33m***\033[00;32m Compiling m68kops.c...\033[00m"
-	@$(CC) $(CFLAGS) -Isrc -c obj/m68kops.c -o obj/m68kops.o
-
-obj/m68kopac.o: obj/m68kmake$(EXESUFFIX) obj/m68kops.h obj/m68kopac.c src/m68k.h src/m68kconf.h
-	@echo -e "\033[01;33m***\033[00;32m Compiling m68kopac.c...\033[00m"
-	@$(CC) $(CFLAGS) -Isrc -c obj/m68kopac.c -o obj/m68kopac.o
-
-obj/m68kopdm.o: obj/m68kmake$(EXESUFFIX) obj/m68kops.h obj/m68kopdm.c src/m68k.h src/m68kconf.h
-	@echo -e "\033[01;33m***\033[00;32m Compiling m68kopdm.c...\033[00m"
-	@$(CC) $(CFLAGS) -Isrc -c obj/m68kopdm.c -o obj/m68kopdm.o
-
-obj/m68kopnz.o: obj/m68kmake$(EXESUFFIX) obj/m68kops.h obj/m68kopnz.c src/m68k.h src/m68kconf.h
-	@echo -e "\033[01;33m***\033[00;32m Compiling m68kopnz.c...\033[00m"
-	@$(CC) $(CFLAGS) -Isrc -c obj/m68kopnz.c -o obj/m68kopnz.o
-
-obj/m68kdasm.o: src/m68kdasm.c src/m68k.h src/m68kconf.h
-	@echo -e "\033[01;33m***\033[00;32m Compiling m68kdasm.c...\033[00m"
-	@$(CC) $(CFLAGS) -Isrc -c src/m68kdasm.c -o obj/m68kdasm.o
-
-obj/m68kops.h: obj/m68kmake$(EXESUFFIX)
-	@obj/m68kmake obj src/m68k_in.c
-
-obj/m68kmake$(EXESUFFIX): src/m68kmake.c src/m68k_in.c
-	@echo -e "\033[01;33m***\033[00;32m Preparing to make the Musashi core...\033[00m"
-	@$(CC) $(WARNINGS) src/m68kmake.c -o obj/m68kmake$(EXESUFFIX)
+dist:	clean

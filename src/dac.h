@@ -5,7 +5,8 @@
 #ifndef __DAC_H__
 #define __DAC_H__
 
-#include "types.h"
+//#include "types.h"
+#include "memory.h"
 
 void DACInit(void);
 void DACReset(void);
@@ -20,6 +21,6 @@ uint16 DACReadWord(uint32 offset, uint32 who = UNKNOWN);
 
 // Global variables
 
-extern uint16 lrxd, rrxd;							// I2S ports (into Jaguar)
+//extern uint16 lrxd, rrxd;							// I2S ports (into Jaguar)
 
 #endif	// __DAC_H__

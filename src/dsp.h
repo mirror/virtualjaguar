@@ -5,7 +5,8 @@
 #ifndef __DSP_H__
 #define __DSP_H__
 
-#include "types.h"
+//#include "types.h"
+#include "memory.h"
 
 #define DSP_CONTROL_RAM_BASE    0x00F1A100
 #define DSP_WORK_RAM_BASE		0x00F1B000

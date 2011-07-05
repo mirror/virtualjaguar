@@ -19,8 +19,4 @@ typedef int32_t		int32;
 typedef uint64_t	uint64;
 typedef int64_t		int64;
 
-// Read/write tracing enumeration
-
-enum { UNKNOWN, JAGUAR, DSP, GPU, TOM, JERRY, M68K, BLITTER, OP };
-
 #endif	// __TYPES_H__

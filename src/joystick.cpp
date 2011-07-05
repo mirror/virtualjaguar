@@ -4,6 +4,13 @@
 // by cal2
 // GCC/SDL port by Niels Wagenaar (Linux/WIN32) and Caz (BeOS)
 // Cleanups/fixes by James L. Hammons
+// (C) 2010 Underground Software
+//
+// JLH = James L. Hammons <jlhamm@acm.org>
+//
+// Who  When        What
+// ---  ----------  -------------------------------------------------------------
+// JLH  01/16/2010  Created this log ;-)
 //
 
 #include "joystick.h"
@@ -11,40 +18,20 @@
 #include <SDL.h>
 #include <time.h>
 #include "gpu.h"
-#include "gui.h"
 #include "jaguar.h"
 #include "log.h"
 #include "settings.h"
-#include "video.h"
-
-#define BUTTON_U		0
-#define BUTTON_D		1
-#define BUTTON_L		2
-#define BUTTON_R		3
-#define BUTTON_s		4
-#define BUTTON_7		5
-#define BUTTON_4		6
-#define BUTTON_1		7
-#define BUTTON_0		8
-#define BUTTON_8		9
-#define BUTTON_5		10
-#define BUTTON_2		11
-#define BUTTON_d		12
-#define BUTTON_9		13
-#define BUTTON_6		14
-#define BUTTON_3		15
-
-#define BUTTON_A		16
-#define BUTTON_B		17
-#define BUTTON_C		18
-#define BUTTON_OPTION	19
-#define BUTTON_PAUSE	20
 
 // Global vars
 
 static uint8 joystick_ram[4];
-static uint8 joypad_0_buttons[21];
-static uint8 joypad_1_buttons[21];
+uint8 joypad_0_buttons[21];
+uint8 joypad_1_buttons[21];
+
+bool keyBuffer[21];
+
+SDL_Joystick * joystick1;
+
 //extern bool finished;
 ////extern bool showGUI;
 bool GUIKeyHeld = false;
@@ -72,22 +59,24 @@ void JoystickInit(void)
 
 void JoystickExec(void)
 {
-	uint8 * keystate = SDL_GetKeyState(NULL);
+//	uint8 * keystate = SDL_GetKeyState(NULL);
 
-	memset(joypad_0_buttons, 0, 21);
-	memset(joypad_1_buttons, 0, 21);
+//	memset(joypad_0_buttons, 0, 21);
+//	memset(joypad_1_buttons, 0, 21);
 	gpu_start_log = 0;							// Only log while key down!
 	effect_start = 0;
 	effect_start2 = effect_start3 = effect_start4 = effect_start5 = effect_start6 = 0;
 	blit_start_log = 0;
 	iLeft = iRight = false;
 
+#if 0
 	if ((keystate[SDLK_LALT] || keystate[SDLK_RALT]) & keystate[SDLK_RETURN])
 		ToggleFullscreen();
 
 	// Keybindings in order of U, D, L, R, C, B, A, Op, Pa, 0-9, #, *
 //	vjs.p1KeyBindings[0] = sdlemu_getval_int("p1k_up", SDLK_UP);
 
+#if 0
 	if (keystate[vjs.p1KeyBindings[0]])
 		joypad_0_buttons[BUTTON_U] = 0x01;
 	if (keystate[vjs.p1KeyBindings[1]])
@@ -133,12 +122,62 @@ void JoystickExec(void)
 		joypad_0_buttons[BUTTON_s] = 0x01;
 	if (keystate[vjs.p1KeyBindings[20]])
 		joypad_0_buttons[BUTTON_d] = 0x01;
+#else
+	if (keyBuffer[0])
+		joypad_0_buttons[BUTTON_U] = 0x01;
+	if (keyBuffer[1])
+		joypad_0_buttons[BUTTON_D] = 0x01;
+	if (keyBuffer[2])
+		joypad_0_buttons[BUTTON_L] = 0x01;
+	if (keyBuffer[3])
+		joypad_0_buttons[BUTTON_R] = 0x01;
+	// The buttons are labelled C,B,A on the controller (going from left to right)
+	if (keyBuffer[4])
+		joypad_0_buttons[BUTTON_C] = 0x01;
+	if (keyBuffer[5])
+		joypad_0_buttons[BUTTON_B] = 0x01;
+	if (keyBuffer[6])
+		joypad_0_buttons[BUTTON_A] = 0x01;
+//I may yet move these to O and P...
+	if (keyBuffer[7])
+		joypad_0_buttons[BUTTON_OPTION] = 0x01;
+	if (keyBuffer[8])
+		joypad_0_buttons[BUTTON_PAUSE] = 0x01;
 
-	extern bool debounceRunKey;
+	if (keyBuffer[9])
+		joypad_0_buttons[BUTTON_0] = 0x01;
+	if (keyBuffer[10])
+		joypad_0_buttons[BUTTON_1] = 0x01;
+	if (keyBuffer[11])
+		joypad_0_buttons[BUTTON_2] = 0x01;
+	if (keyBuffer[12])
+		joypad_0_buttons[BUTTON_3] = 0x01;
+	if (keyBuffer[13])
+		joypad_0_buttons[BUTTON_4] = 0x01;
+	if (keyBuffer[14])
+		joypad_0_buttons[BUTTON_5] = 0x01;
+	if (keyBuffer[15])
+		joypad_0_buttons[BUTTON_6] = 0x01;
+	if (keyBuffer[16])
+		joypad_0_buttons[BUTTON_7] = 0x01;
+	if (keyBuffer[17])
+		joypad_0_buttons[BUTTON_8] = 0x01;
+	if (keyBuffer[18])
+		joypad_0_buttons[BUTTON_9] = 0x01;
+	if (keyBuffer[19])
+		joypad_0_buttons[BUTTON_s] = 0x01;
+	if (keyBuffer[20])
+		joypad_0_buttons[BUTTON_d] = 0x01;
+#endif
+
+#warning "!!! FIX !!! (debounceRunKey)"
+//	extern bool debounceRunKey;
+	bool debounceRunKey;
     if (keystate[SDLK_ESCAPE])
     {
 		if (!debounceRunKey)
-	    	finished = true;
+#warning "!!! FIX !!! (finished = true)"
+;//	    	finished = true;
     }
     else
 		debounceRunKey = false;
@@ -146,7 +185,8 @@ void JoystickExec(void)
 	if (keystate[SDLK_TAB])
 	{
 		if (!GUIKeyHeld)
-			showGUI = !showGUI, GUIKeyHeld = true;
+#warning "!!! FIX !!! (showGUI = !showGUI, ...)"
+;//			showGUI = !showGUI, GUIKeyHeld = true;
 	}
 	else
 		GUIKeyHeld = false;
@@ -228,14 +268,28 @@ void JoystickExec(void)
 	}
 	else
 		bssHeld = false;
+#endif
+	// We need to ensure that illegal combinations are not possible.
+	// So, we do a simple minded way here...
+	// It would be better to check to see which one was pressed last
+	// and discard that one, but for now...
+//This didn't work... Was still able to do bad combination.
+//It's because the GUI is changing this *after* we fix it here.
+#if 0
+	if (joypad_0_buttons[BUTTON_R] && joypad_0_buttons[BUTTON_L])
+		joypad_0_buttons[BUTTON_L] = 0;
+
+	if (joypad_0_buttons[BUTTON_U] && joypad_0_buttons[BUTTON_D])
+		joypad_0_buttons[BUTTON_D] = 0;
+#endif
 
 	// Joystick support [nwagenaar]
 
     if (vjs.useJoystick)
     {
-		extern SDL_Joystick * joystick;
-		int16 x = SDL_JoystickGetAxis(joystick, 0),
-			y = SDL_JoystickGetAxis(joystick, 1);
+		extern SDL_Joystick * joystick1;
+		int16 x = SDL_JoystickGetAxis(joystick1, 0),
+			y = SDL_JoystickGetAxis(joystick1, 1);
 
 		if (x > 16384)
 			joypad_0_buttons[BUTTON_R] = 0x01;
@@ -246,11 +300,11 @@ void JoystickExec(void)
 		if (y < -16384)
 			joypad_0_buttons[BUTTON_U] = 0x01;
 
-		if (SDL_JoystickGetButton(joystick, 0) == SDL_PRESSED)
+		if (SDL_JoystickGetButton(joystick1, 0) == SDL_PRESSED)
 			joypad_0_buttons[BUTTON_A] = 0x01;
-		if (SDL_JoystickGetButton(joystick, 1) == SDL_PRESSED)
+		if (SDL_JoystickGetButton(joystick1, 1) == SDL_PRESSED)
 			joypad_0_buttons[BUTTON_B] = 0x01;
-		if (SDL_JoystickGetButton(joystick, 2) == SDL_PRESSED)
+		if (SDL_JoystickGetButton(joystick1, 2) == SDL_PRESSED)
 			joypad_0_buttons[BUTTON_C] = 0x01;
 	}
 

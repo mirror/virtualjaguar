@@ -1,6 +1,6 @@
----------------------------------------------
-Virtual Jaguar v1.1.0 GCC/SDL release INSTALL
----------------------------------------------
+----------------------------------------
+Virtual Jaguar v2.0.0 Qt release INSTALL
+----------------------------------------
 
 
 REQUIREMENTS:
@@ -8,11 +8,12 @@ REQUIREMENTS:
 
 The minimum requirements for compiling Virtual Jaguar from source are:
 
- o  GCC v4.3.x or higher
- o  SDL v1.2.13 or higher
- o  zlib v1.2.3
- o  libcdio v0.80 or higher
+ o  GCC v4.4.x or higher
+ o  SDL v1.2.14 or higher
+ o  zlib v1.2.5
+ o  libcdio v0.82 or higher (optional, for Jaguar CD support)
  o  OpenGL libraries
+ o  Qt 4.7.3 or higher
  o  supported OS (BeOS, Linux, FreeBSD and WIN32 through mingw, MacOS); other
     OSs may work to but you may need to change some items in the Makefile.
 
@@ -34,8 +35,9 @@ Optionally you can manually strip vj[.exe] to downsize the binary. If you have
 upx in your path somewhere, you can uncomment the line in the makefile that
 executes upx so that you'll end up with a somewhat smaller binary.
 
-That's it! You can now start the emulator with ./vj. See the output for more
-details (or stdout.txt on Win32) or consult the README file for more info.
+That's it! You can now start the emulator with ./virtualjaguar. See the output
+for more details (or stdout.txt on Win32) or consult the README file for more
+info.
 
 For even more info, go to http://sdlemu.ngemu.com or send use an e-mail to the
 following e-mail address: sdlemu AT ngemu DOT com.

@@ -6,7 +6,8 @@
 #define __TOM_H__
 
 //#include "jaguar.h"
-#include "types.h"
+//#include "types.h"
+#include "memory.h"
 
 #define VIDEO_MODE_16BPP_CRY	0
 #define VIDEO_MODE_24BPP_RGB	1
@@ -59,5 +60,7 @@ extern uint8 tomRam8[];
 extern uint32 tomTimerPrescaler;
 extern uint32 tomTimerDivider;
 extern int32 tomTimerCounter;
+
+extern uint32 tomDeviceWidth;
 
 #endif	// __TOM_H__

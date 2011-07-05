@@ -4,6 +4,13 @@
 // by Cal2
 // GCC/SDL port by Niels Wagenaar (Linux/WIN32) and Caz (BeOS)
 // Cleanups/enhancements by James L. Hammons
+// (C) 2010 Underground Software
+//
+// JLH = James L. Hammons <jlhamm@acm.org>
+//
+// Who  When        What
+// ---  ----------  -------------------------------------------------------------
+// JLH  01/16/2010  Created this log ;-)
 //
 
 #include "eeprom.h"
@@ -193,6 +200,7 @@ static void eeprom_set_di(uint32 data)
 		if (jerry_writes_enabled)
 			for(int i=0; i<64; i++)
 				eeprom_ram[i] = jerry_ee_data;
+
 		EEPROMSave();								// Save it NOW!
 		//else
 		//	WriteLog("eeprom: not writing because read only\n");
@@ -231,6 +239,7 @@ static void eeprom_set_di(uint32 data)
 		//WriteLog("eeprom: writing 0x%.4x at 0x%.2x\n",jerry_ee_data,jerry_ee_address_data);
 		if (jerry_writes_enabled)
 			eeprom_ram[jerry_ee_address_data] = jerry_ee_data;
+
 		EEPROMSave();								// Save it NOW!
 		jerry_ee_state = EE_STATE_BUSY;
 		break;
@@ -253,6 +262,7 @@ static void eeprom_set_di(uint32 data)
 		//WriteLog("eeprom: erasing 0x%.2x\n",jerry_ee_address_data);
 		if (jerry_writes_enabled)
 			eeprom_ram[jerry_ee_address_data] = 0xFFFF;
+
 		jerry_ee_state = EE_STATE_BUSY;
 		break;
 	case EE_READ_DATA:
@@ -260,9 +270,11 @@ static void eeprom_set_di(uint32 data)
 		jerry_ee_data <<= 1;
 		jerry_ee_data |= data;
 		jerry_ee_data_cnt--;
+
 		if (!jerry_ee_data_cnt)
 		{
 			jerry_ee_state = jerry_ee_rstate;
+
 			if (jerry_ee_direct_jump)
 				eeprom_set_di(data);
 		}
@@ -272,10 +284,12 @@ static void eeprom_set_di(uint32 data)
 		jerry_ee_address_data |= data;
 		jerry_ee_address_cnt--;
 //		WriteLog("eeprom:\t%i bits remaining\n",jerry_ee_address_cnt);
+
 		if (!jerry_ee_address_cnt)
 		{
 			jerry_ee_state = jerry_ee_rstate;
 			//WriteLog("eeprom:\t\tread address 0x%.2x\n",jerry_ee_address_data);
+
 			if (jerry_ee_direct_jump)
 				eeprom_set_di(data);
 		}
@@ -314,6 +328,7 @@ static uint32 eeprom_get_do(void)
 	case EE_STATE_2_0:
 		jerry_ee_data_cnt--;
 		data = (eeprom_ram[jerry_ee_address_data] & (1 << jerry_ee_data_cnt)) >> jerry_ee_data_cnt;
+
 		if (!jerry_ee_data_cnt)
 		{
 			//WriteLog("eeprom: read 0x%.4x at 0x%.2x cpu %i pc=0x%.8x\n",eeprom_ram[jerry_ee_address_data],jerry_ee_address_data,jaguar_cpu_in_exec,s68000readPC());

@@ -1,0 +1,24 @@
+<!DOCTYPE RCC><RCC version="1.0">
+<qresource>
+	<file>../../res/vj-icon.png</file>
+	<file>../../res/power.png</file>
+	<file>../../res/pause.png</file>
+	<file>../../res/zoom100.png</file>
+	<file>../../res/zoom200.png</file>
+	<file>../../res/zoom300.png</file>
+	<file>../../res/generic.png</file>
+	<file>../../res/cart-blank.png</file>
+	<file>../../res/label-blank.png</file>
+	<file>../../res/vj_title_small.png</file>
+	<file>../../res/controller.png</file>
+	<file>../../res/insert.png</file>
+	<file>../../res/software.png</file>
+	<file>../../res/ntsc.png</file>
+	<file>../../res/pal.png</file>
+	<file>../../res/upper-left.png</file>
+	<file>../../res/upper-right.png</file>
+	<file>../../res/alpine-file.png</file>
+	<file>../../res/homebrew-file.png</file>
+	<file>../../res/unknown-file.png</file>
+</qresource>
+</RCC>

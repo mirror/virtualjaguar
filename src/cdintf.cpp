@@ -2,6 +2,15 @@
 // OS agnostic CDROM interface functions
 //
 // by James L. Hammons
+// (C) 2010 Underground Software
+//
+// JLH = James L. Hammons <jlhamm@acm.org>
+//
+// Who  When        What
+// ---  ----------  -------------------------------------------------------------
+// JLH  01/16/2010  Created this log ;-)
+//
+
 //
 // This now uses the supposedly cross-platform libcdio to do the necessary
 // low-level CD twiddling we need that libsdl can't do currently. Jury is
