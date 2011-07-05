@@ -16,7 +16,18 @@
 //
 // STILL TO BE DONE:
 //
+// - Autoscan/autoload all available BIOS from 'software' folder
+// - Controller configuration
+// - Remove SDL dependencies (sound, mainly) from Jaguar core lib
+// - Add 1 key jumping in cartridge list (press 'R', jumps to carts starting with 'R', etc)
+// - Add dbl click/enter to select in cart list, ESC to dimiss
 //
+
+/*
+For BIOS autoscan, infrastructure is already there in filethread.cpp; just need to figure out
+if we want to scan every time, or stuff filenames found into the config file, or what.
+Should filethread emit signal that's intercepted here? Maybe...
+*/
 
 // Uncomment this for debugging...
 //#define DEBUG
@@ -47,6 +58,7 @@
 
 // Uncomment this to use built-in BIOS/CD-ROM BIOS
 // You'll need a copy of jagboot.h & jagcd.h for this to work...!
+// Creating those is left as an exercise for the reader. ;-)
 //#define USE_BUILT_IN_BIOS
 
 #ifdef USE_BUILT_IN_BIOS
@@ -67,7 +79,7 @@
 // use, we can drop it in anywhere and use it as-is.
 
 MainWin::MainWin(): running(false), powerButtonOn(false), showUntunedTankCircuit(true),
-	cartridgeLoaded(false)
+	cartridgeLoaded(false), CDActive(false)
 {
 	videoWidget = new GLWidget(this);
 	setCentralWidget(videoWidget);
@@ -152,6 +164,12 @@ MainWin::MainWin(): running(false), powerButtonOn(false), showUntunedTankCircuit
 	configAct->setShortcut(QKeySequence(tr("Ctrl+c")));
 	connect(configAct, SIGNAL(triggered()), this, SLOT(Configure()));
 
+	useCDAct = new QAction(QIcon(":/res/generic.png"), tr("&Use CD Unit"), this);
+	useCDAct->setStatusTip(tr("Use Jaguar Virtual CD unit"));
+//	useCDAct->setShortcut(QKeySequence(tr("Ctrl+c")));
+	useCDAct->setCheckable(true);
+	connect(useCDAct, SIGNAL(triggered()), this, SLOT(ToggleCDUsage()));
+
 	// Misc. connections...
 	connect(filePickWin, SIGNAL(RequestLoad(QString)), this, SLOT(LoadSoftware(QString)));
 
@@ -159,6 +177,7 @@ MainWin::MainWin(): running(false), powerButtonOn(false), showUntunedTankCircuit
 
 	fileMenu = menuBar()->addMenu(tr("&File"));
 	fileMenu->addAction(filePickAct);
+	fileMenu->addAction(useCDAct);
 	fileMenu->addAction(powerAct);
 	fileMenu->addAction(pauseAct);
 	fileMenu->addAction(configAct);
@@ -171,6 +190,7 @@ MainWin::MainWin(): running(false), powerButtonOn(false), showUntunedTankCircuit
 	toolbar->addAction(powerAct);
 	toolbar->addAction(pauseAct);
 	toolbar->addAction(filePickAct);
+	toolbar->addAction(useCDAct);
 	toolbar->addSeparator();
 	toolbar->addAction(x1Act);
 	toolbar->addAction(x2Act);
@@ -461,9 +481,19 @@ void MainWin::TogglePowerState(void)
 	}
 	else
 	{
-		showUntunedTankCircuit = (cartridgeLoaded ? false : true);
-		pauseAct->setChecked(false);
-		pauseAct->setDisabled(!cartridgeLoaded);
+		if (!CDActive)
+		{
+			showUntunedTankCircuit = (cartridgeLoaded ? false : true);
+			pauseAct->setChecked(false);
+			pauseAct->setDisabled(!cartridgeLoaded);
+		}
+		else
+		{
+			showUntunedTankCircuit = false;
+			pauseAct->setChecked(false);
+			pauseAct->setDisabled(false);
+			memcpy(jagMemSpace + 0x800000, jaguarCDBootROM, 0x40000);
+		}
 
 //(Err, what's so crappy about this? It seems to do what it's supposed to...)
 //This is crappy!!! !!! FIX !!!
@@ -566,6 +596,20 @@ void MainWin::LoadSoftware(QString file)
 		" - Now playing: %1")
 		.arg(filePickWin->GetSelectedPrettyName());
 	setWindowTitle(newTitle);
+}
+
+void MainWin::ToggleCDUsage(void)
+{
+	CDActive = !CDActive;
+
+	if (CDActive)
+	{
+		powerAct->setDisabled(false);
+	}
+	else
+	{
+		powerAct->setDisabled(true);
+	}
 }
 
 void MainWin::ResizeMainWindow(void)

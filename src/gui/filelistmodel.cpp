@@ -131,6 +131,9 @@ void FileListModel::AddData(unsigned long index, QString str, QImage img, unsign
 	data.crc = fileCrc;
 
 	list.push_back(data);
+//This is probably not the best way to do this, it prevents the user from using the
+//list while it populates.
+#warning "!!! AddData calls reset() for every addition, this is bad !!!"
 	reset();
 }
 

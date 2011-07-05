@@ -44,6 +44,7 @@ class MainWin: public QMainWindow
 		void ShowAboutWin(void);
 		void InsertCart(void);
 		void LoadSoftware(QString);
+		void ToggleCDUsage(void);
 
 	private:
 		void HandleKeys(QKeyEvent *, bool);
@@ -62,6 +63,7 @@ class MainWin: public QMainWindow
 		bool showUntunedTankCircuit;
 		bool cartridgeLoaded;
 		bool allowUnknownSoftware;
+		bool CDActive;
 
 		QMenu * fileMenu;
 		QMenu * helpMenu;
@@ -82,6 +84,7 @@ class MainWin: public QMainWindow
 		QAction * aboutAct;
 		QAction * filePickAct;
 		QAction * configAct;
+		QAction * useCDAct;
 };
 
 #endif	// __MAINWIN_H__

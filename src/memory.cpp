@@ -37,6 +37,9 @@ uint8 * dspRAM        = &jagMemSpace[0xF1B000];
 
 uint8 jaguarBootROM[0x040000];					// 68K CPU BIOS ROM--uses only half of this!
 uint8 jaguarCDBootROM[0x040000];				// 68K CPU CD BIOS ROM (256K)
+uint8 jaguarDevBootROM1[0x040000];				// 68K CPU Stubulator 1 ROM--uses only half of this!
+uint8 jaguarDevBootROM2[0x040000];				// 68K CPU Stubulator 2 ROM--uses only half of this!
+uint8 jaguarDevCDBootROM[0x040000];				// 68K CPU Dev CD BIOS ROM (256K)
 
 
 #if 0
@@ -148,7 +151,7 @@ uint32 butch, dscntrl, ds_data, i2cntrl, sbcntrl, subdata, subdatb, sb_time, fif
 //this isn't endian safe...
 #define BSWAP64(x) ((htonl(x & 0xFFFFFFFF) << 32) | htonl(x >> 32))
 // Actually, we use ESAFExx() macros instead of this, and we use GCC to check the endianness...
-// Acutally, considering that "byteswap.h" doesn't exist elsewhere, the above
+// Actually, considering that "byteswap.h" doesn't exist elsewhere, the above
 // is probably our best bet here. Just need to rename them to ESAFExx().
 
 uint16 & memcon1   = *((uint16 *)&jagMemSpace[0xF00000]);

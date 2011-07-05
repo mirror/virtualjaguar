@@ -15,6 +15,9 @@ extern uint8 * jaguarMainRAM;
 extern uint8 * jaguarMainROM;
 extern uint8 jaguarBootROM[];
 extern uint8 jaguarCDBootROM[];
+extern uint8 jaguarDevBootROM1[];
+extern uint8 jaguarDevBootROM2[];
+extern uint8 jaguarDevCDBootROM[];
 extern uint8 * gpuRAM;
 extern uint8 * dspRAM;
 
