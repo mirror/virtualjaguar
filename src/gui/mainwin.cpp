@@ -165,7 +165,7 @@ MainWin::MainWin(): running(false), powerButtonOn(false), showUntunedTankCircuit
 	configAct->setShortcut(QKeySequence(tr("Ctrl+c")));
 	connect(configAct, SIGNAL(triggered()), this, SLOT(Configure()));
 
-	useCDAct = new QAction(QIcon(":/res/generic.png"), tr("&Use CD Unit"), this);
+	useCDAct = new QAction(QIcon(":/res/compact-disc.png"), tr("&Use CD Unit"), this);
 	useCDAct->setStatusTip(tr("Use Jaguar Virtual CD unit"));
 //	useCDAct->setShortcut(QKeySequence(tr("Ctrl+c")));
 	useCDAct->setCheckable(true);
