@@ -454,7 +454,7 @@ WriteLog("    --> List end\n\n");
 				ypos = TOMReadWord(0xF00046, OP) / 2;			// Get the VDB value
 #endif
 // Actually, no. Any item less than VDB will get only the lines that hang over VDB displayed.
-// So we need to fix this somehow...
+// So we need to fix this somehow... (and it has... in tom.cpp :-P)
 
 			uint32 height = (p0 & 0xFFC000) >> 14;
 			uint32 oldOPP = op_pointer - 8;
@@ -1175,10 +1175,10 @@ if (firstPix)
 	// for use when using endian-corrected data (i.e., any of the *ReadWord functions!)
 	uint16 * paletteRAM16 = (uint16 *)paletteRAM;
 
-	uint8 hscale = p2 & 0xFF;
+	uint16 hscale = p2 & 0xFF;
 // Hmm. It seems that fixing the horizontal scale necessitated re-fixing this. Not sure why,
 // but seems to be consistent with the vertical scaling now (and it may turn out to be wrong!)...
-	uint8 horizontalRemainder = hscale;				// Not sure if it starts full, but seems reasonable [It's not!]
+	uint16 horizontalRemainder = hscale;				// Not sure if it starts full, but seems reasonable [It's not!]
 //	uint8 horizontalRemainder = 0;					// Let's try zero! Seems to work! Yay! [No, it doesn't!]
 	int32 scaledWidthInPixels = (iwidth * phraseWidthToPixels[depth] * hscale) >> 5;
 	uint32 scaledPhrasePixels = (phraseWidthToPixels[depth] * hscale) >> 5;
@@ -1392,6 +1392,11 @@ if (firstPix != 0)
 
 			currentLineBuffer += lbufDelta;
 
+/*
+The reason we subtract the horizontalRemainder *after* the test is because we had too few
+bytes for horizontalRemainder to properly recognize a negative number. But now it's 16 bits
+wide, so we could probably go back to that (as long as we make it an int16 and not a uint16!)
+*/
 /*			horizontalRemainder -= 0x20;		// Subtract 1.0f in [3.5] fixed point format
 			while (horizontalRemainder & 0x80)
 			{
@@ -1399,7 +1404,8 @@ if (firstPix != 0)
 				pixCount++;
 				pixels <<= 1;
 			}//*/
-			while (horizontalRemainder <= 0x20)		// I.e., it's <= 0 (*before* subtraction)
+//			while (horizontalRemainder <= 0x20)		// I.e., it's <= 1.0 (*before* subtraction)
+			while (horizontalRemainder < 0x20)		// I.e., it's <= 1.0 (*before* subtraction)
 			{
 				horizontalRemainder += hscale;
 				pixCount++;
@@ -1458,7 +1464,8 @@ if (firstPix != 0)
 				pixCount++;
 				pixels <<= 2;
 			}//*/
-			while (horizontalRemainder <= 0x20)		// I.e., it's <= 0 (*before* subtraction)
+//			while (horizontalRemainder <= 0x20)		// I.e., it's <= 0 (*before* subtraction)
+			while (horizontalRemainder < 0x20)		// I.e., it's <= 1.0 (*before* subtraction)
 			{
 				horizontalRemainder += hscale;
 				pixCount++;
@@ -1517,7 +1524,8 @@ if (firstPix != 0)
 				pixCount++;
 				pixels <<= 4;
 			}//*/
-			while (horizontalRemainder <= 0x20)		// I.e., it's <= 0 (*before* subtraction)
+//			while (horizontalRemainder <= 0x20)		// I.e., it's <= 0 (*before* subtraction)
+			while (horizontalRemainder < 0x20)		// I.e., it's <= 0 (*before* subtraction)
 			{
 				horizontalRemainder += hscale;
 				pixCount++;
@@ -1572,7 +1580,8 @@ if (firstPix)
 
 			currentLineBuffer += lbufDelta;
 
-			while (horizontalRemainder <= 0x20)		// I.e., it's <= 0 (*before* subtraction)
+//			while (horizontalRemainder <= 0x20)		// I.e., it's <= 0 (*before* subtraction)
+			while (horizontalRemainder < 0x20)		// I.e., it's <= 1.0 (*before* subtraction)
 			{
 				horizontalRemainder += hscale;
 				pixCount++;
@@ -1629,7 +1638,8 @@ if (firstPix != 0)
 				pixCount++;
 				pixels <<= 16;
 			}//*/
-			while (horizontalRemainder <= 0x20)		// I.e., it's <= 0 (*before* subtraction)
+//			while (horizontalRemainder <= 0x20)		// I.e., it's <= 0 (*before* subtraction)
+			while (horizontalRemainder < 0x20)		// I.e., it's <= 1.0 (*before* subtraction)
 			{
 				horizontalRemainder += hscale;
 				pixCount++;

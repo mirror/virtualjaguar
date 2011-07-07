@@ -31,11 +31,13 @@ int main(int argc, char * argv[])
 {
 	if (argc > 1)
 	{
-		if (strcmp(argv[1], "--help") == 0)
+		if ((strcmp(argv[1], "--help") == 0) || (strcmp(argv[1], "-h") == 0)
+			|| (strcmp(argv[1], "-?") == 0))
 		{
 			printf("Virtual Jaguar 2.0.0 help\n");
 			printf("\n");
-			printf("This is an experimental branch of Virtual Jaguar, how did you get it?\n");
+			printf("Command line interface is non-functional ATM, but may return if there is\n"
+				"enough demand for it. :-)\n");
 			return 0;
 		}
 	}
@@ -58,6 +60,10 @@ int main(int argc, char * argv[])
 		WriteLog("VJ: SDL (joystick, audio) successfully initialized.\n");
 		App app(argc, argv);					// Declare an instance of the application
 		retVal = app.exec();					// And run it!
+
+		// Free SDL components last...!
+		SDL_QuitSubSystem(SDL_INIT_JOYSTICK | SDL_INIT_AUDIO);
+		SDL_Quit();
 	}
 
 	LogDone();									// Close logfile
