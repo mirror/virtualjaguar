@@ -359,9 +359,12 @@ else
 		uint64 p0 = OPLoadPhrase(op_pointer);
 //WriteLog("\t%08X type %i\n", op_pointer, (uint8)p0 & 0x07);
 		op_pointer += 8;
+
+#if 1
 if (scanline == TOMGetVDB() && op_start_log)
 //if (scanline == 215 && op_start_log)
 //if (scanline == 28 && op_start_log)
+//if (scanline == 0)
 {
 WriteLog("%08X --> phrase %08X %08X", op_pointer - 8, (int)(p0>>32), (int)(p0&0xFFFFFFFF));
 if ((p0 & 0x07) == OBJECT_TYPE_BITMAP)
@@ -425,8 +428,9 @@ for(int k=0; k<8; k++)
 WriteLog("\n");
 }
 if ((p0 & 0x07) == OBJECT_TYPE_STOP)
-WriteLog("    --> List end\n");
-}//*/
+WriteLog("    --> List end\n\n");
+}
+#endif
 
 		switch ((uint8)p0 & 0x07)
 		{
@@ -443,8 +447,15 @@ WriteLog("    --> List end\n");
 
 //No, the reason this was needed is that the OP code before was wrong. Any value
 //less than VDB will get written to the top line of the display!
-//			if (ypos == 0)
-//				ypos = TOMReadWord(0xF00046, OP) / 2;			// Get the VDB value
+#if 0
+// Not so sure... Let's see what happens here...
+// No change...
+			if (ypos == 0)
+				ypos = TOMReadWord(0xF00046, OP) / 2;			// Get the VDB value
+#endif
+// Actually, no. Any item less than VDB will get only the lines that hang over VDB displayed.
+// So we need to fix this somehow...
+
 			uint32 height = (p0 & 0xFFC000) >> 14;
 			uint32 oldOPP = op_pointer - 8;
 // *** BEGIN OP PROCESSOR TESTING ONLY ***
@@ -504,6 +515,7 @@ if (!inhibit)	// For OP testing only!
 			uint16 ypos = (p0 >> 3) & 0x7FF;
 			uint32 height = (p0 & 0xFFC000) >> 14;
 			uint32 oldOPP = op_pointer - 8;
+//WriteLog("OP: Scaled Object (ypos=%04X, height=%04X", ypos, height);
 // *** BEGIN OP PROCESSOR TESTING ONLY ***
 if (inhibit && op_start_log)
 {
@@ -524,7 +536,8 @@ if (!inhibit)	// For OP testing only!
 
 				// OP write-backs
 
-				uint8 remainder = p2 >> 16, vscale = p2 >> 8;
+				uint16 remainder = (p2 >> 16) & 0xFF;//, vscale = p2 >> 8;
+				uint8 /*remainder = p2 >> 16,*/ vscale = p2 >> 8;
 //Actually, we should skip this object if it has a vscale of zero.
 //Or do we? Not sure... Atari Karts has a few lines that look like:
 // (SCALED BITMAP)
@@ -532,6 +545,7 @@ if (!inhibit)	// For OP testing only!
 //    [7 (0) x 1 @ (13, 0) (8 bpp), l: 000E82A0, p: 000E0FC0 fp: 00, fl:RELEASE, idx:00, pt:01]
 //    [hsc: 9A, vsc: 00, rem: 00]
 // Could it be the vscale is overridden if the DWIDTH is zero? Hmm...
+//WriteLog("OP: Scaled bitmap processing (rem=%02X, vscale=%02X)...\n", remainder, vscale);//*/
 
 				if (vscale == 0)
 					vscale = 0x20;					// OP bug??? Nope, it isn't...! Or is it?
@@ -580,7 +594,9 @@ OP: Scaled bitmap 4x? 4bpp at 34,? hscale=80 fpix=0 data=000756E8 pitch 1 hflipp
 //				if ((remainder - 1) >= 0xE0)		// I.e., it's <= 0
 //				if ((remainder >= 0xE1) || remainder == 0)// I.e., it's <= 0
 //				if ((remainder >= 0xE1 && remainder <= 0xFF) || remainder == 0)// I.e., it's <= 0
-				if (remainder <= 0x20)				// I.e., it's <= 0
+//				if (remainder <= 0x20)				// I.e., it's <= 1.0
+				// I.e., it's < 1.0f -> means it'll go negative when we subtract 1.0f.
+				if (remainder < 0x20)
 				{
 					uint64 data = (p0 & 0xFFFFF80000000000LL) >> 40;
 					uint64 dwidth = (p1 & 0xFFC0000) >> 15;
@@ -590,7 +606,8 @@ OP: Scaled bitmap 4x? 4bpp at 34,? hscale=80 fpix=0 data=000756E8 pitch 1 hflipp
 //					while ((remainder - 1) >= 0xE0)
 //					while ((remainder >= 0xE1) || remainder == 0)
 //					while ((remainder >= 0xE1 && remainder <= 0xFF) || remainder == 0)
-					while (remainder <= 0x20)
+//					while (remainder <= 0x20)
+					while (remainder < 0x20)
 					{
 						remainder += vscale;
 
@@ -615,10 +632,11 @@ OP: Scaled bitmap 4x? 4bpp at 34,? hscale=80 fpix=0 data=000756E8 pitch 1 hflipp
 				p2 &= ~0x0000000000FF0000LL;
 				p2 |= (uint64)remainder << 16;
 //WriteLog("%08X%08X]\n", (uint32)(p2>>32), (uint32)(p2&0xFFFFFFFF));
-				OPStorePhrase(oldOPP+16, p2);
+				OPStorePhrase(oldOPP + 16, p2);
 //remainder = (uint8)(p2 >> 16), vscale = (uint8)(p2 >> 8);
 //WriteLog(" [after]: rem=%02X, vscale=%02X\n", remainder, vscale);
 			}
+
 			op_pointer = (p0 & 0x000007FFFF000000LL) >> 21;
 			break;
 		}

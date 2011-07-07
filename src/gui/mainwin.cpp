@@ -14,6 +14,7 @@
 
 // FIXED:
 //
+// - Add dbl click/enter to select in cart list, ESC to dimiss [DONE]
 //
 // STILL TO BE DONE:
 //
@@ -21,7 +22,6 @@
 // - Controller configuration
 // - Remove SDL dependencies (sound, mainly) from Jaguar core lib
 // - Add 1 key jumping in cartridge list (press 'R', jumps to carts starting with 'R', etc)
-// - Add dbl click/enter to select in cart list, ESC to dimiss
 //
 
 /*
@@ -479,6 +479,8 @@ void MainWin::TogglePowerState(void)
 		pauseAct->setDisabled(true);
 		showUntunedTankCircuit = true;
 		running = true;
+		// This is just in case the ROM we were playing was in a narrow or wide field mode
+		TOMReset();
 	}
 	else
 	{

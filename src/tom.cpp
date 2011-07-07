@@ -696,7 +696,7 @@ void tom_render_24bpp_scanline(uint32 * backbuffer)
 		current_line_buffer++;
 		uint32 b = *current_line_buffer++;
 //hm.		*backbuffer++ = 0xFF000000 | (b << 16) | (g << 8) | r;
-		*backbuffer++ = 0x000000FF | (r << 24) | (g << 16) | (r << 8);
+		*backbuffer++ = 0x000000FF | (r << 24) | (g << 16) | (b << 8);
 		width--;
 	}
 }
@@ -770,6 +770,10 @@ void TOMExecScanline(uint16 scanline, bool render)
 	if (scanline & 0x01)							// Execute OP only on even lines (non-interlaced only!)
 		return;
 
+//Hm, it seems that the OP needs to execute from zero, so let's try it:
+// And it works! But need to do some optimizations in the OP to keep it from attempting
+// to do a scanline render in the non-display area... [DONE]
+#if 0
 	if (scanline >= (uint16)GET16(tomRam8, VDB) && scanline < (uint16)GET16(tomRam8, VDE))
 	{
 		if (render)
@@ -787,6 +791,29 @@ void TOMExecScanline(uint16 scanline, bool render)
 	}
 	else
 		inActiveDisplayArea = false;
+#else
+	inActiveDisplayArea =
+		(scanline >= (uint16)GET16(tomRam8, VDB) && scanline < (uint16)GET16(tomRam8, VDE)
+			? true : false);
+
+	if (scanline < (uint16)GET16(tomRam8, VDE))
+	{
+		if (render)//With JaguarExecuteNew() this is always true...
+		{
+			uint8 * current_line_buffer = (uint8 *)&tomRam8[0x1800];
+			uint8 bgHI = tomRam8[BG], bgLO = tomRam8[BG + 1];
+
+			// Clear line buffer with BG
+			if (GET16(tomRam8, VMODE) & BGEN) // && (CRY or RGB16)...
+				for(uint32 i=0; i<720; i++)
+					*current_line_buffer++ = bgHI, *current_line_buffer++ = bgLO;
+
+//			OPProcessList(scanline, render);
+//This seems to take care of it...
+			OPProcessList(scanline, inActiveDisplayArea);
+		}
+	}
+#endif
 
 	// Try to take PAL into account...
 

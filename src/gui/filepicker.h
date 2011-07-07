@@ -32,6 +32,7 @@ class FilePickerWindow: public QWidget
 		void RequestLoad(QString);
 
 	protected:
+		void keyPressEvent(QKeyEvent *);
 //		void PopulateList(void);
 
 	private:

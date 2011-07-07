@@ -39,11 +39,11 @@ makefile-qt: virtualjaguar.pro
 libs: obj/libmusashi.a obj/libjaguarcore.a
 	@echo -e "\033[01;33m***\033[00;32m Libraries successfully made.\033[00m"
 
-obj/libmusashi.a: musashi.mak
+obj/libmusashi.a: musashi.mak sources
 	@echo -e "\033[01;33m***\033[00;32m Making Musashi...\033[00m"
 	$(MAKE) -f musashi.mak
 
-obj/libjaguarcore.a: jaguarcore.mak
+obj/libjaguarcore.a: jaguarcore.mak sources
 	@echo -e "\033[01;33m***\033[00;32m Making Virtual Jaguar core...\033[00m"
 	$(MAKE) -f jaguarcore.mak
 
