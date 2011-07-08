@@ -27,6 +27,7 @@ class FilePickerWindow: public QWidget
 		void AddFileToList3(unsigned long index, QString, QImage *, unsigned long size, bool, unsigned long, unsigned long);
 		void UpdateSelection(const QModelIndex &, const QModelIndex &);
 		void LoadButtonPressed(void);
+		void CatchDoubleClick(const QModelIndex &);
 
 	signals:
 		void RequestLoad(QString);

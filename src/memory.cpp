@@ -41,6 +41,8 @@ uint8 jaguarDevBootROM1[0x040000];				// 68K CPU Stubulator 1 ROM--uses only hal
 uint8 jaguarDevBootROM2[0x040000];				// 68K CPU Stubulator 2 ROM--uses only half of this!
 uint8 jaguarDevCDBootROM[0x040000];				// 68K CPU Dev CD BIOS ROM (256K)
 
+// This is an ORed value showing which BIOSes having been loaded into memory.
+int biosAvailable = 0;
 
 #if 0
 union Word

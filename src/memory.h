@@ -73,6 +73,11 @@ uint32 & smode     = *((uint32 *)&jagMemSpace[0xF1A154]);
 enum { UNKNOWN, JAGUAR, DSP, GPU, TOM, JERRY, M68K, BLITTER, OP };
 extern const char * whoName[9];
 
+// BIOS identification enum
+
+enum { BIOS_NORMAL=0x01, BIOS_CD=0x02, BIOS_STUB1=0x04, BIOS_STUB2=0x08, BIOS_DEV_CD=0x10 };
+extern int biosAvailable;
+
 // Some handy macros to help converting native endian to big endian (jaguar native)
 // & vice versa
 

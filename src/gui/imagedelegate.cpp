@@ -87,7 +87,10 @@ The foreground of the item (the circle representing a pixel) must be rendered us
 
 	// This is crappy. We really should have a properly scaled image ready to go so we
 	// don't get Qt's default ugly looking fast scaling...
+
 #warning "!!! FIX !!! Need to create properly scaled down cart/label images!"
+//We've got the carts, now just need to do the labels...
+
 //	unsigned long i = index.model()->data(index, Qt::DisplayRole).toUInt();
 #if 0
 	unsigned long i = index.model()->data(index, Qt::DisplayRole).toUInt();

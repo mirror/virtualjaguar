@@ -15,20 +15,15 @@
 // FIXED:
 //
 // - Add dbl click/enter to select in cart list, ESC to dimiss [DONE]
+// - Autoscan/autoload all available BIOS from 'software' folder [DONE]
+// - Add 1 key jumping in cartridge list (press 'R', jumps to carts starting with 'R', etc) [DONE]
 //
 // STILL TO BE DONE:
 //
-// - Autoscan/autoload all available BIOS from 'software' folder
 // - Controller configuration
 // - Remove SDL dependencies (sound, mainly) from Jaguar core lib
-// - Add 1 key jumping in cartridge list (press 'R', jumps to carts starting with 'R', etc)
+// - Fix inconsistency with trailing slashes in paths (eeproms needs one, software doesn't)
 //
-
-/*
-For BIOS autoscan, infrastructure is already there in filethread.cpp; just need to figure out
-if we want to scan every time, or stuff filenames found into the config file, or what.
-Should filethread emit signal that's intercepted here? Maybe...
-*/
 
 // Uncomment this for debugging...
 //#define DEBUG
@@ -233,17 +228,18 @@ MainWin::MainWin(): running(false), powerButtonOn(false), showUntunedTankCircuit
 	WriteLog("VJ: Using built in BIOS/CD BIOS...\n");
 	memcpy(jaguarBootROM, jagBootROM, 0x20000);
 	memcpy(jaguarCDBootROM, jagCDROM, 0x40000);
-	BIOSLoaded = CDBIOSLoaded = true;
+//	BIOSLoaded = CDBIOSLoaded = true;
+	biosAvailable |= (BIOS_NORMAL | BIOS_CD);
 #else
 // What would be nice here would be a way to check if the BIOS was loaded so that we
 // could disable the pushbutton on the Misc Options menu... !!! FIX !!! [DONE here, but needs to be fixed in GUI as well!]
-	WriteLog("VJ: About to attempt to load BIOSes...\n");
+//	WriteLog("VJ: About to attempt to load BIOSes...\n");
 //This is short-circuiting the file finding thread... ??? WHY ???
 //Not anymore. Was related to a QImage object creation/corruption bug elsewhere.
-	BIOSLoaded = (JaguarLoadROM(jaguarBootROM, vjs.jagBootPath) == 0x20000 ? true : false);
-	WriteLog("VJ: BIOS is %savailable...\n", (BIOSLoaded ? "" : "not "));
-	CDBIOSLoaded = (JaguarLoadROM(jaguarCDBootROM, vjs.CDBootPath) == 0x40000 ? true : false);
-	WriteLog("VJ: CD BIOS is %savailable...\n", (CDBIOSLoaded ? "" : "not "));
+//	BIOSLoaded = (JaguarLoadROM(jaguarBootROM, vjs.jagBootPath) == 0x20000 ? true : false);
+//	WriteLog("VJ: BIOS is %savailable...\n", (BIOSLoaded ? "" : "not "));
+//	CDBIOSLoaded = (JaguarLoadROM(jaguarCDBootROM, vjs.CDBootPath) == 0x40000 ? true : false);
+//	WriteLog("VJ: CD BIOS is %savailable...\n", (CDBIOSLoaded ? "" : "not "));
 #endif
 
 	filePickWin->ScanSoftwareFolder(allowUnknownSoftware);
@@ -479,7 +475,8 @@ void MainWin::TogglePowerState(void)
 		pauseAct->setDisabled(true);
 		showUntunedTankCircuit = true;
 		running = true;
-		// This is just in case the ROM we were playing was in a narrow or wide field mode
+		// This is just in case the ROM we were playing was in a narrow or wide field mode,
+		// so the untuned tank sim doesn't look wrong. :-)
 		TOMReset();
 	}
 	else
@@ -501,6 +498,8 @@ void MainWin::TogglePowerState(void)
 			pauseAct->setChecked(false);
 			pauseAct->setDisabled(false);
 			memcpy(jagMemSpace + 0x800000, jaguarCDBootROM, 0x40000);
+			setWindowTitle(QString("Virtual Jaguar " VJ_RELEASE_VERSION
+				" - Now playing: Jaguar CD"));
 		}
 
 //(Err, what's so crappy about this? It seems to do what it's supposed to...)
@@ -659,8 +658,8 @@ void MainWin::ReadSettings(void)
 	vjs.renderType       = settings.value("renderType", 0).toInt();
 	strcpy(vjs.jagBootPath, settings.value("JagBootROM", "./bios/[BIOS] Atari Jaguar (USA, Europe).zip").toString().toAscii().data());
 	strcpy(vjs.CDBootPath, settings.value("CDBootROM", "./bios/jagcd.rom").toString().toAscii().data());
-	strcpy(vjs.EEPROMPath, settings.value("EEPROMs", "./eeproms").toString().toAscii().data());
-	strcpy(vjs.ROMPath, settings.value("ROMs", "./software").toString().toAscii().data());
+	strcpy(vjs.EEPROMPath, settings.value("EEPROMs", "./eeproms/").toString().toAscii().data());
+	strcpy(vjs.ROMPath, settings.value("ROMs", "./software/").toString().toAscii().data());
 WriteLog("MainWin: Paths\n");
 WriteLog("    jagBootPath = \"%s\"\n", vjs.jagBootPath);
 WriteLog("    CDBootPath  = \"%s\"\n", vjs.CDBootPath);

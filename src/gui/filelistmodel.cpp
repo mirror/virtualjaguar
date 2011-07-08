@@ -10,6 +10,8 @@
 // ---  ----------  -------------------------------------------------------------
 // JLH  02/01/2010  Created this file
 // JLH  07/05/2011  Fixed model to not reset itself with each new row insertion
+// JLH  07/07/2011  Added code to help the built-in keyboard based auto-search
+//                  of the QListView class
 //
 
 // Note that we have to put in convenience functions to the model for adding data
@@ -20,12 +22,14 @@
 
 #include "filelistmodel.h"
 
+#include "filedb.h"
+
 
 FileListModel::FileListModel(QObject * parent/*= 0*/): QAbstractListModel(parent)
 {
 }
 
-int FileListModel::rowCount(const QModelIndex & parent/*= QModelIndex()*/) const
+int FileListModel::rowCount(const QModelIndex & /*parent = QModelIndex()*/) const
 {
 	return list.size();
 }
@@ -46,6 +50,25 @@ QVariant FileListModel::data(const QModelIndex & index, int role) const
 		return (uint)list.at(index.row()).fileType;
 	else if (role == FLM_CRC)
 		return (uint)list.at(index.row()).crc;
+	else if (role == Qt::DisplayRole)
+	{
+		// The QListView uses this role to do keyboard based searching,
+		// so we help it along by giving it what it needs to do the job. :-)
+		unsigned long dbIndex = list.at(index.row()).dbIndex;
+		QString filename = list.at(index.row()).filename;
+		QString nameToMatch;
+
+		// Pull name from file DB, otherwise, use the filename...
+		if (dbIndex != 0xFFFFFFFF)
+			nameToMatch = romList[dbIndex].name;
+		else
+		{
+			int lastSlashPos = filename.lastIndexOf('/');
+			nameToMatch = filename.mid(lastSlashPos + 1);
+		}
+
+		return nameToMatch;
+	}
 
 	return QVariant();
 }

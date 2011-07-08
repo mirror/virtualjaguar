@@ -198,6 +198,12 @@ New sizes: 373x172 (label), 420x340 (cart)
 	connect(fileList->selectionModel(), SIGNAL(currentChanged(const QModelIndex &, const QModelIndex &)), this, SLOT(UpdateSelection(const QModelIndex &, const QModelIndex &)));
 
 	connect(insertCart, SIGNAL(clicked()), this, SLOT(LoadButtonPressed()));
+
+	connect(fileList, SIGNAL(doubleClicked(const QModelIndex &)), this, SLOT(CatchDoubleClick(const QModelIndex &)));
+
+//	connect(fileList, SIGNAL(doubleClicked()), this, SLOT(LoadButtonPressed()));
+// This returns:
+// Object::connect: No such signal QListView::QAbstractItemView::doubleClicked() in src/gui/filepicker.cpp:203
 }
 
 void FilePickerWindow::keyPressEvent(QKeyEvent * e)
@@ -206,6 +212,11 @@ void FilePickerWindow::keyPressEvent(QKeyEvent * e)
 		hide();
 	else if (e->key() == Qt::Key_Return)
 		LoadButtonPressed();
+}
+
+void FilePickerWindow::CatchDoubleClick(const QModelIndex &)
+{
+	LoadButtonPressed();
 }
 
 QString FilePickerWindow::GetSelectedPrettyName(void)
