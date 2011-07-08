@@ -35,14 +35,14 @@ GeneralTab::GeneralTab(QWidget * parent/*= 0*/): QWidget(parent)
 	edit4->setPlaceholderText("Software path");
 
 	QVBoxLayout * layout1 = new QVBoxLayout;
-	layout1->addWidget(label1);
-	layout1->addWidget(label2);
+//	layout1->addWidget(label1);
+//	layout1->addWidget(label2);
 	layout1->addWidget(label3);
 	layout1->addWidget(label4);
 
 	QVBoxLayout * layout2 = new QVBoxLayout;
-	layout2->addWidget(edit1);
-	layout2->addWidget(edit2);
+//	layout2->addWidget(edit1);
+//	layout2->addWidget(edit2);
 	layout2->addWidget(edit3);
 	layout2->addWidget(edit4);
 
