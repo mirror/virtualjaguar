@@ -91,16 +91,9 @@ The foreground of the item (the circle representing a pixel) must be rendered us
 #warning "!!! FIX !!! Need to create properly scaled down cart/label images!"
 //We've got the carts, now just need to do the labels...
 
-//	unsigned long i = index.model()->data(index, Qt::DisplayRole).toUInt();
-#if 0
-	unsigned long i = index.model()->data(index, Qt::DisplayRole).toUInt();
-	QString filename = index.model()->data(index, Qt::EditRole).toString();
-	QImage label = index.model()->data(index, Qt::DecorationRole).value<QImage>();
-#else
 	unsigned long i = index.model()->data(index, FLM_INDEX).toUInt();
 	QString filename = index.model()->data(index, FLM_FILENAME).toString();
 	QImage label = index.model()->data(index, FLM_LABEL).value<QImage>();
-#endif
 	QString nameToDraw;
 
 	if (i == 0xFFFFFFFF)	// Not found...
@@ -110,16 +103,7 @@ The foreground of the item (the circle representing a pixel) must be rendered us
 	}
 	else
 		nameToDraw = romList[i].name;
-#if 0
-	if (role == Qt::DecorationRole)
-		return list.at(index.row()).label;
-	else if (role == Qt::DisplayRole)
-		return (uint)list.at(index.row()).dbIndex;
-	else if (role == Qt::EditRole)
-		return list.at(index.row()).filename;
-#endif
 
-//	if (romList[i].file[0] == 0)
 	if (label.isNull())
 	{
 //	painter->drawPixmap(option.rect.x()+14, option.rect.y()+50, 433/2, 203/2, QPixmap(":/res/label-blank.png"));

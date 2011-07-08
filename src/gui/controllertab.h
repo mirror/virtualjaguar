@@ -11,8 +11,11 @@ class ControllerTab: public QWidget
 		ControllerTab(QWidget * parent = 0);
 		~ControllerTab();
 
+	protected slots:
+		void DefineAllKeys(void);
+
 	public:
-		QCheckBox * antialiasChk;
+		QPushButton * redefineAll;
 };
 
 #endif	// __CONTROLLERTAB_H__
