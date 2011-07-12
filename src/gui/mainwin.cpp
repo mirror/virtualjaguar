@@ -275,20 +275,20 @@ void MainWin::HandleKeys(QKeyEvent * e, bool state)
 		|| (e->key() == vjs.p1KeyBindings[BUTTON_D] && joypad_0_buttons[BUTTON_U]))
 		return;
 #else
-	if (e->key() == vjs.p1KeyBindings[BUTTON_L] && joypad_0_buttons[BUTTON_R])
+	if (e->key() == (int)vjs.p1KeyBindings[BUTTON_L] && joypad_0_buttons[BUTTON_R])
 		joypad_0_buttons[BUTTON_R] = 0;
-	if (e->key() == vjs.p1KeyBindings[BUTTON_R] && joypad_0_buttons[BUTTON_L])
+	if (e->key() == (int)vjs.p1KeyBindings[BUTTON_R] && joypad_0_buttons[BUTTON_L])
 		joypad_0_buttons[BUTTON_L] = 0;
-	if (e->key() == vjs.p1KeyBindings[BUTTON_U] && joypad_0_buttons[BUTTON_D])
+	if (e->key() == (int)vjs.p1KeyBindings[BUTTON_U] && joypad_0_buttons[BUTTON_D])
 		joypad_0_buttons[BUTTON_D] = 0;
-	if (e->key() == vjs.p1KeyBindings[BUTTON_D] && joypad_0_buttons[BUTTON_U])
+	if (e->key() == (int)vjs.p1KeyBindings[BUTTON_D] && joypad_0_buttons[BUTTON_U])
 		joypad_0_buttons[BUTTON_U] = 0;
 #endif
 
 	// No bad combos exist, let's stuff the emulator key buffers...!
 	for(int i=BUTTON_FIRST; i<=BUTTON_LAST; i++)
 	{
-		if (e->key() == vjs.p1KeyBindings[i])
+		if (e->key() == (int)vjs.p1KeyBindings[i])
 			joypad_0_buttons[i] = (uint8)state;
 	}
 }
@@ -528,25 +528,15 @@ void MainWin::ToggleRunState(void)
 
 	if (!running)
 	{
-#if 0
-		for(uint32_t x=0; x<videoWidget->rasterWidth; x++)
-			for(uint32_t y=0; y<videoWidget->rasterHeight; y++)
-				videoWidget->buffer[(y * videoWidget->textureWidth) + x] = 0x00000000;
-#else
-//		for(uint32_t i=0; i<TOMGetVideoModeWidth() * 256; i++)
-		for(uint32_t i=0; i<videoWidget->textureWidth * 256; i++)
+		for(uint32_t i=0; i<(uint32_t)(videoWidget->textureWidth * 256); i++)
 		{
 			uint32_t pixel = backbuffer[i];
-//			uint8_t b = (pixel >> 16) & 0xFF, g = (pixel >> 8) & 0xFF, r = pixel & 0xFF;
 			uint8_t r = (pixel >> 24) & 0xFF, g = (pixel >> 16) & 0xFF, b = (pixel >> 8) & 0xFF;
 			pixel = ((r + g + b) / 3) & 0x00FF;
-//			backbuffer[i] = 0xFF000000 | (pixel << 16) | (pixel << 8);
 			backbuffer[i] = 0x000000FF | (pixel << 16) | (pixel << 8);
 		}
 
-//		memcpy(videoWidget->buffer, backbuffer, videoWidget->rasterHeight * videoWidget->rasterWidth);
 		memcpy(videoWidget->buffer, backbuffer, videoWidget->rasterHeight * videoWidget->textureWidth * sizeof(uint32_t));
-#endif
 
 		videoWidget->updateGL();
 	}

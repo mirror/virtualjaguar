@@ -19,6 +19,7 @@
 	<file>../../res/upper-left.png</file>
 	<file>../../res/upper-right.png</file>
 	<file>../../res/alpine-file.png</file>
+	<file>../../res/skunkboard-file.png</file>
 	<file>../../res/homebrew-file.png</file>
 	<file>../../res/unknown-file.png</file>
 </qresource>

@@ -353,7 +353,7 @@ void FilePickerWindow::UpdateSelection(const QModelIndex & current, const QModel
 // should be valid.
 // The DB takes precedence over the fileType.
 		if ((!haveUnknown && (romList[i].flags & FF_ROM))
-			|| (haveUnknown && (fileType == JST_ROM)))
+			|| (haveUnknown && (fileType == JST_ROM) && !haveUniversalHeader))
 		{
 			cart = QImage(":/res/cart-blank.png");
 			QPainter painter(&cart);
@@ -361,11 +361,16 @@ void FilePickerWindow::UpdateSelection(const QModelIndex & current, const QModel
 			painter.end();
 		}
 		else if ((!haveUnknown && (romList[i].flags & FF_ALPINE))
-			|| (haveUnknown && (fileType == JST_ALPINE)))
+			|| (haveUnknown
+				&& ((fileType == JST_ALPINE) || ((fileType == JST_ROM) && haveUniversalHeader))))
 		{
-			cart = QImage(":/res/alpine-file.png");
+			if (haveUniversalHeader)
+				cart = QImage(":/res/skunkboard-file.png");
+			else
+				cart = QImage(":/res/alpine-file.png");
 		}
-		else if (haveUnknown && (fileType == JST_ABS_TYPE1 || fileType == JST_ABS_TYPE2 || fileType == JST_JAGSERVER))
+		else if (haveUnknown && (fileType == JST_ABS_TYPE1 || fileType == JST_ABS_TYPE2
+			|| fileType == JST_JAGSERVER))
 		{
 			cart = QImage(":/res/homebrew-file.png");
 		}
@@ -403,10 +408,20 @@ void FilePickerWindow::UpdateSelection(const QModelIndex & current, const QModel
 			fileTypeString = QString(tr("*** UNKNOWN *** (%1 bytes)")).arg(fileSize);
 	}
 #else
-	if ((!haveUnknown && (romList[i].flags & FF_ROM)) || (haveUnknown && (fileType == JST_ROM)))
+	if ((!haveUnknown && (romList[i].flags & FF_ROM))
+		|| (haveUnknown && (fileType == JST_ROM) && !haveUniversalHeader))
 		fileTypeString = QString(tr("%1MB Cartridge")).arg(fileSize / 1048576);
-	else if ((!haveUnknown && (romList[i].flags & FF_ALPINE)) || (haveUnknown && (fileType == JST_ALPINE)))
-		fileTypeString = QString(tr("%1MB Alpine ROM")).arg(fileSize / 1048576);
+	else if ((!haveUnknown && (romList[i].flags & FF_ALPINE))
+		|| (haveUnknown
+				&& ((fileType == JST_ALPINE) || ((fileType == JST_ROM) && haveUniversalHeader))))
+	{
+		if (haveUniversalHeader)
+			fileTypeString = QString(tr("%1MB Alpine ROM w/Universal Header"));
+		else
+			fileTypeString = QString(tr("%1MB Alpine ROM"));
+
+		fileTypeString = fileTypeString.arg(fileSize / 1048576);
+	}
 	else if (haveUnknown && (fileType == JST_ABS_TYPE1 || fileType == JST_ABS_TYPE2))
 		fileTypeString = QString(tr("ABS/COF Executable (%1 bytes)")).arg(fileSize);
 	else if (haveUnknown && (fileType == JST_JAGSERVER))
@@ -427,8 +442,11 @@ void FilePickerWindow::UpdateSelection(const QModelIndex & current, const QModel
 	if (!haveUnknown && (romList[i].flags & FF_BAD_DUMP))
 		notes = "<b>BAD DUMP</b>";
 
-	if (haveUniversalHeader)
-		notes += " Universal Header detected";
+//	if (haveUniversalHeader)
+//		notes += " Universal Header detected";
+
+	if (!haveUnknown && (romList[i].flags & FF_REQ_BIOS))
+		notes += " Requires BIOS";
 
 	if (!haveUnknown && (romList[i].flags & FF_REQ_DSP))
 		notes += " Requires DSP";
