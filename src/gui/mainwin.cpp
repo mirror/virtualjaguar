@@ -662,8 +662,8 @@ void MainWin::ReadSettings(void)
 	strcpy(vjs.EEPROMPath, settings.value("EEPROMs", "./eeproms/").toString().toAscii().data());
 	strcpy(vjs.ROMPath, settings.value("ROMs", "./software/").toString().toAscii().data());
 WriteLog("MainWin: Paths\n");
-WriteLog("    jagBootPath = \"%s\"\n", vjs.jagBootPath);
-WriteLog("    CDBootPath  = \"%s\"\n", vjs.CDBootPath);
+//WriteLog("    jagBootPath = \"%s\"\n", vjs.jagBootPath);
+//WriteLog("    CDBootPath  = \"%s\"\n", vjs.CDBootPath);
 WriteLog("    EEPROMPath  = \"%s\"\n", vjs.EEPROMPath);
 WriteLog("    ROMPath     = \"%s\"\n", vjs.ROMPath);
 
