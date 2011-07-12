@@ -11,6 +11,9 @@
 // Who  When        What
 // ---  ----------  -------------------------------------------------------------
 // JLH  01/16/2010  Created this log ;-)
+// JLH  07/11/2011  Instead of dumping out on max log file size being reached, we
+//                  now just silently ignore any more output. 10 megs ought to be
+//                  enough for anybody. ;-)
 //
 
 #include "log.h"
@@ -41,7 +44,8 @@ FILE * LogGet(void)
 
 void LogDone(void)
 {
-	fclose(log_stream);
+	if (log_stream != NULL)
+		fclose(log_stream);
 }
 
 //
@@ -51,15 +55,23 @@ void LogDone(void)
 void WriteLog(const char * text, ...)
 {
 	va_list arg;
-
 	va_start(arg, text);
+
+	if (log_stream == NULL)
+	{
+		va_end(arg);
+		return;
+	}
+
 	logSize += vfprintf(log_stream, text, arg);
 
 	if (logSize > MAX_LOG_SIZE)
 	{
 		fflush(log_stream);
 		fclose(log_stream);
-		exit(1);
+		// Instead of dumping out, we just close the file and ignore any more output.
+		log_stream = NULL;
+//		exit(1);
 	}//*/
 
 	va_end(arg);

@@ -55,6 +55,7 @@ void ConfigDialog::LoadDialogFromSettings(void)
 
 	generalTab->useBIOS->setChecked(vjs.useJaguarBIOS);
 	generalTab->useDSP->setChecked(vjs.DSPEnabled);
+	generalTab->useHostAudio->setChecked(vjs.audioEnabled);
 }
 
 void ConfigDialog::UpdateVJSettings(void)
@@ -66,4 +67,5 @@ void ConfigDialog::UpdateVJSettings(void)
 
 	vjs.useJaguarBIOS = generalTab->useBIOS->isChecked();
 	vjs.DSPEnabled    = generalTab->useDSP->isChecked();
+	vjs.audioEnabled  = generalTab->useHostAudio->isChecked();
 }

@@ -41,6 +41,7 @@
 #include "generaltab.h"
 #include "version.h"
 
+#include "dac.h"
 #include "jaguar.h"
 #include "tom.h"
 #include "log.h"
@@ -307,8 +308,10 @@ void MainWin::Configure(void)
 		return;
 
 	QString before = vjs.ROMPath;
+	bool audioBefore = vjs.audioEnabled;
 	dlg.UpdateVJSettings();
 	QString after = vjs.ROMPath;
+	bool audioAfter = vjs.audioEnabled;
 
 	bool allowOld = allowUnknownSoftware;
 	//ick.
@@ -318,6 +321,13 @@ void MainWin::Configure(void)
 	// checked/unchecked the "Allow unknown files" option in the config dialog.
 	if ((before != after) || (allowOld != allowUnknownSoftware))
 		filePickWin->ScanSoftwareFolder(allowUnknownSoftware);
+
+	// If the "Enable audio" checkbox changed, then we have to re-init the DAC...
+	if (audioBefore != audioAfter)
+	{
+		DACDone();
+		DACInit();
+	}
 
 	// Just in case we crash before a clean exit...
 	WriteSettings();
@@ -651,6 +661,7 @@ void MainWin::ReadSettings(void)
 	vjs.frameSkip        = settings.value("frameSkip", 0).toInt();
 	vjs.useJaguarBIOS    = settings.value("useJaguarBIOS", false).toBool();
 	vjs.DSPEnabled       = settings.value("DSPEnabled", false).toBool();
+	vjs.audioEnabled     = settings.value("audioEnabled", true).toBool();
 	vjs.usePipelinedDSP  = settings.value("usePipelinedDSP", false).toBool();
 	vjs.fullscreen       = settings.value("fullscreen", false).toBool();
 	vjs.useOpenGL        = settings.value("useOpenGL", true).toBool();
@@ -728,6 +739,7 @@ void MainWin::WriteSettings(void)
 	settings.setValue("frameSkip", vjs.frameSkip);
 	settings.setValue("useJaguarBIOS", vjs.useJaguarBIOS);
 	settings.setValue("DSPEnabled", vjs.DSPEnabled);
+	settings.setValue("audioEnabled", vjs.audioEnabled);
 	settings.setValue("usePipelinedDSP", vjs.usePipelinedDSP);
 	settings.setValue("fullscreen", vjs.fullscreen);
 	settings.setValue("useOpenGL", vjs.useOpenGL);

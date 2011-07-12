@@ -28,6 +28,7 @@ struct VJSettings
 	bool useOpenGL;
 	uint32 glFilter;
 	bool hardwareTypeAlpine;
+	bool audioEnabled;
 	uint32 frameSkip;
 	uint32 renderType;
 

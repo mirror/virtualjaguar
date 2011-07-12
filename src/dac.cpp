@@ -57,7 +57,7 @@
 
 static uint32 LeftFIFOHeadPtr, LeftFIFOTailPtr, RightFIFOHeadPtr, RightFIFOTailPtr;
 static SDL_AudioSpec desired;
-static bool SDLSoundInitialized = false;
+static bool SDLSoundInitialized;
 
 // We can get away with using native endian here because we can tell SDL to use the native
 // endian when looking at the sample buffer, i.e., no need to worry about it.
@@ -76,6 +76,14 @@ int GetCalculatedFrequency(void);
 //
 void DACInit(void)
 {
+	SDLSoundInitialized = false;
+
+	if (!vjs.audioEnabled)
+	{
+		WriteLog("DAC: Host audio playback disabled.\n");
+		return;
+	}
+
 //	memory_malloc_secure((void **)&DACBuffer, BUFFER_SIZE * sizeof(uint16), "DAC buffer");
 //	DACBuffer = (uint16 *)memory_malloc(BUFFER_SIZE * sizeof(uint16), "DAC buffer");
 
@@ -207,6 +215,8 @@ void DACWriteWord(uint32 offset, uint16 data, uint32 who/*= UNKNOWN*/)
 {
 	if (offset == LTXD + 2)
 	{
+		if (!SDLSoundInitialized)
+			return;
 		// Spin until buffer has been drained (for too fast processors!)...
 //Small problem--if Head == 0 and Tail == buffer end, then this will fail... !!! FIX !!!
 //[DONE]
@@ -246,6 +256,8 @@ WriteLog("Tail=%X, Head=%X", ltail, lhead);
 	}
 	else if (offset == RTXD + 2)
 	{
+		if (!SDLSoundInitialized)
+			return;
 /*
 Here's what's happening now:
 

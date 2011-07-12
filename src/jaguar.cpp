@@ -41,6 +41,7 @@
 #define ABORT_ON_ILLEGAL_INSTRUCTIONS
 //#define ABORT_ON_OFFICIAL_ILLEGAL_INSTRUCTION
 #define CPU_DEBUG_MEMORY
+//#define LOG_CD_BIOS_CALLS
 
 // Private function prototypes
 
@@ -243,6 +244,8 @@ if (m68kPC == 0x802058) start = true;
 		WriteLog("--> [Calling BusWrite2] D2: %08X\n", m68k_get_reg(NULL, M68K_REG_D2));
 //		m68k_set_reg(M68K_REG_D2, 0x12345678);
 	}//*/
+
+#ifdef LOG_CD_BIOS_CALLS
 /*
 CD_init::	-> $3000
 BIOS_VER::	-> $3004
@@ -308,7 +311,8 @@ CD_switch::	-> $306C
 		WriteLog("\t\tA0=%08X, A1=%08X, D0=%08X, D1=%08X, D2=%08X\n",
 			m68k_get_reg(NULL, M68K_REG_A0), m68k_get_reg(NULL, M68K_REG_A1),
 			m68k_get_reg(NULL, M68K_REG_D0), m68k_get_reg(NULL, M68K_REG_D1), m68k_get_reg(NULL, M68K_REG_D2));
-//*/
+#endif
+
 #ifdef ABORT_ON_ILLEGAL_INSTRUCTIONS
 	if (!m68k_is_valid_instruction(m68k_read_memory_16(m68kPC), M68K_CPU_TYPE_68000))
 	{
@@ -1511,8 +1515,8 @@ void RenderCallback(void);
 //extern uint32 * backbuffer;
 void JaguarReset(void)
 {
-//NOTE: This causes a (virtual) crash if this is set in the config but not found... !!! FIX !!!
-	if (vjs.useJaguarBIOS)
+	// Only use the system BIOS if it's available...!
+	if (vjs.useJaguarBIOS && (biosAvailable & (BIOS_NORMAL | BIOS_STUB1 | BIOS_STUB2)))
 		memcpy(jaguarMainRAM, jaguarBootROM, 8);
 	else
 		SET32(jaguarMainRAM, 4, jaguarRunAddress);
