@@ -1521,6 +1521,9 @@ void JaguarReset(void)
 	else
 		SET32(jaguarMainRAM, 4, jaguarRunAddress);
 
+	if (vjs.useJaguarBIOS && !(biosAvailable & (BIOS_NORMAL | BIOS_STUB1 | BIOS_STUB2)))
+		WriteLog("Jaguar: Requested BIOS, but none available.\n");
+
 //	WriteLog("jaguar_reset():\n");
 	TOMReset();
 	JERRYReset();
@@ -1613,7 +1616,7 @@ void JaguarDone(void)
 	WriteLog("\n");//*/
 
 //	WriteLog("Jaguar: CD BIOS version %04X\n", JaguarReadWord(0x3004));
-	WriteLog("Jaguar: Interrupt enable = %02X\n", TOMReadByte(0xF000E1) & 0x1F);
+	WriteLog("Jaguar: Interrupt enable = %02X\n", TOMReadByte(0xF000E1, JAGUAR) & 0x1F);
 	WriteLog("Jaguar: VBL interrupt is %s\n", ((TOMIRQEnabled(IRQ_VBLANK)) && (JaguarInterruptHandlerIsValid(64))) ? "enabled" : "disabled");
 	M68K_show_context();
 //#endif
@@ -1630,18 +1633,18 @@ void JaguarDone(void)
 //
 void JaguarExecute(uint32 * backbuffer, bool render)
 {
-	uint16 vp = TOMReadWord(0xF0003E) + 1;
-	uint16 vi = TOMReadWord(0xF0004E);
+	uint16 vp = TOMReadWord(0xF0003E, JAGUAR) + 1;
+	uint16 vi = TOMReadWord(0xF0004E, JAGUAR);
 //Using WO registers is OK, since we're the ones controlling access--there's nothing wrong here! ;-)
 //Though we shouldn't be able to do it using TOMReadWord... !!! FIX !!!
 
-//	uint16 vdb = TOMReadWord(0xF00046);
+//	uint16 vdb = TOMReadWord(0xF00046, JAGUAR);
 //Note: This is the *definite* end of the display, though VDE *might* be less than this...
-//	uint16 vbb = TOMReadWord(0xF00040);
+//	uint16 vbb = TOMReadWord(0xF00040, JAGUAR);
 //It seems that they mean it when they say that VDE is the end of object processing.
 //However, we need to be able to tell the OP (or TOM) that we've reached the end of the
 //buffer and not to write any more pixels... !!! FIX !!!
-//	uint16 vde = TOMReadWord(0xF00048);
+//	uint16 vde = TOMReadWord(0xF00048, JAGUAR);
 
 	uint16 refreshRate = (vjs.hardwareTypeNTSC ? 60 : 50);
 	uint32 m68kClockRate = (vjs.hardwareTypeNTSC ? M68K_CLOCK_RATE_NTSC : M68K_CLOCK_RATE_PAL);
@@ -1661,9 +1664,9 @@ if (effect_start)
 	for(uint16 i=0; i<vp; i++)
 	{
 		// Increment the horizontal count (why? RNG? Besides which, this is *NOT* cycle accurate!)
-		TOMWriteWord(0xF00004, (TOMReadWord(0xF00004) + 1) & 0x7FF);
+		TOMWriteWord(0xF00004, (TOMReadWord(0xF00004, JAGUAR) + 1) & 0x7FF, JAGUAR);
 
-		TOMWriteWord(0xF00006, i);					// Write the VC
+		TOMWriteWord(0xF00006, i, JAGUAR);			// Write the VC
 
 //		if (i == vi)								// Time for Vertical Interrupt?
 //Not sure if this is correct...
@@ -1776,17 +1779,17 @@ void JaguarExecuteNew(void)
 
 void ScanlineCallback(void)
 {
-	uint16 vc = TOMReadWord(0xF00006);
-	uint16 vp = TOMReadWord(0xF0003E) + 1;
-	uint16 vi = TOMReadWord(0xF0004E);
-//	uint16 vbb = TOMReadWord(0xF00040);
+	uint16 vc = TOMReadWord(0xF00006, JAGUAR);
+	uint16 vp = TOMReadWord(0xF0003E, JAGUAR) + 1;
+	uint16 vi = TOMReadWord(0xF0004E, JAGUAR);
+//	uint16 vbb = TOMReadWord(0xF00040, JAGUAR);
 	vc++;
 
 	if (vc >= vp)
 		vc = 0;
 
 //WriteLog("SLC: Currently on line %u (VP=%u)...\n", vc, vp);
-	TOMWriteWord(0xF00006, vc);
+	TOMWriteWord(0xF00006, vc, JAGUAR);
 
 //This is a crappy kludge, but maybe it'll work for now...
 //Maybe it's not so bad, since the IRQ happens on a scanline boundary...
@@ -1865,17 +1868,17 @@ void JaguarExecuteNew(void)
 
 void ScanlineCallback(void)
 {
-	uint16 vc = TOMReadWord(0xF00006);
-	uint16 vp = TOMReadWord(0xF0003E) + 1;
-	uint16 vi = TOMReadWord(0xF0004E);
-//	uint16 vbb = TOMReadWord(0xF00040);
+	uint16 vc = TOMReadWord(0xF00006, JAGUAR);
+	uint16 vp = TOMReadWord(0xF0003E, JAGUAR) + 1;
+	uint16 vi = TOMReadWord(0xF0004E, JAGUAR);
+//	uint16 vbb = TOMReadWord(0xF00040, JAGUAR);
 	vc++;
 
 	if (vc >= vp)
 		vc = 0;
 
 //WriteLog("SLC: Currently on line %u (VP=%u)...\n", vc, vp);
-	TOMWriteWord(0xF00006, vc);
+	TOMWriteWord(0xF00006, vc, JAGUAR);
 
 //This is a crappy kludge, but maybe it'll work for now...
 //Maybe it's not so bad, since the IRQ happens on a scanline boundary...

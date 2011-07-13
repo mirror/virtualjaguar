@@ -1098,7 +1098,7 @@ uint8 TOMReadByte(uint32 offset, uint32 who/*=UNKNOWN*/)
 //	offset &= 0xFF3FFF;
 
 #ifdef TOM_DEBUG
-	WriteLog("TOM: Reading byte at %06X\n", offset);
+	WriteLog("TOM: Reading byte at %06X for %s\n", offset, whoName[who]);
 #endif
 
 	if ((offset >= GPU_CONTROL_RAM_BASE) && (offset < GPU_CONTROL_RAM_BASE+0x20))
@@ -1129,7 +1129,7 @@ uint16 TOMReadWord(uint32 offset, uint32 who/*=UNKNOWN*/)
 //???Is this needed???
 //	offset &= 0xFF3FFF;
 #ifdef TOM_DEBUG
-	WriteLog("TOM: Reading word at %06X\n", offset);
+	WriteLog("TOM: Reading word at %06X for %s\n", offset, whoName[who]);
 #endif
 if (offset >= 0xF02000 && offset <= 0xF020FF)
 	WriteLog("TOM: Read attempted from GPU register file by %s (unimplemented)!\n", whoName[who]);
@@ -1177,17 +1177,33 @@ if (offset >= 0xF02000 && offset <= 0xF020FF)
 	return (TOMReadByte(offset, who) << 8) | TOMReadByte(offset + 1, who);
 }
 
+#define TOM_STRICT_MEMORY_ACCESS
 //
 // TOM byte access (write)
 //
 void TOMWriteByte(uint32 offset, uint8 data, uint32 who/*=UNKNOWN*/)
 {
+#ifdef TOM_DEBUG
+	WriteLog("TOM: Writing byte %02X at %06X", data, offset);
+#endif
 //???Is this needed???
 // Perhaps on the writes--32-bit writes that is! And masked with FF7FFF...
+#ifndef TOM_STRICT_MEMORY_ACCESS
 	offset &= 0xFF3FFF;
-
+#else
+	// "Fast" (32-bit only) write access to the GPU
+//	if ((offset >= 0xF0A100) && (offset <= 0xF0BFFF))
+	if ((offset >= 0xF08000) && (offset <= 0xF0BFFF))
+		offset &= 0xFF7FFF;
+#endif
 #ifdef TOM_DEBUG
-	WriteLog("TOM: Writing byte %02X at %06X\n", data, offset);
+	WriteLog(" -->[%06X] by %s\n", offset, whoName[who]);
+#endif
+
+#ifdef TOM_STRICT_MEMORY_ACCESS
+	// Sanity check ("Aww, there ain't no Sanity Clause...")
+	if ((offset < 0xF00000) || (offset > 0xF03FFF))
+		return;
 #endif
 
 	if ((offset >= GPU_CONTROL_RAM_BASE) && (offset < GPU_CONTROL_RAM_BASE+0x20))
@@ -1249,12 +1265,28 @@ void TOMWriteByte(uint32 offset, uint8 data, uint32 who/*=UNKNOWN*/)
 //
 void TOMWriteWord(uint32 offset, uint16 data, uint32 who/*=UNKNOWN*/)
 {
-//???Is this needed???
-	offset &= 0xFF3FFF;
-
 #ifdef TOM_DEBUG
-	WriteLog("TOM: Writing word %04X at %06X\n", data, offset);
+	WriteLog("TOM: Writing byte %04X at %06X", data, offset);
 #endif
+//???Is this needed??? Yes, but we need to be more vigilant than this.
+#ifndef TOM_STRICT_MEMORY_ACCESS
+	offset &= 0xFF3FFF;
+#else
+	// "Fast" (32-bit only) write access to the GPU
+//	if ((offset >= 0xF0A100) && (offset <= 0xF0BFFF))
+	if ((offset >= 0xF08000) && (offset <= 0xF0BFFF))
+		offset &= 0xFF7FFF;
+#endif
+#ifdef TOM_DEBUG
+	WriteLog(" -->[%06X] by %s\n", offset, whoName[who]);
+#endif
+
+#ifdef TOM_STRICT_MEMORY_ACCESS
+	// Sanity check
+	if ((offset < 0xF00000) || (offset > 0xF03FFF))
+		return;
+#endif
+
 if (offset == 0xF00000 + MEMCON1)
 	WriteLog("TOM: Memory Configuration 1 written by %s: %04X\n", whoName[who], data);
 if (offset == 0xF00000 + MEMCON2)
@@ -1334,8 +1366,9 @@ if (offset >= 0xF02000 && offset <= 0xF020FF)
 	if (offset == 0x2E || offset == 0x36 || offset == 0x54)
 		data &= 0x03FF;			// These are all 10-bit registers
 
-	TOMWriteByte(offset, data >> 8, who);
-	TOMWriteByte(offset+1, data & 0xFF, who);
+// Fix a lockup bug... :-P
+	TOMWriteByte(0xF00000 | offset, data >> 8, who);
+	TOMWriteByte(0xF00000 | (offset+1), data & 0xFF, who);
 
 if (offset == VDB)
 	WriteLog("TOM: Vertical Display Begin written by %s: %u\n", whoName[who], data);
@@ -1367,6 +1400,11 @@ if (offset == VMODE)
 	// detect screen resolution changes
 //This may go away in the future, if we do the virtualized screen thing...
 //This may go away soon!
+// TOM Shouldn't be mucking around with this, it's up to the host system to properly
+// handle this kind of crap.
+// NOTE: This is needed somehow, need to get rid of the dependency on this crap.
+#warning "!!! Need to get rid of this dependency !!!"
+#if 1
 	if ((offset >= 0x28) && (offset <= 0x4F))
 	{
 		uint32 width = TOMGetVideoModeWidth(), height = TOMGetVideoModeHeight();
@@ -1381,6 +1419,7 @@ if (offset == VMODE)
 //				ResizeScreen(tomWidth, tomHeight);
 		}
 	}
+#endif
 }
 
 int TOMIRQEnabled(int irq)

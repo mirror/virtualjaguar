@@ -420,7 +420,7 @@ void FilePickerWindow::UpdateSelection(const QModelIndex & current, const QModel
 		else
 			fileTypeString = QString(tr("%1MB Alpine ROM"));
 
-		fileTypeString = fileTypeString.arg(fileSize / 1048576);
+		fileTypeString = fileTypeString.arg((fileSize + 8192) / 1048576);
 	}
 	else if (haveUnknown && (fileType == JST_ABS_TYPE1 || fileType == JST_ABS_TYPE2))
 		fileTypeString = QString(tr("ABS/COF Executable (%1 bytes)")).arg(fileSize);

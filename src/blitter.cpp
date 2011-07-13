@@ -31,6 +31,8 @@
 
 // Various conditional compilation goodies...
 
+//#define LOG_BLITS
+
 //#define USE_ORIGINAL_BLITTER
 //#define USE_MIDSUMMER_BLITTER
 #define USE_MIDSUMMER_BLITTER_MKII
@@ -1825,9 +1827,9 @@ void LogBlit(void)
 	WriteLog("  UPDA2    = %s\n", (UPDA2 ? "1" : "0"));
 	WriteLog("  DSTA2    = %s\n", (DSTA2 ? "1" : "0"));
 	WriteLog("  ZOP      = %s %s %s\n", (Z_OP_INF ? "<" : ""), (Z_OP_EQU ? "=" : ""), (Z_OP_SUP ? ">" : ""));
-	WriteLog("--LFUFUNC  = %s\n", opStr[(cmd >> 21) & 0x0F]);
+	WriteLog("+-LFUFUNC  = %s\n", opStr[(cmd >> 21) & 0x0F]);
 	WriteLog("| PATDSEL  = %s (PD=%08X%08X)\n", (PATDSEL ? "1" : "0"), REG(PATTERNDATA), REG(PATTERNDATA + 4));
-	WriteLog("--ADDDSEL  = %s\n", (ADDDSEL ? "1" : "0"));
+	WriteLog("+-ADDDSEL  = %s\n", (ADDDSEL ? "1" : "0"));
 	WriteLog("  CMPDST   = %s\n", (CMPDST ? "1" : "0"));
 	WriteLog("  BCOMPEN  = %s\n", (BCOMPEN ? "1" : "0"));
 	WriteLog("  DCOMPEN  = %s\n", (DCOMPEN ? "1" : "0"));
@@ -1854,6 +1856,9 @@ void LogBlit(void)
 
 void BlitterMidsummer(uint32 cmd)
 {
+#ifdef LOG_BLITS
+	LogBlit();
+#endif
 uint32 outer_loop, inner_loop, a1_addr, a2_addr;
 int32 a1_x, a1_y, a2_x, a2_y, a1_width, a2_width;
 uint8 a1_phrase_mode, a2_phrase_mode;
@@ -2672,6 +2677,9 @@ bool logBlit = false;
 
 void BlitterMidsummer2(void)
 {
+#ifdef LOG_BLITS
+	LogBlit();
+#endif
 	// Here's what the specs say the state machine does. Note that this can probably be
 	// greatly simplified (also, it's different from what John has in his Oberon docs):
 //Will remove stuff that isn't in Jaguar I once fully described (stuff like texture won't

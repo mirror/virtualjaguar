@@ -483,7 +483,9 @@ uint32 GetFileFromZIP(const char * zipFile, FileType type, uint8 * &buffer)
 			WriteLog("FILE: Found image file '%s'.\n", ze->name);
 		}
 
-		if ((type == FT_SOFTWARE) && (CheckExtension(ze->name, ".j64") || CheckExtension(ze->name, ".rom") || CheckExtension(ze->name, ".abs") || CheckExtension(ze->name, ".cof")))
+		if ((type == FT_SOFTWARE) && (CheckExtension(ze->name, ".j64")
+			|| CheckExtension(ze->name, ".rom") || CheckExtension(ze->name, ".abs")
+			|| CheckExtension(ze->name, ".cof") || CheckExtension(ze->name, ".jag")))
 		{
 			found = true;
 			WriteLog("FILE: Found software file '%s'.\n", ze->name);
@@ -529,17 +531,7 @@ uint32 GetFileFromZIP(const char * zipFile, FileType type, uint8 * &buffer)
 //
 uint32 ParseFileType(uint8 header1, uint8 header2, uint32 size)
 {
-	// If the file size is divisible by 1M, we probably have an regular ROM.
-	// We can also check our CRC32 against the internal ROM database to be sure.
-	if ((size % 1048576) == 0)
-		return JST_ROM;
-
-	// If the file size + 8192 bytes is divisible by 1M, we probably have an
-	// Alpine format ROM.
-	if (((size + 8192) % 1048576) == 0)
-		return JST_ALPINE;
-
-	// So much for low hanging fruit. Now try some other types.
+	// Check headers first...
 
 	// ABS/COFF type 1
 	if (header1 == 0x60 && header2 == 0x1B)
@@ -552,6 +544,18 @@ uint32 ParseFileType(uint8 header1, uint8 header2, uint32 size)
 	// Jag Server
 	if (header1 == 0x60 && header2 == 0x1A)
 		return JST_JAGSERVER;
+
+	// And if that fails, try file sizes...
+
+	// If the file size is divisible by 1M, we probably have an regular ROM.
+	// We can also check our CRC32 against the internal ROM database to be sure.
+	if ((size % 1048576) == 0)
+		return JST_ROM;
+
+	// If the file size + 8192 bytes is divisible by 1M, we probably have an
+	// Alpine format ROM.
+	if (((size + 8192) % 1048576) == 0)
+		return JST_ALPINE;
 
 	// Headerless crap
 	return JST_NONE;
