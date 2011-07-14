@@ -860,12 +860,13 @@ WriteLog("Write to DSP CTRL by %s: %08X\n", whoName[who], data);
 				WriteLog("DSP: DSP -> CPU interrupt\n");
 #endif
 // This was WRONG
-// Why do we check for a valid handler at 64? Isn't that the Jag programmer's responsibility?
+// Why do we check for a valid handler at 64? Isn't that the Jag programmer's responsibility? (YES)
+#warning "!!! DSP IRQs that go to the 68K have to be routed thru TOM !!! FIX !!!"
 				if (JERRYIRQEnabled(IRQ2_DSP))// && jaguar_interrupt_handler_is_valid(64))
 				{
 					JERRYSetPendingIRQ(IRQ2_DSP);
 					DSPReleaseTimeslice();
-					m68k_set_irq(7);			// Set 68000 NMI...
+					m68k_set_irq(2);			// Set 68000 IPL 2...
 				}
 				data &= ~CPUINT;
 			}

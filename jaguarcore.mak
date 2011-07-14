@@ -71,7 +71,7 @@ OBJS := \
 	obj/log.o          \
 	obj/memory.o       \
 	obj/mmu.o          \
-	obj/objectp.o      \
+	obj/op.o           \
 	obj/settings.o     \
 	obj/state.o        \
 	obj/tom.o          \

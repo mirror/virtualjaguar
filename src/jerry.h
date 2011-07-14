@@ -22,7 +22,8 @@ void JERRYI2SExec(uint32 cycles);
 
 // 68000 Interrupt bit positions (enabled at $F10020)
 
-enum { IRQ2_EXTERNAL = 0, IRQ2_DSP, IRQ2_TIMER1, IRQ2_TIMER2, IRQ2_ASI, IRQ2_SSI };
+//enum { IRQ2_EXTERNAL = 0, IRQ2_DSP, IRQ2_TIMER1, IRQ2_TIMER2, IRQ2_ASI, IRQ2_SSI };
+enum { IRQ2_EXTERNAL=0x01, IRQ2_DSP=0x02, IRQ2_TIMER1=0x04, IRQ2_TIMER2=0x08, IRQ2_ASI=0x10, IRQ2_SSI=0x20 };
 
 bool JERRYIRQEnabled(int irq);
 void JERRYSetPendingIRQ(int irq);

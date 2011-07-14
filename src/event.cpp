@@ -237,7 +237,7 @@ void TOMPITCallback(void)
     GPUSetIRQLine(GPUIRQ_TIMER, ASSERT_LINE);  // It does the 'IRQ enabled' checking
 
     if (INT1_WREG & 0x08)
-        m68k_set_irq(7);                       // Generate 68K NMI
+        m68k_set_irq(2);                       // Generate 68K NMI
 
     TOMResetPIT();
 }

@@ -349,6 +349,33 @@ CD_switch::	-> $306C
 		exit(0);
 	}//*/
 #endif
+
+#if 0
+//001A0110: move.w  #$0, $F000E2.l		; Restore Blitter/GPU bus priorities
+//001A015C: rte							; Return from the interrupt
+static bool disassembleGo = false;
+	if (m68kPC == 0x1A0110)
+	{
+		static char buffer[2048];
+		m68k_disassemble(buffer, m68kPC, M68K_CPU_TYPE_68000);
+		WriteLog("--> [M68K IRQ Routine start] %08X: %s", m68kPC, buffer);
+		WriteLog("\t\tA0=%08X, A1=%08X, D0=%08X(cmd), D1=%08X(# bytes), D2=%08X\n",
+			m68k_get_reg(NULL, M68K_REG_A0), m68k_get_reg(NULL, M68K_REG_A1),
+			m68k_get_reg(NULL, M68K_REG_D0), m68k_get_reg(NULL, M68K_REG_D1), m68k_get_reg(NULL, M68K_REG_D2));
+		disassembleGo = true;
+	}
+	else if (m68kPC == 0x1A015C)
+		WriteLog("--> [M68K IRQ Routine end]\n");
+
+	if (disassembleGo)
+	{
+		static char buffer[2048];
+		m68k_disassemble(buffer, m68kPC, M68K_CPU_TYPE_68000);
+		WriteLog("%08X: %s", m68kPC, buffer);
+		WriteLog("\tD0=$%08X, D1=$%08X, D2=$%08X\n",
+			m68k_get_reg(NULL, M68K_REG_D0), m68k_get_reg(NULL, M68K_REG_D1), m68k_get_reg(NULL, M68K_REG_D2));
+	}
+#endif
 }
 
 #if 0
@@ -780,19 +807,84 @@ uint32 ReadDWord(uint32 adddress)
 // Musashi 68000 read/write/IRQ functions
 //
 
+#if 0
+IRQs:
+=-=-=
+
+      IPL         Name           Vector            Control
+   ---------+---------------+---------------+---------------
+       2      VBLANK IRQ         $100         INT1 bit #0 
+       2      GPU IRQ            $100         INT1 bit #1
+       2      HBLANK IRQ         $100         INT1 bit #2
+       2      Timer IRQ          $100         INT1 bit #3
+
+   Note: Both timer interrupts (JPIT && PIT) are on the same INT1 bit.
+         and are therefore indistinguishable.
+
+   A typical way to install a LEVEL2 handler for the 68000 would be 
+   something like this, you gotta supply "last_line" and "handler".
+   Note that the interrupt is auto vectored thru $100 (not $68)
+
+
+   V_AUTO   = $100
+   VI       = $F004E
+   INT1     = $F00E0
+   INT2     = $F00E2
+   
+   IRQS_HANDLED=$909                ;; VBLANK and TIMER
+
+         move.w   #$2700,sr         ;; no IRQs please
+         move.l   #handler,V_AUTO   ;; install our routine
+
+         move.w   #last_line,VI     ;; scanline where IRQ should occur
+                                    ;; should be 'odd' BTW
+         move.w   #IRQS_HANDLE&$FF,INT1  ;; enable VBLANK + TIMER
+         move.w   #$2100,sr         ;; enable IRQs on the 68K
+         ...
+
+handler:
+         move.w   d0,-(a7)
+         move.w   INT1,d0
+         btst.b   #0,d0
+         bne.b    .no_blank
+
+         ...
+
+.no_blank:
+         btst.b   #3,d0
+         beq.b    .no_timer
+      
+         ...
+
+.no_timer:
+         move.w   #IRQS_HANDLED,INT1      ; clear latch, keep IRQ alive
+         move.w   #0,INT2                 ; let GPU run again
+         move.w   (a7)+,d0
+         rte
+
+   As you can see, if you have multiple INT1 interrupts coming in,
+   you need to check the lower byte of INT1, to see which interrupt
+   happened.
+#endif
 int irq_ack_handler(int level)
 {
-	int vector = M68K_INT_ACK_AUTOVECTOR;
+	// Tracing the IPL lines on the Jaguar schematic yields the following:
+	// IPL1 is connected to INTL on TOM (OUT to 68K)
+	// IPL0-2 are also tied to Vcc via 4.7K resistors!
+	// (DINT on TOM goes into DINT on JERRY (IN from Jerry))
+	// There doesn't seem to be any other path to IPL0 or 2 on the schematic, which means
+	// that *all* IRQs to the 68K are routed thru TOM at level 2. Which means they're all maskable.
 
 	// The GPU/DSP/etc are probably *not* issuing an NMI, but it seems to work OK...
+	// They aren't, and this causes problems with a, err, specific ROM. :-D
 
-	if (level == 7)
+	if (level == 2)
 	{
-		m68k_set_irq(0);						// Clear the IRQ...
-		vector = 64;							// Set user interrupt #0
+		m68k_set_irq(0);						// Clear the IRQ (NOTE: Without this, the BIOS fails)...
+		return 64;								// Set user interrupt #0
 	}
 
-	return vector;
+	return M68K_INT_ACK_AUTOVECTOR;
 }
 
 //#define USE_NEW_MMU
@@ -1118,16 +1210,24 @@ void M68K_show_context(void)
 
 	if (TOMIRQEnabled(IRQ_VBLANK))
 	{
-		WriteLog("vblank int: enabled\n");
+		WriteLog("video int: enabled\n");
 		JaguarDasm(JaguarGetHandler(64), 0x200);
 	}
 	else
-		WriteLog("vblank int: disabled\n");
+		WriteLog("video int: disabled\n");
 
 	WriteLog("..................\n");
 
 	for(int i=0; i<256; i++)
-		WriteLog("handler %03i at $%08X\n", i, (unsigned int)JaguarGetHandler(i));
+	{
+		WriteLog("handler %03i at ", i);//$%08X\n", i, (unsigned int)JaguarGetHandler(i));
+		uint32 address = (uint32)JaguarGetHandler(i);
+
+		if (address == 0)
+			WriteLog(".........\n");
+		else
+			WriteLog("$%08X\n", address);
+	}
 }
 
 //
@@ -1616,16 +1716,52 @@ void JaguarDone(void)
 	WriteLog("\n");//*/
 
 //	WriteLog("Jaguar: CD BIOS version %04X\n", JaguarReadWord(0x3004));
-	WriteLog("Jaguar: Interrupt enable = %02X\n", TOMReadByte(0xF000E1, JAGUAR) & 0x1F);
-	WriteLog("Jaguar: VBL interrupt is %s\n", ((TOMIRQEnabled(IRQ_VBLANK)) && (JaguarInterruptHandlerIsValid(64))) ? "enabled" : "disabled");
+	WriteLog("Jaguar: Interrupt enable = $%02X\n", TOMReadByte(0xF000E1, JAGUAR) & 0x1F);
+	WriteLog("Jaguar: Video interrupt is %s (line=%u)\n", ((TOMIRQEnabled(IRQ_VBLANK))
+		&& (JaguarInterruptHandlerIsValid(64))) ? "enabled" : "disabled", TOMReadWord(0xF0004E, JAGUAR));
 	M68K_show_context();
 //#endif
+
+#if 0	// This is drawn already...
+	WriteLog("Jaguar: 68K AutoVector table:\n", JaguarReadWord(0x3004));
+	for(uint32 i=0x64; i<=0x7C; i+=4)
+		WriteLog("  #%u: %08X\n", (i-0x64)/4, JaguarReadLong(i));
+#endif
 
 	CDROMDone();
 	GPUDone();
 	DSPDone();
 	TOMDone();
 	JERRYDone();
+
+	// temp, until debugger is in place
+//00802016: jsr     $836F1A.l
+//0080201C: jsr     $836B30.l
+//00802022: jsr     $836B18.l
+//00802028: jsr     $8135F0.l
+//00813C1E: jsr     $813F76.l
+//00802038: jsr     $836D00.l
+//00802098: jsr     $8373A4.l
+//008020A2: jsr     $83E24A.l
+//008020BA: jsr     $83E156.l
+//008020C6: jsr     $83E19C.l
+//008020E6: jsr     $8445E8.l
+//008020EC: jsr     $838C20.l
+//0080211A: jsr     $838ED6.l
+//00802124: jsr     $89CA56.l
+//0080212A: jsr     $802B48.l
+#if 0
+	WriteLog("-------------------------------------------\n");
+	JaguarDasm(0x8445E8, 0x200);
+	WriteLog("-------------------------------------------\n");
+	JaguarDasm(0x838C20, 0x200);
+	WriteLog("-------------------------------------------\n");
+	JaguarDasm(0x838ED6, 0x200);
+	WriteLog("-------------------------------------------\n");
+	JaguarDasm(0x89CA56, 0x200);
+	WriteLog("-------------------------------------------\n");
+	JaguarDasm(0x802B48, 0x200);
+#endif
 }
 
 //
@@ -1677,7 +1813,7 @@ if (effect_start)
 			// We don't have to worry about autovectors & whatnot because the Jaguar
 			// tells you through its HW registers who sent the interrupt...
 			TOMSetPendingVideoInt();
-			m68k_set_irq(7);
+			m68k_set_irq(2);
 		}
 
 //if (start_logging)
@@ -1798,7 +1934,7 @@ void ScanlineCallback(void)
 		// We don't have to worry about autovectors & whatnot because the Jaguar
 		// tells you through its HW registers who sent the interrupt...
 		tom_set_pending_video_int();
-		m68k_set_irq(7);
+		m68k_set_irq(2);
 	}
 
 	TOMExecScanline(vc, true);
@@ -1887,7 +2023,7 @@ void ScanlineCallback(void)
 		// We don't have to worry about autovectors & whatnot because the Jaguar
 		// tells you through its HW registers who sent the interrupt...
 		TOMSetPendingVideoInt();
-		m68k_set_irq(7);
+		m68k_set_irq(2);
 	}
 
 	TOMExecScanline(vc, true);

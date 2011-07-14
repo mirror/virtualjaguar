@@ -265,7 +265,7 @@
 #include "log.h"
 #include "m68k.h"
 //#include "memory.h"
-#include "objectp.h"
+#include "op.h"
 #include "settings.h"
 
 #define NEW_TIMER_SYSTEM
@@ -296,6 +296,8 @@
 #define VDB			0x46
 #define VDE			0x48
 #define VI			0x4E
+#define PIT0		0x50
+#define PIT1		0x52
 #define BG			0x58
 #define INT1		0xE0
 
@@ -1136,6 +1138,7 @@ if (offset >= 0xF02000 && offset <= 0xF020FF)
 
 	if (offset == 0xF000E0)
 	{
+		// For reading, should only return the lower 5 bits...
 		uint16 data = (tom_jerry_int_pending << 4) | (tom_timer_int_pending << 3)
 			| (tom_object_int_pending << 2) | (tom_gpu_int_pending << 1)
 			| (tom_video_int_pending << 0);
@@ -1340,6 +1343,8 @@ if (offset >= 0xF02000 && offset <= 0xF020FF)
 			tom_timer_int_pending = 0;
 		if (data & 0x1000)
 			tom_jerry_int_pending = 0;
+
+//		return;
 	}
 	else if ((offset >= 0xF02200) && (offset <= 0xF0229F))
 	{
@@ -1351,6 +1356,7 @@ if (offset >= 0xF02000 && offset <= 0xF020FF)
 		// Writing to one CLUT writes to the other
 		offset &= 0x5FF;		// Mask out $F00600 (restrict to $F00400-5FF)
 // Watch out for unaligned writes here! (Not fixed yet)
+#warning "!!! Watch out for unaligned writes here !!! FIX !!!"
 		SET16(tomRam8, offset, data);
 		SET16(tomRam8, offset + 0x200, data);
 	}
@@ -1396,6 +1402,12 @@ if (offset == HBE)
 	WriteLog("TOM: Horizontal Blank End written by %s: %u\n", whoName[who], data);
 if (offset == VMODE)
 	WriteLog("TOM: Video Mode written by %s: %04X. PWIDTH = %u, MODE = %s, flags:%s%s (VC = %u)\n", whoName[who], data, ((data >> 9) & 0x07) + 1, videoMode_to_str[(data & MODE) >> 1], (data & BGEN ? " BGEN" : ""), (data & VARMOD ? " VARMOD" : ""), GET16(tomRam8, VC));
+if (offset == PIT0)
+	WriteLog("TOM: PIT0 written by %s: %u\n", whoName[who], data);
+if (offset == PIT1)
+	WriteLog("TOM: PIT1 written by %s: %u\n", whoName[who], data);
+//if (offset == INT1)
+//	WriteLog("TOM: CPU Interrupt Control written by %s: $%04X (%s%s%s%s%s)\n", whoName[who], data, (data & 0x01 ? "Video" : ""), (data & 0x02 ? " GPU" : ""), (data & 0x04 ? " OP" : ""), (data & 0x08 ? " TOMPIT" : ""), (data & 0x10 ? " Jerry" : ""));
 
 	// detect screen resolution changes
 //This may go away in the future, if we do the virtualized screen thing...
@@ -1476,7 +1488,7 @@ void TOMExecPIT(uint32 cycles)
 			GPUSetIRQLine(GPUIRQ_TIMER, ASSERT_LINE);	// GPUSetIRQLine does the 'IRQ enabled' checking
 
 			if (TOMIRQEnabled(IRQ_TIMER))
-				m68k_set_irq(7);				// Cause a 68000 NMI...
+				m68k_set_irq(2);				// Cause a 68000 IPL 2...
 
 			TOMResetPIT();
 		}
@@ -1491,7 +1503,7 @@ void TOMPITCallback(void)
 
 //	if (INT1_WREG & 0x08)
 	if (TOMIRQEnabled(IRQ_TIMER))
-		m68k_set_irq(7);						// Generate 68K NMI
+		m68k_set_irq(2);						// Generate a 68K IPL 2...
 
 	TOMResetPIT();
 }

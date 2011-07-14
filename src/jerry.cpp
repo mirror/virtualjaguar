@@ -163,6 +163,7 @@
 #include "jaguar.h"
 #include "joystick.h"
 #include "log.h"
+#include "m68k.h"
 //#include "memory.h"
 #include "wavetable.h"
 
@@ -188,6 +189,8 @@ int32 JERRYI2SInterruptTimer = -1;
 uint32 jerryI2SCycles;
 uint32 jerryIntPending;
 
+static uint16 jerryInterruptMask = 0;
+static uint16 jerryPendingInterrupt = 0;
 // Private function prototypes
 
 void JERRYResetPIT1(void);
@@ -351,12 +354,28 @@ void JERRYResetPIT2(void)
 
 void JERRYPIT1Callback(void)
 {
+//WriteLog("JERRY: In PIT1 callback, IRQM=$%04X\n", jerryInterruptMask);
+	if (jerryInterruptMask & IRQ2_TIMER1)		// CPU Timer 1 IRQ
+	{
+// Not sure, but I think we don't generate another IRQ if one's already going...
+// But this seems to work... :-/
+		jerryPendingInterrupt |= IRQ2_TIMER1;
+		m68k_set_irq(2);						// Generate 68K IPL 2
+	}
+
 	DSPSetIRQLine(DSPIRQ_TIMER0, ASSERT_LINE);	// This does the 'IRQ enabled' checking...
 	JERRYResetPIT1();
 }
 
 void JERRYPIT2Callback(void)
 {
+//WriteLog("JERRY: In PIT2 callback, IRQM=$%04X\n", jerryInterruptMask);
+	if (jerryInterruptMask & IRQ2_TIMER2)		// CPU Timer 2 IRQ
+	{
+		jerryPendingInterrupt |= IRQ2_TIMER2;
+		m68k_set_irq(2);						// Generate 68K IPL 2
+	}
+
 	DSPSetIRQLine(DSPIRQ_TIMER1, ASSERT_LINE);	// This does the 'IRQ enabled' checking...
 	JERRYResetPIT2();
 }
@@ -435,6 +454,8 @@ void JERRYInit(void)
 	JERRYPIT2Prescaler = 0xFFFF;
 	JERRYPIT1Divider = 0xFFFF;
 	JERRYPIT2Divider = 0xFFFF;
+	jerryInterruptMask = 0x0000;
+	jerryPendingInterrupt = 0x0000;
 }
 
 void JERRYReset(void)
@@ -453,6 +474,8 @@ void JERRYReset(void)
 	JERRYPIT2Divider = 0xFFFF;
 	jerry_timer_1_counter = 0;
 	jerry_timer_2_counter = 0;
+	jerryInterruptMask = 0x0000;
+	jerryPendingInterrupt = 0x0000;
 }
 
 void JERRYDone(void)
@@ -469,13 +492,15 @@ void JERRYDone(void)
 bool JERRYIRQEnabled(int irq)
 {
 	// Read the word @ $F10020
-	return jerry_ram_8[0x21] & (1 << irq);
+//	return jerry_ram_8[0x21] & (1 << irq);
+	return jerryInterruptMask & irq;
 }
 
 void JERRYSetPendingIRQ(int irq)
 {
 	// This is the shadow of INT (it's a split RO/WO register)
-	jerryIntPending |= (1 << irq);
+//	jerryIntPending |= (1 << irq);
+	jerryPendingInterrupt |= irq;
 }
 
 //
@@ -612,7 +637,8 @@ WriteLog("JERRY: Unhandled timer read (WORD) at %08X...\n", offset);
 //	else if ((offset >= 0xF10010) && (offset <= 0xF10015))
 //		return clock_word_read(offset);
 	else if (offset == 0xF10020)
-		return jerryIntPending;
+//		return jerryIntPending;
+		return jerryPendingInterrupt;
 //	else if ((offset >= 0xF17C00) && (offset <= 0xF17C01))
 //		return anajoy_word_read(offset);
 	else if (offset == 0xF14000)
@@ -720,9 +746,17 @@ WriteLog("JERRY: Unhandled timer write (BYTE) at %08X...\n", offset);
 		return;
 	}//*/
 	// JERRY -> 68K interrupt enables/latches (need to be handled!)
-	else if (offset >= 0xF10020 && offset <= 0xF10023)
+	else if (offset >= 0xF10020 && offset <= 0xF10021)//WAS:23)
 	{
-WriteLog("JERRY: (68K int en/lat - Unhandled!) Tried to write $%02X to $%08X!\n", data, offset);
+		if (offset == 0xF10020)
+		{
+			// Clear pending interrupts...
+			jerryPendingInterrupt &= ~data;
+		}
+		else if (offset == 0xF10021)
+			jerryInterruptMask = data;
+//WriteLog("JERRY: (68K int en/lat - Unhandled!) Tried to write $%02X to $%08X!\n", data, offset);
+//WriteLog("JERRY: (Previous is partially handled... IRQMask=$%04X)\n", jerryInterruptMask);
 	}
 /*	else if ((offset >= 0xF17C00) && (offset <= 0xF17C01))
 	{
@@ -755,6 +789,24 @@ void JERRYWriteWord(uint32 offset, uint16 data, uint32 who/*=UNKNOWN*/)
 {
 #ifdef JERRY_DEBUG
 	WriteLog( "JERRY: Writing word %04X at %06X\n", data, offset);
+#endif
+#if 1
+if (offset == 0xF10000)
+	WriteLog("JERRY: JPIT1 word written by %s: %u\n", whoName[who], data);
+else if (offset == 0xF10002)
+	WriteLog("JERRY: JPIT2 word written by %s: %u\n", whoName[who], data);
+else if (offset == 0xF10004)
+	WriteLog("JERRY: JPIT3 word written by %s: %u\n", whoName[who], data);
+else if (offset == 0xF10006)
+	WriteLog("JERRY: JPIT4 word written by %s: %u\n", whoName[who], data);
+else if (offset == 0xF10010)
+	WriteLog("JERRY: CLK1 word written by %s: %u\n", whoName[who], data);
+else if (offset == 0xF10012)
+	WriteLog("JERRY: CLK2 word written by %s: %u\n", whoName[who], data);
+else if (offset == 0xF10014)
+	WriteLog("JERRY: CLK3 word written by %s: %u\n", whoName[who], data);
+//else if (offset == 0xF10020)
+//	WriteLog("JERRY: JINTCTRL word written by %s: $%04X\n", whoName[who], data);
 #endif
 
 	if ((offset >= DSP_CONTROL_RAM_BASE) && (offset < DSP_CONTROL_RAM_BASE+0x20))
@@ -826,7 +878,11 @@ WriteLog("JERRY: Unhandled timer write %04X (WORD) at %08X by %s...\n", data, of
 	// JERRY -> 68K interrupt enables/latches (need to be handled!)
 	else if (offset >= 0xF10020 && offset <= 0xF10022)
 	{
-WriteLog("JERRY: (68K int en/lat - Unhandled!) Tried to write $%04X to $%08X!\n", data, offset);
+		jerryInterruptMask = data & 0xFF;
+		jerryPendingInterrupt &= ~(data >> 8);
+//WriteLog("JERRY: (68K int en/lat - Unhandled!) Tried to write $%04X to $%08X!\n", data, offset);
+//WriteLog("JERRY: (Previous is partially handled... IRQMask=$%04X)\n", jerryInterruptMask);
+		return;
 	}
 /*	else if (offset >= 0xF17C00 && offset < 0xF17C02)
 	{

@@ -248,6 +248,7 @@ MainWin::MainWin(): running(false), powerButtonOn(false), showUntunedTankCircuit
 
 void MainWin::closeEvent(QCloseEvent * event)
 {
+	JaguarDone();
 	WriteSettings();
 	event->accept(); // ignore() if can't close for some reason
 }

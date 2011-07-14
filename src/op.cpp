@@ -13,7 +13,7 @@
 // JLH  01/16/2010  Created this log ;-)
 //
 
-#include "objectp.h"
+#include "op.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -704,9 +704,13 @@ OP: Scaled bitmap 4x? 4bpp at 34,? hscale=80 fpix=0 data=000756E8 pitch 1 hflipp
 
 			if (p0 & 0x08)
 			{
-				TOMSetPendingObjectInt();
-				if (TOMIRQEnabled(IRQ_OPFLAG))// && jaguar_interrupt_handler_is_valid(64))
-					m68k_set_irq(7);				// Cause an NMI to occur...
+				// We need to check whether these interrupts are enabled or not, THEN
+				// set an IRQ + pending flag if necessary...
+				if (TOMIRQEnabled(IRQ_OPFLAG))
+				{
+					TOMSetPendingObjectInt();
+					m68k_set_irq(2);				// Cause a 68K IPL 2 to occur...
+				}
 			}
 
 			return;

@@ -739,10 +739,11 @@ WriteLog("GPU: %s setting GPU PC to %08X %s\n", whoName[who], gpu_pc, (GPU_RUNNI
 //WriteLog("GPU->CPU interrupt\n");
 				if (TOMIRQEnabled(IRQ_GPU))
 				{
-					if ((TOMIRQEnabled(IRQ_GPU)) && (JaguarInterruptHandlerIsValid(64)))
+//This is the programmer's responsibility, to make sure the handler is valid, not ours!
+//					if ((TOMIRQEnabled(IRQ_GPU))// && (JaguarInterruptHandlerIsValid(64)))
 					{
 						TOMSetPendingGPUInt();
-						m68k_set_irq(7);			// Set 68000 NMI
+						m68k_set_irq(2);			// Set 68000 IPL 2
 						GPUReleaseTimeslice();
 					}
 				}

@@ -38,7 +38,7 @@ uint16 TOMGetVDB(void);
 //uint16 tom_get_scanline(void);
 //uint32 tom_getHBlankWidthInPixels(void);
 
-int	TOMIRQEnabled(int irq);
+int TOMIRQEnabled(int irq);
 uint16 TOMIRQControlReg(void);
 void TOMSetIRQLatch(int irq, int enabled);
 void TOMExecPIT(uint32 cycles);
