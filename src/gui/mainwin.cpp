@@ -82,7 +82,13 @@ MainWin::MainWin(): running(false), powerButtonOn(false), showUntunedTankCircuit
 	setCentralWidget(videoWidget);
 	setWindowIcon(QIcon(":/res/vj-icon.png"));
 //	setWindowTitle("Virtual Jaguar v2.0.0");
-	setWindowTitle("Virtual Jaguar " VJ_RELEASE_VERSION );
+
+	QString title = QString(tr("Virtual Jaguar " VJ_RELEASE_VERSION ));
+
+	if (vjs.hardwareTypeAlpine)
+		title += QString(tr(" - Alpine Mode"));
+
+	setWindowTitle(title);
 
 	aboutWin = new AboutWindow(this);
 	filePickWin = new FilePickerWindow(this);
@@ -212,6 +218,17 @@ MainWin::MainWin(): running(false), powerButtonOn(false), showUntunedTankCircuit
 	ntscAct->setChecked(vjs.hardwareTypeNTSC);
 	palAct->setChecked(!vjs.hardwareTypeNTSC);
 
+	// Load up the default ROM if in Alpine mode:
+	if (vjs.hardwareTypeAlpine)
+	{
+		bool romLoaded = (JaguarLoadFile(vjs.alpineROMPath) ? true : false);
+
+		if (romLoaded)
+			WriteLog("Alpine Mode: Successfully loaded file \"%s\".\n", vjs.alpineROMPath);
+		else
+			WriteLog("Alpine Mode: Unable to load file \"%s\"!\n", vjs.alpineROMPath);
+	}
+
 	// Do this in case original size isn't correct (mostly for the first-run case)
 	ResizeMainWindow();
 
@@ -309,9 +326,11 @@ void MainWin::Configure(void)
 		return;
 
 	QString before = vjs.ROMPath;
+	QString alpineBefore = vjs.alpineROMPath;
 	bool audioBefore = vjs.audioEnabled;
 	dlg.UpdateVJSettings();
 	QString after = vjs.ROMPath;
+	QString alpineAfter = vjs.alpineROMPath;
 	bool audioAfter = vjs.audioEnabled;
 
 	bool allowOld = allowUnknownSoftware;
@@ -322,6 +341,19 @@ void MainWin::Configure(void)
 	// checked/unchecked the "Allow unknown files" option in the config dialog.
 	if ((before != after) || (allowOld != allowUnknownSoftware))
 		filePickWin->ScanSoftwareFolder(allowUnknownSoftware);
+
+	// If the "Alpine" ROM is changed, then let's load it...
+	if (alpineBefore != alpineAfter)
+	{
+		if (!JaguarLoadFile(vjs.alpineROMPath))
+		{
+			// Oh crap, we couldn't get the file! Alert the media!
+			QMessageBox msg;
+			msg.setText(QString(tr("Could not load file \"%1\"!")).arg(vjs.alpineROMPath));
+			msg.setIcon(QMessageBox::Warning);
+			msg.exec();
+		}
+	}
 
 	// If the "Enable audio" checkbox changed, then we have to re-init the DAC...
 	if (audioBefore != audioAfter)
@@ -594,16 +626,33 @@ void MainWin::LoadSoftware(QString file)
 	SET32(jaguarMainRAM, 0, 0x00200000);		// Set top of stack...
 	cartridgeLoaded = (JaguarLoadFile(file.toAscii().data()) ? true : false);
 
+	uint8_t * biosPointer = jaguarBootROM;
+
+	if (vjs.hardwareTypeAlpine)
+	{
+		if (biosAvailable & BIOS_STUB1)
+//			memcpy(jagMemSpace + 0xE00000, jaguarDevBootROM1, 0x20000);
+			biosPointer = jaguarDevBootROM1;
+		else if (biosAvailable & BIOS_STUB2)
+//			memcpy(jagMemSpace + 0xE00000, jaguarDevBootROM2, 0x20000);
+			biosPointer = jaguarDevBootROM2;
+	}
+//	else
+//		memcpy(jagMemSpace + 0xE00000, jaguarBootROM, 0x20000);
+
+	memcpy(jagMemSpace + 0xE00000, biosPointer, 0x20000);
+
 	powerAct->setDisabled(false);
 	powerAct->setChecked(true);
 	powerButtonOn = false;
 	TogglePowerState();
 
-//	QString newTitle = QString("Virtual Jaguar v2.0.0 - Now playing: %1")
-	QString newTitle = QString("Virtual Jaguar " VJ_RELEASE_VERSION
-		" - Now playing: %1")
-		.arg(filePickWin->GetSelectedPrettyName());
-	setWindowTitle(newTitle);
+	if (!vjs.hardwareTypeAlpine)
+	{
+		QString newTitle = QString("Virtual Jaguar " VJ_RELEASE_VERSION " - Now playing: %1")
+			.arg(filePickWin->GetSelectedPrettyName());
+		setWindowTitle(newTitle);
+	}
 }
 
 void MainWin::ToggleCDUsage(void)
@@ -658,10 +707,12 @@ void MainWin::ReadSettings(void)
 	vjs.useOpenGL        = settings.value("useOpenGL", true).toBool();
 	vjs.glFilter         = settings.value("glFilterType", 0).toInt();
 	vjs.renderType       = settings.value("renderType", 0).toInt();
-	strcpy(vjs.jagBootPath, settings.value("JagBootROM", "./bios/[BIOS] Atari Jaguar (USA, Europe).zip").toString().toAscii().data());
-	strcpy(vjs.CDBootPath, settings.value("CDBootROM", "./bios/jagcd.rom").toString().toAscii().data());
+	vjs.allowWritesToROM = settings.value("writeROM", false).toBool();
+//	strcpy(vjs.jagBootPath, settings.value("JagBootROM", "./bios/[BIOS] Atari Jaguar (USA, Europe).zip").toString().toAscii().data());
+//	strcpy(vjs.CDBootPath, settings.value("CDBootROM", "./bios/jagcd.rom").toString().toAscii().data());
 	strcpy(vjs.EEPROMPath, settings.value("EEPROMs", "./eeproms/").toString().toAscii().data());
 	strcpy(vjs.ROMPath, settings.value("ROMs", "./software/").toString().toAscii().data());
+	strcpy(vjs.alpineROMPath, settings.value("DefaultROM", "").toString().toAscii().data());
 WriteLog("MainWin: Paths\n");
 //WriteLog("    jagBootPath = \"%s\"\n", vjs.jagBootPath);
 //WriteLog("    CDBootPath  = \"%s\"\n", vjs.CDBootPath);
@@ -736,10 +787,12 @@ void MainWin::WriteSettings(void)
 	settings.setValue("useOpenGL", vjs.useOpenGL);
 	settings.setValue("glFilterType", vjs.glFilter);
 	settings.setValue("renderType", vjs.renderType);
+	settings.setValue("writeROM", vjs.allowWritesToROM);
 	settings.setValue("JagBootROM", vjs.jagBootPath);
 	settings.setValue("CDBootROM", vjs.CDBootPath);
 	settings.setValue("EEPROMs", vjs.EEPROMPath);
 	settings.setValue("ROMs", vjs.ROMPath);
+	settings.setValue("DefaultROM", vjs.alpineROMPath);
 
 	settings.setValue("p1k_up", vjs.p1KeyBindings[BUTTON_U]);
 	settings.setValue("p1k_down", vjs.p1KeyBindings[BUTTON_D]);

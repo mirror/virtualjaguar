@@ -31,6 +31,7 @@ struct VJSettings
 	bool audioEnabled;
 	uint32 frameSkip;
 	uint32 renderType;
+	bool allowWritesToROM;
 
 	// Keybindings in order of U, D, L, R, C, B, A, Op, Pa, 0-9, #, *
 
@@ -43,6 +44,7 @@ struct VJSettings
 	char jagBootPath[MAX_PATH];
 	char CDBootPath[MAX_PATH];
 	char EEPROMPath[MAX_PATH];
+	char alpineROMPath[MAX_PATH];
 };
 
 // Render types

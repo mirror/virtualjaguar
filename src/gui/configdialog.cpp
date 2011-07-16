@@ -16,6 +16,7 @@
 
 #include "generaltab.h"
 #include "controllertab.h"
+#include "alpinetab.h"
 #include "settings.h"
 
 
@@ -24,8 +25,15 @@ ConfigDialog::ConfigDialog(QWidget * parent/*= 0*/): QDialog(parent)
 	tabWidget = new QTabWidget;
 	generalTab = new GeneralTab(this);
 	controllerTab = new ControllerTab(this);
+
+	if (vjs.hardwareTypeAlpine)
+		alpineTab = new AlpineTab(this);
+
 	tabWidget->addTab(generalTab, tr("General"));
 	tabWidget->addTab(controllerTab, tr("Controller"));
+
+	if (vjs.hardwareTypeAlpine)
+		tabWidget->addTab(alpineTab, tr("Alpine"));
 
 	buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
 
@@ -56,6 +64,12 @@ void ConfigDialog::LoadDialogFromSettings(void)
 	generalTab->useBIOS->setChecked(vjs.useJaguarBIOS);
 	generalTab->useDSP->setChecked(vjs.DSPEnabled);
 	generalTab->useHostAudio->setChecked(vjs.audioEnabled);
+
+	if (vjs.hardwareTypeAlpine)
+	{
+		alpineTab->edit1->setText(vjs.alpineROMPath);
+		alpineTab->writeROM->setChecked(vjs.allowWritesToROM);
+	}
 }
 
 void ConfigDialog::UpdateVJSettings(void)
@@ -68,4 +82,10 @@ void ConfigDialog::UpdateVJSettings(void)
 	vjs.useJaguarBIOS = generalTab->useBIOS->isChecked();
 	vjs.DSPEnabled    = generalTab->useDSP->isChecked();
 	vjs.audioEnabled  = generalTab->useHostAudio->isChecked();
+
+	if (vjs.hardwareTypeAlpine)
+	{
+		strcpy(vjs.alpineROMPath, alpineTab->edit1->text().toAscii().data());
+		vjs.allowWritesToROM = alpineTab->writeROM->isChecked();
+	}
 }

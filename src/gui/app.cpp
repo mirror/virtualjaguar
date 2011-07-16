@@ -19,6 +19,7 @@
 #include <QApplication>
 #include "log.h"
 #include "mainwin.h"
+#include "settings.h"
 #include "types.h"
 
 #ifdef __GCCWIN32__
@@ -29,6 +30,9 @@
 // Here's the main application loop--short and simple...
 int main(int argc, char * argv[])
 {
+	// Normally, this would be read in from the settings module... :-P
+	vjs.hardwareTypeAlpine = false;
+
 	if (argc > 1)
 	{
 		if ((strcmp(argv[1], "--help") == 0) || (strcmp(argv[1], "-h") == 0)
@@ -39,6 +43,11 @@ int main(int argc, char * argv[])
 			printf("Command line interface is non-functional ATM, but may return if there is\n"
 				"enough demand for it. :-)\n");
 			return 0;
+		}
+		if ((strcmp(argv[1], "--alpine") == 0) || (strcmp(argv[1], "-a") == 0))
+		{
+			printf("Alpine Mode enabled.\n");
+			vjs.hardwareTypeAlpine = true;
 		}
 	}
 

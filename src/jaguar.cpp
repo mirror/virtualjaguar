@@ -59,6 +59,11 @@ extern int effect_start;
 extern int effect_start2, effect_start3, effect_start4, effect_start5, effect_start6;
 #endif
 
+// Really, need to include memory.h for this, but it might interfere with some stuff...
+extern uint8 jagMemSpace[];
+
+// Internal variables
+
 uint32 jaguar_active_memory_dumps = 0;
 
 uint32 jaguarMainROMCRC32, jaguarROMSize, jaguarRunAddress;
@@ -348,33 +353,6 @@ CD_switch::	-> $306C
 		LogDone();
 		exit(0);
 	}//*/
-#endif
-
-#if 0
-//001A0110: move.w  #$0, $F000E2.l		; Restore Blitter/GPU bus priorities
-//001A015C: rte							; Return from the interrupt
-static bool disassembleGo = false;
-	if (m68kPC == 0x1A0110)
-	{
-		static char buffer[2048];
-		m68k_disassemble(buffer, m68kPC, M68K_CPU_TYPE_68000);
-		WriteLog("--> [M68K IRQ Routine start] %08X: %s", m68kPC, buffer);
-		WriteLog("\t\tA0=%08X, A1=%08X, D0=%08X(cmd), D1=%08X(# bytes), D2=%08X\n",
-			m68k_get_reg(NULL, M68K_REG_A0), m68k_get_reg(NULL, M68K_REG_A1),
-			m68k_get_reg(NULL, M68K_REG_D0), m68k_get_reg(NULL, M68K_REG_D1), m68k_get_reg(NULL, M68K_REG_D2));
-		disassembleGo = true;
-	}
-	else if (m68kPC == 0x1A015C)
-		WriteLog("--> [M68K IRQ Routine end]\n");
-
-	if (disassembleGo)
-	{
-		static char buffer[2048];
-		m68k_disassemble(buffer, m68kPC, M68K_CPU_TYPE_68000);
-		WriteLog("%08X: %s", m68kPC, buffer);
-		WriteLog("\tD0=$%08X, D1=$%08X, D2=$%08X\n",
-			m68k_get_reg(NULL, M68K_REG_D0), m68k_get_reg(NULL, M68K_REG_D1), m68k_get_reg(NULL, M68K_REG_D2));
-	}
 #endif
 }
 
@@ -912,7 +890,9 @@ unsigned int m68k_read_memory_8(unsigned int address)
 	else if ((address >= 0x800000) && (address <= 0xDFFEFF))
 		retVal = jaguarMainROM[address - 0x800000];
 	else if ((address >= 0xE00000) && (address <= 0xE3FFFF))
-		retVal = jaguarBootROM[address - 0xE00000];
+//		retVal = jaguarBootROM[address - 0xE00000];
+//		retVal = jaguarDevBootROM1[address - 0xE00000];
+		retVal = jagMemSpace[address];
 	else if ((address >= 0xDFFF00) && (address <= 0xDFFFFF))
 		retVal = CDROMReadByte(address);
 	else if ((address >= 0xF00000) && (address <= 0xF0FFFF))
@@ -1007,7 +987,9 @@ unsigned int m68k_read_memory_16(unsigned int address)
 	else if ((address >= 0x800000) && (address <= 0xDFFEFE))
 		retVal = (jaguarMainROM[address - 0x800000] << 8) | jaguarMainROM[address - 0x800000 + 1];
 	else if ((address >= 0xE00000) && (address <= 0xE3FFFE))
-		retVal = (jaguarBootROM[address - 0xE00000] << 8) | jaguarBootROM[address - 0xE00000 + 1];
+//		retVal = (jaguarBootROM[address - 0xE00000] << 8) | jaguarBootROM[address - 0xE00000 + 1];
+//		retVal = (jaguarDevBootROM1[address - 0xE00000] << 8) | jaguarDevBootROM1[address - 0xE00000 + 1];
+		retVal = (jagMemSpace[address] << 8) | jagMemSpace[address + 1];
 	else if ((address >= 0xDFFF00) && (address <= 0xDFFFFE))
 		retVal = CDROMReadWord(address, M68K);
 	else if ((address >= 0xF00000) && (address <= 0xF0FFFE))
@@ -1360,7 +1342,9 @@ uint8 JaguarReadByte(uint32 offset, uint32 who/*=UNKNOWN*/)
 	else if ((offset >= 0xDFFF00) && (offset <= 0xDFFFFF))
 		data = CDROMReadByte(offset, who);
 	else if ((offset >= 0xE00000) && (offset < 0xE40000))
-		data = jaguarBootROM[offset & 0x3FFFF];
+//		data = jaguarBootROM[offset & 0x3FFFF];
+//		data = jaguarDevBootROM1[offset & 0x3FFFF];
+		data = jagMemSpace[offset];
 	else if ((offset >= 0xF00000) && (offset < 0xF10000))
 		data = TOMReadByte(offset, who);
 	else if ((offset >= 0xF10000) && (offset < 0xF20000))
@@ -1387,7 +1371,9 @@ uint16 JaguarReadWord(uint32 offset, uint32 who/*=UNKNOWN*/)
 	else if ((offset >= 0xDFFF00) && (offset <= 0xDFFFFE))
 		return CDROMReadWord(offset, who);
 	else if ((offset >= 0xE00000) && (offset <= 0xE3FFFE))
-		return (jaguarBootROM[(offset+0) & 0x3FFFF] << 8) | jaguarBootROM[(offset+1) & 0x3FFFF];
+//		return (jaguarBootROM[(offset+0) & 0x3FFFF] << 8) | jaguarBootROM[(offset+1) & 0x3FFFF];
+//		return (jaguarDevBootROM1[(offset+0) & 0x3FFFF] << 8) | jaguarDevBootROM1[(offset+1) & 0x3FFFF];
+		return (jagMemSpace[offset + 0] << 8) | jagMemSpace[offset + 1];
 	else if ((offset >= 0xF00000) && (offset <= 0xF0FFFE))
 		return TOMReadWord(offset, who);
 	else if ((offset >= 0xF10000) && (offset <= 0xF1FFFE))
@@ -1615,9 +1601,14 @@ void RenderCallback(void);
 //extern uint32 * backbuffer;
 void JaguarReset(void)
 {
+//Need to change this so it uses the single RAM space and load the BIOS
+//into it somewhere...
+//Also, have to change this here and in JaguarReadXX() currently
 	// Only use the system BIOS if it's available...!
 	if (vjs.useJaguarBIOS && (biosAvailable & (BIOS_NORMAL | BIOS_STUB1 | BIOS_STUB2)))
-		memcpy(jaguarMainRAM, jaguarBootROM, 8);
+//		memcpy(jaguarMainRAM, jaguarBootROM, 8);
+//		memcpy(jaguarMainRAM, jaguarDevBootROM1, 8);
+		memcpy(jaguarMainRAM, &jagMemSpace[0xE00000], 8);
 	else
 		SET32(jaguarMainRAM, 4, jaguarRunAddress);
 

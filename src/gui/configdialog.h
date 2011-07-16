@@ -12,6 +12,7 @@
 
 class GeneralTab;
 class ControllerTab;
+class AlpineTab;
 
 class ConfigDialog: public QDialog
 {
@@ -32,6 +33,7 @@ class ConfigDialog: public QDialog
 	public:
 		GeneralTab * generalTab;
 		ControllerTab * controllerTab;
+		AlpineTab * alpineTab;
 };
 
 #endif	// __CONFIGDIALOG_H__

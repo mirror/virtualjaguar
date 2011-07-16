@@ -53,6 +53,7 @@ DEPENDPATH = \
 
 HEADERS = \
 	src/gui/about.h \
+	src/gui/alpinetab.h \
 	src/gui/app.h \
 	src/gui/configdialog.h \
 	src/gui/controllertab.h \
@@ -66,6 +67,7 @@ HEADERS = \
 
 SOURCES = \
 	src/gui/about.cpp \
+	src/gui/alpinetab.cpp \
 	src/gui/app.cpp \
 	src/gui/configdialog.cpp \
 	src/gui/controllertab.cpp \
