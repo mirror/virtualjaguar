@@ -45,6 +45,7 @@ struct VJSettings
 	char CDBootPath[MAX_PATH];
 	char EEPROMPath[MAX_PATH];
 	char alpineROMPath[MAX_PATH];
+	char absROMPath[MAX_PATH];
 };
 
 // Render types

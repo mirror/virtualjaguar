@@ -19,6 +19,7 @@ enum { JST_NONE = 0, JST_ROM, JST_ALPINE, JST_ABS_TYPE1, JST_ABS_TYPE2, JST_JAGS
 
 uint32 JaguarLoadROM(uint8 * &rom, char * path);
 bool JaguarLoadFile(char * path);
+bool AlpineLoadFile(char * path);
 uint32 GetFileFromZIP(const char * zipFile, FileType type, uint8 * &buffer);
 uint32 ParseFileType(uint8 header1, uint8 header2, uint32 size);
 bool HasUniversalHeader(uint8 * rom, uint32 romSize);

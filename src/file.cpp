@@ -103,35 +103,28 @@ uint32 JaguarLoadROM(uint8 * &rom, char * path)
 }
 
 //
-// Jaguar file loading (second stab at it...)
+// Jaguar file loading
 // We do a more intelligent file analysis here instead of relying on (possible false)
 // file extensions which people don't seem to give two shits about anyway. :-(
 //
 bool JaguarLoadFile(char * path)
 {
-// NOTE: We can further clean this up by fixing JaguarLoadROM to load to a buffer
-//       instead of assuming it goes into our ROM space. (Now, we do! :-)
 	uint8 * buffer = NULL;
 	jaguarROMSize = JaguarLoadROM(buffer, path);
-//	jaguarROMSize = JaguarLoadROM(jaguarMainROM, path);
 
 	if (jaguarROMSize == 0)
 	{
-//			WriteLog("VJ: Could not load ROM from file \"%s\"...\nAborting!\n", newPath);
-		WriteLog("GUI: Could not load ROM from file \"%s\"...\nAborting load!\n", path);
-#warning "!!! Need error dialog here !!!"
-// Need to do something else here, like throw up an error dialog instead of aborting. !!! FIX !!!
-		return false;								// This is a start...
+		// It's up to the GUI to report errors, not us. :-)
+		WriteLog("FILE: Could not load ROM from file \"%s\"...\nAborting load!\n", path);
+		return false;
 	}
 
-//	jaguarMainROMCRC32 = crc32_calcCheckSum(jaguarMainROM, jaguarROMSize);
 	jaguarMainROMCRC32 = crc32_calcCheckSum(buffer, jaguarROMSize);
 	WriteLog("CRC: %08X\n", (unsigned int)jaguarMainROMCRC32);
 // TODO: Check for EEPROM file in ZIP file. If there is no EEPROM in the user's EEPROM
 //       directory, copy the one from the ZIP file, if it exists.
 	EepromInit();
 	jaguarRunAddress = 0x802000;					// For non-BIOS runs, this is true
-//	int fileType = ParseFileType(jaguarMainROM[0], jaguarMainROM[1], jaguarROMSize);
 	int fileType = ParseFileType(buffer[0], buffer[1], jaguarROMSize);
 
 	if (fileType == JST_ROM)
@@ -143,10 +136,7 @@ bool JaguarLoadFile(char * path)
 	else if (fileType == JST_ALPINE)
 	{
 		// File extension ".ROM": Alpine image that loads/runs at $802000
-		WriteLog("GUI: Setting up Alpine ROM... Run address: 00802000, length: %08X\n", jaguarROMSize);
-
-//		for(int i=jaguarROMSize-1; i>=0; i--)
-//			jaguarMainROM[0x2000 + i] = jaguarMainROM[i];
+		WriteLog("FILE: Setting up Alpine ROM... Run address: 00802000, length: %08X\n", jaguarROMSize);
 		memset(jagMemSpace + 0x800000, 0xFF, 0x2000);
 		memcpy(jagMemSpace + 0x802000, buffer, jaguarROMSize);
 		delete[] buffer;
@@ -161,58 +151,28 @@ bool JaguarLoadFile(char * path)
 	else if (fileType == JST_ABS_TYPE1)
 	{
 		// For ABS type 1, run address == load address
-//		uint32 loadAddress = GET32(jaguarMainROM, 0x16),
-//			codeSize = GET32(jaguarMainROM, 0x02) + GET32(jaguarMainROM, 0x06);
 		uint32 loadAddress = GET32(buffer, 0x16),
 			codeSize = GET32(buffer, 0x02) + GET32(buffer, 0x06);
-		WriteLog("GUI: Setting up homebrew (ABS-1)... Run address: %08X, length: %08X\n", loadAddress, codeSize);
-
-#if 0
-		if (loadAddress < 0x800000)
-			memcpy(jaguarMainRAM + loadAddress, jaguarMainROM + 0x24, codeSize);
-		else
-		{
-			for(int i=codeSize-1; i>=0; i--)
-				jaguarMainROM[(loadAddress - 0x800000) + i] = jaguarMainROM[i + 0x24];
-		}
-#else
+		WriteLog("FILE: Setting up homebrew (ABS-1)... Run address: %08X, length: %08X\n", loadAddress, codeSize);
 		memcpy(jagMemSpace + loadAddress, buffer + 0x24, codeSize);
 		delete[] buffer;
-#endif
-
 		jaguarRunAddress = loadAddress;
 		return true;
 	}
 	else if (fileType == JST_ABS_TYPE2)
 	{
-//		uint32 loadAddress = GET32(jaguarMainROM, 0x28), runAddress = GET32(jaguarMainROM, 0x24),
-//			codeSize = GET32(jaguarMainROM, 0x18) + GET32(jaguarMainROM, 0x1C);
 		uint32 loadAddress = GET32(buffer, 0x28), runAddress = GET32(buffer, 0x24),
 			codeSize = GET32(buffer, 0x18) + GET32(buffer, 0x1C);
-		WriteLog("GUI: Setting up homebrew (ABS-2)... Run address: %08X, length: %08X\n", runAddress, codeSize);
-
-#if 0
-		if (loadAddress < 0x800000)
-			memcpy(jaguarMainRAM + loadAddress, jaguarMainROM + 0xA8, codeSize);
-		else
-		{
-			for(int i=codeSize-1; i>=0; i--)
-				jaguarMainROM[(loadAddress - 0x800000) + i] = jaguarMainROM[i + 0xA8];
-		}
-#else
+		WriteLog("FILE: Setting up homebrew (ABS-2)... Run address: %08X, length: %08X\n", runAddress, codeSize);
 		memcpy(jagMemSpace + loadAddress, buffer + 0xA8, codeSize);
 		delete[] buffer;
-#endif
-
 		jaguarRunAddress = runAddress;
 		return true;
 	}
 	else if (fileType == JST_JAGSERVER)
 	{
-//		uint32 loadAddress = GET32(jaguarMainROM, 0x22), runAddress = GET32(jaguarMainROM, 0x2A);
 		uint32 loadAddress = GET32(buffer, 0x22), runAddress = GET32(buffer, 0x2A);
-		WriteLog("GUI: Setting up homebrew (Jag Server)... Run address: %08X, length: %08X\n", runAddress, jaguarROMSize - 0x2E);
-//		memcpy(jaguarMainRAM + loadAddress, jaguarMainROM + 0x2E, jaguarROMSize - 0x2E);
+		WriteLog("FILE: Setting up homebrew (Jag Server)... Run address: %08X, length: %08X\n", runAddress, jaguarROMSize - 0x2E);
 		memcpy(jagMemSpace + loadAddress, buffer + 0x2E, jaguarROMSize - 0x2E);
 		delete[] buffer;
 		jaguarRunAddress = runAddress;
@@ -220,8 +180,45 @@ bool JaguarLoadFile(char * path)
 	}
 
 	// We can assume we have JST_NONE at this point. :-P
-	// TODO: Add a dialog box that tells the user that they're trying to feed VJ a bogus file.
 	return false;
+}
+
+//
+// "Alpine" file loading
+// Since the developers were coming after us with torches and pitchforks, we decided to
+// allow this kind of thing. ;-) But ONLY FOR THE DEVS, DAMMIT! O_O
+//
+bool AlpineLoadFile(char * path)
+{
+	uint8 * buffer = NULL;
+	jaguarROMSize = JaguarLoadROM(buffer, path);
+
+	if (jaguarROMSize == 0)
+	{
+		// It's up to the GUI to deal with failure, not us. ;-)
+		WriteLog("FILE: Could not load Alpine from file \"%s\"...\nAborting load!\n", path);
+		return false;
+	}
+
+	jaguarMainROMCRC32 = crc32_calcCheckSum(buffer, jaguarROMSize);
+	WriteLog("CRC: %08X\n", (unsigned int)jaguarMainROMCRC32);
+	EepromInit();
+
+	jaguarRunAddress = 0x802000;
+
+	WriteLog("FILE: Setting up Alpine ROM with non-standard length... Run address: 00802000, length: %08X\n", jaguarROMSize);
+
+	memset(jagMemSpace + 0x800000, 0xFF, 0x2000);
+	memcpy(jagMemSpace + 0x802000, buffer, jaguarROMSize);
+	delete[] buffer;
+
+// Maybe instead of this, we could try requiring the STUBULATOR ROM? Just a thought...
+	// Try setting the vector to say, $1000 and putting an instruction there that loops forever:
+	// This kludge works! Yeah!
+	SET32(jaguarMainRAM, 0x10, 0x00001000);
+	SET16(jaguarMainRAM, 0x1000, 0x60FE);		// Here: bra Here
+
+	return true;
 }
 
 //

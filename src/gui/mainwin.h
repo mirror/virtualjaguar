@@ -64,6 +64,7 @@ class MainWin: public QMainWindow
 		bool cartridgeLoaded;
 		bool allowUnknownSoftware;
 		bool CDActive;
+//		bool alpineLoadSuccessful;
 
 		QMenu * fileMenu;
 		QMenu * helpMenu;

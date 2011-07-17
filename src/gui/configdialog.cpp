@@ -68,6 +68,7 @@ void ConfigDialog::LoadDialogFromSettings(void)
 	if (vjs.hardwareTypeAlpine)
 	{
 		alpineTab->edit1->setText(vjs.alpineROMPath);
+		alpineTab->edit2->setText(vjs.absROMPath);
 		alpineTab->writeROM->setChecked(vjs.allowWritesToROM);
 	}
 }
@@ -86,6 +87,7 @@ void ConfigDialog::UpdateVJSettings(void)
 	if (vjs.hardwareTypeAlpine)
 	{
 		strcpy(vjs.alpineROMPath, alpineTab->edit1->text().toAscii().data());
+		strcpy(vjs.absROMPath,    alpineTab->edit2->text().toAscii().data());
 		vjs.allowWritesToROM = alpineTab->writeROM->isChecked();
 	}
 }

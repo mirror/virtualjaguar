@@ -13,7 +13,7 @@ class AlpineTab: public QWidget
 
 	public:
 		QLineEdit * edit1;
-//		QLineEdit * edit2;
+		QLineEdit * edit2;
 //		QLineEdit * edit3;
 //		QLineEdit * edit4;
 

@@ -76,7 +76,7 @@
 // use, we can drop it in anywhere and use it as-is.
 
 MainWin::MainWin(): running(false), powerButtonOn(false), showUntunedTankCircuit(true),
-	cartridgeLoaded(false), CDActive(false)
+	cartridgeLoaded(false), CDActive(false)//, alpineLoadSuccessful(false)
 {
 	videoWidget = new GLWidget(this);
 	setCentralWidget(videoWidget);
@@ -218,17 +218,6 @@ MainWin::MainWin(): running(false), powerButtonOn(false), showUntunedTankCircuit
 	ntscAct->setChecked(vjs.hardwareTypeNTSC);
 	palAct->setChecked(!vjs.hardwareTypeNTSC);
 
-	// Load up the default ROM if in Alpine mode:
-	if (vjs.hardwareTypeAlpine)
-	{
-		bool romLoaded = (JaguarLoadFile(vjs.alpineROMPath) ? true : false);
-
-		if (romLoaded)
-			WriteLog("Alpine Mode: Successfully loaded file \"%s\".\n", vjs.alpineROMPath);
-		else
-			WriteLog("Alpine Mode: Unable to load file \"%s\"!\n", vjs.alpineROMPath);
-	}
-
 	// Do this in case original size isn't correct (mostly for the first-run case)
 	ResizeMainWindow();
 
@@ -261,6 +250,25 @@ MainWin::MainWin(): running(false), powerButtonOn(false), showUntunedTankCircuit
 #endif
 
 	filePickWin->ScanSoftwareFolder(allowUnknownSoftware);
+
+	// Load up the default ROM if in Alpine mode:
+	if (vjs.hardwareTypeAlpine)
+	{
+		bool romLoaded = JaguarLoadFile(vjs.alpineROMPath);
+
+		// If regular load failed, try just a straight file load
+		// (Dev only! I don't want people to start getting lazy with their releases again! :-P)
+		if (!romLoaded)
+			romLoaded = AlpineLoadFile(vjs.alpineROMPath);
+
+		if (romLoaded)
+			WriteLog("Alpine Mode: Successfully loaded file \"%s\".\n", vjs.alpineROMPath);
+		else
+			WriteLog("Alpine Mode: Unable to load file \"%s\"!\n", vjs.alpineROMPath);
+
+		// Attempt to load/run the ABS file...
+		LoadSoftware(vjs.absROMPath);
+	}
 }
 
 void MainWin::closeEvent(QCloseEvent * event)
@@ -327,10 +335,12 @@ void MainWin::Configure(void)
 
 	QString before = vjs.ROMPath;
 	QString alpineBefore = vjs.alpineROMPath;
+	QString absBefore = vjs.absROMPath;
 	bool audioBefore = vjs.audioEnabled;
 	dlg.UpdateVJSettings();
 	QString after = vjs.ROMPath;
 	QString alpineAfter = vjs.alpineROMPath;
+	QString absAfter = vjs.absROMPath;
 	bool audioAfter = vjs.audioEnabled;
 
 	bool allowOld = allowUnknownSoftware;
@@ -345,11 +355,24 @@ void MainWin::Configure(void)
 	// If the "Alpine" ROM is changed, then let's load it...
 	if (alpineBefore != alpineAfter)
 	{
-		if (!JaguarLoadFile(vjs.alpineROMPath))
+		if (!JaguarLoadFile(vjs.alpineROMPath) || !AlpineLoadFile(vjs.alpineROMPath))
 		{
 			// Oh crap, we couldn't get the file! Alert the media!
 			QMessageBox msg;
 			msg.setText(QString(tr("Could not load file \"%1\"!")).arg(vjs.alpineROMPath));
+			msg.setIcon(QMessageBox::Warning);
+			msg.exec();
+		}
+	}
+
+	// If the "ABS" ROM is changed, then let's load it...
+	if (absBefore != absAfter)
+	{
+		if (!JaguarLoadFile(vjs.absROMPath))
+		{
+			// Oh crap, we couldn't get the file! Alert the media!
+			QMessageBox msg;
+			msg.setText(QString(tr("Could not load file \"%1\"!")).arg(vjs.absROMPath));
 			msg.setIcon(QMessageBox::Warning);
 			msg.exec();
 		}
@@ -526,7 +549,7 @@ void MainWin::TogglePowerState(void)
 	{
 		if (!CDActive)
 		{
-			showUntunedTankCircuit = (cartridgeLoaded ? false : true);
+			showUntunedTankCircuit = false;//(cartridgeLoaded ? false : true);
 			pauseAct->setChecked(false);
 			pauseAct->setDisabled(!cartridgeLoaded);
 		}
@@ -713,11 +736,14 @@ void MainWin::ReadSettings(void)
 	strcpy(vjs.EEPROMPath, settings.value("EEPROMs", "./eeproms/").toString().toAscii().data());
 	strcpy(vjs.ROMPath, settings.value("ROMs", "./software/").toString().toAscii().data());
 	strcpy(vjs.alpineROMPath, settings.value("DefaultROM", "").toString().toAscii().data());
+	strcpy(vjs.absROMPath, settings.value("DefaultABS", "").toString().toAscii().data());
 WriteLog("MainWin: Paths\n");
 //WriteLog("    jagBootPath = \"%s\"\n", vjs.jagBootPath);
 //WriteLog("    CDBootPath  = \"%s\"\n", vjs.CDBootPath);
-WriteLog("    EEPROMPath  = \"%s\"\n", vjs.EEPROMPath);
-WriteLog("    ROMPath     = \"%s\"\n", vjs.ROMPath);
+WriteLog("   EEPROMPath = \"%s\"\n", vjs.EEPROMPath);
+WriteLog("      ROMPath = \"%s\"\n", vjs.ROMPath);
+WriteLog("AlpineROMPath = \"%s\"\n", vjs.alpineROMPath);
+WriteLog("   absROMPath = \"%s\"\n", vjs.absROMPath);
 
 	// Keybindings in order of U, D, L, R, C, B, A, Op, Pa, 0-9, #, *
 	vjs.p1KeyBindings[BUTTON_U] = settings.value("p1k_up", Qt::Key_Up).toInt();
@@ -793,6 +819,7 @@ void MainWin::WriteSettings(void)
 	settings.setValue("EEPROMs", vjs.EEPROMPath);
 	settings.setValue("ROMs", vjs.ROMPath);
 	settings.setValue("DefaultROM", vjs.alpineROMPath);
+	settings.setValue("DefaultABS", vjs.absROMPath);
 
 	settings.setValue("p1k_up", vjs.p1KeyBindings[BUTTON_U]);
 	settings.setValue("p1k_down", vjs.p1KeyBindings[BUTTON_D]);

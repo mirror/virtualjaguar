@@ -16,33 +16,29 @@
 
 AlpineTab::AlpineTab(QWidget * parent/*= 0*/): QWidget(parent)
 {
-//	antialiasChk = new QCheckBox(tr("Use Qt's built-in antialiasing"));
-
-// I'm thinking we should scan the bios folder for the 5 known BIOSes, and
-// just present a radio button to choose between them...
 	QLabel * label1 = new QLabel("ROM to load:");
-//	QLabel * label2 = new QLabel("CD Boot ROM:");
+	QLabel * label2 = new QLabel("ABS to load:");
 //	QLabel * label3 = new QLabel("EEPROMs:");
 //	QLabel * label4 = new QLabel("Software:");
 
 	edit1 = new QLineEdit("");
-//	edit2 = new QLineEdit("");
+	edit2 = new QLineEdit("");
 //	edit3 = new QLineEdit("");
 //	edit4 = new QLineEdit("");
 	edit1->setPlaceholderText("ROM to load when Virtual Jaguar loads");
-//	edit2->setPlaceholderText("CD Boot ROM location");
+	edit2->setPlaceholderText("ABS to load when Virtual Jaguar loads");
 //	edit3->setPlaceholderText("EEPROM path");
 //	edit4->setPlaceholderText("Software path");
 
 	QVBoxLayout * layout1 = new QVBoxLayout;
 	layout1->addWidget(label1);
-//	layout1->addWidget(label2);
+	layout1->addWidget(label2);
 //	layout1->addWidget(label3);
 //	layout1->addWidget(label4);
 
 	QVBoxLayout * layout2 = new QVBoxLayout;
 	layout2->addWidget(edit1);
-//	layout2->addWidget(edit2);
+	layout2->addWidget(edit2);
 //	layout2->addWidget(edit3);
 //	layout2->addWidget(edit4);
 
