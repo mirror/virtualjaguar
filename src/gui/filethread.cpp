@@ -21,7 +21,7 @@
 #include "crc32.h"
 #include "file.h"
 #include "filedb.h"
-#include "memory.h"
+//#include "memory.h"
 #include "settings.h"
 
 #define VERBOSE_LOGGING
@@ -138,10 +138,6 @@ void FileThread::HandleFile(QFileInfo fileInfo)
 		crc = crc32_calcCheckSum(buffer, fileSize);
 
 	uint32 index = FindCRCIndexInFileList(crc);
-
-	if ((index != 0xFFFFFFFF) && (romList[index].flags & FF_BIOS))
-		HandleBIOSFile(buffer, crc);
-
 	delete[] buffer;
 
 	// Here we filter out files *not* in the DB (if configured that way) and
@@ -181,54 +177,6 @@ void FileThread::HandleFile(QFileInfo fileInfo)
 
 //	emit FoundAFile2(index, fileInfo.canonicalFilePath(), img, fileSize);
 	emit FoundAFile3(index, fileInfo.canonicalFilePath(), img, fileSize, foundUniversalHeader, fileType, crc);
-}
-
-//
-// Handle checking/copying BIOS files into Jaguar core memory
-//
-void FileThread::HandleBIOSFile(uint8 * buffer, uint32 crc)
-{
-/*
-	{ 0x55A0669C, "[BIOS] Atari Jaguar Developer CD (World)", FF_BIOS },
-	{ 0x687068D5, "[BIOS] Atari Jaguar CD (World)", FF_BIOS },
-	{ 0x8D15DBC6, "[BIOS] Atari Jaguar Stubulator '94 (World)", FF_BIOS },
-	{ 0xE60277BB, "[BIOS] Atari Jaguar Stubulator '93 (World)", FF_BIOS },
-	{ 0xFB731AAA, "[BIOS] Atari Jaguar (World)", FF_BIOS },
-
-uint8 jaguarBootROM[0x040000];					// 68K CPU BIOS ROM--uses only half of this!
-uint8 jaguarCDBootROM[0x040000];				// 68K CPU CD BIOS ROM (256K)
-uint8 jaguarDevBootROM1[0x040000];				// 68K CPU Stubulator 1 ROM--uses only half of this!
-uint8 jaguarDevBootROM2[0x040000];				// 68K CPU Stubulator 2 ROM--uses only half of this!
-uint8 jaguarDevCDBootROM[0x040000];				// 68K CPU Dev CD BIOS ROM (256K)
-
-enum { BIOS_NORMAL=0x01, BIOS_CD=0x02, BIOS_STUB1=0x04, BIOS_STUB2=0x08, BIOS_DEV_CD=0x10 };
-extern int biosAvailable;
-*/
-	if (crc == 0xFB731AAA && !(biosAvailable & BIOS_NORMAL))
-	{
-		memcpy(jaguarBootROM, buffer, 0x20000);
-		biosAvailable |= BIOS_NORMAL;
-	}
-	else if (crc == 0x687068D5 && !(biosAvailable & BIOS_CD))
-	{
-		memcpy(jaguarCDBootROM, buffer, 0x40000);
-		biosAvailable |= BIOS_CD;
-	}
-	else if (crc == 0x8D15DBC6 && !(biosAvailable & BIOS_STUB1))
-	{
-		memcpy(jaguarDevBootROM1, buffer, 0x20000);
-		biosAvailable |= BIOS_STUB1;
-	}
-	else if (crc == 0xE60277BB && !(biosAvailable & BIOS_STUB2))
-	{
-		memcpy(jaguarDevBootROM2, buffer, 0x20000);
-		biosAvailable |= BIOS_STUB2;
-	}
-	else if (crc == 0x55A0669C && !(biosAvailable & BIOS_DEV_CD))
-	{
-		memcpy(jaguarDevCDBootROM, buffer, 0x40000);
-		biosAvailable |= BIOS_DEV_CD;
-	}
 }
 
 //

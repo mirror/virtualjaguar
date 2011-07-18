@@ -46,6 +46,9 @@
 #include "tom.h"
 #include "log.h"
 #include "file.h"
+#include "jagbios.h"
+#include "jagcdbios.h"
+#include "jagstub2bios.h"
 #include "joystick.h"
 
 #ifdef __GCCWIN32__
@@ -58,10 +61,10 @@
 // Creating those is left as an exercise for the reader. ;-)
 //#define USE_BUILT_IN_BIOS
 
-#ifdef USE_BUILT_IN_BIOS
-#include "jagboot.h"
-#include "jagcd.h"
-#endif
+//#ifdef USE_BUILT_IN_BIOS
+//#include "jagboot.h"
+//#include "jagcd.h"
+//#endif
 
 // The way BSNES controls things is by setting a timer with a zero
 // timeout, sleeping if not emulating anything. Seems there has to be a
@@ -232,11 +235,11 @@ MainWin::MainWin(): running(false), powerButtonOn(false), showUntunedTankCircuit
 
 	// Get the BIOS ROM
 #ifdef USE_BUILT_IN_BIOS
-	WriteLog("VJ: Using built in BIOS/CD BIOS...\n");
-	memcpy(jaguarBootROM, jagBootROM, 0x20000);
-	memcpy(jaguarCDBootROM, jagCDROM, 0x40000);
-//	BIOSLoaded = CDBIOSLoaded = true;
-	biosAvailable |= (BIOS_NORMAL | BIOS_CD);
+//	WriteLog("VJ: Using built in BIOS/CD BIOS...\n");
+//	memcpy(jaguarBootROM, jagBootROM, 0x20000);
+//	memcpy(jaguarCDBootROM, jagCDROM, 0x40000);
+////	BIOSLoaded = CDBIOSLoaded = true;
+//	biosAvailable |= (BIOS_NORMAL | BIOS_CD);
 #else
 // What would be nice here would be a way to check if the BIOS was loaded so that we
 // could disable the pushbutton on the Misc Options menu... !!! FIX !!! [DONE here, but needs to be fixed in GUI as well!]
@@ -422,119 +425,11 @@ void MainWin::Timer(void)
 	videoWidget->updateGL();
 }
 
-#if 0
-Window * RunEmu(void)
-{
-//	extern uint32 * backbuffer;
-	uint32 * overlayPixels = (uint32 *)sdlemuGetOverlayPixels();
-	memset(overlayPixels, 0x00, 640 * 480 * 4);			// Clear out overlay...
-
-//This is crappy... !!! FIX !!!
-//	extern bool finished, showGUI;
-
-	sdlemuDisableOverlay();
-
-//	uint32 nFrame = 0, nFrameskip = 0;
-	uint32 totalFrames = 0;
-	finished = false;
-	bool showMessage = true;
-	uint32 showMsgFrames = 120;
-	uint8 transparency = 0xFF;
-	// Pass a message to the "joystick" code to debounce the ESC key...
-	debounceRunKey = true;
-
-	uint32 cartType = 4;
-	if (jaguarRomSize == 0x200000)
-		cartType = 0;
-	else if (jaguarRomSize == 0x400000)
-		cartType = 1;
-	else if (jaguarMainRomCRC32 == 0x687068D5)
-		cartType = 2;
-	else if (jaguarMainRomCRC32 == 0x55A0669C)
-		cartType = 3;
-
-	const char * cartTypeName[5] = { "2M Cartridge", "4M Cartridge", "CD BIOS", "CD Dev BIOS", "Homebrew" };
-	uint32 elapsedTicks = SDL_GetTicks(), frameCount = 0, framesPerSecond = 0;
-
-	while (!finished)
-	{
-		// Set up new backbuffer with new pixels and data
-		JaguarExecuteNew();
-		totalFrames++;
-//WriteLog("Frame #%u...\n", totalFrames);
-//extern bool doDSPDis;
-//if (totalFrames == 373)
-//	doDSPDis = true;
-
-//Problem: Need to do this *only* when the state changes from visible to not...
-//Also, need to clear out the GUI when not on (when showMessage is active...)
-if (showGUI || showMessage)
-	sdlemuEnableOverlay();
-else
-	sdlemuDisableOverlay();
-
-//Add in a new function for clearing patches of screen (ClearOverlayRect)
-
-// Also: Take frame rate into account when calculating fade time...
-
-		// Some QnD GUI stuff here...
-		if (showGUI)
-		{
-			FillScreenRectangle(overlayPixels, 8, 1*FONT_HEIGHT, 128, 4*FONT_HEIGHT, 0x00000000);
-			extern uint32 gpu_pc, dsp_pc;
-			DrawString(overlayPixels, 8, 1*FONT_HEIGHT, false, "GPU PC: %08X", gpu_pc);
-			DrawString(overlayPixels, 8, 2*FONT_HEIGHT, false, "DSP PC: %08X", dsp_pc);
-			DrawString(overlayPixels, 8, 4*FONT_HEIGHT, false, "%u FPS", framesPerSecond);
-		}
-
-		if (showMessage)
-		{
-			DrawString2(overlayPixels, 8, 24*FONT_HEIGHT, 0x007F63FF, transparency, "Running...");
-			DrawString2(overlayPixels, 8, 26*FONT_HEIGHT, 0x001FFF3F, transparency, "%s, run address: %06X", cartTypeName[cartType], jaguarRunAddress);
-			DrawString2(overlayPixels, 8, 27*FONT_HEIGHT, 0x001FFF3F, transparency, "CRC: %08X", jaguarMainRomCRC32);
-
-			if (showMsgFrames == 0)
-			{
-				transparency--;
-
-				if (transparency == 0)
-{
-					showMessage = false;
-/*extern bool doGPUDis;
-doGPUDis = true;//*/
-}
-
-			}
-			else
-				showMsgFrames--;
-		}
-
-		frameCount++;
-
-		if (SDL_GetTicks() - elapsedTicks > 250)
-			elapsedTicks += 250, framesPerSecond = frameCount * 4, frameCount = 0;
-	}
-
-	// Save the background for the GUI...
-	// In this case, we squash the color to monochrome, then force it to blue + green...
-	for(uint32 i=0; i<TOMGetVideoModeWidth() * 256; i++)
-	{
-		uint32 pixel = backbuffer[i];
-		uint8 b = (pixel >> 16) & 0xFF, g = (pixel >> 8) & 0xFF, r = pixel & 0xFF;
-		pixel = ((r + g + b) / 3) & 0x00FF;
-		backbuffer[i] = 0xFF000000 | (pixel << 16) | (pixel << 8);
-	}
-
-	sdlemuEnableOverlay();
-
-	return NULL;
-}
-#endif
-
 void MainWin::TogglePowerState(void)
 {
 	powerButtonOn = !powerButtonOn;
 
+	// With the power off, we simulate white noise on the screen. :-)
 	if (!powerButtonOn)
 	{
 		pauseAct->setChecked(false);
@@ -547,12 +442,15 @@ void MainWin::TogglePowerState(void)
 	}
 	else
 	{
+//NOTE: Low hanging fruit: We can simplify this a lot...
+		// Otherwise, we prepare for running regular software...
 		if (!CDActive)
 		{
 			showUntunedTankCircuit = false;//(cartridgeLoaded ? false : true);
 			pauseAct->setChecked(false);
-			pauseAct->setDisabled(!cartridgeLoaded);
+			pauseAct->setDisabled(false);//!cartridgeLoaded);
 		}
+		// Or, set up for the Jaguar CD
 		else
 		{
 // Should check for cartridgeLoaded here as well...!
@@ -568,10 +466,6 @@ void MainWin::TogglePowerState(void)
 				" - Now playing: Jaguar CD"));
 		}
 
-//(Err, what's so crappy about this? It seems to do what it's supposed to...)
-//This is crappy!!! !!! FIX !!!
-//Is this even needed any more? Hmm. Maybe. Dunno.
-//Seems like it is... But then again, maybe not. Have to test it to see.
 		WriteLog("GUI: Resetting Jaguar...\n");
 		JaguarReset();
 		running = true;
@@ -649,19 +543,10 @@ void MainWin::LoadSoftware(QString file)
 	SET32(jaguarMainRAM, 0, 0x00200000);		// Set top of stack...
 	cartridgeLoaded = (JaguarLoadFile(file.toAscii().data()) ? true : false);
 
-	uint8_t * biosPointer = jaguarBootROM;
+	char * biosPointer = jaguarBootROM;
 
 	if (vjs.hardwareTypeAlpine)
-	{
-		if (biosAvailable & BIOS_STUB1)
-//			memcpy(jagMemSpace + 0xE00000, jaguarDevBootROM1, 0x20000);
-			biosPointer = jaguarDevBootROM1;
-		else if (biosAvailable & BIOS_STUB2)
-//			memcpy(jagMemSpace + 0xE00000, jaguarDevBootROM2, 0x20000);
-			biosPointer = jaguarDevBootROM2;
-	}
-//	else
-//		memcpy(jagMemSpace + 0xE00000, jaguarBootROM, 0x20000);
+		biosPointer = jaguarDevBootROM2;
 
 	memcpy(jagMemSpace + 0xE00000, biosPointer, 0x20000);
 

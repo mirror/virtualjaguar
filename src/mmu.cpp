@@ -18,6 +18,7 @@
 #include "dac.h"
 //#include "jaguar.h"
 //#include "memory.h"
+#include "jagbios.h"
 #include "wavetable.h"
 
 /*
@@ -211,7 +212,7 @@ MemDesc memoryMap[] = {
 	{ 0xDFFF28, 0xDFFF2B, MM_IO,   &i2sdat2 }, // i2s FIFO data (old)
 	{ 0xDFFF2C, 0xDFFF2F, MM_IO,   &unknown }, // Seems to be some sort of I2S interface
 
-	{ 0xE00000, 0xE3FFFF, MM_ROM,  jaguarBootROM },
+	{ 0xE00000, 0xE1FFFF, MM_ROM,  jaguarBootROM },
 
 	// TOM REGISTERS
 

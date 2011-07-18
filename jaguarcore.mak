@@ -64,6 +64,11 @@ OBJS := \
 	obj/file.o         \
 	obj/filedb.o       \
 	obj/gpu.o          \
+	obj/jagbios.o      \
+	obj/jagcdbios.o    \
+	obj/jagdevcdbios.o \
+	obj/jagstub1bios.o \
+	obj/jagstub2bios.o \
 	obj/jagdasm.o      \
 	obj/jaguar.o       \
 	obj/jerry.o        \

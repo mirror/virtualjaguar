@@ -1604,16 +1604,11 @@ void JaguarReset(void)
 //Need to change this so it uses the single RAM space and load the BIOS
 //into it somewhere...
 //Also, have to change this here and in JaguarReadXX() currently
-	// Only use the system BIOS if it's available...!
-	if (vjs.useJaguarBIOS && (biosAvailable & (BIOS_NORMAL | BIOS_STUB1 | BIOS_STUB2)))
-//		memcpy(jaguarMainRAM, jaguarBootROM, 8);
-//		memcpy(jaguarMainRAM, jaguarDevBootROM1, 8);
+	// Only use the system BIOS if it's available...! (it's always available now!)
+	if (vjs.useJaguarBIOS)
 		memcpy(jaguarMainRAM, &jagMemSpace[0xE00000], 8);
 	else
 		SET32(jaguarMainRAM, 4, jaguarRunAddress);
-
-	if (vjs.useJaguarBIOS && !(biosAvailable & (BIOS_NORMAL | BIOS_STUB1 | BIOS_STUB2)))
-		WriteLog("Jaguar: Requested BIOS, but none available.\n");
 
 //	WriteLog("jaguar_reset():\n");
 	TOMReset();

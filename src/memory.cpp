@@ -35,14 +35,14 @@ uint8 * cdRAM         = &jagMemSpace[0xDFFF00];
 uint8 * gpuRAM        = &jagMemSpace[0xF03000];
 uint8 * dspRAM        = &jagMemSpace[0xF1B000];
 
-uint8 jaguarBootROM[0x040000];					// 68K CPU BIOS ROM--uses only half of this!
-uint8 jaguarCDBootROM[0x040000];				// 68K CPU CD BIOS ROM (256K)
-uint8 jaguarDevBootROM1[0x040000];				// 68K CPU Stubulator 1 ROM--uses only half of this!
-uint8 jaguarDevBootROM2[0x040000];				// 68K CPU Stubulator 2 ROM--uses only half of this!
-uint8 jaguarDevCDBootROM[0x040000];				// 68K CPU Dev CD BIOS ROM (256K)
+//uint8 jaguarBootROM[0x040000];					// 68K CPU BIOS ROM--uses only half of this!
+//uint8 jaguarCDBootROM[0x040000];				// 68K CPU CD BIOS ROM (256K)
+//uint8 jaguarDevBootROM1[0x040000];				// 68K CPU Stubulator 1 ROM--uses only half of this!
+//uint8 jaguarDevBootROM2[0x040000];				// 68K CPU Stubulator 2 ROM--uses only half of this!
+//uint8 jaguarDevCDBootROM[0x040000];				// 68K CPU Dev CD BIOS ROM (256K)
 
 // This is an ORed value showing which BIOSes having been loaded into memory.
-int biosAvailable = 0;
+//int biosAvailable = 0;
 
 #if 0
 union Word

@@ -13,11 +13,11 @@ extern uint8 jagMemSpace[];
 
 extern uint8 * jaguarMainRAM;
 extern uint8 * jaguarMainROM;
-extern uint8 jaguarBootROM[];
-extern uint8 jaguarCDBootROM[];
-extern uint8 jaguarDevBootROM1[];
-extern uint8 jaguarDevBootROM2[];
-extern uint8 jaguarDevCDBootROM[];
+//extern uint8 jaguarBootROM[];
+//extern uint8 jaguarCDBootROM[];
+//extern uint8 jaguarDevBootROM1[];
+//extern uint8 jaguarDevBootROM2[];
+//extern uint8 jaguarDevCDBootROM[];
 extern uint8 * gpuRAM;
 extern uint8 * dspRAM;
 
@@ -75,8 +75,8 @@ extern const char * whoName[9];
 
 // BIOS identification enum
 
-enum { BIOS_NORMAL=0x01, BIOS_CD=0x02, BIOS_STUB1=0x04, BIOS_STUB2=0x08, BIOS_DEV_CD=0x10 };
-extern int biosAvailable;
+//enum { BIOS_NORMAL=0x01, BIOS_CD=0x02, BIOS_STUB1=0x04, BIOS_STUB2=0x08, BIOS_DEV_CD=0x10 };
+//extern int biosAvailable;
 
 // Some handy macros to help converting native endian to big endian (jaguar native)
 // & vice versa
