@@ -1605,8 +1605,8 @@ void JaguarReset(void)
 //into it somewhere...
 //Also, have to change this here and in JaguarReadXX() currently
 	// Only use the system BIOS if it's available...! (it's always available now!)
-	if (vjs.useJaguarBIOS)
-		memcpy(jaguarMainRAM, &jagMemSpace[0xE00000], 8);
+	if (vjs.useJaguarBIOS && !vjs.hardwareTypeAlpine)
+		memcpy(jaguarMainRAM, jagMemSpace + 0xE00000, 8);
 	else
 		SET32(jaguarMainRAM, 4, jaguarRunAddress);
 
