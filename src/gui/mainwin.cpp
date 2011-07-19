@@ -358,7 +358,7 @@ void MainWin::Configure(void)
 	// If the "Alpine" ROM is changed, then let's load it...
 	if (alpineBefore != alpineAfter)
 	{
-		if (!JaguarLoadFile(vjs.alpineROMPath) || !AlpineLoadFile(vjs.alpineROMPath))
+		if (!JaguarLoadFile(vjs.alpineROMPath) && !AlpineLoadFile(vjs.alpineROMPath))
 		{
 			// Oh crap, we couldn't get the file! Alert the media!
 			QMessageBox msg;
