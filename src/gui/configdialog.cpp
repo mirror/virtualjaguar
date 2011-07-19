@@ -71,6 +71,9 @@ void ConfigDialog::LoadDialogFromSettings(void)
 		alpineTab->edit2->setText(vjs.absROMPath);
 		alpineTab->writeROM->setChecked(vjs.allowWritesToROM);
 	}
+
+	for(int i=0; i<21; i++)
+		controllerTab->p1Keys[i] = vjs.p1KeyBindings[i];
 }
 
 void ConfigDialog::UpdateVJSettings(void)
@@ -90,4 +93,7 @@ void ConfigDialog::UpdateVJSettings(void)
 		strcpy(vjs.absROMPath,    alpineTab->edit2->text().toAscii().data());
 		vjs.allowWritesToROM = alpineTab->writeROM->isChecked();
 	}
+
+	for(int i=0; i<21; i++)
+		vjs.p1KeyBindings[i] = controllerTab->p1Keys[i];
 }

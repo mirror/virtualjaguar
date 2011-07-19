@@ -63,6 +63,7 @@ HEADERS = \
 	src/gui/generaltab.h \
 	src/gui/glwidget.h \
 	src/gui/imagedelegate.h \
+	src/gui/keygrabber.h \
 	src/gui/mainwin.h
 
 SOURCES = \
@@ -77,4 +78,5 @@ SOURCES = \
 	src/gui/generaltab.cpp \
 	src/gui/glwidget.cpp \
 	src/gui/imagedelegate.cpp \
+	src/gui/keygrabber.cpp \
 	src/gui/mainwin.cpp

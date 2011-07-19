@@ -14,8 +14,11 @@ class ControllerTab: public QWidget
 	protected slots:
 		void DefineAllKeys(void);
 
-	public:
+	private:
 		QPushButton * redefineAll;
+
+	public:
+		int p1Keys[21];
 };
 
 #endif	// __CONTROLLERTAB_H__
