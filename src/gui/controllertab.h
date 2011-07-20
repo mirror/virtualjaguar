@@ -2,6 +2,7 @@
 #define __CONTROLLERTAB_H__
 
 #include <QtGui>
+#include <stdint.h>
 
 class ControllerTab: public QWidget
 {
@@ -10,6 +11,7 @@ class ControllerTab: public QWidget
 	public:
 		ControllerTab(QWidget * parent = 0);
 		~ControllerTab();
+		void UpdateLabel(void);
 
 	protected slots:
 		void DefineAllKeys(void);
@@ -19,10 +21,12 @@ class ControllerTab: public QWidget
 		void DrawBorderedText(QPainter &, int, int, QString);
 
 	public:
-		int p1Keys[21];
+		uint32_t p1Keys[21];
 
-	// Class data
 	private:
+		QLabel * controllerPic;
+
+		// Class data
 		static char keyName1[96][16];
 		static char keyName2[64][16];
 };

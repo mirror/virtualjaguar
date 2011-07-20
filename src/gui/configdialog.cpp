@@ -48,6 +48,7 @@ ConfigDialog::ConfigDialog(QWidget * parent/*= 0*/): QDialog(parent)
 	setWindowTitle(tr("Virtual Jaguar Settings"));
 
 	LoadDialogFromSettings();
+	controllerTab->UpdateLabel();				// Now it's safe to do this... ;-)
 }
 
 ConfigDialog::~ConfigDialog()

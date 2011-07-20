@@ -10,6 +10,8 @@
 // WHO  WHEN        WHAT
 // ---  ----------  ------------------------------------------------------------
 // JLH  06/23/2011  Created this file
+// JLH  07/20/2011  Fixed a bunch of stuff
+//
 
 #include "controllertab.h"
 
@@ -42,111 +44,14 @@ char ControllerTab::keyName2[64][16] = {
 
 ControllerTab::ControllerTab(QWidget * parent/*= 0*/): QWidget(parent)
 {
-	QLabel * img = new QLabel;
-//	img->setPixmap(QPixmap(":/res/controller.png"));
-
-/*
-	QImage cartImg(":/res/cart-blank.png");
-	QPainter painter(&cartImg);
-	painter.drawPixmap(23, 87, QPixmap(":/res/label-blank.png"));
-	painter.end();
-	cartSmall = cartImg.scaled(488/4, 395/4, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
-*/
+	controllerPic = new QLabel;
 	QImage controller(":/res/controller.png");
-	QPainter painter(&controller);
-//	painter.draw();
-//	painter->drawText(QRect(option.rect.x()+10, option.rect.y()+36, 196/2, 70/2),
-//		Qt::TextWordWrap | Qt::AlignHCenter, nameToDraw);
-
-	// Bump up the size of the default font...
-	QFont font = painter.font();
-	font.setPixelSize(14);
-	font.setBold(true);
-	painter.setFont(font);
-	painter.setPen(QColor(48, 255, 255, 255));	// This is R,G,B,A
-
-	// This is hard-coded crap. It's crap-tastic!
-/*
-Bitmap Locations:
-
-Up: 87,64
-Down: 87,94
-Left: 73,78
-Right: 105,77
-C: 209,104
-B: 225,80
-A: 242,60
-Pause: 141,109
-Option: 165,107
-1: 125,153
-2: 160,153
-3: 196,153
-4: 125,177
-5: 
-6: 
-7: 125,199
-8: 
-9: 
-*: 125,223
-0: 
-#: 
-enum { BUTTON_FIRST = 0, BUTTON_U = 0,
-BUTTON_D = 1,
-BUTTON_L = 2,
-BUTTON_R = 3,
-
-BUTTON_s = 4,
-BUTTON_7 = 5,
-BUTTON_4 = 6,
-BUTTON_1 = 7,
-BUTTON_0 = 8,
-BUTTON_8 = 9,
-BUTTON_5 = 10,
-BUTTON_2 = 11,
-BUTTON_d = 12,
-BUTTON_9 = 13,
-BUTTON_6 = 14,
-BUTTON_3 = 15,
-
-BUTTON_A = 16,
-BUTTON_B = 17,
-BUTTON_C = 18,
-BUTTON_OPTION = 19,
-BUTTON_PAUSE = 20, BUTTON_LAST = 20 };
-*/
-	int buttonPos[21][2] = { { 87, 64 }, { 87, 94 }, { 73, 78 }, { 105, 77 },
-		{ 125, 223 }, { 125, 199 }, { 125, 177 }, { 125, 153 },
-		{ 160, 223 }, { 160, 199 }, { 160, 177 }, { 160, 153 },
-		{ 196, 223 }, { 196, 199 }, { 196, 177 }, { 196, 153 },
-		{ 242, 60 }, { 225, 80 }, { 209, 104 }, { 165, 107 }, { 141, 109 }
-	};
-
-	for(int i=BUTTON_FIRST; i<=BUTTON_LAST; i++)
-//		painter.drawText(QPoint(buttonPos[i][0] - 5, buttonPos[i][1] + 5), QString(buttonName[i]));
-	{
-// Need to convert this back to p1Keys, but will require some restructuring...
-//		if (p1Keys[i] < 0x80)
-		if (vjs.p1KeyBindings[i] < 0x80)
-//			painter.drawText(QPoint(buttonPos[i][0] - 5, buttonPos[i][1] + 5), QString(keyName1[p1Keys[i] - 0x20]));
-//			painter.drawText(QPoint(buttonPos[i][0] - 5, buttonPos[i][1] + 5), QString(keyName1[vjs.p1KeyBindings[i] - 0x20]));
-			DrawBorderedText(painter, buttonPos[i][0] - 5, buttonPos[i][1] + 5, QString(keyName1[vjs.p1KeyBindings[i] - 0x20]));
-		else if ((vjs.p1KeyBindings[i] & 0xFFFFFF00) == 0x01000000)
-		{
-//			painter.drawText(QPoint(buttonPos[i][0] - 5, buttonPos[i][1] + 5), QString(keyName2[vjs.p1KeyBindings[i] & 0x3F]));
-			DrawBorderedText(painter, buttonPos[i][0] - 5, buttonPos[i][1] + 5, QString(keyName2[vjs.p1KeyBindings[i] & 0x3F]));
-		}
-		else
-//			painter.drawText(QPoint(buttonPos[i][0] - 5, buttonPos[i][1] + 5), QString("???"));
-			DrawBorderedText(painter, buttonPos[i][0] - 5, buttonPos[i][1] + 5, QString("???"));
-	}
-
-	painter.end();
-	img->setPixmap(QPixmap::fromImage(controller));
+	controllerPic->setPixmap(QPixmap::fromImage(controller));
 
 	redefineAll = new QPushButton(tr("Redefine All Keys"));
 
 	QVBoxLayout * layout = new QVBoxLayout;
-	layout->addWidget(img);
+	layout->addWidget(controllerPic);
 	layout->addWidget(redefineAll);
 	setLayout(layout);
 
@@ -174,9 +79,48 @@ void ControllerTab::DefineAllKeys(void)
 		if (key == Qt::Key_Escape)
 			break;
 
-		// Otherwise, populate the appropriate spot in the settings...
+		// Otherwise, populate the appropriate spot in the settings & update screen...
 		p1Keys[orderToDefine[i]] = key;
+		UpdateLabel();
 	}
+}
+
+void ControllerTab::UpdateLabel(void)
+{
+	QImage controller(":/res/controller.png");
+	QPainter painter(&controller);
+
+	// Bump up the size of the default font...
+	QFont font = painter.font();
+	font.setPixelSize(15);
+	font.setBold(true);
+	painter.setFont(font);
+	painter.setPen(QColor(48, 255, 255, 255));	// This is R,G,B,A
+
+	// This is hard-coded crap. It's crap-tastic!
+	int buttonPos[21][2] = { { 87, 64 }, { 87, 94 }, { 73, 78 }, { 105, 77 },
+		{ 125, 223 }, { 125, 199 }, { 125, 178 }, { 125, 153 },
+		{ 160, 223 }, { 160, 199 }, { 160, 178 }, { 160, 153 },
+		{ 196, 223 }, { 196, 199 }, { 196, 178 }, { 196, 153 },
+		{ 242, 60 }, { 225, 80 }, { 209, 104 }, { 165, 108 }, { 141, 108 }
+	};
+
+	for(int i=BUTTON_FIRST; i<=BUTTON_LAST; i++)
+	{
+		if (p1Keys[i] < 0x80)
+			DrawBorderedText(painter, buttonPos[i][0] - 5, buttonPos[i][1] + 5,
+				QString(keyName1[p1Keys[i] - 0x20]));
+		else if ((p1Keys[i] & 0xFFFFFF00) == 0x01000000)
+		{
+			DrawBorderedText(painter, buttonPos[i][0] - 5, buttonPos[i][1] + 5,
+				QString(keyName2[p1Keys[i] & 0x3F]));
+		}
+		else
+			DrawBorderedText(painter, buttonPos[i][0] - 5, buttonPos[i][1] + 5, QString("???"));
+	}
+
+	painter.end();
+	controllerPic->setPixmap(QPixmap::fromImage(controller));
 }
 
 void ControllerTab::DrawBorderedText(QPainter & painter, int x, int y, QString text)

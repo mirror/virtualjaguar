@@ -68,7 +68,7 @@ RomIdentifier romList[] = {
 	{ 0x5CFF14AB, "Pinball Fantasies (World)", FF_ROM | FF_VERIFIED },
 	{ 0x5DDF9724, "Protector - Special Edition (World)", FF_ALPINE | FF_VERIFIED },
 	{ 0x5E2CDBC0, "Doom (World)", FF_ROM | FF_VERIFIED | FF_REQ_DSP },
-	{ 0x5F2C2774, "Battlesphere (World)", FF_ROM | FF_VERIFIED | FF_REQ_DSP },
+	{ 0x5F2C2774, "Battle Sphere (World)", FF_ROM | FF_VERIFIED | FF_REQ_DSP },
 	{ 0x61C7EEC0, "Zero 5 (World)", FF_ROM | FF_VERIFIED },
 	{ 0x61EE6B62, "Arena Football '95", FF_ALPINE | FF_VERIFIED },
 	{ 0x67F9AB3A, "Battle Sphere Gold (World)", FF_ROM | FF_REQ_DSP },
