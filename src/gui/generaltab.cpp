@@ -16,10 +16,9 @@
 
 GeneralTab::GeneralTab(QWidget * parent/*= 0*/): QWidget(parent)
 {
-//	antialiasChk = new QCheckBox(tr("Use Qt's built-in antialiasing"));
-
 // I'm thinking we should scan the bios folder for the 5 known BIOSes, and
 // just present a radio button to choose between them...
+// (BIOS is built-in now...)
 	QLabel * label1 = new QLabel("Boot ROM:");
 	QLabel * label2 = new QLabel("CD Boot ROM:");
 	QLabel * label3 = new QLabel("EEPROMs:");
@@ -56,7 +55,7 @@ GeneralTab::GeneralTab(QWidget * parent/*= 0*/): QWidget(parent)
 	// Checkboxes...
 	useBIOS            = new QCheckBox(tr("Enable Jaguar BIOS"));
 	useDSP             = new QCheckBox(tr("Enable DSP"));
-	useHostAudio       = new QCheckBox(tr("Enable audio playback"));
+	useHostAudio       = new QCheckBox(tr("Enable audio playback (requires DSP)"));
 	useUnknownSoftware = new QCheckBox(tr("Allow unknown software in file chooser"));
 
 	layout4->addWidget(useBIOS);

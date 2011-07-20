@@ -776,6 +776,7 @@ void TOMExecScanline(uint16 scanline, bool render)
 // And it works! But need to do some optimizations in the OP to keep it from attempting
 // to do a scanline render in the non-display area... [DONE]
 //this seems to cause a regression in certain games, like rayman
+//which means I have to dig thru the asic nets to see what's wrong...
 #if 1
 	if (scanline >= (uint16)GET16(tomRam8, VDB) && scanline < (uint16)GET16(tomRam8, VDE))
 	{
