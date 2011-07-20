@@ -209,7 +209,10 @@ New sizes: 373x172 (label), 420x340 (cart)
 void FilePickerWindow::keyPressEvent(QKeyEvent * e)
 {
 	if (e->key() == Qt::Key_Escape)
+	{
 		hide();
+		emit(FilePickerHiding());
+	}
 	else if (e->key() == Qt::Key_Return)
 		LoadButtonPressed();
 }

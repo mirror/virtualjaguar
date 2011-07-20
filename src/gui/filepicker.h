@@ -31,6 +31,7 @@ class FilePickerWindow: public QWidget
 
 	signals:
 		void RequestLoad(QString);
+		void FilePickerHiding(void);
 
 	protected:
 		void keyPressEvent(QKeyEvent *);

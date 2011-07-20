@@ -79,7 +79,8 @@
 // use, we can drop it in anywhere and use it as-is.
 
 MainWin::MainWin(): running(false), powerButtonOn(false), showUntunedTankCircuit(true),
-	cartridgeLoaded(false), CDActive(false)//, alpineLoadSuccessful(false)
+	cartridgeLoaded(false), CDActive(false),//, alpineLoadSuccessful(false),
+	pauseForFileSelector(false)
 {
 	videoWidget = new GLWidget(this);
 	setCentralWidget(videoWidget);
@@ -178,6 +179,7 @@ MainWin::MainWin(): running(false), powerButtonOn(false), showUntunedTankCircuit
 
 	// Misc. connections...
 	connect(filePickWin, SIGNAL(RequestLoad(QString)), this, SLOT(LoadSoftware(QString)));
+	connect(filePickWin, SIGNAL(FilePickerHiding()), this, SLOT(Unpause()));
 
 	// Create menus & toolbars
 
@@ -534,12 +536,29 @@ void MainWin::ShowAboutWin(void)
 
 void MainWin::InsertCart(void)
 {
+	if (running)
+	{
+		ToggleRunState();
+		pauseForFileSelector = true;
+	}
+
 	filePickWin->show();
+}
+
+void MainWin::Unpause(void)
+{
+	// Here we unpause the emulator if it was paused when we went into the file selector
+	if (pauseForFileSelector)
+	{
+		pauseForFileSelector = false;
+		ToggleRunState();
+	}
 }
 
 void MainWin::LoadSoftware(QString file)
 {
-	running = false;							//  Prevent bad things(TM) from happening...
+	running = false;							// Prevent bad things(TM) from happening...
+	pauseForFileSelector = false;				// Reset the file selector pause flag
 	SET32(jaguarMainRAM, 0, 0x00200000);		// Set top of stack...
 	cartridgeLoaded = (JaguarLoadFile(file.toAscii().data()) ? true : false);
 

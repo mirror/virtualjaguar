@@ -43,6 +43,7 @@ class MainWin: public QMainWindow
 		void ToggleBlur(void);
 		void ShowAboutWin(void);
 		void InsertCart(void);
+		void Unpause(void);
 		void LoadSoftware(QString);
 		void ToggleCDUsage(void);
 
@@ -65,6 +66,7 @@ class MainWin: public QMainWindow
 		bool allowUnknownSoftware;
 		bool CDActive;
 //		bool alpineLoadSuccessful;
+		bool pauseForFileSelector;
 
 		QMenu * fileMenu;
 		QMenu * helpMenu;
