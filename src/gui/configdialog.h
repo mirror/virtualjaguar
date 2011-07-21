@@ -32,7 +32,8 @@ class ConfigDialog: public QDialog
 
 	public:
 		GeneralTab * generalTab;
-		ControllerTab * controllerTab;
+		ControllerTab * controllerTab1;
+		ControllerTab * controllerTab2;
 		AlpineTab * alpineTab;
 };
 

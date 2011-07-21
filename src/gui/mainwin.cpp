@@ -166,7 +166,7 @@ MainWin::MainWin(): running(false), powerButtonOn(false), showUntunedTankCircuit
 	filePickAct->setShortcut(QKeySequence(tr("Ctrl+i")));
 	connect(filePickAct, SIGNAL(triggered()), this, SLOT(InsertCart()));
 
-	configAct = new QAction(QIcon(":/res/generic.png"), tr("&Configure"), this);
+	configAct = new QAction(QIcon(":/res/wrench.png"), tr("&Configure"), this);
 	configAct->setStatusTip(tr("Configure options for Virtual Jaguar"));
 	configAct->setShortcut(QKeySequence(tr("Ctrl+c")));
 	connect(configAct, SIGNAL(triggered()), this, SLOT(Configure()));
@@ -183,11 +183,11 @@ MainWin::MainWin(): running(false), powerButtonOn(false), showUntunedTankCircuit
 
 	// Create menus & toolbars
 
-	fileMenu = menuBar()->addMenu(tr("&File"));
-	fileMenu->addAction(filePickAct);
-	fileMenu->addAction(useCDAct);
+	fileMenu = menuBar()->addMenu(tr("&Jaguar"));
 	fileMenu->addAction(powerAct);
 	fileMenu->addAction(pauseAct);
+	fileMenu->addAction(filePickAct);
+	fileMenu->addAction(useCDAct);
 	fileMenu->addAction(configAct);
 	fileMenu->addAction(quitAppAct);
 
@@ -536,6 +536,8 @@ void MainWin::ShowAboutWin(void)
 
 void MainWin::InsertCart(void)
 {
+	// If the emulator is running, we pause it here and unpause it later
+	// if we dismiss the file selector without choosing anything
 	if (running)
 	{
 		ToggleRunState();
@@ -560,7 +562,7 @@ void MainWin::LoadSoftware(QString file)
 	running = false;							// Prevent bad things(TM) from happening...
 	pauseForFileSelector = false;				// Reset the file selector pause flag
 	SET32(jaguarMainRAM, 0, 0x00200000);		// Set top of stack...
-	cartridgeLoaded = (JaguarLoadFile(file.toAscii().data()) ? true : false);
+	cartridgeLoaded = JaguarLoadFile(file.toAscii().data());
 
 	char * biosPointer = jaguarBootROM;
 

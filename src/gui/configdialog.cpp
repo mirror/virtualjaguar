@@ -24,13 +24,15 @@ ConfigDialog::ConfigDialog(QWidget * parent/*= 0*/): QDialog(parent)
 {
 	tabWidget = new QTabWidget;
 	generalTab = new GeneralTab(this);
-	controllerTab = new ControllerTab(this);
+	controllerTab1 = new ControllerTab(this);
+	controllerTab2 = new ControllerTab(this);
 
 	if (vjs.hardwareTypeAlpine)
 		alpineTab = new AlpineTab(this);
 
 	tabWidget->addTab(generalTab, tr("General"));
-	tabWidget->addTab(controllerTab, tr("Controller"));
+	tabWidget->addTab(controllerTab1, tr("Controller #1"));
+	tabWidget->addTab(controllerTab2, tr("Controller #2"));
 
 	if (vjs.hardwareTypeAlpine)
 		tabWidget->addTab(alpineTab, tr("Alpine"));
@@ -48,7 +50,8 @@ ConfigDialog::ConfigDialog(QWidget * parent/*= 0*/): QDialog(parent)
 	setWindowTitle(tr("Virtual Jaguar Settings"));
 
 	LoadDialogFromSettings();
-	controllerTab->UpdateLabel();				// Now it's safe to do this... ;-)
+	controllerTab1->UpdateLabel();				// Now it's safe to do this... ;-)
+	controllerTab2->UpdateLabel();				// Now it's safe to do this... ;-)
 }
 
 ConfigDialog::~ConfigDialog()
@@ -74,7 +77,10 @@ void ConfigDialog::LoadDialogFromSettings(void)
 	}
 
 	for(int i=0; i<21; i++)
-		controllerTab->p1Keys[i] = vjs.p1KeyBindings[i];
+	{
+		controllerTab1->p1Keys[i] = vjs.p1KeyBindings[i];
+		controllerTab2->p1Keys[i] = vjs.p2KeyBindings[i];
+	}
 }
 
 void ConfigDialog::UpdateVJSettings(void)
@@ -96,5 +102,8 @@ void ConfigDialog::UpdateVJSettings(void)
 	}
 
 	for(int i=0; i<21; i++)
-		vjs.p1KeyBindings[i] = controllerTab->p1Keys[i];
+	{
+		vjs.p1KeyBindings[i] = controllerTab1->p1Keys[i];
+		vjs.p2KeyBindings[i] = controllerTab2->p1Keys[i];
+	}
 }
