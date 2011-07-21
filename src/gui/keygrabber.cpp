@@ -27,9 +27,15 @@ KeyGrabber::~KeyGrabber()
 {
 }
 
-void KeyGrabber::SetText(QString keyText)
+//void KeyGrabber::SetText(QString keyText)
+void KeyGrabber::SetKeyText(int keyNum)
 {
-	QString text = QString(tr("Press key for \"%1\"<br>(ESC to cancel)")).arg(keyText);
+	char jagButtonName[21][10] = { "Up", "Down", "Left", "Right",
+		"*", "7", "4", "1", "0", "8", "5", "2", "#", "9", "6", "3",
+		"A", "B", "C", "Option", "Pause" };
+
+	QString text = QString(tr("Press key for \"%1\"<br>(ESC to cancel)"))
+		.arg(QString(jagButtonName[keyNum]));
 	label->setText(text);
 }
 

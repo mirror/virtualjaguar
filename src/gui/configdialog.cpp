@@ -14,9 +14,10 @@
 
 #include "configdialog.h"
 
-#include "generaltab.h"
-#include "controllertab.h"
 #include "alpinetab.h"
+#include "controllertab.h"
+#include "controllerwidget.h"
+#include "generaltab.h"
 #include "settings.h"
 
 
@@ -50,8 +51,8 @@ ConfigDialog::ConfigDialog(QWidget * parent/*= 0*/): QDialog(parent)
 	setWindowTitle(tr("Virtual Jaguar Settings"));
 
 	LoadDialogFromSettings();
-	controllerTab1->UpdateLabel();				// Now it's safe to do this... ;-)
-	controllerTab2->UpdateLabel();				// Now it's safe to do this... ;-)
+//	controllerTab1->UpdateLabel();				// Now it's safe to do this... ;-)
+//	controllerTab2->UpdateLabel();				// Now it's safe to do this... ;-)
 }
 
 ConfigDialog::~ConfigDialog()
@@ -78,8 +79,10 @@ void ConfigDialog::LoadDialogFromSettings(void)
 
 	for(int i=0; i<21; i++)
 	{
-		controllerTab1->p1Keys[i] = vjs.p1KeyBindings[i];
-		controllerTab2->p1Keys[i] = vjs.p2KeyBindings[i];
+//		controllerTab1->p1Keys[i] = vjs.p1KeyBindings[i];
+//		controllerTab2->p1Keys[i] = vjs.p2KeyBindings[i];
+		controllerTab1->controllerWidget->keys[i] = vjs.p1KeyBindings[i];
+		controllerTab2->controllerWidget->keys[i] = vjs.p2KeyBindings[i];
 	}
 }
 
@@ -103,7 +106,9 @@ void ConfigDialog::UpdateVJSettings(void)
 
 	for(int i=0; i<21; i++)
 	{
-		vjs.p1KeyBindings[i] = controllerTab1->p1Keys[i];
-		vjs.p2KeyBindings[i] = controllerTab2->p1Keys[i];
+//		vjs.p1KeyBindings[i] = controllerTab1->p1Keys[i];
+//		vjs.p2KeyBindings[i] = controllerTab2->p1Keys[i];
+		vjs.p1KeyBindings[i] = controllerTab1->controllerWidget->keys[i];
+		vjs.p2KeyBindings[i] = controllerTab2->controllerWidget->keys[i];
 	}
 }

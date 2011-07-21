@@ -2,6 +2,7 @@
 #define __CONTROLLERWIDGET_H__
 
 #include <QtGui>
+#include <stdint.h>
 
 class ControllerWidget: public QWidget
 {
@@ -10,8 +11,32 @@ class ControllerWidget: public QWidget
 	public:
 		ControllerWidget(QWidget * parent = 0);
 		~ControllerWidget();
+		QSize sizeHint(void) const;
+		QSizePolicy sizePolicy(void) const;
 
-	//need paint, mousemove, mousedown, mouseup, etc
+	protected:
+		void paintEvent(QPaintEvent *);
+		void mousePressEvent(QMouseEvent *);
+		void mouseReleaseEvent(QMouseEvent *);
+		void mouseMoveEvent(QMouseEvent *);
+		void leaveEvent(QEvent *);
+
+	private:
+		void DrawBorderedText(QPainter &, int, int, QString);
+
+	public:
+		uint32_t keys[21];
+
+	private:
+		QImage controllerPic;
+		QSize widgetSize;
+		int keyToHighlight;
+		bool mouseDown;
+
+		// Class data
+		static char keyName1[96][16];
+		static char keyName2[64][16];
+		static int buttonPos[21][2];
 };
 
 #endif	// __CONTROLLERWIDGET_H__

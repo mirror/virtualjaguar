@@ -316,6 +316,15 @@ void MainWin::HandleKeys(QKeyEvent * e, bool state)
 		joypad_0_buttons[BUTTON_D] = 0;
 	if (e->key() == (int)vjs.p1KeyBindings[BUTTON_D] && joypad_0_buttons[BUTTON_U])
 		joypad_0_buttons[BUTTON_U] = 0;
+
+	if (e->key() == (int)vjs.p2KeyBindings[BUTTON_L] && joypad_1_buttons[BUTTON_R])
+		joypad_0_buttons[BUTTON_R] = 0;
+	if (e->key() == (int)vjs.p2KeyBindings[BUTTON_R] && joypad_1_buttons[BUTTON_L])
+		joypad_0_buttons[BUTTON_L] = 0;
+	if (e->key() == (int)vjs.p2KeyBindings[BUTTON_U] && joypad_1_buttons[BUTTON_D])
+		joypad_0_buttons[BUTTON_D] = 0;
+	if (e->key() == (int)vjs.p2KeyBindings[BUTTON_D] && joypad_1_buttons[BUTTON_U])
+		joypad_0_buttons[BUTTON_U] = 0;
 #endif
 
 	// No bad combos exist, let's stuff the emulator key buffers...!
@@ -323,6 +332,9 @@ void MainWin::HandleKeys(QKeyEvent * e, bool state)
 	{
 		if (e->key() == (int)vjs.p1KeyBindings[i])
 			joypad_0_buttons[i] = (uint8)state;
+
+		if (e->key() == (int)vjs.p2KeyBindings[i])
+			joypad_1_buttons[i] = (uint8)state;
 	}
 }
 

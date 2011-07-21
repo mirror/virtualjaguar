@@ -377,6 +377,7 @@ uint8 JoystickReadByte(uint32 offset)
 //unused		int pad1Index = (joystick_ram[1] >> 4) & 0x0F;
 
 //WTF is this shit?
+#warning "!!! What is this? !!!"
 		if (!(pad0Index & 0x01))
 		{
 			if (joypad_0_buttons[BUTTON_PAUSE])

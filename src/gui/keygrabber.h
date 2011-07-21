@@ -10,10 +10,6 @@
 
 #include <QtGui>
 
-//class GeneralTab;
-//class ControllerTab;
-//class AlpineTab;
-
 class KeyGrabber: public QDialog
 {
 	Q_OBJECT
@@ -21,26 +17,16 @@ class KeyGrabber: public QDialog
 	public:
 		KeyGrabber(QWidget * parent = 0);
 		~KeyGrabber();
-//		void UpdateVJSettings(void);
-		void SetText(QString);
-//		int GetKeyGrabbed(void);
+		void SetKeyText(int);
 
 	protected:
 		void keyPressEvent(QKeyEvent *);
 
-//	private:
-//		void LoadDialogFromSettings(void);
-
-	private:
-//		QTabWidget * tabWidget;
-//		QDialogButtonBox * buttonBox;
+private:
 		QLabel * label;
 
 	public:
 		int key;
-//		GeneralTab * generalTab;
-//		ControllerTab * controllerTab;
-//		AlpineTab * alpineTab;
 };
 
 #endif	// __KEYGRABBER_H__
