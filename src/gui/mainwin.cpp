@@ -274,6 +274,8 @@ MainWin::MainWin(): running(false), powerButtonOn(false), showUntunedTankCircuit
 		// Attempt to load/run the ABS file...
 		LoadSoftware(vjs.absROMPath);
 	}
+	else
+		memcpy(jagMemSpace + 0xE00000, jaguarBootROM, 0x20000);	// Otherwise, use the stock BIOS
 }
 
 void MainWin::closeEvent(QCloseEvent * event)

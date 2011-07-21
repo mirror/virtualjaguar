@@ -57,6 +57,7 @@ HEADERS = \
 	src/gui/app.h \
 	src/gui/configdialog.h \
 	src/gui/controllertab.h \
+	src/gui/controllerwidget.h \
 	src/gui/filelistmodel.h \
 	src/gui/filepicker.h \
 	src/gui/filethread.h \
@@ -72,6 +73,7 @@ SOURCES = \
 	src/gui/app.cpp \
 	src/gui/configdialog.cpp \
 	src/gui/controllertab.cpp \
+	src/gui/controllerwidget.cpp \
 	src/gui/filelistmodel.cpp \
 	src/gui/filepicker.cpp \
 	src/gui/filethread.cpp \
