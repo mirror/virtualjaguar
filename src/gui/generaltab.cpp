@@ -56,7 +56,7 @@ GeneralTab::GeneralTab(QWidget * parent/*= 0*/): QWidget(parent)
 	useBIOS            = new QCheckBox(tr("Enable Jaguar BIOS"));
 	useDSP             = new QCheckBox(tr("Enable DSP"));
 	useHostAudio       = new QCheckBox(tr("Enable audio playback (requires DSP)"));
-	useUnknownSoftware = new QCheckBox(tr("Allow unknown software in file chooser"));
+	useUnknownSoftware = new QCheckBox(tr("Show all files in file chooser"));
 
 	layout4->addWidget(useBIOS);
 	layout4->addWidget(useDSP);

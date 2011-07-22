@@ -108,7 +108,9 @@ printf("VSB size: %u, %u\n", sbSize3.width(), sbSize3.height());
 //	fileList->verticalScrollBar()->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Preferred);
 	// (488/4) + 4 is the width of the object in the filelistmodel. Dunno why the QListView
 	// isn't picking that up. :-(
-	fileList->setFixedWidth((488/4) + 4 + sbWidth);//ick
+	// 488/4 + 4 = 126
+	// 126 + 17 + 4 = 147 <-- correct width
+	fileList->setFixedWidth((488/4) + 4 + sbWidth2 + sbWidth5 + 1);//ick
 //	fileList->setFixedWidth((488/4) + 4 + 17 + 4);//sbWidth);//ick
 
 //	fileList->setSpacing(4);
@@ -153,9 +155,9 @@ printf("VSB size: %u, %u\n", sbSize3.width(), sbSize3.height());
 	dataLayout->addWidget(labels);
 	data = new QLabel(QString(tr(
 		"?MB Cartridge<br>"
-		"????????<br>"
-		"???<br>"
-		"???"
+		"00000000<br>"
+		"?<br>"
+		"?"
 	)));
 	data->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
 	dataLayout->addWidget(data);

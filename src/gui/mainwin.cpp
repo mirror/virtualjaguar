@@ -635,7 +635,7 @@ void MainWin::ReadSettings(void)
 	pos = settings.value("cartLoadPos", QPoint(200, 200)).toPoint();
 	filePickWin->move(pos);
 
-	zoomLevel = settings.value("zoom", 1).toInt();
+	zoomLevel = settings.value("zoom", 2).toInt();
 	allowUnknownSoftware = settings.value("showUnknownSoftware", false).toBool();
 
 	vjs.useJoystick      = settings.value("useJoystick", false).toBool();
@@ -648,7 +648,7 @@ void MainWin::ReadSettings(void)
 	vjs.usePipelinedDSP  = settings.value("usePipelinedDSP", false).toBool();
 	vjs.fullscreen       = settings.value("fullscreen", false).toBool();
 	vjs.useOpenGL        = settings.value("useOpenGL", true).toBool();
-	vjs.glFilter         = settings.value("glFilterType", 0).toInt();
+	vjs.glFilter         = settings.value("glFilterType", 1).toInt();
 	vjs.renderType       = settings.value("renderType", 0).toInt();
 	vjs.allowWritesToROM = settings.value("writeROM", false).toBool();
 //	strcpy(vjs.jagBootPath, settings.value("JagBootROM", "./bios/[BIOS] Atari Jaguar (USA, Europe).zip").toString().toAscii().data());
@@ -666,15 +666,15 @@ WriteLog("AlpineROMPath = \"%s\"\n", vjs.alpineROMPath);
 WriteLog("   absROMPath = \"%s\"\n", vjs.absROMPath);
 
 	// Keybindings in order of U, D, L, R, C, B, A, Op, Pa, 0-9, #, *
-	vjs.p1KeyBindings[BUTTON_U] = settings.value("p1k_up", Qt::Key_Up).toInt();
-	vjs.p1KeyBindings[BUTTON_D] = settings.value("p1k_down", Qt::Key_Down).toInt();
-	vjs.p1KeyBindings[BUTTON_L] = settings.value("p1k_left", Qt::Key_Left).toInt();
-	vjs.p1KeyBindings[BUTTON_R] = settings.value("p1k_right", Qt::Key_Right).toInt();
-	vjs.p1KeyBindings[BUTTON_C] = settings.value("p1k_c", Qt::Key_Z).toInt();
-	vjs.p1KeyBindings[BUTTON_B] = settings.value("p1k_b", Qt::Key_X).toInt();
-	vjs.p1KeyBindings[BUTTON_A] = settings.value("p1k_a", Qt::Key_C).toInt();
-	vjs.p1KeyBindings[BUTTON_OPTION] = settings.value("p1k_option", Qt::Key_Apostrophe).toInt();
-	vjs.p1KeyBindings[BUTTON_PAUSE] = settings.value("p1k_pause", Qt::Key_Return).toInt();
+	vjs.p1KeyBindings[BUTTON_U] = settings.value("p1k_up", Qt::Key_S).toInt();
+	vjs.p1KeyBindings[BUTTON_D] = settings.value("p1k_down", Qt::Key_X).toInt();
+	vjs.p1KeyBindings[BUTTON_L] = settings.value("p1k_left", Qt::Key_A).toInt();
+	vjs.p1KeyBindings[BUTTON_R] = settings.value("p1k_right", Qt::Key_D).toInt();
+	vjs.p1KeyBindings[BUTTON_C] = settings.value("p1k_c", Qt::Key_J).toInt();
+	vjs.p1KeyBindings[BUTTON_B] = settings.value("p1k_b", Qt::Key_K).toInt();
+	vjs.p1KeyBindings[BUTTON_A] = settings.value("p1k_a", Qt::Key_L).toInt();
+	vjs.p1KeyBindings[BUTTON_OPTION] = settings.value("p1k_option", Qt::Key_O).toInt();
+	vjs.p1KeyBindings[BUTTON_PAUSE] = settings.value("p1k_pause", Qt::Key_P).toInt();
 	vjs.p1KeyBindings[BUTTON_0] = settings.value("p1k_0", Qt::Key_0).toInt();
 	vjs.p1KeyBindings[BUTTON_1] = settings.value("p1k_1", Qt::Key_1).toInt();
 	vjs.p1KeyBindings[BUTTON_2] = settings.value("p1k_2", Qt::Key_2).toInt();
@@ -685,8 +685,8 @@ WriteLog("   absROMPath = \"%s\"\n", vjs.absROMPath);
 	vjs.p1KeyBindings[BUTTON_7] = settings.value("p1k_7", Qt::Key_7).toInt();
 	vjs.p1KeyBindings[BUTTON_8] = settings.value("p1k_8", Qt::Key_8).toInt();
 	vjs.p1KeyBindings[BUTTON_9] = settings.value("p1k_9", Qt::Key_9).toInt();
-	vjs.p1KeyBindings[BUTTON_d] = settings.value("p1k_pound", Qt::Key_Slash).toInt();
-	vjs.p1KeyBindings[BUTTON_s] = settings.value("p1k_star", Qt::Key_Asterisk).toInt();
+	vjs.p1KeyBindings[BUTTON_d] = settings.value("p1k_pound", Qt::Key_Minus).toInt();
+	vjs.p1KeyBindings[BUTTON_s] = settings.value("p1k_star", Qt::Key_Equal).toInt();
 
 	vjs.p2KeyBindings[BUTTON_U] = settings.value("p2k_up", Qt::Key_Up).toInt();
 	vjs.p2KeyBindings[BUTTON_D] = settings.value("p2k_down", Qt::Key_Down).toInt();

@@ -3,8 +3,6 @@ Stuff to add/fix for the next release of Virtual Jaguar
 
 - Fix DSP code so that it doesn't hang in a spinlock waiting for the sound
   buffer to empty. Probably a CS lock contention issue. [Shamus]
-- Make sure that VJ doesn't crash if the useJaguarBIOS key is set to 1 and the
-  BIOS file isn't available. [Shamus]
 - Create an EEPROMs directory (or whatever is in EEPROMPath[]) if it doesn't
   already exist. [Shamus]
 - It would be nice to have the emulator pick up where you last left off, or at
@@ -15,22 +13,26 @@ Stuff to add/fix for the next release of Virtual Jaguar
 - Cycle accuracy for GPU/DSP/OP/Blitter. [Shamus]
 - Need to propagate blitter fixes in the A1 <- A2 direction to the A1 -> A2
   direction and the GPU fixes to various instructions to the DSP. [Shamus]
-- Need to fix PAL mode to work with the virtual screen code. [Shamus]
-- There are a few ROMs that use some "quasi-illegal" 68K instructions. Need
-  to patch the 68K core to deal with these in a better way than they are
-  now. [Shamus]
-- Would also be nice to be able to dynamically change the keybindings for
-  the various keys on the emulated Jaguar controller while inside the emulator.
-  [Shamus]
 - Blitter needs fixing. [Shamus]
-- We need a comprehensive way of determining what gets written where and
-  by whom (i.e., blitter wrote to range $F03000-$F03230) in order to figure
-  out the remaining problems with various ROMs. [Shamus]
 
 
 Stuff that was added/fixed
 --------------------------
 
+- Need to fix PAL mode to work with the virtual screen code. [DONE--Shamus]
+- There are a few ROMs that use some "quasi-illegal" 68K instructions. Need
+  to patch the 68K core to deal with these in a better way than they are
+  now. [DONE--Shamus]
+  NOTE: This behavior was verified on Rayman, the problem was due to attempting
+        to press both left & right at the same time!
+- We need a comprehensive way of determining what gets written where and
+  by whom (i.e., blitter wrote to range $F03000-$F03230) in order to figure
+  out the remaining problems with various ROMs. [DONE--Shamus]
+- Would also be nice to be able to dynamically change the keybindings for
+  the various keys on the emulated Jaguar controller while inside the emulator.
+  [DONE--Shamus]
+- Make sure that VJ doesn't crash if the useJaguarBIOS key is set to 1 and the
+  BIOS file isn't available. [DONE--Shamus]
 - There is a bug either with the GPU or the blitter (most likely the latter)
   which causes the spinning "A"s in the BIOS startup code to be corrupted
   when they are showing their backsides. [Shamus] [DONE--Shamus]

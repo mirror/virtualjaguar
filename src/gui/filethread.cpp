@@ -140,9 +140,9 @@ void FileThread::HandleFile(QFileInfo fileInfo)
 	uint32 index = FindCRCIndexInFileList(crc);
 	delete[] buffer;
 
-	// Here we filter out files *not* in the DB (if configured that way) and
-	// BIOS files.
-	if (index == 0xFFFFFFFF)
+	// Here we filter out files that are *not* in the DB and of unknown type,
+	// and BIOS files. If desired, this can be overriden with a config option.
+	if ((index == 0xFFFFFFFF) && (fileType == JST_NONE))
 	{
 		// If we allow unknown software, we pass the (-1) index on, otherwise...
 		if (!allowUnknownSoftware)

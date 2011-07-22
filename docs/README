@@ -15,11 +15,10 @@ software requirements.
 
 The use of this software is entirely at your own risk. While it won't rape
 your dog, it might do other nasty things. We can't be held responsible for
-damage done to you hardware and/or software. You have been warned! This
-software may require the use of the Atari Jaguar boot ROMs and/or Commercial
-ROM images. You may only use the ROM images if you own the cartridges itself.
-The use of Commercial ROMs without owning the original cartridge is illegal in
-most countries and could result in fines and/or legal actions.
+damage done to you hardware and/or software. You have been warned! You may only
+use the ROM images if you own the cartridges itself. The use of Commercial ROMs
+without owning the original cartridge is illegal in most countries and could
+result in fines and/or legal actions.
 
 This software is released under the GPL v3 or later. For more information I
 direct you to the GPLv3 file. You may hack/change the code anyway you like. You
@@ -113,13 +112,11 @@ games. These games are distributed on cartridges and can therefore cannot be
 used on a PC (we're still waiting for that Jaguar-on-a-PCI-card that you plug
 into your late model PC, complete with cartridge slot and controller connectors
 ;-). To use these games on Virtual Jaguar GCC/Qt you need to get ROM images.
-Besides the ROM images from commercial games, you may also need to obtain the
-Atari Jaguar boot ROM (and/or CD boot ROM) which you must copy to the BIOS
-directory. For legal issues concerning ROM images please consult the DISCLAIMER
-at the beginning of this file.
+For legal issues concerning ROM images please consult the DISCLAIMER at the
+beginning of this file.
 
-After obtaining the Atari Jaguar boot ROM (and/or CD boot ROM) and several game
-ROMs you can now use Virtual Jaguar using the following command:
+After obtaining several game ROMs you can now use Virtual Jaguar using the
+following command:
 
 ./virtualjaguar [romfile] [-switches]
 

@@ -132,13 +132,13 @@ void ControllerWidget::paintEvent(QPaintEvent * /*event*/)
 	}
 }
 
-void ControllerWidget::mousePressEvent(QMouseEvent * event)
+void ControllerWidget::mousePressEvent(QMouseEvent * /*event*/)
 {
 	mouseDown = true;
 	update();
 }
 
-void ControllerWidget::mouseReleaseEvent(QMouseEvent * event)
+void ControllerWidget::mouseReleaseEvent(QMouseEvent * /*event*/)
 {
 	mouseDown = false;
 	// Spawning the keygrabber causes leaveEvent() to be called, so we need to save this
@@ -164,7 +164,6 @@ void ControllerWidget::mouseMoveEvent(QMouseEvent * event)
 	// Save the current closest item
 	int keyToHighlightOld = keyToHighlight;
 	// Set up closest distance (this should be large enough)
-//	uint32_t closestX = 100000, closestY = 100000;
 	double closest = 1e9;
 
 	for(int i=BUTTON_FIRST; i<=BUTTON_LAST; i++)
@@ -188,7 +187,6 @@ void ControllerWidget::mouseMoveEvent(QMouseEvent * event)
 void ControllerWidget::leaveEvent(QEvent * /*event*/)
 {
 	keyToHighlight = -1;
-//	mouseDown = false;
 	update();
 }
 
