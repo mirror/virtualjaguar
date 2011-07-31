@@ -898,6 +898,10 @@ if (depth > 5)
 // anyway.
 // This seems to be the case (at least according to the Midsummer docs)...!
 
+// This is to test using palette zeroes instead of bit zeroes...
+// And it seems that this is wrong, index == 0 is transparent apparently... :-/
+//#define OP_USES_PALETTE_ZERO
+
 	if (depth == 0)									// 1 BPP
 	{
 		// The LSB of flags is OPFLAG_REFLECT, so sign extend it and or 2 into it.
@@ -915,7 +919,11 @@ if (depth > 5)
 			while (i++ < 64)
 			{
 				uint8 bit = pixels >> 63;
+#ifndef OP_USES_PALETTE_ZERO
 				if (flagTRANS && bit == 0)
+#else
+				if (flagTRANS && (paletteRAM16[index | bit] == 0))
+#endif
 					;	// Do nothing...
 				else
 				{
@@ -963,7 +971,11 @@ if (firstPix)
 // This only works for the palettized modes (1 - 8 BPP), since we actually have to
 // copy data from memory in 16 BPP mode (or does it? Isn't this the same as the CLUT case?)
 // No, it isn't because we read the memory in an endian safe way--this *won't* work...
+#ifndef OP_USES_PALETTE_ZERO
 				if (flagTRANS && bits == 0)
+#else
+				if (flagTRANS && (paletteRAM16[index | bits] == 0))
+#endif
 					;	// Do nothing...
 				else
 				{
@@ -1003,7 +1015,11 @@ if (firstPix)
 // This only works for the palettized modes (1 - 8 BPP), since we actually have to
 // copy data from memory in 16 BPP mode (or does it? Isn't this the same as the CLUT case?)
 // No, it isn't because we read the memory in an endian safe way--this *won't* work...
+#ifndef OP_USES_PALETTE_ZERO
 				if (flagTRANS && bits == 0)
+#else
+				if (flagTRANS && (paletteRAM16[index | bits] == 0))
+#endif
 					;	// Do nothing...
 				else
 				{
@@ -1044,7 +1060,14 @@ if (firstPix)
 // This only works for the palettized modes (1 - 8 BPP), since we actually have to
 // copy data from memory in 16 BPP mode (or does it? Isn't this the same as the CLUT case?)
 // No, it isn't because we read the memory in an endian safe way--this *won't* work...
+//This would seem to be problematic...
+//Because it's the palette entry being zero that makes the pixel transparent...
+//Let's try it and see.
+#ifndef OP_USES_PALETTE_ZERO
 				if (flagTRANS && bits == 0)
+#else
+				if (flagTRANS && (paletteRAM16[bits] == 0))
+#endif
 					;	// Do nothing...
 				else
 				{
@@ -1087,7 +1110,10 @@ if (firstPix)
 // This only works for the palettized modes (1 - 8 BPP), since we actually have to
 // copy data from memory in 16 BPP mode (or does it? Isn't this the same as the CLUT case?)
 // No, it isn't because we read the memory in an endian safe way--it *won't* work...
-				if (flagTRANS && (bitsLo | bitsHi) == 0)
+//This doesn't seem right... Let's try the encoded black value ($8800):
+//Apparently, CRY 0 maps to $8800...
+				if (flagTRANS && ((bitsLo | bitsHi) == 0))
+//				if (flagTRANS && (bitsHi == 0x88) && (bitsLo == 0x00))
 					;	// Do nothing...
 				else
 				{
@@ -1379,7 +1405,11 @@ if (firstPix != 0)
 		{
 			uint8 bits = pixels >> 63;
 
+#ifndef OP_USES_PALETTE_ZERO
 			if (flagTRANS && bits == 0)
+#else
+			if (flagTRANS && (paletteRAM16[index | bits] == 0))
+#endif
 				;	// Do nothing...
 			else
 			{
@@ -1444,7 +1474,11 @@ if (firstPix != 0)
 		{
 			uint8 bits = pixels >> 62;
 
+#ifndef OP_USES_PALETTE_ZERO
 			if (flagTRANS && bits == 0)
+#else
+			if (flagTRANS && (paletteRAM16[index | bits] == 0))
+#endif
 				;	// Do nothing...
 			else
 			{
@@ -1504,7 +1538,11 @@ if (firstPix != 0)
 		{
 			uint8 bits = pixels >> 60;
 
+#ifndef OP_USES_PALETTE_ZERO
 			if (flagTRANS && bits == 0)
+#else
+			if (flagTRANS && (paletteRAM16[index | bits] == 0))
+#endif
 				;	// Do nothing...
 			else
 			{
@@ -1563,7 +1601,11 @@ if (firstPix)
 		{
 			uint8 bits = pixels >> 56;
 
+#ifndef OP_USES_PALETTE_ZERO
 			if (flagTRANS && bits == 0)
+#else
+			if (flagTRANS && (paletteRAM16[bits] == 0))
+#endif
 				;	// Do nothing...
 			else
 			{
@@ -1619,7 +1661,10 @@ if (firstPix != 0)
 		{
 			uint8 bitsHi = pixels >> 56, bitsLo = pixels >> 48;
 
-			if (flagTRANS && (bitsLo | bitsHi) == 0)
+//This doesn't seem right... Let's try the encoded black value ($8800):
+//Apparently, CRY 0 maps to $8800...
+				if (flagTRANS && ((bitsLo | bitsHi) == 0))
+//				if (flagTRANS && (bitsHi == 0x88) && (bitsLo == 0x00))
 				;	// Do nothing...
 			else
 			{

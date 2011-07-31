@@ -67,6 +67,7 @@ void ConfigDialog::LoadDialogFromSettings(void)
 	generalTab->edit4->setText(vjs.ROMPath);
 
 	generalTab->useBIOS->setChecked(vjs.useJaguarBIOS);
+	generalTab->useGPU->setChecked(vjs.GPUEnabled);
 	generalTab->useDSP->setChecked(vjs.DSPEnabled);
 	generalTab->useHostAudio->setChecked(vjs.audioEnabled);
 
@@ -94,6 +95,7 @@ void ConfigDialog::UpdateVJSettings(void)
 	strcpy(vjs.ROMPath,     generalTab->edit4->text().toAscii().data());
 
 	vjs.useJaguarBIOS = generalTab->useBIOS->isChecked();
+	vjs.GPUEnabled    = generalTab->useGPU->isChecked();
 	vjs.DSPEnabled    = generalTab->useDSP->isChecked();
 	vjs.audioEnabled  = generalTab->useHostAudio->isChecked();
 

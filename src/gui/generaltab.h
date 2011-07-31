@@ -18,6 +18,7 @@ class GeneralTab: public QWidget
 		QLineEdit * edit4;
 
 		QCheckBox * useBIOS;
+		QCheckBox * useGPU;
 		QCheckBox * useDSP;
 		QCheckBox * useHostAudio;
 		QCheckBox * useUnknownSoftware;

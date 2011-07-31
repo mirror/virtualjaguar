@@ -1817,7 +1817,8 @@ if (effect_start)
 		BUTCHExec(RISCCyclesPerScanline);
 //if (start_logging)
 //	WriteLog("About to execute GPU (%u)...\n", i);
-		GPUExec(RISCCyclesPerScanline);
+		if (vjs.GPUEnabled)
+			GPUExec(RISCCyclesPerScanline);
 
 		if (vjs.DSPEnabled)
 		{
@@ -1968,7 +1969,9 @@ void JaguarExecuteNew(void)
 //WriteLog("JEN: Time to next event (%u) is %f usec (%u RISC cycles)...\n", nextEvent, timeToNextEvent, USEC_TO_RISC_CYCLES(timeToNextEvent));
 
 		m68k_execute(USEC_TO_M68K_CYCLES(timeToNextEvent));
-		GPUExec(USEC_TO_RISC_CYCLES(timeToNextEvent));
+
+		if (vjs.GPUEnabled)
+			GPUExec(USEC_TO_RISC_CYCLES(timeToNextEvent));
 
 		if (vjs.DSPEnabled)
 		{

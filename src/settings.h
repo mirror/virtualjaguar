@@ -22,6 +22,7 @@ struct VJSettings
 	int32 joyport;								// Joystick port
 	bool hardwareTypeNTSC;						// Set to false for PAL
 	bool useJaguarBIOS;
+	bool GPUEnabled;
 	bool DSPEnabled;
 	bool usePipelinedDSP;
 	bool fullscreen;

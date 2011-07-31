@@ -643,6 +643,7 @@ void MainWin::ReadSettings(void)
 	vjs.hardwareTypeNTSC = settings.value("hardwareTypeNTSC", true).toBool();
 	vjs.frameSkip        = settings.value("frameSkip", 0).toInt();
 	vjs.useJaguarBIOS    = settings.value("useJaguarBIOS", false).toBool();
+	vjs.GPUEnabled       = settings.value("GPUEnabled", true).toBool();
 	vjs.DSPEnabled       = settings.value("DSPEnabled", false).toBool();
 	vjs.audioEnabled     = settings.value("audioEnabled", true).toBool();
 	vjs.usePipelinedDSP  = settings.value("usePipelinedDSP", false).toBool();
@@ -726,6 +727,7 @@ void MainWin::WriteSettings(void)
 	settings.setValue("hardwareTypeNTSC", vjs.hardwareTypeNTSC);
 	settings.setValue("frameSkip", vjs.frameSkip);
 	settings.setValue("useJaguarBIOS", vjs.useJaguarBIOS);
+	settings.setValue("GPUEnabled", vjs.GPUEnabled);
 	settings.setValue("DSPEnabled", vjs.DSPEnabled);
 	settings.setValue("audioEnabled", vjs.audioEnabled);
 	settings.setValue("usePipelinedDSP", vjs.usePipelinedDSP);

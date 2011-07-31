@@ -21,6 +21,9 @@ KeyGrabber::KeyGrabber(QWidget * parent/*= 0*/): QDialog(parent)
 	mainLayout->addWidget(label);
 	setLayout(mainLayout);
 	setWindowTitle(tr("Grab"));
+
+	// Will this make Mac OSX work???
+	setFocusPolicy(Qt::StrongFocus);
 }
 
 KeyGrabber::~KeyGrabber()
