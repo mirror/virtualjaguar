@@ -63,6 +63,7 @@ HEADERS = \
 	src/gui/filethread.h \
 	src/gui/generaltab.h \
 	src/gui/glwidget.h \
+	src/gui/help.h \
 	src/gui/imagedelegate.h \
 	src/gui/keygrabber.h \
 	src/gui/mainwin.h
@@ -79,6 +80,7 @@ SOURCES = \
 	src/gui/filethread.cpp \
 	src/gui/generaltab.cpp \
 	src/gui/glwidget.cpp \
+	src/gui/help.cpp \
 	src/gui/imagedelegate.cpp \
 	src/gui/keygrabber.cpp \
 	src/gui/mainwin.cpp

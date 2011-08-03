@@ -164,6 +164,7 @@
 #include "joystick.h"
 #include "log.h"
 #include "m68k.h"
+#include "tom.h"
 //#include "memory.h"
 #include "wavetable.h"
 
@@ -352,16 +353,24 @@ void JERRYResetPIT2(void)
 #endif
 }
 
+// This is the cause of the regressions in Cybermorph and Missile Command 3D...
+// Solution: Probably have to check the DSP enable bit before sending these thru.
+//#define JERRY_NO_IRQS
 void JERRYPIT1Callback(void)
 {
+#ifndef JERRY_NO_IRQS
 //WriteLog("JERRY: In PIT1 callback, IRQM=$%04X\n", jerryInterruptMask);
-	if (jerryInterruptMask & IRQ2_TIMER1)		// CPU Timer 1 IRQ
+	if (TOMIRQEnabled(IRQ_DSP))
 	{
+		if (jerryInterruptMask & IRQ2_TIMER1)		// CPU Timer 1 IRQ
+		{
 // Not sure, but I think we don't generate another IRQ if one's already going...
 // But this seems to work... :-/
-		jerryPendingInterrupt |= IRQ2_TIMER1;
-		m68k_set_irq(2);						// Generate 68K IPL 2
+			jerryPendingInterrupt |= IRQ2_TIMER1;
+			m68k_set_irq(2);						// Generate 68K IPL 2
+		}
 	}
+#endif
 
 	DSPSetIRQLine(DSPIRQ_TIMER0, ASSERT_LINE);	// This does the 'IRQ enabled' checking...
 	JERRYResetPIT1();
@@ -369,12 +378,17 @@ void JERRYPIT1Callback(void)
 
 void JERRYPIT2Callback(void)
 {
-//WriteLog("JERRY: In PIT2 callback, IRQM=$%04X\n", jerryInterruptMask);
-	if (jerryInterruptMask & IRQ2_TIMER2)		// CPU Timer 2 IRQ
+#ifndef JERRY_NO_IRQS
+	if (TOMIRQEnabled(IRQ_DSP))
 	{
-		jerryPendingInterrupt |= IRQ2_TIMER2;
-		m68k_set_irq(2);						// Generate 68K IPL 2
+//WriteLog("JERRY: In PIT2 callback, IRQM=$%04X\n", jerryInterruptMask);
+		if (jerryInterruptMask & IRQ2_TIMER2)		// CPU Timer 2 IRQ
+		{
+			jerryPendingInterrupt |= IRQ2_TIMER2;
+			m68k_set_irq(2);						// Generate 68K IPL 2
+		}
 	}
+#endif
 
 	DSPSetIRQLine(DSPIRQ_TIMER1, ASSERT_LINE);	// This does the 'IRQ enabled' checking...
 	JERRYResetPIT2();

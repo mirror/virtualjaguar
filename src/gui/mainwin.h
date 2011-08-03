@@ -14,6 +14,7 @@
 // Forward declarations
 class GLWidget;
 class AboutWindow;
+class HelpWindow;
 class FilePickerWindow;
 
 class MainWin: public QMainWindow
@@ -42,6 +43,7 @@ class MainWin: public QMainWindow
 		void SetPAL(void);
 		void ToggleBlur(void);
 		void ShowAboutWin(void);
+		void ShowHelpWin(void);
 		void InsertCart(void);
 		void Unpause(void);
 		void LoadSoftware(QString);
@@ -56,6 +58,7 @@ class MainWin: public QMainWindow
 //	public:
 		GLWidget * videoWidget;
 		AboutWindow * aboutWin;
+		HelpWindow * helpWin;
 		FilePickerWindow * filePickWin;
 		QTimer * timer;
 		bool running;
@@ -85,6 +88,7 @@ class MainWin: public QMainWindow
 		QAction * palAct;
 		QAction * blurAct;
 		QAction * aboutAct;
+		QAction * helpAct;
 		QAction * filePickAct;
 		QAction * configAct;
 		QAction * useCDAct;

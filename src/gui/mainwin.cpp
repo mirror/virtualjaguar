@@ -35,6 +35,7 @@
 #include "SDL.h"
 #include "glwidget.h"
 #include "about.h"
+#include "help.h"
 #include "settings.h"
 #include "filepicker.h"
 #include "configdialog.h"
@@ -95,6 +96,7 @@ MainWin::MainWin(): running(false), powerButtonOn(false), showUntunedTankCircuit
 	setWindowTitle(title);
 
 	aboutWin = new AboutWindow(this);
+	helpWin = new HelpWindow(this);
 	filePickWin = new FilePickerWindow(this);
 
     videoWidget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
@@ -161,6 +163,10 @@ MainWin::MainWin(): running(false), powerButtonOn(false), showUntunedTankCircuit
 	aboutAct->setStatusTip(tr("Blatant self-promotion"));
 	connect(aboutAct, SIGNAL(triggered()), this, SLOT(ShowAboutWin()));
 
+	helpAct = new QAction(QIcon(":/res/vj-icon.png"), tr("&Contents..."), this);
+	helpAct->setStatusTip(tr("Help is available, if you should need it"));
+	connect(helpAct, SIGNAL(triggered()), this, SLOT(ShowHelpWin()));
+
 	filePickAct = new QAction(QIcon(":/res/software.png"), tr("&Insert Cartridge..."), this);
 	filePickAct->setStatusTip(tr("Insert a cartridge into Virtual Jaguar"));
 	filePickAct->setShortcut(QKeySequence(tr("Ctrl+i")));
@@ -192,6 +198,7 @@ MainWin::MainWin(): running(false), powerButtonOn(false), showUntunedTankCircuit
 	fileMenu->addAction(quitAppAct);
 
 	helpMenu = menuBar()->addMenu(tr("&Help"));
+	helpMenu->addAction(helpAct);
 	helpMenu->addAction(aboutAct);
 
 	toolbar = addToolBar(tr("Stuff"));
@@ -546,6 +553,11 @@ void MainWin::ToggleBlur(void)
 void MainWin::ShowAboutWin(void)
 {
 	aboutWin->show();
+}
+
+void MainWin::ShowHelpWin(void)
+{
+	helpWin->show();
 }
 
 void MainWin::InsertCart(void)
