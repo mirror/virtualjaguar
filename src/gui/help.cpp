@@ -25,7 +25,7 @@ HelpWindow::HelpWindow(QWidget * parent/*= 0*/): QWidget(parent, Qt::Dialog)
 	resize(560, 480);
 
 	layout = new QVBoxLayout();
-	layout->setSizeConstraint(QLayout::SetFixedSize);
+//	layout->setSizeConstraint(QLayout::SetFixedSize);
 	setLayout(layout);
 
 //	image = new QLabel();
@@ -37,7 +37,7 @@ HelpWindow::HelpWindow(QWidget * parent/*= 0*/): QWidget(parent, Qt::Dialog)
 	QString s;// = QString("");
 	s.append(tr(
 		"<h1>Virtual Jaguar Documentation</h1>"
-		"<br><br>"
+		"<br>"
 		"<b><i>Coming soon!</i></b>"
 	));
 	text = new QTextBrowser;

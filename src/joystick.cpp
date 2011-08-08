@@ -325,6 +325,9 @@ void JoystickDone(void)
 
 uint8 JoystickReadByte(uint32 offset)
 {
+// For now, until we can fix the 2nd controller... :-P
+memset(joypad_1_buttons, 0, 21);
+
 #warning "No bounds checking done in JoystickReadByte!"
 //	extern bool hardwareTypeNTSC;
 	offset &= 0x03;

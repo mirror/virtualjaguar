@@ -17,10 +17,10 @@
 // - Add dbl click/enter to select in cart list, ESC to dimiss [DONE]
 // - Autoscan/autoload all available BIOS from 'software' folder [DONE]
 // - Add 1 key jumping in cartridge list (press 'R', jumps to carts starting with 'R', etc) [DONE]
+// - Controller configuration [DONE]
 //
 // STILL TO BE DONE:
 //
-// - Controller configuration
 // - Remove SDL dependencies (sound, mainly) from Jaguar core lib
 // - Fix inconsistency with trailing slashes in paths (eeproms needs one, software doesn't)
 //
@@ -325,23 +325,27 @@ void MainWin::HandleKeys(QKeyEvent * e, bool state)
 		joypad_0_buttons[BUTTON_U] = 0;
 
 	if (e->key() == (int)vjs.p2KeyBindings[BUTTON_L] && joypad_1_buttons[BUTTON_R])
-		joypad_0_buttons[BUTTON_R] = 0;
+		joypad_1_buttons[BUTTON_R] = 0;
 	if (e->key() == (int)vjs.p2KeyBindings[BUTTON_R] && joypad_1_buttons[BUTTON_L])
-		joypad_0_buttons[BUTTON_L] = 0;
+		joypad_1_buttons[BUTTON_L] = 0;
 	if (e->key() == (int)vjs.p2KeyBindings[BUTTON_U] && joypad_1_buttons[BUTTON_D])
-		joypad_0_buttons[BUTTON_D] = 0;
+		joypad_1_buttons[BUTTON_D] = 0;
 	if (e->key() == (int)vjs.p2KeyBindings[BUTTON_D] && joypad_1_buttons[BUTTON_U])
-		joypad_0_buttons[BUTTON_U] = 0;
+		joypad_1_buttons[BUTTON_U] = 0;
 #endif
 
 	// No bad combos exist, let's stuff the emulator key buffers...!
 	for(int i=BUTTON_FIRST; i<=BUTTON_LAST; i++)
 	{
 		if (e->key() == (int)vjs.p1KeyBindings[i])
-			joypad_0_buttons[i] = (uint8)state;
+//			joypad_0_buttons[i] = (uint8)state;
+			joypad_0_buttons[i] = (state ? 0x01 : 0x00);
 
+// Pad #2 is screwing up pad #1. Prolly a problem in joystick.cpp...
+// So let's try to fix it there. :-P
 		if (e->key() == (int)vjs.p2KeyBindings[i])
-			joypad_1_buttons[i] = (uint8)state;
+//			joypad_1_buttons[i] = (uint8)state;
+			joypad_1_buttons[i] = (state ? 0x01 : 0x00);
 	}
 }
 
