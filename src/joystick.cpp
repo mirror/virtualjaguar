@@ -326,7 +326,7 @@ void JoystickDone(void)
 uint8 JoystickReadByte(uint32 offset)
 {
 // For now, until we can fix the 2nd controller... :-P
-memset(joypad_1_buttons, 0, 21);
+//memset(joypad_1_buttons, 0, 21);
 
 #warning "No bounds checking done in JoystickReadByte!"
 //	extern bool hardwareTypeNTSC;
@@ -349,17 +349,17 @@ memset(joypad_1_buttons, 0, 21);
 			pad0Index = 1;
 		else if (!(pad0Index & 0x04))
 			pad0Index = 2;
-		else
+		else if (!(pad0Index & 0x08))
 			pad0Index = 3;
 
 		if (!(pad1Index & 0x01))
-			pad1Index = 0;
-		else if (!(pad1Index & 0x02))
-			pad1Index = 1;
-		else if (!(pad1Index & 0x04))
-			pad1Index = 2;
-		else
 			pad1Index = 3;
+		else if (!(pad1Index & 0x02))
+			pad1Index = 2;
+		else if (!(pad1Index & 0x04))
+			pad1Index = 1;
+		else if (!(pad1Index & 0x08))
+			pad1Index = 0;
 
 		if (joypad_0_buttons[(pad0Index << 2) + 0])	data |= 0x01;
 		if (joypad_0_buttons[(pad0Index << 2) + 1]) data |= 0x02;
@@ -377,10 +377,11 @@ memset(joypad_1_buttons, 0, 21);
 		// Hardware ID returns NTSC/PAL identification bit here
 		uint8 data = 0x2F | (vjs.hardwareTypeNTSC ? 0x10 : 0x00);
 		int pad0Index = joystick_ram[1] & 0x0F;
-//unused		int pad1Index = (joystick_ram[1] >> 4) & 0x0F;
+		int pad1Index = (joystick_ram[1] >> 4) & 0x0F;
 
-//WTF is this shit?
-#warning "!!! What is this? !!!"
+//This is more stuff to add to the button reading, as the preceeding only
+//yields 16 buttons...
+#warning "!!! This reports TeamTap incorrectly when PAUSE pressed on controller #1 or #2 !!!"
 		if (!(pad0Index & 0x01))
 		{
 			if (joypad_0_buttons[BUTTON_PAUSE])
@@ -398,10 +399,33 @@ memset(joypad_1_buttons, 0, 21);
 			if (joypad_0_buttons[BUTTON_C])
 				data ^= 0x02;
 		}
-		else
+		else if (!(pad0Index & 0x08))
 		{
 			if (joypad_0_buttons[BUTTON_OPTION])
 				data ^= 0x02;
+		}
+
+		if (!(pad1Index & 0x08))
+		{
+			if (joypad_1_buttons[BUTTON_PAUSE])
+				data ^= 0x04;
+			if (joypad_1_buttons[BUTTON_A])
+				data ^= 0x08;
+		}
+		else if (!(pad1Index & 0x04))
+		{
+			if (joypad_1_buttons[BUTTON_B])
+				data ^= 0x08;
+		}
+		else if (!(pad1Index & 0x02))
+		{
+			if (joypad_1_buttons[BUTTON_C])
+				data ^= 0x08;
+		}
+		else if (!(pad1Index & 0x01))
+		{
+			if (joypad_1_buttons[BUTTON_OPTION])
+				data ^= 0x08;
 		}
 
 		return data;
