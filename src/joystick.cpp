@@ -341,7 +341,10 @@ uint8 JoystickReadByte(uint32 offset)
 // This is bad--we're assuming that a bit is set in the last case. Might not be so!
 // NOTE: values $7, B, D, & E are only legal ones for pad 0, (rows 3 to 0, in both cases)
 //              $E, D, B, & 7 are only legal ones for pad 1
-//       So the following code is WRONG!
+//       So the following code is WRONG! (now fixed! ;-)
+// Also: we should explicitly check for those bit patterns, as other patterns
+// are legal and yield other controllers... !!! FIX !!!
+#warning "!!! Need to explicitly check for the proper bit combinations! !!!"
 
 		if (!(pad0Index & 0x01))
 			pad0Index = 0;

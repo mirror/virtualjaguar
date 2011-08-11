@@ -186,7 +186,7 @@ bool JaguarLoadFile(char * path)
 //
 // "Alpine" file loading
 // Since the developers were coming after us with torches and pitchforks, we decided to
-// allow this kind of thing. ;-) But ONLY FOR THE DEVS, DAMMIT! O_O
+// allow this kind of thing. ;-) But ONLY FOR THE DEVS, DAMMIT! >:-U O_O
 //
 bool AlpineLoadFile(char * path)
 {
@@ -252,7 +252,15 @@ static int gzfilelength(gzFile gd)
 //
 static bool CheckExtension(const char * filename, const char * ext)
 {
+	// Sanity checking...
+	if ((filename == NULL) || (ext == NULL))
+		return false;
+
 	const char * filenameExt = strrchr(filename, '.');	// Get the file's extension (if any)
+
+	if (filenameExt == NULL)
+		return false;
+
 	return (strcasecmp(filenameExt, ext) == 0 ? true : false);
 }
 

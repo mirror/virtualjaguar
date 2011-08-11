@@ -1747,6 +1747,9 @@ void JaguarDone(void)
 	JaguarDasm(0x89CA56, 0x200);
 	WriteLog("-------------------------------------------\n");
 	JaguarDasm(0x802B48, 0x200);
+	WriteLog("\n\nM68000 disassembly at $802000...\n");
+	JaguarDasm(0x802000, 6000);
+	WriteLog("\n");//*/
 #endif
 }
 
