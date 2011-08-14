@@ -148,7 +148,7 @@ void FileThread::HandleFile(QFileInfo fileInfo)
 		if (!allowUnknownSoftware)
 			return;								// CRC wasn't found, so bail...
 	}
-	else if (romList[index].flags & FF_BIOS)
+	else if ((index != 0xFFFFFFFF) && romList[index].flags & FF_BIOS)
 		return;
 
 //Here's a little problem. When we create the image here and pass it off to FilePicker,

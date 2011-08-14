@@ -120,6 +120,15 @@ void M68KInstructionHook(void)
 		exit(0);
 	}
 
+	// Disassemble everything
+/*	{
+		static char buffer[2048];
+		m68k_disassemble(buffer, m68kPC, M68K_CPU_TYPE_68000);
+		WriteLog("%08X: %s", m68kPC, buffer);
+		WriteLog("\t\tA0=%08X, A1=%08X, D0=%08X, D1=%08X\n",
+			m68k_get_reg(NULL, M68K_REG_A0), m68k_get_reg(NULL, M68K_REG_A1),
+			m68k_get_reg(NULL, M68K_REG_D0), m68k_get_reg(NULL, M68K_REG_D1));
+	}//*/
 /*	if (m68kPC >= 0x807EC4 && m68kPC <= 0x807EDB)
 	{
 		static char buffer[2048];
@@ -1041,6 +1050,8 @@ void m68k_write_memory_8(unsigned int address, unsigned int value)
 		}
 	}
 #endif
+/*if (address == 0x4E00)
+	WriteLog("M68K: Writing %02X at %08X, PC=%08X\n", value, address, m68k_get_reg(NULL, M68K_REG_PC));//*/
 //if ((address >= 0x1FF020 && address <= 0x1FF03F) || (address >= 0x1FF820 && address <= 0x1FF83F))
 //	WriteLog("M68K: Writing %02X at %08X\n", value, address);
 //WriteLog("[WM8  PC=%08X] Addr: %08X, val: %02X\n", m68k_get_reg(NULL, M68K_REG_PC), address, value);
@@ -1085,6 +1096,8 @@ void m68k_write_memory_16(unsigned int address, unsigned int value)
 		}
 	}
 #endif
+/*if (address == 0x4E00)
+	WriteLog("M68K: Writing %02X at %08X, PC=%08X\n", value, address, m68k_get_reg(NULL, M68K_REG_PC));//*/
 //if ((address >= 0x1FF020 && address <= 0x1FF03F) || (address >= 0x1FF820 && address <= 0x1FF83F))
 //	WriteLog("M68K: Writing %04X at %08X\n", value, address);
 //WriteLog("[WM16 PC=%08X] Addr: %08X, val: %04X\n", m68k_get_reg(NULL, M68K_REG_PC), address, value);
@@ -1138,6 +1151,8 @@ if (address == 0xF02110)
 
 void m68k_write_memory_32(unsigned int address, unsigned int value)
 {
+/*if (address == 0x4E00)
+	WriteLog("M68K: Writing %02X at %08X, PC=%08X\n", value, address, m68k_get_reg(NULL, M68K_REG_PC));//*/
 //WriteLog("--> [WM32]\n");
 /*if (address == 0x0100)//64*4)
 	WriteLog("M68K: Wrote dword to VI vector value %08X...\n", value);//*/
@@ -1384,6 +1399,8 @@ uint16 JaguarReadWord(uint32 offset, uint32 who/*=UNKNOWN*/)
 
 void JaguarWriteByte(uint32 offset, uint8 data, uint32 who/*=UNKNOWN*/)
 {
+/*	if (offset >= 0x4E00 && offset < 0x4E04)
+		WriteLog("JWB: Byte %02X written at %08X by %s\n", data, offset, whoName[who]);//*/
 //Need to check for writes in the range of $18FA70 + 8000...
 /*if (effect_start)
 	if (offset >= 0x18FA70 && offset < (0x18FA70 + 8000))
@@ -1417,6 +1434,8 @@ void JaguarWriteByte(uint32 offset, uint8 data, uint32 who/*=UNKNOWN*/)
 uint32 starCount;
 void JaguarWriteWord(uint32 offset, uint16 data, uint32 who/*=UNKNOWN*/)
 {
+/*	if (offset >= 0x4E00 && offset < 0x4E04)
+		WriteLog("JWW: Word %04X written at %08X by %s\n", data, offset, whoName[who]);//*/
 /*if (offset == 0x0100)//64*4)
 	WriteLog("M68K: %s wrote word to VI vector value %04X...\n", whoName[who], data);
 if (offset == 0x0102)//64*4)
