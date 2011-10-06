@@ -107,75 +107,9 @@ http://www.libsdl.org. Thanks Sam--you rock! :)
 - Using Virtual Jaguar GCC/Qt -
 -------------------------------
 
-After compiling the binary (see INSTALL) you can now run original Atari Jaguar
-games. These games are distributed on cartridges and can therefore cannot be
-used on a PC (we're still waiting for that Jaguar-on-a-PCI-card that you plug
-into your late model PC, complete with cartridge slot and controller connectors
-;-). To use these games on Virtual Jaguar GCC/Qt you need to get ROM images.
-For legal issues concerning ROM images please consult the DISCLAIMER at the
-beginning of this file.
-
-After obtaining several game ROMs you can now use Virtual Jaguar using the
-following command:
-
-./virtualjaguar [romfile] [-switches]
-
-The context of ROMFILE is the filename of the an Atari Jaguar ROM dump (can be
-either compressed or uncompressed). You can also use switches. By just typing
-./virtualjaguar -? (or ./virtualjaguar -help) you get an overview of the
-options you can use. WIN32 users should look into the stdout.txt in the
-directory they ran Virtual Jaguar for that information. Also, WIN32 users
-should be aware that if their ROM filenames contain any spaces, you will have
-to enclose the ROMFILE in double quotes for Virtual Jaguar to function
-properly.
-
-Note that running Virtual Jaguar this way will cause the emulator to exit
-completely upon pressing the ESC key. If this is not what you want, then omit
-the ROMFILE and it will bring up a nice GUI instead.
-
-If you prefer a nice GUI instead of typing in command lines, you can either
-type ./virtualjaguar or double click on the Virtual Jaguar executable. If you
-have a directory full of ROM files, you can tell Virtual Jaguar where they are
-by editing the appropriate line in the vj.cfg file (it assumes a ROMs directory
-under the directory where VJ lives) so that they show up when you pick the
-"Load" option from the "File" menu.
-
-This emulator also emulates the Atari Jaguar gamepads. By using the following
-keyboard or joystick settings you can (possibly) play a given game:
-
-Atari Button C       : Z or joystick button 3
-Atari Button B       : X or joystick button 2
-Atari Button A       : C or joystick button 1
-Atari Buttons 1 - 10 : Keypad 0 - 9 (0 = 10)
-Atari Start/Pause    : ENTER
-Atari Select         : '
-Atari UP             : UP    or joystick UP
-Atari DOWN           : DOWN  or joystick DOWN
-Atari LEFT           : LEFT  or joystick LEFT
-Atari RIGHT          : RIGHT or joystick RIGHT
-Atari #              : Keypad /
-Atari *              : Keypad *
-
-With ESC you can easily stop Virtual Jaguar GCC/Qt which will get you back to
-the GUI (pressing ESC again will take you back to the game). To exit VJ, you
-can either select File|Quit or press the "Q" key on your keyboard. If you want
-to change the key layout, simply edit the vj.cfg file and change the keys. :)
-NOTE: There are quite a few keys mapped to debugging functions at present. You
-have been warned!
-
--------------------
-- A note on sound -
--------------------
-
-By default, the Virtual Jaguar's DSP is turned off, since it doesn't work very
-well at present (it requires a lot of horsepower to sound decent at this
-point!). In order to hear any sound at all, you have to either edit the vj.cfg
-file and change the appropriate line or set the DSP on in the GUI (found under
-Settings|Misc). One word of caution: Use the old DSP core instead of the new
-pipelined version for now--the new pipelined DSP core has not yet been
-optimized and runs quite slow at present! Once the DSP issues have been ironed
-out, it will be turned on by default and you won't have to deal with it
-anymore. ;)
+Simply double click on the Virtual Jaguar icon or type ./virtualjaguar from
+the command line. See the built in help (under Help|Contents) for more
+information on how to use it. :-)
 
 -----------
 - Finally -
@@ -190,16 +124,13 @@ website [http://sdlemu.ngemu.com].
 
 We hope you enjoy the emulator and will use it wisely!
 
-Special thanks go to guys over at ngemu.com and #ngemu (EFNET). Thanks also to
-David Raingeard of Potato Emulation who originally developed this emulator and
+Thanks go to guys over at ngemu.com and #ngemu (EFNET). Thanks also to David
+Raingeard of Potato Emulation who originally developed this emulator and
 released the sources to the public. We couldn't have done it without you!
 
+Special thanks go to everyone who submitted good, detailed bug reports,
+sometimes with demonstration code(!); your help has helped to make Virtual
+Jaguar better, more accurate, and more polished than it would be otherwise. We
+really appreciate your help!
+
 SDLEMU
-
-
-*** Stuff to add in:
-
- o  Documentation needs a rewrite, more or less, as the GUI is now front and
-    center. Need to update the docs to reflect this change.
- o  Document the new "solid" zip file archive mechanism which allows putting
-    artwork into a "ROM".

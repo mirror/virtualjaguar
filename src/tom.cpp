@@ -770,6 +770,7 @@ void TOMExecScanline(uint16 scanline, bool render)
 
 //Interlacing is still not handled correctly here... !!! FIX !!!
 	if (scanline & 0x01)							// Execute OP only on even lines (non-interlaced only!)
+//	if (!(scanline & 0x01))							// Execute OP only on even lines (non-interlaced only!)
 		return;
 
 //Hm, it seems that the OP needs to execute from zero, so let's try it:
@@ -1386,6 +1387,8 @@ if (offset == VP)
 	WriteLog("TOM: Vertical Period written by %s: %u (%sinterlaced)\n", whoName[who], data, (data & 0x01 ? "non-" : ""));
 if (offset == HDB1)
 	WriteLog("TOM: Horizontal Display Begin 1 written by %s: %u\n", whoName[who], data);
+if (offset == HDB2)
+	WriteLog("TOM: Horizontal Display Begin 2 written by %s: %u\n", whoName[who], data);
 if (offset == HDE)
 	WriteLog("TOM: Horizontal Display End written by %s: %u\n", whoName[who], data);
 if (offset == HP)

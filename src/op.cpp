@@ -682,9 +682,13 @@ OP: Scaled bitmap 4x? 4bpp at 34,? hscale=80 fpix=0 data=000756E8 pitch 1 hflipp
 					op_pointer = link;
 				break;
 			case CONDITION_SECOND_HALF_LINE:
+//Here's the ASIC code:
+//  ND4(cctrue5, newheight[2], heightl[1], heightl[0], hcb[10]);
+//which means, do the link if bit 10 of HC is set...
+
 				// This basically means branch if bit 10 of HC is set
 #warning "Unhandled condition code causes emulator to crash... !!! FIX !!!"
-				WriteLog("OP: Unexpected CONDITION_SECOND_HALF_LINE in BRANCH object\nOP: shuting down\n");
+				WriteLog("OP: Unexpected CONDITION_SECOND_HALF_LINE in BRANCH object\nOP: shutting down!\n");
 				LogDone();
 				exit(0);
 				break;

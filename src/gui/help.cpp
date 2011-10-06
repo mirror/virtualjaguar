@@ -16,12 +16,12 @@
 
 #include "help.h"
 
+
 HelpWindow::HelpWindow(QWidget * parent/*= 0*/): QWidget(parent, Qt::Dialog)
 {
 	setWindowTitle(tr("Virtual Jaguar Help"));
 
 	// Need to set the size as well...
-//  resize(560, 480);
 	resize(560, 480);
 
 	layout = new QVBoxLayout();
@@ -33,20 +33,15 @@ HelpWindow::HelpWindow(QWidget * parent/*= 0*/): QWidget(parent, Qt::Dialog)
 //	image->setPixmap(QPixmap(":/res/vj_title_small.png"));
 //	layout->addWidget(image);
 
-//	QString s = QString(tr("SVN %1<br>")).arg(__DATE__);
-	QString s;// = QString("");
-	s.append(tr(
-		"<h1>Virtual Jaguar Documentation</h1>"
-		"<br>"
-		"<b><i>Coming soon!</i></b>"
-	));
 	text = new QTextBrowser;
-	text->setHtml(s);
+	text->setSource(QUrl("qrc:/res/help.html"));
 	layout->addWidget(text);
 }
 
-
 #if 0
+label size is 365x168
+scaled(365, 168
+
 #include "htmlviewer.moc"
 HtmlViewerWindow *htmlViewerWindow;
 

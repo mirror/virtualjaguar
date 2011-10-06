@@ -79,7 +79,7 @@
 // We'll make the VJ core modular so that it doesn't matter what GUI is in
 // use, we can drop it in anywhere and use it as-is.
 
-MainWin::MainWin(): running(false), powerButtonOn(false), showUntunedTankCircuit(true),
+MainWin::MainWin(): running(true), powerButtonOn(false), showUntunedTankCircuit(true),
 	cartridgeLoaded(false), CDActive(false),//, alpineLoadSuccessful(false),
 	pauseForFileSelector(false)
 {
@@ -115,7 +115,7 @@ MainWin::MainWin(): running(false), powerButtonOn(false), showUntunedTankCircuit
 	powerAct->setStatusTip(tr("Powers Jaguar on/off"));
 	powerAct->setCheckable(true);
 	powerAct->setChecked(false);
-	powerAct->setDisabled(true);
+//	powerAct->setDisabled(true);
 	connect(powerAct, SIGNAL(triggered()), this, SLOT(TogglePowerState()));
 
 	pauseAct = new QAction(QIcon(":/res/pause.png"), tr("Pause"), this);
@@ -226,7 +226,7 @@ MainWin::MainWin(): running(false), powerButtonOn(false), showUntunedTankCircuit
 	x1Act->setChecked(zoomLevel == 1);
 	x2Act->setChecked(zoomLevel == 2);
 	x3Act->setChecked(zoomLevel == 3);
-	running = powerAct->isChecked();
+//	running = powerAct->isChecked();
 	ntscAct->setChecked(vjs.hardwareTypeNTSC);
 	palAct->setChecked(!vjs.hardwareTypeNTSC);
 
@@ -294,11 +294,25 @@ void MainWin::closeEvent(QCloseEvent * event)
 
 void MainWin::keyPressEvent(QKeyEvent * e)
 {
+	// We ignore the Alt key for now, since it causes problems with the GUI
+	if (e->key() == Qt::Key_Alt)
+	{
+		e->accept();
+		return;
+	}
+
 	HandleKeys(e, true);
 }
 
 void MainWin::keyReleaseEvent(QKeyEvent * e)
 {
+	// We ignore the Alt key for now, since it causes problems with the GUI
+	if (e->key() == Qt::Key_Alt)
+	{
+		e->accept();
+		return;
+	}
+
 	HandleKeys(e, false);
 }
 
@@ -342,7 +356,7 @@ void MainWin::HandleKeys(QKeyEvent * e, bool state)
 			joypad_0_buttons[i] = (state ? 0x01 : 0x00);
 
 // Pad #2 is screwing up pad #1. Prolly a problem in joystick.cpp...
-// So let's try to fix it there. :-P
+// So let's try to fix it there. :-P [DONE]
 		if (e->key() == (int)vjs.p2KeyBindings[i])
 //			joypad_1_buttons[i] = (uint8)state;
 			joypad_1_buttons[i] = (state ? 0x01 : 0x00);
@@ -444,9 +458,10 @@ void MainWin::Timer(void)
 	{
 		// Otherwise, run the Jaguar simulation
 		JaguarExecuteNew();
-//		memcpy(videoWidget->buffer, backbuffer, videoWidget->rasterHeight * videoWidget->rasterWidth);
-		memcpy(videoWidget->buffer, backbuffer, videoWidget->rasterHeight * videoWidget->textureWidth * sizeof(uint32_t));
-//		memcpy(surface->pixels, backbuffer, TOMGetVideoModeWidth() * TOMGetVideoModeHeight() * 4);
+////		memcpy(videoWidget->buffer, backbuffer, videoWidget->rasterHeight * videoWidget->rasterWidth);
+//No longer needed--see glwidget.cpp for details!
+//		memcpy(videoWidget->buffer, backbuffer, videoWidget->rasterHeight * videoWidget->textureWidth * sizeof(uint32_t));
+////		memcpy(surface->pixels, backbuffer, TOMGetVideoModeWidth() * TOMGetVideoModeHeight() * 4);
 	}
 
 	videoWidget->updateGL();
@@ -568,7 +583,7 @@ void MainWin::InsertCart(void)
 {
 	// If the emulator is running, we pause it here and unpause it later
 	// if we dismiss the file selector without choosing anything
-	if (running)
+	if (running && powerButtonOn)
 	{
 		ToggleRunState();
 		pauseForFileSelector = true;
@@ -618,6 +633,7 @@ void MainWin::ToggleCDUsage(void)
 {
 	CDActive = !CDActive;
 
+#if 0
 	if (CDActive)
 	{
 		powerAct->setDisabled(false);
@@ -626,6 +642,7 @@ void MainWin::ToggleCDUsage(void)
 	{
 		powerAct->setDisabled(true);
 	}
+#endif
 }
 
 void MainWin::ResizeMainWindow(void)

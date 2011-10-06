@@ -117,6 +117,15 @@ printf("Resizing: new raster width/height = %i x %i\n", rasterWidth, rasterHeigh
 		}
 
 		buffer = new uint32_t[textureWidth * textureHeight];
+#warning "!!! Remove all backbuffer stuff, since it's unneeded !!!"
+/*
+We do this here just as a quick 'n' dirty shortcut. We don't need a backbuffer,
+as OpenGL takes care of all that crap for us. This means we also have to fix the
+Jaguar core, giving it a setup function for setting things like the video buffer,
+etc.
+*/
+		backbuffer = buffer;
+
 //???
 memset(buffer, 0x00, textureWidth * textureHeight * sizeof(uint32_t));
 		glGenTextures(1, &texture);

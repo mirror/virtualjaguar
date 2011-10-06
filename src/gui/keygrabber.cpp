@@ -45,5 +45,8 @@ void KeyGrabber::SetKeyText(int keyNum)
 void KeyGrabber::keyPressEvent(QKeyEvent * e)
 {
 	key = e->key();
-	accept();
+
+	// Since this is problematic, we don't allow this key...
+	if (key != Qt::Key_Alt)
+		accept();
 }

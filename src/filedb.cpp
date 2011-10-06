@@ -62,6 +62,7 @@ RomIdentifier romList[] = {
 	{ 0x47EBC158, "Theme Park (World)", FF_ROM | FF_VERIFIED },
 	{ 0x4899628F, "Hover Strike (World)", FF_ROM | FF_VERIFIED },
 	{ 0x4A08A2BD, "SuperCross 3D (World)", FF_ROM | FF_BAD_DUMP },
+	{ 0x544E7A01, "Downfall (World)", FF_ROM | FF_VERIFIED },
 	{ 0x55A0669C, "[BIOS] Atari Jaguar Developer CD (World)", FF_BIOS },
 	{ 0x58272540, "Syndicate (World)", FF_ROM | FF_VERIFIED },
 	{ 0x5A101212, "Sensible Soccer - International Edition (World)", FF_ROM | FF_VERIFIED },
