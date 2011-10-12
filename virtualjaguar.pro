@@ -26,7 +26,7 @@ UI_DIR      = obj
 
 # Platform specific defines
 win32     { DEFINES += __GCCWIN32__ }
-else:macx { DEFINES += __GCCUNIX__ _OSX_ }
+else:macx { DEFINES += __GCCUNIX__ __THINK_STUPID__ }
 else:unix { DEFINES += __GCCUNIX__ }
 
 # SDL (to link statically on Mac)

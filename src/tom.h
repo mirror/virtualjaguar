@@ -16,7 +16,7 @@
 
 // 68000 Interrupt bit positions (enabled at $F000E0)
 
-enum { IRQ_VBLANK = 0, IRQ_GPU, IRQ_OPFLAG, IRQ_TIMER, IRQ_DSP };
+enum { IRQ_VIDEO = 0, IRQ_GPU, IRQ_OPFLAG, IRQ_TIMER, IRQ_DSP };
 
 void TOMInit(void);
 void TOMReset(void);
@@ -27,7 +27,6 @@ uint16 TOMReadWord(uint32 offset, uint32 who = UNKNOWN);
 void TOMWriteByte(uint32 offset, uint8 data, uint32 who = UNKNOWN);
 void TOMWriteWord(uint32 offset, uint16 data, uint32 who = UNKNOWN);
 
-//void TOMExecScanline(int16 * backbuffer, int32 scanline, bool render);
 void TOMExecScanline(uint16 scanline, bool render);
 uint32 TOMGetVideoModeWidth(void);
 uint32 TOMGetVideoModeHeight(void);
@@ -49,9 +48,6 @@ void TOMSetPendingGPUInt(void);
 void TOMSetPendingVideoInt(void);
 void TOMResetPIT(void);
 
-//uint32 TOMGetSDLScreenPitch(void);
-void TOMResetBackbuffer(uint32 * backbuffer);
-
 // Exported variables
 
 extern uint32 tomWidth;
@@ -61,6 +57,7 @@ extern uint32 tomTimerPrescaler;
 extern uint32 tomTimerDivider;
 extern int32 tomTimerCounter;
 
-extern uint32 tomDeviceWidth;
+extern uint32 screenPitch;
+extern uint32 * screenBuffer;
 
 #endif	// __TOM_H__

@@ -24,6 +24,7 @@
 // - Remove SDL dependencies (sound, mainly) from Jaguar core lib
 // - Fix inconsistency with trailing slashes in paths (eeproms needs one, software doesn't)
 //
+// SFDX CODE: 9XF9TUHFM2359
 
 // Uncomment this for debugging...
 //#define DEBUG
@@ -57,16 +58,6 @@
 #include <unistd.h>
 #endif
 
-// Uncomment this to use built-in BIOS/CD-ROM BIOS
-// You'll need a copy of jagboot.h & jagcd.h for this to work...!
-// Creating those is left as an exercise for the reader. ;-)
-//#define USE_BUILT_IN_BIOS
-
-//#ifdef USE_BUILT_IN_BIOS
-//#include "jagboot.h"
-//#include "jagcd.h"
-//#endif
-
 // The way BSNES controls things is by setting a timer with a zero
 // timeout, sleeping if not emulating anything. Seems there has to be a
 // better way.
@@ -86,7 +77,6 @@ MainWin::MainWin(): running(true), powerButtonOn(false), showUntunedTankCircuit(
 	videoWidget = new GLWidget(this);
 	setCentralWidget(videoWidget);
 	setWindowIcon(QIcon(":/res/vj-icon.png"));
-//	setWindowTitle("Virtual Jaguar v2.0.0");
 
 	QString title = QString(tr("Virtual Jaguar " VJ_RELEASE_VERSION ));
 
@@ -238,28 +228,12 @@ MainWin::MainWin(): running(true), powerButtonOn(false), showUntunedTankCircuit(
 	connect(timer, SIGNAL(timeout()), this, SLOT(Timer()));
 	timer->start(20);
 
+	// We set this initially, to make VJ behave somewhat as it would if no
+	// cart were inserted and the BIOS was set as active...
+	jaguarCartInserted = true;
 	WriteLog("Virtual Jaguar %s (Last full build was on %s %s)\n", VJ_RELEASE_VERSION, __DATE__, __TIME__);
 	WriteLog("VJ: Initializing jaguar subsystem...\n");
 	JaguarInit();
-
-	// Get the BIOS ROM
-#ifdef USE_BUILT_IN_BIOS
-//	WriteLog("VJ: Using built in BIOS/CD BIOS...\n");
-//	memcpy(jaguarBootROM, jagBootROM, 0x20000);
-//	memcpy(jaguarCDBootROM, jagCDROM, 0x40000);
-////	BIOSLoaded = CDBIOSLoaded = true;
-//	biosAvailable |= (BIOS_NORMAL | BIOS_CD);
-#else
-// What would be nice here would be a way to check if the BIOS was loaded so that we
-// could disable the pushbutton on the Misc Options menu... !!! FIX !!! [DONE here, but needs to be fixed in GUI as well!]
-//	WriteLog("VJ: About to attempt to load BIOSes...\n");
-//This is short-circuiting the file finding thread... ??? WHY ???
-//Not anymore. Was related to a QImage object creation/corruption bug elsewhere.
-//	BIOSLoaded = (JaguarLoadROM(jaguarBootROM, vjs.jagBootPath) == 0x20000 ? true : false);
-//	WriteLog("VJ: BIOS is %savailable...\n", (BIOSLoaded ? "" : "not "));
-//	CDBIOSLoaded = (JaguarLoadROM(jaguarCDBootROM, vjs.CDBootPath) == 0x40000 ? true : false);
-//	WriteLog("VJ: CD BIOS is %savailable...\n", (CDBIOSLoaded ? "" : "not "));
-#endif
 
 	filePickWin->ScanSoftwareFolder(allowUnknownSoftware);
 
@@ -280,6 +254,7 @@ MainWin::MainWin(): running(true), powerButtonOn(false), showUntunedTankCircuit(
 
 		// Attempt to load/run the ABS file...
 		LoadSoftware(vjs.absROMPath);
+		memcpy(jagMemSpace + 0xE00000, jaguarDevBootROM2, 0x20000);	// Use the stub BIOS
 	}
 	else
 		memcpy(jagMemSpace + 0xE00000, jaguarBootROM, 0x20000);	// Otherwise, use the stock BIOS
@@ -449,8 +424,8 @@ void MainWin::Timer(void)
 		{
 			for(uint32_t y=0; y<videoWidget->rasterHeight; y++)
 			{
-				videoWidget->buffer[(y * videoWidget->textureWidth) + x] = (rand() & 0xFF) << 8 | (rand() & 0xFF) << 16 | (rand() & 0xFF) << 24;// | (rand() & 0xFF);//0x000000FF;
-	//			buffer[(y * textureWidth) + x] = x*y;
+				videoWidget->buffer[(y * videoWidget->textureWidth) + x]
+					= (rand() & 0xFF) << 8 | (rand() & 0xFF) << 16 | (rand() & 0xFF) << 24;
 			}
 		}
 	}
@@ -458,10 +433,6 @@ void MainWin::Timer(void)
 	{
 		// Otherwise, run the Jaguar simulation
 		JaguarExecuteNew();
-////		memcpy(videoWidget->buffer, backbuffer, videoWidget->rasterHeight * videoWidget->rasterWidth);
-//No longer needed--see glwidget.cpp for details!
-//		memcpy(videoWidget->buffer, backbuffer, videoWidget->rasterHeight * videoWidget->textureWidth * sizeof(uint32_t));
-////		memcpy(surface->pixels, backbuffer, TOMGetVideoModeWidth() * TOMGetVideoModeHeight() * 4);
 	}
 
 	videoWidget->updateGL();
@@ -470,47 +441,40 @@ void MainWin::Timer(void)
 void MainWin::TogglePowerState(void)
 {
 	powerButtonOn = !powerButtonOn;
+	running = true;
 
 	// With the power off, we simulate white noise on the screen. :-)
 	if (!powerButtonOn)
 	{
+		useCDAct->setDisabled(false);
 		pauseAct->setChecked(false);
 		pauseAct->setDisabled(true);
 		showUntunedTankCircuit = true;
-		running = true;
 		// This is just in case the ROM we were playing was in a narrow or wide field mode,
 		// so the untuned tank sim doesn't look wrong. :-)
 		TOMReset();
 	}
 	else
 	{
-//NOTE: Low hanging fruit: We can simplify this a lot...
+		useCDAct->setDisabled(true);
+		pauseAct->setChecked(false);
+		pauseAct->setDisabled(false);
+		showUntunedTankCircuit = false;
+
 		// Otherwise, we prepare for running regular software...
-		if (!CDActive)
-		{
-			showUntunedTankCircuit = false;//(cartridgeLoaded ? false : true);
-			pauseAct->setChecked(false);
-			pauseAct->setDisabled(false);//!cartridgeLoaded);
-		}
-		// Or, set up for the Jaguar CD
-		else
+		if (CDActive)
 		{
 // Should check for cartridgeLoaded here as well...!
 // We can clear it when toggling CDActive on, so that when we power cycle it does the
 // expected thing. Otherwise, if we use the file picker to insert a cart, we expect
 // to run the cart! Maybe have a RemoveCart function that only works if the CD unit
 // is active?
-			showUntunedTankCircuit = false;
-			pauseAct->setChecked(false);
-			pauseAct->setDisabled(false);
-			memcpy(jagMemSpace + 0x800000, jaguarCDBootROM, 0x40000);
 			setWindowTitle(QString("Virtual Jaguar " VJ_RELEASE_VERSION
 				" - Now playing: Jaguar CD"));
 		}
 
 		WriteLog("GUI: Resetting Jaguar...\n");
 		JaguarReset();
-		running = true;
 	}
 }
 
@@ -522,13 +486,11 @@ void MainWin::ToggleRunState(void)
 	{
 		for(uint32_t i=0; i<(uint32_t)(videoWidget->textureWidth * 256); i++)
 		{
-			uint32_t pixel = backbuffer[i];
+			uint32_t pixel = videoWidget->buffer[i];
 			uint8_t r = (pixel >> 24) & 0xFF, g = (pixel >> 16) & 0xFF, b = (pixel >> 8) & 0xFF;
 			pixel = ((r + g + b) / 3) & 0x00FF;
-			backbuffer[i] = 0x000000FF | (pixel << 16) | (pixel << 8);
+			videoWidget->buffer[i] = 0x000000FF | (pixel << 16) | (pixel << 8);
 		}
-
-		memcpy(videoWidget->buffer, backbuffer, videoWidget->rasterHeight * videoWidget->textureWidth * sizeof(uint32_t));
 
 		videoWidget->updateGL();
 	}
@@ -642,6 +604,12 @@ void MainWin::ToggleCDUsage(void)
 	{
 		powerAct->setDisabled(true);
 	}
+#else
+	// Set up the Jaguar CD for execution, otherwise, clear memory
+	if (CDActive)
+		memcpy(jagMemSpace + 0x800000, jaguarCDBootROM, 0x40000);
+	else
+		memset(jagMemSpace + 0x800000, 0xFF, 0x40000);
 #endif
 }
 
@@ -820,90 +788,3 @@ void MainWin::WriteSettings(void)
 	settings.setValue("p2k_pound", vjs.p2KeyBindings[BUTTON_d]);
 	settings.setValue("p2k_star", vjs.p2KeyBindings[BUTTON_s]);
 }
-
-// Here's how Byuu does it...
-// I think I have it working now... :-)
-#if 0
-void Utility::resizeMainWindow()
-{
-  unsigned region = config().video.context->region;
-  unsigned multiplier = config().video.context->multiplier;
-  unsigned width = 256 * multiplier;
-  unsigned height = (region == 0 ? 224 : 239) * multiplier;
-
-  if(config().video.context->correctAspectRatio)
-  {
-    if(region == 0)
-	{
-      width = (double)width * config().video.ntscAspectRatio + 0.5;  //NTSC adjust
-    }
-	else
-	{
-      width = (double)width * config().video.palAspectRatio  + 0.5;  //PAL adjust
-    }
-  }
-
-  if(config().video.isFullscreen == false)
-  {
-    //get effective desktop work area region (ignore Windows taskbar, OS X dock, etc.)
-    QRect deskRect = QApplication::desktop()->availableGeometry(mainWindow);
-
-    //ensure window size will not be larger than viewable desktop area
-    constrainSize(height, width, deskRect.height()); //- frameHeight);
-    constrainSize(width, height, deskRect.width());  //- frameWidth );
-
-    mainWindow->canvas->setFixedSize(width, height);
-    mainWindow->show();
-  }
-  else
-  {
-    for(unsigned i = 0; i < 2; i++)
-	{
-      unsigned iWidth = width, iHeight = height;
-
-      constrainSize(iHeight, iWidth, mainWindow->canvasContainer->size().height());
-      constrainSize(iWidth, iHeight, mainWindow->canvasContainer->size().width());
-
-      //center canvas onscreen; ensure it is not larger than viewable area
-      mainWindow->canvas->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-      mainWindow->canvas->setFixedSize(iWidth, iHeight);
-      mainWindow->canvas->setMinimumSize(0, 0);
-
-      usleep(2000);
-      QApplication::processEvents();
-    }
-  }
-
-  //workaround for Qt/Xlib bug:
-  //if window resize occurs with cursor over it, Qt shows Qt::Size*DiagCursor;
-  //so force it to show Qt::ArrowCursor, as expected
-  mainWindow->setCursor(Qt::ArrowCursor);
-  mainWindow->canvasContainer->setCursor(Qt::ArrowCursor);
-  mainWindow->canvas->setCursor(Qt::ArrowCursor);
-
-  //workaround for DirectSound(?) bug:
-  //window resizing sometimes breaks audio sync, this call re-initializes it
-  updateAvSync();
-}
-
-void Utility::setScale(unsigned scale)
-{
-  config().video.context->multiplier = scale;
-  resizeMainWindow();
-  mainWindow->shrink();
-  mainWindow->syncUi();
-}
-
-void QbWindow::shrink()
-{
-  if(config().video.isFullscreen == false)
-  {
-    for(unsigned i = 0; i < 2; i++)
-	{
-      resize(0, 0);
-      usleep(2000);
-      QApplication::processEvents();
-    }
-  }
-}
-#endif

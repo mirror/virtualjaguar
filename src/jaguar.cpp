@@ -67,11 +67,7 @@ extern uint8 jagMemSpace[];
 uint32 jaguar_active_memory_dumps = 0;
 
 uint32 jaguarMainROMCRC32, jaguarROMSize, jaguarRunAddress;
-
-bool BIOSLoaded = false;
-bool CDBIOSLoaded = false;
-
-uint32 * backbuffer;
+bool jaguarCartInserted = false;
 
 #ifdef CPU_DEBUG_MEMORY
 uint8 writeMemMax[0x400000], writeMemMin[0x400000];
@@ -114,7 +110,7 @@ void M68KInstructionHook(void)
 		WriteLog("M68K: Top of stack: %08X. Stack trace:\n", JaguarReadLong(topOfStack));
 		for(int i=0; i<10; i++)
 			WriteLog("%06X: %08X\n", topOfStack - (i * 4), JaguarReadLong(topOfStack - (i * 4)));
-		WriteLog("Jaguar: VBL interrupt is %s\n", ((TOMIRQEnabled(IRQ_VBLANK)) && (JaguarInterruptHandlerIsValid(64))) ? "enabled" : "disabled");
+		WriteLog("Jaguar: VBL interrupt is %s\n", ((TOMIRQEnabled(IRQ_VIDEO)) && (JaguarInterruptHandlerIsValid(64))) ? "enabled" : "disabled");
 		M68K_show_context();
 		LogDone();
 		exit(0);
@@ -350,7 +346,7 @@ CD_switch::	-> $306C
 		WriteLog("M68K: Top of stack: %08X. Stack trace:\n", JaguarReadLong(topOfStack));
 		for(int i=0; i<10; i++)
 			WriteLog("%06X: %08X\n", topOfStack - (i * 4), JaguarReadLong(topOfStack - (i * 4)));
-		WriteLog("Jaguar: VBL interrupt is %s\n", ((TOMIRQEnabled(IRQ_VBLANK)) && (JaguarInterruptHandlerIsValid(64))) ? "enabled" : "disabled");
+		WriteLog("Jaguar: VBL interrupt is %s\n", ((TOMIRQEnabled(IRQ_VIDEO)) && (JaguarInterruptHandlerIsValid(64))) ? "enabled" : "disabled");
 		M68K_show_context();
 
 //temp
@@ -1205,7 +1201,7 @@ void M68K_show_context(void)
 
 	WriteLog("..................\n");
 
-	if (TOMIRQEnabled(IRQ_VBLANK))
+	if (TOMIRQEnabled(IRQ_VIDEO))
 	{
 		WriteLog("video int: enabled\n");
 		JaguarDasm(JaguarGetHandler(64), 0x200);
@@ -1587,6 +1583,18 @@ void JaguarWriteLong(uint32 offset, uint32 data, uint32 who/*=UNKNOWN*/)
 	JaguarWriteWord(offset+2, data & 0xFFFF, who);
 }
 
+void JaguarSetScreenBuffer(uint32 * buffer)
+{
+	// This is in TOM, but we set it here...
+	screenBuffer = buffer;
+}
+
+void JaguarSetScreenPitch(uint32 pitch)
+{
+	// This is in TOM, but we set it here...
+	screenPitch = pitch;
+}
+
 //
 // Jaguar console initialization
 //
@@ -1617,14 +1625,14 @@ void JaguarInit(void)
 //New timer based code stuffola...
 void ScanlineCallback(void);
 void RenderCallback(void);
-//extern uint32 * backbuffer;
 void JaguarReset(void)
 {
 //Need to change this so it uses the single RAM space and load the BIOS
 //into it somewhere...
 //Also, have to change this here and in JaguarReadXX() currently
 	// Only use the system BIOS if it's available...! (it's always available now!)
-	if (vjs.useJaguarBIOS && !vjs.hardwareTypeAlpine)
+	// AND only if a jaguar cartridge has been inserted.
+	if (vjs.useJaguarBIOS && jaguarCartInserted && !vjs.hardwareTypeAlpine)
 		memcpy(jaguarMainRAM, jagMemSpace + 0xE00000, 8);
 	else
 		SET32(jaguarMainRAM, 4, jaguarRunAddress);
@@ -1640,7 +1648,6 @@ void JaguarReset(void)
 
 	// New timer base code stuffola...
 	InitializeEventList();
-	TOMResetBackbuffer(backbuffer);
 //	SetCallbackTime(ScanlineCallback, 63.5555);
 	SetCallbackTime(ScanlineCallback, 31.77775);
 //	SetCallbackTime(RenderCallback, 33303.082);	// # Scanlines * scanline time
@@ -1722,7 +1729,7 @@ void JaguarDone(void)
 
 //	WriteLog("Jaguar: CD BIOS version %04X\n", JaguarReadWord(0x3004));
 	WriteLog("Jaguar: Interrupt enable = $%02X\n", TOMReadByte(0xF000E1, JAGUAR) & 0x1F);
-	WriteLog("Jaguar: Video interrupt is %s (line=%u)\n", ((TOMIRQEnabled(IRQ_VBLANK))
+	WriteLog("Jaguar: Video interrupt is %s (line=%u)\n", ((TOMIRQEnabled(IRQ_VIDEO))
 		&& (JaguarInterruptHandlerIsValid(64))) ? "enabled" : "disabled", TOMReadWord(0xF0004E, JAGUAR));
 	M68K_show_context();
 //#endif
@@ -1770,6 +1777,9 @@ void JaguarDone(void)
 	JaguarDasm(0x802000, 6000);
 	WriteLog("\n");//*/
 #endif
+/*	WriteLog("\n\nM68000 disassembly at $080000...\n");
+	JaguarDasm(0x080000, 10000);
+	WriteLog("\n");//*/
 }
 
 //
@@ -1799,7 +1809,6 @@ void JaguarExecute(uint32 * backbuffer, bool render)
 	uint32 M68KCyclesPerScanline = m68kClockRate / (vp * refreshRate);
 	uint32 RISCCyclesPerScanline = m68kClockRate / (vp * refreshRate);
 
-	TOMResetBackbuffer(backbuffer);
 /*extern int effect_start;
 if (effect_start)
 	WriteLog("JagExe: VP=%u, VI=%u, CPU CPS=%u, GPU CPS=%u\n", vp, vi, M68KCyclesPerScanline, RISCCyclesPerScanline);//*/
@@ -1809,14 +1818,12 @@ if (effect_start)
 	{
 		// Increment the horizontal count (why? RNG? Besides which, this is *NOT* cycle accurate!)
 		TOMWriteWord(0xF00004, (TOMReadWord(0xF00004, JAGUAR) + 1) & 0x7FF, JAGUAR);
-
 		TOMWriteWord(0xF00006, i, JAGUAR);			// Write the VC
 
-//		if (i == vi)								// Time for Vertical Interrupt?
 //Not sure if this is correct...
 //Seems to be, kinda. According to the JTRM, this should only fire on odd lines in non-interlace mode...
 //Which means that it normally wouldn't go when it's zero.
-		if (i == vi && i > 0 && TOMIRQEnabled(IRQ_VBLANK))	// Time for Vertical Interrupt?
+		if (i == vi && i > 0 && TOMIRQEnabled(IRQ_VIDEO))	// Time for Vertical Interrupt?
 		{
 			// We don't have to worry about autovectors & whatnot because the Jaguar
 			// tells you through its HW registers who sent the interrupt...
@@ -1877,112 +1884,11 @@ uint8 * GetRamPtr(void)
 
 //
 // New Jaguar execution stack
+// This executes 1 frame's worth of code.
 //
-
-#if 0
-
-void JaguarExecuteNew(void)
-{
-	extern bool finished, showGUI;
-	extern bool debounceRunKey;
-	// Pass a message to the "joystick" code to debounce the ESC key...
-	debounceRunKey = true;
-	finished = false;
-/*	InitializeEventList();
-	TOMResetBackbuffer(backbuffer);
-//	SetCallbackTime(ScanlineCallback, 63.5555);
-	SetCallbackTime(ScanlineCallback, 31.77775);
-//	SetCallbackTime(RenderCallback, 33303.082);	// # Scanlines * scanline time
-//	SetCallbackTime(RenderCallback, 16651.541);	// # Scanlines * scanline time//*/
-//	uint8 * keystate = SDL_GetKeyState(NULL);
-
-	do
-	{
-		double timeToNextEvent = GetTimeToNextEvent();
-//WriteLog("JEN: Time to next event (%u) is %f usec (%u RISC cycles)...\n", nextEvent, timeToNextEvent, USEC_TO_RISC_CYCLES(timeToNextEvent));
-
-		m68k_execute(USEC_TO_M68K_CYCLES(timeToNextEvent));
-		gpu_exec(USEC_TO_RISC_CYCLES(timeToNextEvent));
-
-		if (vjs.DSPEnabled)
-		{
-			if (vjs.usePipelinedDSP)
-				DSPExecP2(USEC_TO_RISC_CYCLES(timeToNextEvent));	// Pipelined DSP execution (3 stage)...
-			else
-				DSPExec(USEC_TO_RISC_CYCLES(timeToNextEvent));		// Ordinary non-pipelined DSP
-		}
-
-		HandleNextEvent();
-
-//		if (keystate[SDLK_ESCAPE])
-//			break;
-
-//	    SDL_PumpEvents();	// Needed to keep the keystate current...
- 	}
-	while (!finished);
-}
-
-void ScanlineCallback(void)
-{
-	uint16 vc = TOMReadWord(0xF00006, JAGUAR);
-	uint16 vp = TOMReadWord(0xF0003E, JAGUAR) + 1;
-	uint16 vi = TOMReadWord(0xF0004E, JAGUAR);
-//	uint16 vbb = TOMReadWord(0xF00040, JAGUAR);
-	vc++;
-
-	if (vc >= vp)
-		vc = 0;
-
-//WriteLog("SLC: Currently on line %u (VP=%u)...\n", vc, vp);
-	TOMWriteWord(0xF00006, vc, JAGUAR);
-
-//This is a crappy kludge, but maybe it'll work for now...
-//Maybe it's not so bad, since the IRQ happens on a scanline boundary...
-	if (vc == vi && vc > 0 && tom_irq_enabled(IRQ_VBLANK))	// Time for Vertical Interrupt?
-	{
-		// We don't have to worry about autovectors & whatnot because the Jaguar
-		// tells you through its HW registers who sent the interrupt...
-		tom_set_pending_video_int();
-		m68k_set_irq(2);
-	}
-
-	TOMExecScanline(vc, true);
-
-//Change this to VBB???
-//Doesn't seem to matter (at least for Flip Out & I-War)
-	if (vc == 0)
-//	if (vc == vbb)
-	{
-joystick_exec();
-
-		RenderBackbuffer();
-		TOMResetBackbuffer(backbuffer);
-	}//*/
-
-//	if (vc == 0)
-//		TOMResetBackbuffer(backbuffer);
-
-//	SetCallbackTime(ScanlineCallback, 63.5555);
-	SetCallbackTime(ScanlineCallback, 31.77775);
-}
-
-#else
-
 bool frameDone;
 void JaguarExecuteNew(void)
 {
-//	extern bool finished, showGUI;
-//	extern bool debounceRunKey;
-	// Pass a message to the "joystick" code to debounce the ESC key...
-//	debounceRunKey = true;
-//	finished = false;
-/*	InitializeEventList();
-	TOMResetBackbuffer(backbuffer);
-//	SetCallbackTime(ScanlineCallback, 63.5555);
-	SetCallbackTime(ScanlineCallback, 31.77775);
-//	SetCallbackTime(RenderCallback, 33303.082);	// # Scanlines * scanline time
-//	SetCallbackTime(RenderCallback, 16651.541);	// # Scanlines * scanline time//*/
-//	uint8 * keystate = SDL_GetKeyState(NULL);
 	frameDone = false;
 
 	do
@@ -2004,11 +1910,6 @@ void JaguarExecuteNew(void)
 		}
 
 		HandleNextEvent();
-
-//		if (keystate[SDLK_ESCAPE])
-//			break;
-
-//	    SDL_PumpEvents();	// Needed to keep the keystate current...
  	}
 	while (!frameDone);
 }
@@ -2029,7 +1930,7 @@ void ScanlineCallback(void)
 
 //This is a crappy kludge, but maybe it'll work for now...
 //Maybe it's not so bad, since the IRQ happens on a scanline boundary...
-	if (vc == vi && vc > 0 && TOMIRQEnabled(IRQ_VBLANK))	// Time for Vertical Interrupt?
+	if (vc == vi && vc > 0 && TOMIRQEnabled(IRQ_VIDEO))	// Time for Vertical Interrupt?
 	{
 		// We don't have to worry about autovectors & whatnot because the Jaguar
 		// tells you through its HW registers who sent the interrupt...
@@ -2045,26 +1946,20 @@ void ScanlineCallback(void)
 //	if (vc == vbb)
 	{
 		JoystickExec();
-//We comment this out so that the GUI can manage this instead. Which is how it should be anyway.
-//		RenderBackbuffer();
-		TOMResetBackbuffer(backbuffer);
 		frameDone = true;
 	}//*/
-
-//	if (vc == 0)
-//		TOMResetBackbuffer(backbuffer);
 
 //	SetCallbackTime(ScanlineCallback, 63.5555);
 	SetCallbackTime(ScanlineCallback, 31.77775);
 }
 
-#endif
-
 // This isn't currently used, but maybe it should be...
+/*
+Nah, the scanline based code is good enough, and runs in 1 frame. The GUI
+handles all the rest, so this isn't needed. :-P
+*/
 void RenderCallback(void)
 {
-//	RenderBackbuffer();
-	TOMResetBackbuffer(backbuffer);
 //	SetCallbackTime(RenderCallback, 33303.082);	// # Scanlines * scanline time
 	SetCallbackTime(RenderCallback, 16651.541);	// # Scanlines * scanline time
 }

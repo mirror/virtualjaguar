@@ -126,9 +126,11 @@ bool JaguarLoadFile(char * path)
 	EepromInit();
 	jaguarRunAddress = 0x802000;					// For non-BIOS runs, this is true
 	int fileType = ParseFileType(buffer[0], buffer[1], jaguarROMSize);
+	jaguarCartInserted = false;
 
 	if (fileType == JST_ROM)
 	{
+		jaguarCartInserted = true;
 		memcpy(jagMemSpace + 0x800000, buffer, jaguarROMSize);
 		delete[] buffer;
 		return true;
@@ -369,7 +371,8 @@ uint32 ParseFileType(uint8 header1, uint8 header2, uint32 size)
 
 	// If the file size is divisible by 1M, we probably have an regular ROM.
 	// We can also check our CRC32 against the internal ROM database to be sure.
-	if ((size % 1048576) == 0)
+	// (We also check for the Memory Track cartridge size here as well...)
+	if ((size % 1048576) == 0 || size == 131072)
 		return JST_ROM;
 
 	// If the file size + 8192 bytes is divisible by 1M, we probably have an
