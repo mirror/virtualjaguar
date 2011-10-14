@@ -15,11 +15,12 @@ class HelpWindow: public QWidget
 	public:
 		HelpWindow(QWidget * parent = 0);
 
+	protected:
+		void keyPressEvent(QKeyEvent *);
+
 	private:
 		QVBoxLayout * layout;
 		QTextBrowser * text;
-//		QLabel * text;
-//		QLabel * image;
 };
 
 #endif	// __HELP_H__

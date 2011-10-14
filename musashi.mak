@@ -3,7 +3,7 @@
 #
 # by James L. Hammons
 #
-# This software is licensed under the GPL v3 or any later version. See the
+# This makefile is licensed under the GPL v3 or any later version. See the
 # file GPLv3 for details. ;-)
 #
 

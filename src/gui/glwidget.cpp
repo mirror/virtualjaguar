@@ -25,21 +25,13 @@
 GLWidget::GLWidget(QWidget * parent/*= 0*/): QGLWidget(parent), texture(0),
 	textureWidth(0), textureHeight(0), buffer(0), rasterWidth(320), rasterHeight(240)
 {
-//	tomDeviceWidth = rasterWidth;
-	tomDeviceWidth = 1024;	// It has to be the texture width...
-
-	// Set up the backbuffer
-	// To be safe, this should be 1280 * 625 * 2...
-	backbuffer = (uint32_t *)malloc(1280 * 625 * sizeof(uint32_t));
-//	memset(backbuffer, 0x44, rasterWidth *
-	memset(backbuffer, 0xFF, 1024 *
-		(vjs.hardwareTypeNTSC ? rasterHeight : VIRTUAL_SCREEN_HEIGHT_PAL)
-		* sizeof(uint32_t));
+	// Screen pitch has to be the texture width (in 32-bit pixels)...
+	JaguarSetScreenPitch(1024);
 }
 
 GLWidget::~GLWidget()
 {
-	free(backbuffer);
+//	free(backbuffer);
 }
 
 void GLWidget::initializeGL()
@@ -98,13 +90,9 @@ void GLWidget::resizeGL(int width, int height)
 {
 	if (width > textureWidth || height > textureHeight)
 	{
-//		textureWidth  = max(width,  textureWidth);
-//		textureHeight = max(height, textureHeight);
-// Seems that power of 2 sizes are still mandatory...
-		textureWidth  = 1024;//(width > textureWidth ? width : textureWidth);
-		textureHeight = 512;//(height > textureHeight ? height : textureHeight);
-//		textureWidth  = (width > textureWidth ? width : textureWidth);
-//		textureHeight = (height > textureHeight ? height : textureHeight);
+		// Seems that power of 2 sizes are still mandatory...
+		textureWidth  = 1024;
+		textureHeight = 512;
 #if 0
 printf("Resizing: new texture width/height = %i x %i\n", textureWidth, textureHeight);
 printf("Resizing: new raster width/height = %i x %i\n", rasterWidth, rasterHeight);
@@ -117,23 +105,15 @@ printf("Resizing: new raster width/height = %i x %i\n", rasterWidth, rasterHeigh
 		}
 
 		buffer = new uint32_t[textureWidth * textureHeight];
-#warning "!!! Remove all backbuffer stuff, since it's unneeded !!!"
-/*
-We do this here just as a quick 'n' dirty shortcut. We don't need a backbuffer,
-as OpenGL takes care of all that crap for us. This means we also have to fix the
-Jaguar core, giving it a setup function for setting things like the video buffer,
-etc.
-*/
-		backbuffer = buffer;
+		JaguarSetScreenBuffer(buffer);
 
 //???
-memset(buffer, 0x00, textureWidth * textureHeight * sizeof(uint32_t));
+memset(buffer, 0xFF, textureWidth * textureHeight * sizeof(uint32_t));
 		glGenTextures(1, &texture);
 		glBindTexture(GL_TEXTURE_2D, texture);
 		glPixelStorei(GL_UNPACK_ROW_LENGTH, textureWidth);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-//		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, textureWidth, textureHeight, 0, GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV, NULL);
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, textureWidth, textureHeight, 0, GL_RGBA, GL_UNSIGNED_INT_8_8_8_8, NULL);
 	}
 }

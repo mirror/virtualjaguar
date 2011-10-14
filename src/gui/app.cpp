@@ -44,6 +44,13 @@ int main(int argc, char * argv[])
 				"enough demand for it. :-)\n");
 			return 0;
 		}
+		if (strcmp(argv[1], "--yarrr") == 0)
+		{
+			printf("\n");
+			printf("Shiver me timbers!\n");
+			printf("\n");
+			return 0;
+		}
 		if ((strcmp(argv[1], "--alpine") == 0) || (strcmp(argv[1], "-a") == 0))
 		{
 			printf("Alpine Mode enabled.\n");

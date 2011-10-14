@@ -4,7 +4,7 @@ Virtual Jaguar v2.0.0 GCC/Qt
 * Switched GUI to Qt. And there was much rejoicing. ;-) [Shamus]
 * Added detection code to fish out files from inside ZIP archives. What this
   means is that now you can have other goodies inside of your ROM ZIP like
-  labels, box art, and overlays. See README for details. [Shamus]
+  labels, box art, and overlays. See built-in help for details. [Shamus]
 * Various usability improvements, too many to list here. ;-) [Shamus]
 * Various compatibility improvements to the Jaguar core, too many to list
   here. ;-) [Shamus]

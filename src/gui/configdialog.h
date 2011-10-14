@@ -25,6 +25,7 @@ class ConfigDialog: public QDialog
 
 	private:
 		void LoadDialogFromSettings(void);
+		QString CheckForTrailingSlash(QString);
 
 	private:
 		QTabWidget * tabWidget;

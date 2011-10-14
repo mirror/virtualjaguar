@@ -4,6 +4,8 @@
 #include "types.h"
 #include "memory.h"							// For "UNKNOWN" enum
 
+void JaguarSetScreenBuffer(uint32 * buffer);
+void JaguarSetScreenPitch(uint32 pitch);
 void JaguarInit(void);
 void JaguarReset(void);
 void JaguarDone(void);
@@ -24,12 +26,10 @@ void JaguarExecuteNew(void);
 
 // Exports from JAGUAR.CPP
 
-extern bool BIOSLoaded;
-extern bool CDBIOSLoaded;
 extern int32 jaguarCPUInExec;
 extern uint32 jaguarMainROMCRC32, jaguarROMSize, jaguarRunAddress;
 extern char * jaguarEepromsPath;
-extern uint32 * backbuffer;
+extern bool jaguarCartInserted;
 
 // Various clock rates
 

@@ -15,6 +15,9 @@ class AboutWindow: public QWidget
 	public:
 		AboutWindow(QWidget * parent = 0);
 
+	protected:
+		void keyPressEvent(QKeyEvent *);
+
 	private:
 		QVBoxLayout * layout;
 		QLabel * text;

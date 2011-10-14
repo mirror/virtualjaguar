@@ -318,8 +318,6 @@ void DumpFixedObject(uint64 p0, uint64 p1)
 //
 // Object Processor main routine
 //
-//Need to fix this so that when an GPU object IRQ happens, we can pick up OP processing
-//where we left off. !!! FIX !!!
 #warning "Need to fix this so that when an GPU object IRQ happens, we can pick up OP processing where we left off. !!! FIX !!!"
 void OPProcessList(int scanline, bool render)
 {
@@ -342,7 +340,7 @@ bool inhibit;
 int bitmapCounter = 0;
 // *** END OP PROCESSOR TESTING ONLY ***
 
-	uint32 opCyclesToRun = 10000;					// This is a pulled-out-of-the-air value (will need to be fixed, obviously!)
+	uint32 opCyclesToRun = 30000;					// This is a pulled-out-of-the-air value (will need to be fixed, obviously!)
 
 //	if (op_pointer) WriteLog(" new op list at 0x%.8x scanline %i\n",op_pointer,scanline);
 	while (op_pointer)
@@ -454,7 +452,8 @@ WriteLog("    --> List end\n\n");
 				ypos = TOMReadWord(0xF00046, OP) / 2;			// Get the VDB value
 #endif
 // Actually, no. Any item less than VDB will get only the lines that hang over VDB displayed.
-// So we need to fix this somehow... (and it has... in tom.cpp :-P)
+// Actually, this is incorrect. It seems that VDB value is wrong somewhere and that's
+// what's causing things to fuck up. Still no idea why.
 
 			uint32 height = (p0 & 0xFFC000) >> 14;
 			uint32 oldOPP = op_pointer - 8;

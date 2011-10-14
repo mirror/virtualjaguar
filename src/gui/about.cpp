@@ -11,6 +11,7 @@
 // JLH  01/21/2010  Created this file
 // JLH  01/22/2010  Fleshed out the credits a bit more
 // JLH  01/22/2010  Fixed centering and decorating of window
+// JLH  10/08/2011  Updated credits, added Esc & Return as exit keys
 //
 
 // STILL TO DO:
@@ -32,7 +33,6 @@ AboutWindow::AboutWindow(QWidget * parent/*= 0*/): QWidget(parent, Qt::Dialog)
 	image->setPixmap(QPixmap(":/res/vj_title_small.png"));
 	layout->addWidget(image);
 
-//	QString s = QString(tr("SVN %1<br>")).arg(__DATE__);
 	QString s;// = QString("");
 	s.append(tr(
 		"<table>"
@@ -40,7 +40,8 @@ AboutWindow::AboutWindow(QWidget * parent/*= 0*/): QWidget(parent, Qt::Dialog)
 		VJ_RELEASE_VERSION " (" VJ_RELEASE_SUBVERSION ")"
 		"</td></tr>"
 		"<tr><td align='right'><b>Coders: </b></td><td>James L. Hammons (shamus)<br>Niels Wagenaar (nwagenaar)<br>Carwin Jones (Caz)<br>Adam Green</td></tr>"
-		"<tr><td align='right'><b>Testers: </b></td><td>Guruma</td></tr>"
+		"<tr><td align='right'><b>Testers: </b></td><td>Cyrano Jones, Robert R, TheUMan, Dissection,<br>overridex, geormetal</td></tr>"
+		"<tr><td align='right'><b>Build Team: </b></td><td>ggn (win32)<br>goldenegg (MacOS)</td></tr>"
 		"<tr><td align='right'><b>Homepage: </b></td><td>http://icculus.org/virtualjaguar/</td></tr>"
 		"</table>"
 		"<br><br>"
@@ -59,4 +60,10 @@ AboutWindow::AboutWindow(QWidget * parent/*= 0*/): QWidget(parent, Qt::Dialog)
 	));
 	text = new QLabel(s);
 	layout->addWidget(text);
+}
+
+void AboutWindow::keyPressEvent(QKeyEvent * e)
+{
+	if (e->key() == Qt::Key_Escape || e->key() == Qt::Key_Return)
+		hide();
 }

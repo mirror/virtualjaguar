@@ -18,7 +18,7 @@ SDLLIBTYPE := --libs
 
 else ifeq "$(findstring Darwin,$(OSTYPE))" "Darwin"	# Should catch both 'darwin' and 'darwin7.0'
 
-SYSTYPE    := __GCCUNIX__ -D_OSX_
+SYSTYPE    := __GCCUNIX__ -D__THINK_STUPID__
 SDLLIBTYPE := --static-libs
 
 else ifeq "$(findstring Linux,$(OSTYPE))" "Linux"		# Linux

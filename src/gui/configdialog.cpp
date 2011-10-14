@@ -10,6 +10,7 @@
 // ---  ----------  -------------------------------------------------------------
 // JLH  01/29/2010  Created this file
 // JLH  06/23/2011  Added initial implementation
+// JLH  10/14/2011  Fixed possibly missing final slash in paths
 //
 
 #include "configdialog.h"
@@ -80,8 +81,6 @@ void ConfigDialog::LoadDialogFromSettings(void)
 
 	for(int i=0; i<21; i++)
 	{
-//		controllerTab1->p1Keys[i] = vjs.p1KeyBindings[i];
-//		controllerTab2->p1Keys[i] = vjs.p2KeyBindings[i];
 		controllerTab1->controllerWidget->keys[i] = vjs.p1KeyBindings[i];
 		controllerTab2->controllerWidget->keys[i] = vjs.p2KeyBindings[i];
 	}
@@ -91,8 +90,10 @@ void ConfigDialog::UpdateVJSettings(void)
 {
 	strcpy(vjs.jagBootPath, generalTab->edit1->text().toAscii().data());
 	strcpy(vjs.CDBootPath,  generalTab->edit2->text().toAscii().data());
-	strcpy(vjs.EEPROMPath,  generalTab->edit3->text().toAscii().data());
-	strcpy(vjs.ROMPath,     generalTab->edit4->text().toAscii().data());
+	strcpy(vjs.EEPROMPath,  CheckForTrailingSlash(
+		generalTab->edit3->text()).toAscii().data());
+	strcpy(vjs.ROMPath,     CheckForTrailingSlash(
+		generalTab->edit4->text()).toAscii().data());
 
 	vjs.useJaguarBIOS = generalTab->useBIOS->isChecked();
 	vjs.GPUEnabled    = generalTab->useGPU->isChecked();
@@ -108,9 +109,15 @@ void ConfigDialog::UpdateVJSettings(void)
 
 	for(int i=0; i<21; i++)
 	{
-//		vjs.p1KeyBindings[i] = controllerTab1->p1Keys[i];
-//		vjs.p2KeyBindings[i] = controllerTab2->p1Keys[i];
 		vjs.p1KeyBindings[i] = controllerTab1->controllerWidget->keys[i];
 		vjs.p2KeyBindings[i] = controllerTab2->controllerWidget->keys[i];
 	}
+}
+
+QString ConfigDialog::CheckForTrailingSlash(QString s)
+{
+	if (!s.endsWith('/') && !s.endsWith('\\'))
+		s.append('/');
+
+	return s;
 }
