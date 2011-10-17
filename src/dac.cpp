@@ -190,7 +190,7 @@ if (numLeftSamplesReady == 0 || numRightSamplesReady == 0)
 }
 
 //
-// Calculate the freq9uency of SCLK * 32 using the divider
+// Calculate the frequency of SCLK * 32 using the divider
 //
 int GetCalculatedFrequency(void)
 {

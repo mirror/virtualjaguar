@@ -455,13 +455,8 @@ void JERRYI2SCallback(void)
 
 void JERRYInit(void)
 {
-//	clock_init();
-//	anajoy_init();
 	JoystickInit();
 	DACInit();
-//This should be handled with the cart initialization...
-//	eeprom_init();
-//	memory_malloc_secure((void **)&jerry_ram_8, 0x10000, "JERRY RAM/ROM");
 	memcpy(&jerry_ram_8[0xD000], waveTableROM, 0x1000);
 
 	JERRYPIT1Prescaler = 0xFFFF;
@@ -474,8 +469,6 @@ void JERRYInit(void)
 
 void JERRYReset(void)
 {
-//	clock_reset();
-//	anajoy_reset();
 	JoystickReset();
 	EepromReset();
 	JERRYResetI2S();
@@ -495,9 +488,6 @@ void JERRYReset(void)
 void JERRYDone(void)
 {
 	WriteLog("JERRY: M68K Interrupt control ($F10020) = %04X\n", GET16(jerry_ram_8, 0x20));
-//	memory_free(jerry_ram_8);
-//	clock_done();
-//	anajoy_done();
 	JoystickDone();
 	DACDone();
 	EepromDone();

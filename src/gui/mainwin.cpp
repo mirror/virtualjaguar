@@ -97,7 +97,9 @@ MainWin::MainWin(): running(true), powerButtonOn(false), showUntunedTankCircuit(
 	// Create actions
 
 	quitAppAct = new QAction(tr("E&xit"), this);
-	quitAppAct->setShortcuts(QKeySequence::Quit);
+//	quitAppAct->setShortcuts(QKeySequence::Quit);
+//	quitAppAct->setShortcut(QKeySequence(tr("Alt+x")));
+	quitAppAct->setShortcut(QKeySequence(tr("Ctrl+q")));
 	quitAppAct->setStatusTip(tr("Quit Virtual Jaguar"));
 	connect(quitAppAct, SIGNAL(triggered()), this, SLOT(close()));
 
