@@ -1,5 +1,5 @@
 -------------------------------------------
-Virtual Jaguar v2.0.0 GCC/Qt release README
+Virtual Jaguar v2.0.2 GCC/Qt release README
 -------------------------------------------
 
 --------------
@@ -15,10 +15,10 @@ software requirements.
 
 The use of this software is entirely at your own risk. While it won't rape
 your dog, it might do other nasty things. We can't be held responsible for
-damage done to you hardware and/or software. You have been warned! You may only
-use the ROM images if you own the cartridges itself. The use of Commercial ROMs
-without owning the original cartridge is illegal in most countries and could
-result in fines and/or legal actions.
+damage done to you hardware and/or software. You may only use the ROM images if
+you own the cartridges itself. The use of Commercial ROMs without owning the
+original cartridge is illegal in most countries and could result in fines
+and/or legal actions.
 
 This software is released under the GPL v3 or later. For more information I
 direct you to the GPLv3 file. You may hack/change the code anyway you like. You

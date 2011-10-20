@@ -103,14 +103,24 @@ MainWin::MainWin(): running(true), powerButtonOn(false), showUntunedTankCircuit(
 	quitAppAct->setStatusTip(tr("Quit Virtual Jaguar"));
 	connect(quitAppAct, SIGNAL(triggered()), this, SLOT(close()));
 
-	powerAct = new QAction(QIcon(":/res/power.png"), tr("&Power"), this);
+	powerGreen.addFile(":/res/power-off.png", QSize(), QIcon::Normal, QIcon::Off);
+	powerGreen.addFile(":/res/power-on-green.png", QSize(), QIcon::Normal, QIcon::On);
+	powerRed.addFile(":/res/power-off.png", QSize(), QIcon::Normal, QIcon::Off);
+	powerRed.addFile(":/res/power-on-red.png", QSize(), QIcon::Normal, QIcon::On);
+
+//	powerAct = new QAction(QIcon(":/res/power.png"), tr("&Power"), this);
+	powerAct = new QAction(powerGreen, tr("&Power"), this);
 	powerAct->setStatusTip(tr("Powers Jaguar on/off"));
 	powerAct->setCheckable(true);
 	powerAct->setChecked(false);
 //	powerAct->setDisabled(true);
 	connect(powerAct, SIGNAL(triggered()), this, SLOT(TogglePowerState()));
 
-	pauseAct = new QAction(QIcon(":/res/pause.png"), tr("Pause"), this);
+	QIcon pauseIcon;
+	pauseIcon.addFile(":/res/pause-off", QSize(), QIcon::Normal, QIcon::Off);
+	pauseIcon.addFile(":/res/pause-on", QSize(), QIcon::Normal, QIcon::On);
+//	pauseAct = new QAction(QIcon(":/res/pause.png"), tr("Pause"), this);
+	pauseAct = new QAction(pauseIcon, tr("Pause"), this);
 	pauseAct->setStatusTip(tr("Toggles the running state"));
 	pauseAct->setCheckable(true);
 	pauseAct->setDisabled(true);
@@ -221,6 +231,7 @@ MainWin::MainWin(): running(true), powerButtonOn(false), showUntunedTankCircuit(
 //	running = powerAct->isChecked();
 	ntscAct->setChecked(vjs.hardwareTypeNTSC);
 	palAct->setChecked(!vjs.hardwareTypeNTSC);
+	powerAct->setIcon(vjs.hardwareTypeNTSC ? powerRed : powerGreen);
 
 	// Do this in case original size isn't correct (mostly for the first-run case)
 	ResizeMainWindow();
@@ -528,6 +539,7 @@ void MainWin::SetZoom300(void)
 
 void MainWin::SetNTSC(void)
 {
+	powerAct->setIcon(powerRed);
 	timer->setInterval(16);
 	vjs.hardwareTypeNTSC = true;
 	ResizeMainWindow();
@@ -535,6 +547,7 @@ void MainWin::SetNTSC(void)
 
 void MainWin::SetPAL(void)
 {
+	powerAct->setIcon(powerGreen);
 	timer->setInterval(20);
 	vjs.hardwareTypeNTSC = false;
 	ResizeMainWindow();

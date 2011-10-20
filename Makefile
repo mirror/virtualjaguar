@@ -23,10 +23,10 @@ all: prepare virtualjaguar
 
 prepare:
 	@echo -e "\033[01;33m***\033[00;32m Preparing to compile Virtual Jaguar...\033[00m"
-#	@echo "#define VJ_RELEASE_VERSION \"v2.0.1\"" > src/version.h
+#	@echo "#define VJ_RELEASE_VERSION \"v2.0.2\"" > src/version.h
 #	@echo "#define VJ_RELEASE_SUBVERSION \"Final\"" >> src/version.h
 	@echo "#define VJ_RELEASE_VERSION \"SVN `svn info | grep -i revision`\"" > src/version.h
-	@echo "#define VJ_RELEASE_SUBVERSION \"2.0.1 Prerelease\"" >> src/version.h
+	@echo "#define VJ_RELEASE_SUBVERSION \"2.0.2 Prerelease\"" >> src/version.h
 
 virtualjaguar: sources libs makefile-qt
 	@echo -e "\033[01;33m***\033[00;32m Making Virtual Jaguar GUI...\033[00m"

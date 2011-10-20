@@ -782,6 +782,15 @@ void OPProcessFixedBitmap(uint64 p0, uint64 p1, bool render)
 	if (!render || iwidth == 0)
 		return;
 
+//OK, so we know the position in the line buffer is correct. It's the clipping in
+//24bpp mode that's wrong!
+#if 0
+//This is a total kludge, based upon the fact that 24BPP mode puts *4* bytes
+//into the line buffer for each pixel.
+if (depth == 5)	// i.e., 24bpp mode...
+	xpos >>= 1;	// Cut it in half...
+#endif
+
 //#define OP_DEBUG_BMP
 //#ifdef OP_DEBUG_BMP
 //	WriteLog("bitmap %ix%i %ibpp at %i,%i firstpix=%i data=0x%.8x pitch %i hflipped=%s dwidth=%i (linked to 0x%.8x) Transluency=%s\n",
@@ -797,8 +806,12 @@ void OPProcessFixedBitmap(uint64 p0, uint64 p1, bool render)
 	// Not sure if this is Jaguar Two only location or what...
 	// From the docs, it is... If we want to limit here we should think of something else.
 //	int32 limit = GET16(tom_ram_8, 0x0008);			// LIMIT
+//	int32 limit = 720;
+//	int32 lbufWidth = (!in24BPPMode ? limit - 1 : (limit / 2) - 1);	// Zero based limit...
+//printf("[OP:xpos=%i,spos=%i,epos=%i>", xpos, startPos, endPos);
+	// This is correct, the OP line buffer is a constant size... 
 	int32 limit = 720;
-	int32 lbufWidth = (!in24BPPMode ? limit - 1 : (limit / 2) - 1);	// Zero based limit...
+	int32 lbufWidth = 719;
 
 	// If the image is completely to the left or right of the line buffer, then bail.
 //If in REFLECT mode, then these values are swapped! !!! FIX !!! [DONE]
@@ -875,6 +888,7 @@ if (depth > 5)
 		clippedWidth = startPos - lbufWidth,
 		dataClippedWidth = phraseClippedWidth = clippedWidth / phraseWidthToPixels[depth],
 		startPos = lbufWidth + (clippedWidth % phraseWidthToPixels[depth]);
+//printf("<OP:spos=%i,epos=%i]", startPos, endPos);
 
 	// If the image is sitting on the line buffer left or right edge, we need to compensate
 	// by decreasing the image phrase width accordingly.
@@ -890,7 +904,11 @@ if (depth > 5)
 //	uint32 lbufAddress = 0x1800 + (!in24BPPMode ? leftMargin * 2 : leftMargin * 4);
 //Why does this work right when multiplying startPos by 2 (instead of 4) for 24 BPP mode?
 //Is this a bug in the OP?
-	uint32 lbufAddress = 0x1800 + (!in24BPPMode ? startPos * 2 : startPos * 2);
+//It's because in 24bpp mode, each pixel takes *4* bytes, instead of the usual 2.
+//Though it looks like we're doing it here no matter what...
+//	uint32 lbufAddress = 0x1800 + (!in24BPPMode ? startPos * 2 : startPos * 2);
+//Let's try this:
+	uint32 lbufAddress = 0x1800 + (startPos * 2);
 	uint8 * currentLineBuffer = &tomRam8[lbufAddress];
 
 	// Render.
@@ -1241,7 +1259,8 @@ if (start_logging)
 	// From the docs, it is... If we want to limit here we should think of something else.
 //	int32 limit = GET16(tom_ram_8, 0x0008);			// LIMIT
 	int32 limit = 720;
-	int32 lbufWidth = (!in24BPPMode ? limit - 1 : (limit / 2) - 1);	// Zero based limit...
+//	int32 lbufWidth = (!in24BPPMode ? limit - 1 : (limit / 2) - 1);	// Zero based limit...
+	int32 lbufWidth = 719;	// Zero based limit...
 
 	// If the image is completely to the left or right of the line buffer, then bail.
 //If in REFLECT mode, then these values are swapped! !!! FIX !!! [DONE]

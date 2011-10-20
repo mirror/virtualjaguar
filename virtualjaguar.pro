@@ -66,7 +66,8 @@ HEADERS = \
 	src/gui/help.h \
 	src/gui/imagedelegate.h \
 	src/gui/keygrabber.h \
-	src/gui/mainwin.h
+	src/gui/mainwin.h \
+	src/gui/sdljoystick.h
 
 SOURCES = \
 	src/gui/about.cpp \
@@ -83,4 +84,5 @@ SOURCES = \
 	src/gui/help.cpp \
 	src/gui/imagedelegate.cpp \
 	src/gui/keygrabber.cpp \
-	src/gui/mainwin.cpp
+	src/gui/mainwin.cpp \
+	src/gui/sdljoystick.cpp

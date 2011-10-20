@@ -92,6 +92,9 @@ class MainWin: public QMainWindow
 		QAction * filePickAct;
 		QAction * configAct;
 		QAction * useCDAct;
+		
+		QIcon powerGreen;
+		QIcon powerRed;
 };
 
 #endif	// __MAINWIN_H__
