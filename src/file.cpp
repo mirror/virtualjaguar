@@ -217,7 +217,7 @@ bool AlpineLoadFile(char * path)
 // Maybe instead of this, we could try requiring the STUBULATOR ROM? Just a thought...
 	// Try setting the vector to say, $1000 and putting an instruction there that loops forever:
 	// This kludge works! Yeah!
-	SET32(jaguarMainRAM, 0x10, 0x00001000);
+	SET32(jaguarMainRAM, 0x10, 0x00001000);		// Set Exception #4 (Illegal Instruction)
 	SET16(jaguarMainRAM, 0x1000, 0x60FE);		// Here: bra Here
 
 	return true;
@@ -307,7 +307,8 @@ uint32 GetFileFromZIP(const char * zipFile, FileType type, uint8 * &buffer)
 
 		if ((type == FT_SOFTWARE) && (CheckExtension(ze->name, ".j64")
 			|| CheckExtension(ze->name, ".rom") || CheckExtension(ze->name, ".abs")
-			|| CheckExtension(ze->name, ".cof") || CheckExtension(ze->name, ".jag")))
+			|| CheckExtension(ze->name, ".cof") || CheckExtension(ze->name, ".coff")
+			|| CheckExtension(ze->name, ".jag")))
 		{
 			found = true;
 			WriteLog("FILE: Found software file '%s'.\n", ze->name);

@@ -120,10 +120,14 @@ int irq_ack_handler(int);
 /* If on, CPU will call the instruction hook callback before every
  * instruction.
  */
+#if 0
 void M68KInstructionHook(void);
 #define M68K_INSTRUCTION_HOOK       OPT_SPECIFY_HANDLER
 #define M68K_INSTRUCTION_CALLBACK() M68KInstructionHook()
-
+#else
+#define M68K_INSTRUCTION_HOOK       OPT_OFF
+#define M68K_INSTRUCTION_CALLBACK() M68KInstructionHook()
+#endif
 
 /* If on, the CPU will emulate the 4-byte prefetch queue of a real 68000 */
 #define M68K_EMULATE_PREFETCH       OPT_OFF

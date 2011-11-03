@@ -15,7 +15,8 @@
 TARGET     = virtualjaguar
 CONFIG    += qt warn_on release debug
 RESOURCES += virtualjaguar.qrc
-LIBS      += -lz -Lobj -ljaguarcore -lmusashi
+#LIBS      += -lz -Lobj -ljaguarcore -lmusashi
+LIBS      += -lz -Lobj -ljaguarcore -lm68k
 QT        += opengl
 
 # We stuff all the intermediate crap into obj/ so it won't confuse us mere mortals ;-)
@@ -47,7 +48,8 @@ INCLUDEPATH += \
 
 DEPENDPATH = \
 	src \
-	src/gui
+	src/gui \
+	src/m68000
 
 # The GUI
 

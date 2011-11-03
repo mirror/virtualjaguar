@@ -88,6 +88,37 @@ static bool start = false;
 void M68KInstructionHook(void)
 {
 	uint32 m68kPC = m68k_get_reg(NULL, M68K_REG_PC);
+// Temp, for comparing...
+{
+/*	static char buffer[2048];//, mem[64];
+	m68k_disassemble(buffer, m68kPC, M68K_CPU_TYPE_68000);
+	printf("%08X: %s\n", m68kPC, buffer);//*/
+}
+//JaguarDasm(m68kPC, 1);
+//Testing Hover Strike...
+#if 0
+//Dasm(regs.pc, 1);
+static int hitCount = 0;
+static int inRoutine = 0;
+static int instSeen;
+
+//if (regs.pc == 0x80340A)
+if (m68kPC == 0x803416)
+{
+	hitCount++;
+	inRoutine = 1;
+	instSeen = 0;
+	printf("%i: $80340A start. A0=%08X, A1=%08X ", hitCount, m68k_get_reg(NULL, M68K_REG_A0), m68k_get_reg(NULL, M68K_REG_A1));
+}
+else if (m68kPC == 0x803422)
+{
+	inRoutine = 0;
+	printf("(%i instructions)\n", instSeen);
+}
+
+if (inRoutine)
+	instSeen++;
+#endif
 
 // For tracebacks...
 // Ideally, we'd save all the registers as well...
@@ -854,7 +885,7 @@ int irq_ack_handler(int level)
 	// Tracing the IPL lines on the Jaguar schematic yields the following:
 	// IPL1 is connected to INTL on TOM (OUT to 68K)
 	// IPL0-2 are also tied to Vcc via 4.7K resistors!
-	// (DINT on TOM goes into DINT on JERRY (IN from Jerry))
+	// (DINT on TOM goes into DINT on JERRY (IN Tom from Jerry))
 	// There doesn't seem to be any other path to IPL0 or 2 on the schematic, which means
 	// that *all* IRQs to the 68K are routed thru TOM at level 2. Which means they're all maskable.
 
@@ -1054,6 +1085,9 @@ void m68k_write_memory_8(unsigned int address, unsigned int value)
 /*if (effect_start)
 	if (address >= 0x18FA70 && address < (0x18FA70 + 8000))
 		WriteLog("M68K: Byte %02X written at %08X by 68K\n", value, address);//*/
+//$53D0
+/*if (address >= 0x53D0 && address <= 0x53FF)
+	printf("M68K: Writing byte $%02X at $%08X, PC=$%08X\n", value, address, m68k_get_reg(NULL, M68K_REG_PC));//*/
 
 #ifndef USE_NEW_MMU
 	if ((address >= 0x000000) && (address <= 0x3FFFFF))
@@ -1117,6 +1151,9 @@ if (address == 0xF02110)
 /*	if (address == 0x51136 || address == 0x51138 || address == 0xFB074 || address == 0xFB076
 		|| address == 0x1AF05E)
 		WriteLog("[WM16  PC=%08X] Addr: %08X, val: %04X\n", m68k_get_reg(NULL, M68K_REG_PC), address, value);//*/
+//$53D0
+/*if (address >= 0x53D0 && address <= 0x53FF)
+	printf("M68K: Writing word $%04X at $%08X, PC=$%08X\n", value, address, m68k_get_reg(NULL, M68K_REG_PC));//*/
 
 #ifndef USE_NEW_MMU
 	if ((address >= 0x000000) && (address <= 0x3FFFFE))
@@ -1777,8 +1814,8 @@ void JaguarDone(void)
 	JaguarDasm(0x802000, 6000);
 	WriteLog("\n");//*/
 #endif
-/*	WriteLog("\n\nM68000 disassembly at $080000...\n");
-	JaguarDasm(0x080000, 10000);
+/*	WriteLog("\n\nM68000 disassembly at $802000...\n");
+	JaguarDasm(0x802000, 10000);
 	WriteLog("\n");//*/
 }
 

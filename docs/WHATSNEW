@@ -3,6 +3,8 @@ Virtual Jaguar v2.0.2 GCC/Qt
 
 * Fixed problem on OP with 24BPP bitmaps. [Shamus]
 * Cosmetic GUI fixes. [Shamus]
+* Switched to UAE 68000 CPU core. [Shamus]
+
 
 Virtual Jaguar v2.0.1 GCC/Qt
 ----------------------------
@@ -13,6 +15,7 @@ Virtual Jaguar v2.0.1 GCC/Qt
 * Changed PAL/NTSC switch to only work when virtual machine is powered off.
   [Shamus]
 * Miscellaneous documentation fixes. [Shamus]
+
 
 Virtual Jaguar v2.0.0 GCC/Qt
 ----------------------------

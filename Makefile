@@ -21,7 +21,10 @@ endif
 all: prepare virtualjaguar
 	@echo -e "\033[01;33m***\033[00;32m Success!\033[00m"
 
-prepare:
+obj:
+	@mkdir obj
+
+prepare: obj
 	@echo -e "\033[01;33m***\033[00;32m Preparing to compile Virtual Jaguar...\033[00m"
 #	@echo "#define VJ_RELEASE_VERSION \"v2.0.2\"" > src/version.h
 #	@echo "#define VJ_RELEASE_SUBVERSION \"Final\"" >> src/version.h
@@ -36,8 +39,14 @@ makefile-qt: virtualjaguar.pro
 	@echo -e "\033[01;33m***\033[00;32m Creating Qt makefile...\033[00m"
 	qmake $(QMAKE_EXTRA) virtualjaguar.pro -o makefile-qt
 
-libs: obj/libmusashi.a obj/libjaguarcore.a
+#libs: obj/libmusashi.a obj/libjaguarcore.a
+libs: obj/libm68k.a obj/libjaguarcore.a
 	@echo -e "\033[01;33m***\033[00;32m Libraries successfully made.\033[00m"
+
+obj/libm68k.a: src/m68000/Makefile sources
+	@echo -e "\033[01;33m***\033[00;32m Making Customized UAE 68K Core...\033[00m"
+	@$(MAKE) -C src/m68000
+	@cp src/m68000/obj/libm68k.a obj/
 
 obj/libmusashi.a: musashi.mak sources
 	@echo -e "\033[01;33m***\033[00;32m Making Musashi...\033[00m"
@@ -47,11 +56,12 @@ obj/libjaguarcore.a: jaguarcore.mak sources
 	@echo -e "\033[01;33m***\033[00;32m Making Virtual Jaguar core...\033[00m"
 	$(MAKE) -f jaguarcore.mak
 
-sources: src/*.h src/*.cpp src/*.c
+sources: src/*.h src/*.cpp src/*.c src/m68000/*.c src/m68000/*.h
 
 clean:
 	@echo -ne "\033[01;33m***\033[00;32m Cleaning out the garbage...\033[00m"
 	@-rm -rf ./obj
+	@-rm -rf ./src/m68000/obj
 	@-rm -rf makefile-qt
 	@-rm -rf virtualjaguar
 	@-$(FIND) . -name "*~" -exec rm -f {} \;

@@ -33,7 +33,7 @@ AboutWindow::AboutWindow(QWidget * parent/*= 0*/): QWidget(parent, Qt::Dialog)
 	image->setPixmap(QPixmap(":/res/vj_title_small.png"));
 	layout->addWidget(image);
 
-	QString s;// = QString("");
+	QString s;
 	s.append(tr(
 		"<table>"
 		"<tr><td align='right'><b>Version: </b></td><td>"
@@ -49,7 +49,7 @@ AboutWindow::AboutWindow(QWidget * parent/*= 0*/): QWidget(parent, Qt::Dialog)
 		"<br><br>"
 		"<b>Aaron Giles</b> for the original CoJag sources<br>"
 		"<b>David Raingeard</b> for the original Virtual Jaguar sources<br>"
-		"<b>Karl Stenerud</b> for his Musashi 68K emulator<br>"
+		"<b>Bernd Schmidt</b> for his UAE 68K emulator<br>"
 		"<b>Sam Lantinga</b> for his amazing SDL libraries<br>"
 		"<b>Ryan C. Gordon</b> for Virtual Jaguar's web presence<br>"
 		"<b>Curt Vendel</b> for various Jaguar & other goodies (you <i>rock!</i>)<br>"
