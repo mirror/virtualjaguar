@@ -49,9 +49,9 @@ extern int irq_ack_handler(int);
 
 // Function prototypes...
 STATIC_INLINE void m68ki_check_interrupts(void);
-void m68ki_exception_interrupt(uint intLevel);
+void m68ki_exception_interrupt(uint32_t intLevel);
 STATIC_INLINE uint32_t m68ki_init_exception(void);
-STATIC_INLINE void m68ki_stack_frame_3word(uint pc, uint sr);
+STATIC_INLINE void m68ki_stack_frame_3word(uint32_t pc, uint32_t sr);
 unsigned long IllegalOpcode(uint32_t opcode);
 void BuildCPUFunctionTable(void);
 
@@ -108,7 +108,7 @@ void m68k_set_cpu_type(unsigned int type)
 // Pulse the RESET line on the CPU
 void m68k_pulse_reset(void)
 {
-	static uint emulation_initialized = 0;
+	static uint32_t emulation_initialized = 0;
 
 	// The first call to this function initializes the opcode handler jump table
 	if (!emulation_initialized)
@@ -332,7 +332,7 @@ STATIC_INLINE void m68ki_check_interrupts(void)
 }
 
 // Service an interrupt request and start exception processing
-void m68ki_exception_interrupt(uint intLevel)
+void m68ki_exception_interrupt(uint32_t intLevel)
 {
 #if 0
 	uint vector;

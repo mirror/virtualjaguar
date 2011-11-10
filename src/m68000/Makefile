@@ -15,7 +15,7 @@ ARFLAGS := -rs
 # Note that we use optimization level 2 instead of 3--3 doesn't seem to gain much over 2
 CFLAGS  := -MMD -O2 -ffast-math -fomit-frame-pointer
 
-INCS    := -I./ -I./obj `sdl-config --cflags`
+INCS    := -I. -I./obj `sdl-config --cflags`
 
 OBJS = \
 	obj/cpustbl.o \
@@ -60,7 +60,7 @@ obj/cpustbl.c: obj/gencpu
 
 obj/gencpu: obj/cpudefs.c
 	@echo -e "\033[01;33m***\033[00;32m Generating gencpu...\033[00m"
-	@$(CC) $(CFLAGS) gencpu.c readcpu.c obj/cpudefs.c -o obj/gencpu -I./ -I./obj
+	@$(CC) $(CFLAGS) gencpu.c readcpu.c obj/cpudefs.c -o obj/gencpu -I. -I./obj
 
 obj/cpudefs.c: obj/build68k
 	@echo -e "\033[01;33m***\033[00;32m Generating cpudefs.c...\033[00m"
