@@ -9,11 +9,11 @@
 
 #include "types.h"
 
-// Note that these are NTSC timings:
+#define RISC_CYCLE_IN_USEC        0.03760684198
+#define M68K_CYCLE_IN_USEC        (RISC_CYCLE_IN_USEC * 2)
 
-#define RISC_CYCLE_IN_USEC     0.03760684198
-#define M68K_CYCLE_IN_USEC     (RISC_CYCLE_IN_USEC * 2)
-#define HORIZ_PERIOD_IN_USEC   63.5555
+#define HORIZ_PERIOD_IN_USEC_NTSC 63.555555555
+#define HORIZ_PERIOD_IN_USEC_PAL  64.0
 
 #define USEC_TO_RISC_CYCLES(u) (uint32)(((u) / RISC_CYCLE_IN_USEC) + 0.5)
 #define USEC_TO_M68K_CYCLES(u) (uint32)(((u) / M68K_CYCLE_IN_USEC) + 0.5)

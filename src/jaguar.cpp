@@ -1814,8 +1814,8 @@ void JaguarDone(void)
 	JaguarDasm(0x802000, 6000);
 	WriteLog("\n");//*/
 #endif
-/*	WriteLog("\n\nM68000 disassembly at $802000...\n");
-	JaguarDasm(0x802000, 10000);
+/*	WriteLog("\n\nM68000 disassembly at $4000...\n");
+	JaguarDasm(0x4000, 10000);
 	WriteLog("\n");//*/
 }
 
@@ -1843,6 +1843,8 @@ void JaguarExecute(uint32 * backbuffer, bool render)
 //seem to indicate the refresh rate is *half* the above...
 //	uint16 refreshRate = (vjs.hardwareTypeNTSC ? 30 : 25);
 	// Should these be hardwired or read from VP? Yes, from VP!
+	// Err, actually, they should be hardwired, and hardwired to a set # of
+	// lines as well...
 	uint32 M68KCyclesPerScanline = m68kClockRate / (vp * refreshRate);
 	uint32 RISCCyclesPerScanline = m68kClockRate / (vp * refreshRate);
 
@@ -1951,15 +1953,68 @@ void JaguarExecuteNew(void)
 	while (!frameDone);
 }
 
+/*
+BIG NOTE: NEED TO FIX THIS TO RUN ON ABSOLUTE TIMINGS BASED ON SCANLINES,
+          *NOT* ON THE VERTICAL PERIOD!!!
+
+<Zerosquare> scanlines are 64 µs in PAL
+<Zerosquare> and 63.5555... µs in NTSC
+
+Also: 625 lines per frame in PAL, 525 in NTSC
+
+So... can use
+#define RISC_CYCLE_IN_USEC        0.03760684198
+#define M68K_CYCLE_IN_USEC        (RISC_CYCLE_IN_USEC * 2)
+
+#define HORIZ_PERIOD_IN_USEC_NTSC 63.555555555
+#define HORIZ_PERIOD_IN_USEC_PAL  64.0
+
+#define USEC_TO_RISC_CYCLES(u) (uint32)(((u) / RISC_CYCLE_IN_USEC) + 0.5)
+#define USEC_TO_M68K_CYCLES(u) (uint32)(((u) / M68K_CYCLE_IN_USEC) + 0.5)
+
+to figure cycles per half-line...
+
+USEC_TO_RISC_CYCLES(HORIZ_PERIOD_IN_USEC_NTSC) / 2
+USEC_TO_M68K_CYCLES(HORIZ_PERIOD_IN_USEC_NTSC) / 2
+USEC_TO_RISC_CYCLES(HORIZ_PERIOD_IN_USEC_PAL) / 2
+USEC_TO_M68K_CYCLES(HORIZ_PERIOD_IN_USEC_PAL) / 2
+
+// Full lines here, divide by two for half-lines...
+which gives the following: 1690, 845 (NTSC), 1702, 851 (PAL)
+So, for a full frame, that would yield:
+887250 (NTSC), 1063750 (PAL)
+one second:
+26617500 (NTSC), 26593750 (PAL)
+
+Which is off a little bit for NTSC...
+#define M68K_CLOCK_RATE_PAL		13296950
+#define M68K_CLOCK_RATE_NTSC	13295453
+#define RISC_CLOCK_RATE_PAL		26593900
+#define RISC_CLOCK_RATE_NTSC	26590906
+
+*/
+
+#define USE_CORRECT_PAL_TIMINGS
 void ScanlineCallback(void)
 {
+//OK, this is hardwired to run in NTSC, and for who knows how long.
+//Need to fix this so that it does a half-line in the correct amount of time
+//and number of lines, depending on which mode we're in. [FIXED]
 	uint16 vc = TOMReadWord(0xF00006, JAGUAR);
 	uint16 vp = TOMReadWord(0xF0003E, JAGUAR) + 1;
 	uint16 vi = TOMReadWord(0xF0004E, JAGUAR);
 //	uint16 vbb = TOMReadWord(0xF00040, JAGUAR);
 	vc++;
 
+#ifdef USE_CORRECT_PAL_TIMINGS
+	// Each # of lines is for a full frame == 1/30s (NTSC), 1/25s (PAL).
+	// So we cut the number of half-lines in a frame in half. :-P
+	uint16 numHalfLines = ((vjs.hardwareTypeNTSC ? 525 : 625) * 2) / 2;
+
+	if (vc >= numHalfLines)
+#else
 	if (vc >= vp)
+#endif
 		vc = 0;
 
 //WriteLog("SLC: Currently on line %u (VP=%u)...\n", vc, vp);
@@ -1986,8 +2041,12 @@ void ScanlineCallback(void)
 		frameDone = true;
 	}//*/
 
+#ifdef USE_CORRECT_PAL_TIMINGS
+	SetCallbackTime(ScanlineCallback, (vjs.hardwareTypeNTSC ? 31.777777777 : 32.0));
+#else
 //	SetCallbackTime(ScanlineCallback, 63.5555);
 	SetCallbackTime(ScanlineCallback, 31.77775);
+#endif
 }
 
 // This isn't currently used, but maybe it should be...

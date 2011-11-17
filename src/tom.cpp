@@ -780,10 +780,18 @@ void TOMExecScanline(uint16 scanline, bool render)
 // to do a scanline render in the non-display area... [DONE]
 //this seems to cause a regression in certain games, like rayman
 //which means I have to dig thru the asic nets to see what's wrong...
+/*
+No, the OP doesn't start until VDB, that much is certain. The thing is, VDB is the
+HALF line that the OP starts on--which means that it needs to start at VDB / 2!!!
+
+Hrm, doesn't seem to be enough, though it should be... still sticks for 20 frames.
+*/
 #if 1
 // 16 isn't enough, and neither is 32 for raptgun. 32 fucks up Rayman
+//	if (scanline >= ((uint16)GET16(tomRam8, VDB) / 2) && scanline < ((uint16)GET16(tomRam8, VDE) / 2))
 	if (scanline >= (uint16)GET16(tomRam8, VDB) && scanline < (uint16)GET16(tomRam8, VDE))
-//	if (scanline >= ((uint16)GET16(tomRam8, VDB) - 32) && scanline < (uint16)GET16(tomRam8, VDE))
+//	if (scanline >= ((uint16)GET16(tomRam8, VDB) - 16) && scanline < (uint16)GET16(tomRam8, VDE))
+//	if (scanline >= 20 && scanline < (uint16)GET16(tomRam8, VDE))
 	{
 		if (render)
 		{

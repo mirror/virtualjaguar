@@ -185,6 +185,10 @@ MainWin::MainWin(): running(true), powerButtonOn(false), showUntunedTankCircuit(
 	useCDAct->setCheckable(true);
 	connect(useCDAct, SIGNAL(triggered()), this, SLOT(ToggleCDUsage()));
 
+	frameAdvanceAct = new QAction(QIcon(":/res/generic.png"), tr("&Frame Advance"), this);
+	frameAdvanceAct->setShortcut(QKeySequence(tr("F7")));
+	connect(frameAdvanceAct, SIGNAL(triggered()), this, SLOT(FrameAdvance()));
+
 	// Misc. connections...
 	connect(filePickWin, SIGNAL(RequestLoad(QString)), this, SLOT(LoadSoftware(QString)));
 	connect(filePickWin, SIGNAL(FilePickerHiding()), this, SLOT(Unpause()));
@@ -194,6 +198,7 @@ MainWin::MainWin(): running(true), powerButtonOn(false), showUntunedTankCircuit(
 	fileMenu = menuBar()->addMenu(tr("&Jaguar"));
 	fileMenu->addAction(powerAct);
 	fileMenu->addAction(pauseAct);
+	fileMenu->addAction(frameAdvanceAct);
 	fileMenu->addAction(filePickAct);
 	fileMenu->addAction(useCDAct);
 	fileMenu->addAction(configAct);
@@ -638,6 +643,14 @@ void MainWin::ToggleCDUsage(void)
 	else
 		memset(jagMemSpace + 0x800000, 0xFF, 0x40000);
 #endif
+}
+
+void MainWin::FrameAdvance(void)
+{
+//printf("Frame Advance...\n");
+	// Execute 1 frame, then exit (only useful in Pause mode)
+	JaguarExecuteNew();
+	videoWidget->updateGL();
 }
 
 void MainWin::ResizeMainWindow(void)

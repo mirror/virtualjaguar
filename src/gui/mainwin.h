@@ -48,6 +48,7 @@ class MainWin: public QMainWindow
 		void Unpause(void);
 		void LoadSoftware(QString);
 		void ToggleCDUsage(void);
+		void FrameAdvance(void);
 
 	private:
 		void HandleKeys(QKeyEvent *, bool);
@@ -92,6 +93,7 @@ class MainWin: public QMainWindow
 		QAction * filePickAct;
 		QAction * configAct;
 		QAction * useCDAct;
+		QAction * frameAdvanceAct;
 		
 		QIcon powerGreen;
 		QIcon powerRed;
