@@ -5,8 +5,6 @@
 #ifndef __TOM_H__
 #define __TOM_H__
 
-//#include "jaguar.h"
-//#include "types.h"
 #include "memory.h"
 
 #define VIDEO_MODE_16BPP_CRY	0
@@ -27,15 +25,13 @@ uint16 TOMReadWord(uint32 offset, uint32 who = UNKNOWN);
 void TOMWriteByte(uint32 offset, uint8 data, uint32 who = UNKNOWN);
 void TOMWriteWord(uint32 offset, uint16 data, uint32 who = UNKNOWN);
 
-void TOMExecScanline(uint16 scanline, bool render);
+void TOMExecHalfline(uint16 halfline, bool render);
 uint32 TOMGetVideoModeWidth(void);
 uint32 TOMGetVideoModeHeight(void);
 uint8 TOMGetVideoMode(void);
 uint8 * TOMGetRamPointer(void);
 uint16 TOMGetHDB(void);
 uint16 TOMGetVDB(void);
-//uint16 tom_get_scanline(void);
-//uint32 tom_getHBlankWidthInPixels(void);
 
 int TOMIRQEnabled(int irq);
 uint16 TOMIRQControlReg(void);

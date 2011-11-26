@@ -766,13 +766,14 @@ void tom_render_16bpp_rgb_scanline(uint32 * backbuffer)
 
 //
 // Process a single scanline
+// (this is bad terminology; each tick of the VC is actually a half-line)
 //
-void TOMExecScanline(uint16 scanline, bool render)
+void TOMExecHalfline(uint16 halfline, bool render)
 {
 	bool inActiveDisplayArea = true;
 
 //Interlacing is still not handled correctly here... !!! FIX !!!
-	if (scanline & 0x01)							// Execute OP only on even lines (non-interlaced only!)
+	if (halfline & 0x01)							// Execute OP only on even lines (non-interlaced only!)
 		return;
 
 //Hm, it seems that the OP needs to execute from zero, so let's try it:
@@ -788,10 +789,10 @@ Hrm, doesn't seem to be enough, though it should be... still sticks for 20 frame
 */
 #if 1
 // 16 isn't enough, and neither is 32 for raptgun. 32 fucks up Rayman
-//	if (scanline >= ((uint16)GET16(tomRam8, VDB) / 2) && scanline < ((uint16)GET16(tomRam8, VDE) / 2))
-	if (scanline >= (uint16)GET16(tomRam8, VDB) && scanline < (uint16)GET16(tomRam8, VDE))
-//	if (scanline >= ((uint16)GET16(tomRam8, VDB) - 16) && scanline < (uint16)GET16(tomRam8, VDE))
-//	if (scanline >= 20 && scanline < (uint16)GET16(tomRam8, VDE))
+//	if (halfline >= ((uint16)GET16(tomRam8, VDB) / 2) && halfline < ((uint16)GET16(tomRam8, VDE) / 2))
+	if (halfline >= (uint16)GET16(tomRam8, VDB) && halfline < (uint16)GET16(tomRam8, VDE))
+//	if (halfline >= ((uint16)GET16(tomRam8, VDB) - 16) && halfline < (uint16)GET16(tomRam8, VDE))
+//	if (halfline >= 20 && halfline < (uint16)GET16(tomRam8, VDE))
 	{
 		if (render)
 		{
@@ -803,17 +804,17 @@ Hrm, doesn't seem to be enough, though it should be... still sticks for 20 frame
 				for(uint32 i=0; i<720; i++)
 					*current_line_buffer++ = bgHI, *current_line_buffer++ = bgLO;
 
-			OPProcessList(scanline, render);
+			OPProcessList(halfline, render);
 		}
 	}
 	else
 		inActiveDisplayArea = false;
 #else
 	inActiveDisplayArea =
-		(scanline >= (uint16)GET16(tomRam8, VDB) && scanline < (uint16)GET16(tomRam8, VDE)
+		(halfline >= (uint16)GET16(tomRam8, VDB) && halfline < (uint16)GET16(tomRam8, VDE)
 			? true : false);
 
-	if (scanline < (uint16)GET16(tomRam8, VDE))
+	if (halfline < (uint16)GET16(tomRam8, VDE))
 	{
 		if (render)//With JaguarExecuteNew() this is always true...
 		{
@@ -825,9 +826,9 @@ Hrm, doesn't seem to be enough, though it should be... still sticks for 20 frame
 				for(uint32 i=0; i<720; i++)
 					*current_line_buffer++ = bgHI, *current_line_buffer++ = bgLO;
 
-//			OPProcessList(scanline, render);
+//			OPProcessList(halfline, render);
 //This seems to take care of it...
-			OPProcessList(scanline, inActiveDisplayArea);
+			OPProcessList(halfline, inActiveDisplayArea);
 		}
 	}
 #endif
@@ -836,11 +837,11 @@ Hrm, doesn't seem to be enough, though it should be... still sticks for 20 frame
 
 	uint16 topVisible = (vjs.hardwareTypeNTSC ? TOP_VISIBLE_VC : TOP_VISIBLE_VC_PAL),
 		bottomVisible = (vjs.hardwareTypeNTSC ? BOTTOM_VISIBLE_VC : BOTTOM_VISIBLE_VC_PAL);
-	uint32 * TOMCurrentLine = &(screenBuffer[((scanline - topVisible) / 2) * screenPitch]);
+	uint32 * TOMCurrentLine = &(screenBuffer[((halfline - topVisible) / 2) * screenPitch]);
 
 	// Here's our virtualized scanline code...
 
-	if (scanline >= topVisible && scanline < bottomVisible)
+	if (halfline >= topVisible && halfline < bottomVisible)
 	{
 		if (inActiveDisplayArea)
 		{

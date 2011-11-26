@@ -133,6 +133,7 @@ void OPReset(void)
 
 void OPDone(void)
 {
+#warning "!!! Fix OL dump so that it follows links !!!"
 	const char * opType[8] =
 	{ "(BITMAP)", "(SCALED BITMAP)", "(GPU INT)", "(BRANCH)", "(STOP)", "???", "???", "???" };
 	const char * ccType[8] =
@@ -319,7 +320,7 @@ void DumpFixedObject(uint64 p0, uint64 p1)
 // Object Processor main routine
 //
 #warning "Need to fix this so that when an GPU object IRQ happens, we can pick up OP processing where we left off. !!! FIX !!!"
-void OPProcessList(int scanline, bool render)
+void OPProcessList(int halfline, bool render)
 {
 extern int op_start_log;
 //	char * condition_to_str[8] =
@@ -329,7 +330,7 @@ extern int op_start_log;
 
 //	objectp_stop_reading_list = false;
 
-//WriteLog("OP: Processing line #%u (OLP=%08X)...\n", scanline, op_pointer);
+//WriteLog("OP: Processing line #%u (OLP=%08X)...\n", halfline, op_pointer);
 //op_done();
 
 // *** BEGIN OP PROCESSOR TESTING ONLY ***
@@ -342,7 +343,7 @@ int bitmapCounter = 0;
 
 	uint32 opCyclesToRun = 30000;					// This is a pulled-out-of-the-air value (will need to be fixed, obviously!)
 
-//	if (op_pointer) WriteLog(" new op list at 0x%.8x scanline %i\n",op_pointer,scanline);
+//	if (op_pointer) WriteLog(" new op list at 0x%.8x halfline %i\n",op_pointer,halfline);
 	while (op_pointer)
 	{
 // *** BEGIN OP PROCESSOR TESTING ONLY ***
@@ -355,14 +356,14 @@ else
 //			return;
 
 		uint64 p0 = OPLoadPhrase(op_pointer);
-//WriteLog("\t%08X type %i\n", op_pointer, (uint8)p0 & 0x07);
 		op_pointer += 8;
+//WriteLog("\t%08X type %i\n", op_pointer, (uint8)p0 & 0x07);
 
 #if 1
-if (scanline == TOMGetVDB() && op_start_log)
-//if (scanline == 215 && op_start_log)
-//if (scanline == 28 && op_start_log)
-//if (scanline == 0)
+if (halfline == TOMGetVDB() && op_start_log)
+//if (halfline == 215 && op_start_log)
+//if (halfline == 28 && op_start_log)
+//if (halfline == 0)
 {
 WriteLog("%08X --> phrase %08X %08X", op_pointer - 8, (int)(p0>>32), (int)(p0&0xFFFFFFFF));
 if ((p0 & 0x07) == OBJECT_TYPE_BITMAP)
@@ -463,13 +464,13 @@ if (inhibit && op_start_log)
 bitmapCounter++;
 if (!inhibit)	// For OP testing only!
 // *** END OP PROCESSOR TESTING ONLY ***
-			if (scanline >= ypos && height > 0)
+			if (halfline >= ypos && height > 0)
 			{
 				uint64 p1 = OPLoadPhrase(op_pointer);
 				op_pointer += 8;
-//WriteLog("OP: Writing scanline %d with ypos == %d...\n", scanline, ypos);
+//WriteLog("OP: Writing halfline %d with ypos == %d...\n", halfline, ypos);
 //WriteLog("--> Writing %u BPP bitmap...\n", op_bitmap_bit_depth[(p1 >> 12) & 0x07]);
-//				OPProcessFixedBitmap(scanline, p0, p1, render);
+//				OPProcessFixedBitmap(halfline, p0, p1, render);
 				OPProcessFixedBitmap(p0, p1, render);
 
 				// OP write-backs
@@ -518,19 +519,19 @@ if (!inhibit)	// For OP testing only!
 // *** BEGIN OP PROCESSOR TESTING ONLY ***
 if (inhibit && op_start_log)
 {
-	WriteLog("!!! ^^^ This object is INHIBITED! ^^^ !!! (scanline=%u, ypos=%u, height=%u)\n", scanline, ypos, height);
+	WriteLog("!!! ^^^ This object is INHIBITED! ^^^ !!! (halfline=%u, ypos=%u, height=%u)\n", halfline, ypos, height);
 	DumpScaledObject(p0, OPLoadPhrase(op_pointer), OPLoadPhrase(op_pointer+8));
 }
 bitmapCounter++;
 if (!inhibit)	// For OP testing only!
 // *** END OP PROCESSOR TESTING ONLY ***
-			if (scanline >= ypos && height > 0)
+			if (halfline >= ypos && height > 0)
 			{
 				uint64 p1 = OPLoadPhrase(op_pointer);
 				op_pointer += 8;
 				uint64 p2 = OPLoadPhrase(op_pointer);
 				op_pointer += 8;
-//WriteLog("OP: %08X (%d) %08X%08X %08X%08X %08X%08X\n", oldOPP, scanline, (uint32)(p0>>32), (uint32)(p0&0xFFFFFFFF), (uint32)(p1>>32), (uint32)(p1&0xFFFFFFFF), (uint32)(p2>>32), (uint32)(p2&0xFFFFFFFF));
+//WriteLog("OP: %08X (%d) %08X%08X %08X%08X %08X%08X\n", oldOPP, halfline, (uint32)(p0>>32), (uint32)(p0&0xFFFFFFFF), (uint32)(p1>>32), (uint32)(p1&0xFFFFFFFF), (uint32)(p2>>32), (uint32)(p2&0xFFFFFFFF));
 				OPProcessScaledBitmap(p0, p1, p2, render);
 
 				// OP write-backs
@@ -584,7 +585,7 @@ OP: Scaled bitmap 4x? 4bpp at 34,? hscale=80 fpix=0 data=000756E8 pitch 1 hflipp
 //Here's another problem:
 //    [hsc: 20, vsc: 20, rem: 00]
 // Since we're not checking for $E0 (but that's what we get from the above), we end
-// up repeating this scanline unnecessarily... !!! FIX !!! [DONE, but... still not quite
+// up repeating this halfline unnecessarily... !!! FIX !!! [DONE, but... still not quite
 // right. Either that, or the Accolade team that wrote Bubsy screwed up royal.]
 //Also note: $E0 = 7.0 which IS a legal vscale value...
 
@@ -650,7 +651,7 @@ OP: Scaled bitmap 4x? 4bpp at 34,? hscale=80 fpix=0 data=000756E8 pitch 1 hflipp
 //Do something like:
 //OPSuspendedByGPU = true;
 //Dunno if the OP keeps processing from where it was interrupted, or if it just continues
-//on the next scanline...
+//on the next halfline...
 // --> It continues from where it was interrupted! !!! FIX !!!
 			break;
 		}
@@ -661,7 +662,7 @@ OP: Scaled bitmap 4x? 4bpp at 34,? hscale=80 fpix=0 data=000756E8 pitch 1 hflipp
 			uint32 link = (p0 >> 21) & 0x3FFFF8;
 
 //			if ((ypos!=507)&&(ypos!=25))
-//				WriteLog("\t%i%s%i link=0x%.8x\n",scanline,condition_to_str[cc],ypos>>1,link);
+//				WriteLog("\t%i%s%i link=0x%.8x\n",halfline,condition_to_str[cc],ypos>>1,link);
 			switch (cc)
 			{
 			case CONDITION_EQUAL:
@@ -692,6 +693,7 @@ OP: Scaled bitmap 4x? 4bpp at 34,? hscale=80 fpix=0 data=000756E8 pitch 1 hflipp
 				exit(0);
 				break;
 			default:
+				// Basically, if you do this, the OP does nothing. :-)
 				WriteLog("OP: Unimplemented branch condition %i\n", cc);
 			}
 			break;
@@ -729,6 +731,7 @@ OP: Scaled bitmap 4x? 4bpp at 34,? hscale=80 fpix=0 data=000756E8 pitch 1 hflipp
 		// and bail out/reenter to properly simulate an overloaded OP... !!! FIX !!!
 #warning "Better would be to count how many actual cycles it used and bail out/reenter to properly simulate an overloaded OP... !!! FIX !!!"
 		opCyclesToRun--;
+
 		if (!opCyclesToRun)
 			return;
 	}

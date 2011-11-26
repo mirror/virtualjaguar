@@ -11,6 +11,7 @@
 // Who  When        What
 // ---  ----------  -------------------------------------------------------------
 // JLH  01/16/2010  Created this log ;-)
+// JLH  11/26/2011  Added fixes for LOAD/STORE alignment issues
 //
 
 #include "dsp.h"
@@ -25,6 +26,10 @@
 #include "m68k.h"
 //#include "memory.h"
 
+
+// Seems alignment in loads & stores was off...
+#define DSP_CORRECT_ALIGNMENT
+
 //#define DSP_DEBUG
 //#define DSP_DEBUG_IRQ
 //#define DSP_DEBUG_PL2
@@ -34,6 +39,7 @@
 
 // Disassembly definitions
 
+#if 0
 #define DSP_DIS_ABS
 #define DSP_DIS_ADD
 #define DSP_DIS_ADDC
@@ -89,7 +95,7 @@
 //*/
 bool doDSPDis = false;
 //bool doDSPDis = true;
-
+#endif
 
 /*
 No dis yet:
@@ -1949,7 +1955,11 @@ static void dsp_opcode_store_r14_indexed(void)
 	if (doDSPDis)
 		WriteLog("%06X: STORE  R%02u, (R14+$%02X) [NCZ:%u%u%u, R%02u=%08X, R14+$%02X=%08X]\n", dsp_pc-2, IMM_2, dsp_convert_zero[IMM_1] << 2, dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_2, RN, dsp_convert_zero[IMM_1] << 2, dsp_reg[14]+(dsp_convert_zero[IMM_1] << 2));
 #endif
+#ifdef DSP_CORRECT_ALIGNMENT
+	DSPWriteLong((dsp_reg[14] & 0xFFFFFFFC) + (dsp_convert_zero[IMM_1] << 2), RN, DSP);
+#else
 	DSPWriteLong(dsp_reg[14] + (dsp_convert_zero[IMM_1] << 2), RN, DSP);
+#endif
 }
 
 static void dsp_opcode_store_r15_indexed(void)
@@ -1958,7 +1968,11 @@ static void dsp_opcode_store_r15_indexed(void)
 	if (doDSPDis)
 		WriteLog("%06X: STORE  R%02u, (R15+$%02X) [NCZ:%u%u%u, R%02u=%08X, R15+$%02X=%08X]\n", dsp_pc-2, IMM_2, dsp_convert_zero[IMM_1] << 2, dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_2, RN, dsp_convert_zero[IMM_1] << 2, dsp_reg[15]+(dsp_convert_zero[IMM_1] << 2));
 #endif
+#ifdef DSP_CORRECT_ALIGNMENT
+	DSPWriteLong((dsp_reg[15] & 0xFFFFFFFC) + (dsp_convert_zero[IMM_1] << 2), RN, DSP);
+#else
 	DSPWriteLong(dsp_reg[15] + (dsp_convert_zero[IMM_1] << 2), RN, DSP);
+#endif
 }
 
 static void dsp_opcode_load_r14_ri(void)
@@ -1967,7 +1981,11 @@ static void dsp_opcode_load_r14_ri(void)
 	if (doDSPDis)
 		WriteLog("%06X: LOAD   (R14+R%02u), R%02u [NCZ:%u%u%u, R14+R%02u=%08X, R%02u=%08X] -> ", dsp_pc-2, IMM_1, IMM_2, dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_1, RM+dsp_reg[14], IMM_2, RN);
 #endif
+#ifdef DSP_CORRECT_ALIGNMENT
+	RN = DSPReadLong((dsp_reg[14] + RM) & 0xFFFFFFFC, DSP);
+#else
 	RN = DSPReadLong(dsp_reg[14] + RM, DSP);
+#endif
 #ifdef DSP_DIS_LOAD14R
 	if (doDSPDis)
 		WriteLog("[NCZ:%u%u%u, R%02u=%08X]\n", dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_2, RN);
@@ -1980,7 +1998,11 @@ static void dsp_opcode_load_r15_ri(void)
 	if (doDSPDis)
 		WriteLog("%06X: LOAD   (R15+R%02u), R%02u [NCZ:%u%u%u, R15+R%02u=%08X, R%02u=%08X] -> ", dsp_pc-2, IMM_1, IMM_2, dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_1, RM+dsp_reg[15], IMM_2, RN);
 #endif
+#ifdef DSP_CORRECT_ALIGNMENT
+	RN = DSPReadLong((dsp_reg[15] + RM) & 0xFFFFFFFC, DSP);
+#else
 	RN = DSPReadLong(dsp_reg[15] + RM, DSP);
+#endif
 #ifdef DSP_DIS_LOAD15R
 	if (doDSPDis)
 		WriteLog("[NCZ:%u%u%u, R%02u=%08X]\n", dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_2, RN);
@@ -2023,10 +2045,17 @@ static void dsp_opcode_storew(void)
 	if (doDSPDis)
 		WriteLog("%06X: STOREW R%02u, (R%02u) [NCZ:%u%u%u, R%02u=%08X, R%02u=%08X]\n", dsp_pc-2, IMM_2, IMM_1, dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_2, RN, IMM_1, RM);
 #endif
+#ifdef DSP_CORRECT_ALIGNMENT
+	if (RM >= DSP_WORK_RAM_BASE && RM <= (DSP_WORK_RAM_BASE + 0x1FFF))
+		DSPWriteLong(RM & 0xFFFFFFFE, RN & 0xFFFF, DSP);
+	else
+		JaguarWriteWord(RM & 0xFFFFFFFE, RN, DSP);
+#else
 	if (RM >= DSP_WORK_RAM_BASE && RM <= (DSP_WORK_RAM_BASE + 0x1FFF))
 		DSPWriteLong(RM, RN & 0xFFFF, DSP);
 	else
 		JaguarWriteWord(RM, RN, DSP);
+#endif
 }
 
 static void dsp_opcode_store(void)
@@ -2035,7 +2064,11 @@ static void dsp_opcode_store(void)
 	if (doDSPDis)
 		WriteLog("%06X: STORE  R%02u, (R%02u) [NCZ:%u%u%u, R%02u=%08X, R%02u=%08X]\n", dsp_pc-2, IMM_2, IMM_1, dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_2, RN, IMM_1, RM);
 #endif
+#ifdef DSP_CORRECT_ALIGNMENT
+	DSPWriteLong(RM & 0xFFFFFFFC, RN, DSP);
+#else
 	DSPWriteLong(RM, RN, DSP);
+#endif
 }
 
 static void dsp_opcode_loadb(void)
@@ -2060,10 +2093,17 @@ static void dsp_opcode_loadw(void)
 	if (doDSPDis)
 		WriteLog("%06X: LOADW  (R%02u), R%02u [NCZ:%u%u%u, R%02u=%08X, R%02u=%08X] -> ", dsp_pc-2, IMM_1, IMM_2, dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_1, RM, IMM_2, RN);
 #endif
+#ifdef DSP_CORRECT_ALIGNMENT
+	if (RM >= DSP_WORK_RAM_BASE && RM <= (DSP_WORK_RAM_BASE + 0x1FFF))
+		RN = DSPReadLong(RM & 0xFFFFFFFE, DSP) & 0xFFFF;
+	else
+		RN = JaguarReadWord(RM & 0xFFFFFFFE, DSP);
+#else
 	if (RM >= DSP_WORK_RAM_BASE && RM <= (DSP_WORK_RAM_BASE + 0x1FFF))
 		RN = DSPReadLong(RM, DSP) & 0xFFFF;
 	else
 		RN = JaguarReadWord(RM, DSP);
+#endif
 #ifdef DSP_DIS_LOADW
 	if (doDSPDis)
 		WriteLog("[NCZ:%u%u%u, R%02u=%08X]\n", dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_2, RN);
@@ -2076,7 +2116,11 @@ static void dsp_opcode_load(void)
 	if (doDSPDis)
 		WriteLog("%06X: LOAD   (R%02u), R%02u [NCZ:%u%u%u, R%02u=%08X, R%02u=%08X] -> ", dsp_pc-2, IMM_1, IMM_2, dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_1, RM, IMM_2, RN);
 #endif
+#ifdef DSP_CORRECT_ALIGNMENT
+	RN = DSPReadLong(RM & 0xFFFFFFFC, DSP);
+#else
 	RN = DSPReadLong(RM, DSP);
+#endif
 #ifdef DSP_DIS_LOAD
 	if (doDSPDis)
 		WriteLog("[NCZ:%u%u%u, R%02u=%08X]\n", dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_2, RN);
@@ -2089,7 +2133,11 @@ static void dsp_opcode_load_r14_indexed(void)
 	if (doDSPDis)
 		WriteLog("%06X: LOAD   (R14+$%02X), R%02u [NCZ:%u%u%u, R14+$%02X=%08X, R%02u=%08X] -> ", dsp_pc-2, dsp_convert_zero[IMM_1] << 2, IMM_2, dsp_flag_n, dsp_flag_c, dsp_flag_z, dsp_convert_zero[IMM_1] << 2, dsp_reg[14]+(dsp_convert_zero[IMM_1] << 2), IMM_2, RN);
 #endif
+#ifdef DSP_CORRECT_ALIGNMENT
+	RN = DSPReadLong((dsp_reg[14] & 0xFFFFFFFC) + (dsp_convert_zero[IMM_1] << 2), DSP);
+#else
 	RN = DSPReadLong(dsp_reg[14] + (dsp_convert_zero[IMM_1] << 2), DSP);
+#endif
 #ifdef DSP_DIS_LOAD14I
 	if (doDSPDis)
 		WriteLog("[NCZ:%u%u%u, R%02u=%08X]\n", dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_2, RN);
@@ -2102,7 +2150,11 @@ static void dsp_opcode_load_r15_indexed(void)
 	if (doDSPDis)
 		WriteLog("%06X: LOAD   (R15+$%02X), R%02u [NCZ:%u%u%u, R15+$%02X=%08X, R%02u=%08X] -> ", dsp_pc-2, dsp_convert_zero[IMM_1] << 2, IMM_2, dsp_flag_n, dsp_flag_c, dsp_flag_z, dsp_convert_zero[IMM_1] << 2, dsp_reg[15]+(dsp_convert_zero[IMM_1] << 2), IMM_2, RN);
 #endif
+#ifdef DSP_CORRECT_ALIGNMENT
+	RN = DSPReadLong((dsp_reg[15] & 0xFFFFFFFC) + (dsp_convert_zero[IMM_1] << 2), DSP);
+#else
 	RN = DSPReadLong(dsp_reg[15] + (dsp_convert_zero[IMM_1] << 2), DSP);
+#endif
 #ifdef DSP_DIS_LOAD15I
 	if (doDSPDis)
 		WriteLog("[NCZ:%u%u%u, R%02u=%08X]\n", dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_2, RN);
@@ -3093,6 +3145,7 @@ if (dsp_pc == 0xF1B092)
 pcQueue1[pcQPtr1++] = dsp_pc;
 pcQPtr1 &= 0x3FF;
 
+#ifdef DSP_DEBUG_PL2
 if ((dsp_pc < 0xF1B000 || dsp_pc > 0xF1CFFF) && !doDSPDis)
 {
 	WriteLog("DSP: PC has stepped out of bounds...\n\nBacktrace:\n\n");
@@ -3107,6 +3160,8 @@ if ((dsp_pc < 0xF1B000 || dsp_pc > 0xF1CFFF) && !doDSPDis)
 	}
 	WriteLog("\n");
 }//*/
+#endif
+
 		if (IMASKCleared)						// If IMASK was cleared,
 		{
 #ifdef DSP_DEBUG_IRQ
@@ -3210,9 +3265,10 @@ WriteLog("\tW -> %02u, %02u, %02u; r1=%08X, r2= %08X, res=%08X, wb=%u (%s)\n", p
 		// Stage 2: Execute
 		if (pipeline[plPtrExec].opcode != PIPELINE_STALL)
 		{
+#ifdef DSP_DEBUG_PL2
 if (doDSPDis)
 	WriteLog("\t[inst=%02u][R28=%08X, alt R28=%08X, REGPAGE=%s]\n", pipeline[plPtrExec].opcode, dsp_reg[28], dsp_alternate_reg[28], (dsp_flags & REGPAGE ? "set" : "not set"));
-#ifdef DSP_DEBUG_PL2
+
 if (doDSPDis)
 {
 WriteLog("DSPExecP: About to execute opcode %s...\n", dsp_opcode_str[pipeline[plPtrExec].opcode]);
@@ -3922,7 +3978,11 @@ static void DSP_load(void)
 	if (doDSPDis)
 		WriteLog("%06X: LOAD   (R%02u), R%02u [NCZ:%u%u%u, R%02u=%08X, R%02u=%08X] -> ", DSP_PPC, PIMM1, PIMM2, dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM1, PRM, PIMM2, PRN);
 #endif
+#ifdef DSP_CORRECT_ALIGNMENT
+	PRES = DSPReadLong(PRM & 0xFFFFFFFC, DSP);
+#else
 	PRES = DSPReadLong(PRM, DSP);
+#endif
 #ifdef DSP_DIS_LOAD
 	if (doDSPDis)
 		WriteLog("[NCZ:%u%u%u, R%02u=%08X]\n", dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM2, PRES);
@@ -3951,10 +4011,17 @@ static void DSP_loadw(void)
 	if (doDSPDis)
 		WriteLog("%06X: LOADW  (R%02u), R%02u [NCZ:%u%u%u, R%02u=%08X, R%02u=%08X] -> ", DSP_PPC, PIMM1, PIMM2, dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM1, PRM, PIMM2, PRN);
 #endif
+#ifdef DSP_CORRECT_ALIGNMENT
+	if (PRM >= DSP_WORK_RAM_BASE && PRM <= (DSP_WORK_RAM_BASE + 0x1FFF))
+		PRES = DSPReadLong(PRM & 0xFFFFFFFE, DSP) & 0xFFFF;
+	else
+		PRES = JaguarReadWord(PRM & 0xFFFFFFFE, DSP);
+#else
 	if (PRM >= DSP_WORK_RAM_BASE && PRM <= (DSP_WORK_RAM_BASE + 0x1FFF))
 		PRES = DSPReadLong(PRM, DSP) & 0xFFFF;
 	else
 		PRES = JaguarReadWord(PRM, DSP);
+#endif
 #ifdef DSP_DIS_LOADW
 	if (doDSPDis)
 		WriteLog("[NCZ:%u%u%u, R%02u=%08X]\n", dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM2, PRES);
@@ -3967,7 +4034,11 @@ static void DSP_load_r14_i(void)
 	if (doDSPDis)
 		WriteLog("%06X: LOAD   (R14+$%02X), R%02u [NCZ:%u%u%u, R14+$%02X=%08X, R%02u=%08X] -> ", DSP_PPC, dsp_convert_zero[PIMM1] << 2, PIMM2, dsp_flag_n, dsp_flag_c, dsp_flag_z, dsp_convert_zero[PIMM1] << 2, dsp_reg[14]+(dsp_convert_zero[PIMM1] << 2), PIMM2, PRN);
 #endif
+#ifdef DSP_CORRECT_ALIGNMENT
+	PRES = DSPReadLong((dsp_reg[14] & 0xFFFFFFFC) + (dsp_convert_zero[PIMM1] << 2), DSP);
+#else
 	PRES = DSPReadLong(dsp_reg[14] + (dsp_convert_zero[PIMM1] << 2), DSP);
+#endif
 #ifdef DSP_DIS_LOAD14I
 	if (doDSPDis)
 		WriteLog("[NCZ:%u%u%u, R%02u=%08X]\n", dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM2, PRES);
@@ -3980,7 +4051,11 @@ static void DSP_load_r14_r(void)
 	if (doDSPDis)
 		WriteLog("%06X: LOAD   (R14+R%02u), R%02u [NCZ:%u%u%u, R14+R%02u=%08X, R%02u=%08X] -> ", DSP_PPC, PIMM1, PIMM2, dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM1, PRM+dsp_reg[14], PIMM2, PRES);
 #endif
+#ifdef DSP_CORRECT_ALIGNMENT
+	PRES = DSPReadLong((dsp_reg[14] + PRM) & 0xFFFFFFFC, DSP);
+#else
 	PRES = DSPReadLong(dsp_reg[14] + PRM, DSP);
+#endif
 #ifdef DSP_DIS_LOAD14R
 	if (doDSPDis)
 		WriteLog("[NCZ:%u%u%u, R%02u=%08X]\n", dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM2, PRES);
@@ -3993,7 +4068,11 @@ static void DSP_load_r15_i(void)
 	if (doDSPDis)
 		WriteLog("%06X: LOAD   (R15+$%02X), R%02u [NCZ:%u%u%u, R15+$%02X=%08X, R%02u=%08X] -> ", DSP_PPC, dsp_convert_zero[PIMM1] << 2, PIMM2, dsp_flag_n, dsp_flag_c, dsp_flag_z, dsp_convert_zero[PIMM1] << 2, dsp_reg[15]+(dsp_convert_zero[PIMM1] << 2), PIMM2, PRN);
 #endif
+#ifdef DSP_CORRECT_ALIGNMENT
+	PRES = DSPReadLong((dsp_reg[15] &0xFFFFFFFC) + (dsp_convert_zero[PIMM1] << 2), DSP);
+#else
 	PRES = DSPReadLong(dsp_reg[15] + (dsp_convert_zero[PIMM1] << 2), DSP);
+#endif
 #ifdef DSP_DIS_LOAD15I
 	if (doDSPDis)
 		WriteLog("[NCZ:%u%u%u, R%02u=%08X]\n", dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM2, PRES);
@@ -4006,7 +4085,11 @@ static void DSP_load_r15_r(void)
 	if (doDSPDis)
 		WriteLog("%06X: LOAD   (R15+R%02u), R%02u [NCZ:%u%u%u, R15+R%02u=%08X, R%02u=%08X] -> ", DSP_PPC, PIMM1, PIMM2, dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM1, PRM+dsp_reg[15], PIMM2, PRN);
 #endif
+#ifdef DSP_CORRECT_ALIGNMENT
+	PRES = DSPReadLong((dsp_reg[15] + PRM) & 0xFFFFFFFC, DSP);
+#else
 	PRES = DSPReadLong(dsp_reg[15] + PRM, DSP);
+#endif
 #ifdef DSP_DIS_LOAD15R
 	if (doDSPDis)
 		WriteLog("[NCZ:%u%u%u, R%02u=%08X]\n", dsp_flag_n, dsp_flag_c, dsp_flag_z, PIMM2, PRES);
@@ -4444,7 +4527,11 @@ static void DSP_store(void)
 #endif
 //	DSPWriteLong(PRM, PRN, DSP);
 //	NO_WRITEBACK;
+#ifdef DSP_CORRECT_ALIGNMENT
+	pipeline[plPtrExec].address = PRM & 0xFFFFFFFC;
+#else
 	pipeline[plPtrExec].address = PRM;
+#endif
 	pipeline[plPtrExec].value = PRN;
 	pipeline[plPtrExec].type = TYPE_DWORD;
 	WRITEBACK_ADDR;
@@ -4490,7 +4577,11 @@ static void DSP_storew(void)
 //		JaguarWriteWord(PRM, PRN, DSP);
 //
 //	NO_WRITEBACK;
+#ifdef DSP_CORRECT_ALIGNMENT
+	pipeline[plPtrExec].address = PRM & 0xFFFFFFFE;
+#else
 	pipeline[plPtrExec].address = PRM;
+#endif
 
 	if (PRM >= DSP_WORK_RAM_BASE && PRM <= (DSP_WORK_RAM_BASE + 0x1FFF))
 	{
@@ -4513,7 +4604,11 @@ static void DSP_store_r14_i(void)
 #endif
 //	DSPWriteLong(dsp_reg[14] + (dsp_convert_zero[PIMM1] << 2), PRN, DSP);
 //	NO_WRITEBACK;
+#ifdef DSP_CORRECT_ALIGNMENT
+	pipeline[plPtrExec].address = (dsp_reg[14] & 0xFFFFFFFC) + (dsp_convert_zero[PIMM1] << 2);
+#else
 	pipeline[plPtrExec].address = dsp_reg[14] + (dsp_convert_zero[PIMM1] << 2);
+#endif
 	pipeline[plPtrExec].value = PRN;
 	pipeline[plPtrExec].type = TYPE_DWORD;
 	WRITEBACK_ADDR;
@@ -4523,7 +4618,11 @@ static void DSP_store_r14_r(void)
 {
 //	DSPWriteLong(dsp_reg[14] + PRM, PRN, DSP);
 //	NO_WRITEBACK;
+#ifdef DSP_CORRECT_ALIGNMENT
+	pipeline[plPtrExec].address = (dsp_reg[14] + PRM) & 0xFFFFFFFC;
+#else
 	pipeline[plPtrExec].address = dsp_reg[14] + PRM;
+#endif
 	pipeline[plPtrExec].value = PRN;
 	pipeline[plPtrExec].type = TYPE_DWORD;
 	WRITEBACK_ADDR;
@@ -4537,7 +4636,11 @@ static void DSP_store_r15_i(void)
 #endif
 //	DSPWriteLong(dsp_reg[15] + (dsp_convert_zero[PIMM1] << 2), PRN, DSP);
 //	NO_WRITEBACK;
+#ifdef DSP_CORRECT_ALIGNMENT
+	pipeline[plPtrExec].address = (dsp_reg[15] & 0xFFFFFFFC) + (dsp_convert_zero[PIMM1] << 2);
+#else
 	pipeline[plPtrExec].address = dsp_reg[15] + (dsp_convert_zero[PIMM1] << 2);
+#endif
 	pipeline[plPtrExec].value = PRN;
 	pipeline[plPtrExec].type = TYPE_DWORD;
 	WRITEBACK_ADDR;
@@ -4547,7 +4650,11 @@ static void DSP_store_r15_r(void)
 {
 //	DSPWriteLong(dsp_reg[15] + PRM, PRN, DSP);
 //	NO_WRITEBACK;
+#ifdef DSP_CORRECT_ALIGNMENT
+	pipeline[plPtrExec].address = (dsp_reg[15] + PRM) & 0xFFFFFFFC;
+#else
 	pipeline[plPtrExec].address = dsp_reg[15] + PRM;
+#endif
 	pipeline[plPtrExec].value = PRN;
 	pipeline[plPtrExec].type = TYPE_DWORD;
 	WRITEBACK_ADDR;

@@ -1660,7 +1660,7 @@ void JaguarInit(void)
 }
 
 //New timer based code stuffola...
-void ScanlineCallback(void);
+void HalflineCallback(void);
 void RenderCallback(void);
 void JaguarReset(void)
 {
@@ -1686,9 +1686,8 @@ void JaguarReset(void)
 	// New timer base code stuffola...
 	InitializeEventList();
 //	SetCallbackTime(ScanlineCallback, 63.5555);
-	SetCallbackTime(ScanlineCallback, 31.77775);
-//	SetCallbackTime(RenderCallback, 33303.082);	// # Scanlines * scanline time
-//	SetCallbackTime(RenderCallback, 16651.541);	// # Scanlines * scanline time
+//	SetCallbackTime(ScanlineCallback, 31.77775);
+	SetCallbackTime(HalflineCallback, (vjs.hardwareTypeNTSC ? 31.777777777 : 32.0));
 }
 
 void JaguarDone(void)
@@ -1899,7 +1898,7 @@ if (effect_start)
 
 //if (start_logging)
 //	WriteLog("About to execute OP (%u)...\n", i);
-		TOMExecScanline(i, render);
+		TOMExecHalfline(i, render);
 	}
 }
 
@@ -1953,49 +1952,27 @@ void JaguarExecuteNew(void)
 	while (!frameDone);
 }
 
-/*
-BIG NOTE: NEED TO FIX THIS TO RUN ON ABSOLUTE TIMINGS BASED ON SCANLINES,
-          *NOT* ON THE VERTICAL PERIOD!!!
-
-<Zerosquare> scanlines are 64 탎 in PAL
-<Zerosquare> and 63.5555... 탎 in NTSC
-
-Also: 625 lines per frame in PAL, 525 in NTSC
-
-So... can use
-#define RISC_CYCLE_IN_USEC        0.03760684198
-#define M68K_CYCLE_IN_USEC        (RISC_CYCLE_IN_USEC * 2)
-
-#define HORIZ_PERIOD_IN_USEC_NTSC 63.555555555
-#define HORIZ_PERIOD_IN_USEC_PAL  64.0
-
-#define USEC_TO_RISC_CYCLES(u) (uint32)(((u) / RISC_CYCLE_IN_USEC) + 0.5)
-#define USEC_TO_M68K_CYCLES(u) (uint32)(((u) / M68K_CYCLE_IN_USEC) + 0.5)
-
-to figure cycles per half-line...
-
-USEC_TO_RISC_CYCLES(HORIZ_PERIOD_IN_USEC_NTSC) / 2
-USEC_TO_M68K_CYCLES(HORIZ_PERIOD_IN_USEC_NTSC) / 2
-USEC_TO_RISC_CYCLES(HORIZ_PERIOD_IN_USEC_PAL) / 2
-USEC_TO_M68K_CYCLES(HORIZ_PERIOD_IN_USEC_PAL) / 2
-
-// Full lines here, divide by two for half-lines...
-which gives the following: 1690, 845 (NTSC), 1702, 851 (PAL)
-So, for a full frame, that would yield:
-887250 (NTSC), 1063750 (PAL)
-one second:
-26617500 (NTSC), 26593750 (PAL)
-
-Which is off a little bit for NTSC...
-#define M68K_CLOCK_RATE_PAL		13296950
-#define M68K_CLOCK_RATE_NTSC	13295453
-#define RISC_CLOCK_RATE_PAL		26593900
-#define RISC_CLOCK_RATE_NTSC	26590906
-
-*/
-
 #define USE_CORRECT_PAL_TIMINGS
-void ScanlineCallback(void)
+// A lot of confusion comes from here...
+// The thing to keep in mind is that the VC is advanced every HALF line, regardless
+// of whether the display is interlaced or not. The only difference with an
+// interlaced display is that the high bit of VC will be set when the lower
+// field is being rendered.
+//
+// Normally, TVs will render a full frame in 1/30s (NTSC) or 1/25s (PAL) by
+// rendering two fields that are slighty vertically offset from each other.
+// Each field is created in 1/60s (NTSC) or 1/50s (PAL), and every other line
+// is rendered in this mode so that each field, when overlaid on each other,
+// will yield the final picture at the full resolution for the full frame.
+//
+// We execute a half frame in each timeslice (1/60s NTSC, 1/50s PAL).
+// Since the number of lines in a FULL frame is 525 for NTSC, 625 for PAL,
+// it will be half this number for a half frame. BUT, since we're counting
+// HALF lines, we double this number and we're back at 525 for NTSC, 625 for PAL.
+//
+// Scanline times are 63.5555... 탎 in NTSC and 64 탎 in PAL
+// Half line times are, naturally, half of this. :-P
+void HalflineCallback(void)
 {
 //OK, this is hardwired to run in NTSC, and for who knows how long.
 //Need to fix this so that it does a half-line in the correct amount of time
@@ -2030,7 +2007,7 @@ void ScanlineCallback(void)
 		m68k_set_irq(2);
 	}
 
-	TOMExecScanline(vc, true);
+	TOMExecHalfline(vc, true);
 
 //Change this to VBB???
 //Doesn't seem to matter (at least for Flip Out & I-War)
@@ -2042,10 +2019,10 @@ void ScanlineCallback(void)
 	}//*/
 
 #ifdef USE_CORRECT_PAL_TIMINGS
-	SetCallbackTime(ScanlineCallback, (vjs.hardwareTypeNTSC ? 31.777777777 : 32.0));
+	SetCallbackTime(HalflineCallback, (vjs.hardwareTypeNTSC ? 31.777777777 : 32.0));
 #else
-//	SetCallbackTime(ScanlineCallback, 63.5555);
-	SetCallbackTime(ScanlineCallback, 31.77775);
+//	SetCallbackTime(HalflineCallback, 63.5555);
+	SetCallbackTime(HalflineCallback, 31.77775);
 #endif
 }
 
