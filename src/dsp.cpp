@@ -29,6 +29,7 @@
 
 // Seems alignment in loads & stores was off...
 #define DSP_CORRECT_ALIGNMENT
+//#define DSP_CORRECT_ALIGNMENT_STORE
 
 //#define DSP_DEBUG
 //#define DSP_DEBUG_IRQ
@@ -664,7 +665,7 @@ void DSPWriteByte(uint32 offset, uint8 data, uint32 who/*=UNKNOWN*/)
 /*		if (dsp_in_exec == 0)
 		{
 			m68k_end_timeslice();
-			gpu_releaseTimeslice();
+			dsp_releaseTimeslice();
 		}*/
 		return;
 	}
@@ -714,7 +715,7 @@ void DSPWriteWord(uint32 offset, uint16 data, uint32 who/*=UNKNOWN*/)
 		{
 //			WriteLog("dsp: writing %.4x at 0x%.8x\n",data,offset+DSP_WORK_RAM_BASE);
 			m68k_end_timeslice();
-			gpu_releaseTimeslice();
+			dsp_releaseTimeslice();
 		}*/
 //CC only!
 #ifdef DSP_DEBUG_CC
@@ -883,7 +884,7 @@ WriteLog("Write to DSP CTRL by %s: %08X\n", whoName[who], data);
 				WriteLog("DSP: CPU -> DSP interrupt\n");
 #endif
 				m68k_end_timeslice();
-				GPUReleaseTimeslice();
+				DSPReleaseTimeslice();
 				DSPSetIRQLine(DSPIRQ_CPU, ASSERT_LINE);
 				data &= ~DSPINT0;
 			}
@@ -923,14 +924,14 @@ else
 	WriteLog(" --> Stopped by %s! (DSP PC: %08X)", whoName[who], dsp_pc);
 WriteLog("\n");
 #endif	// DSP_DEBUG
-//This isn't exactly right either--we don't know if it was the M68K or the GPU writing here...
+//This isn't exactly right either--we don't know if it was the M68K or the DSP writing here...
 // !!! FIX !!! [DONE]
 			if (DSP_RUNNING)
 			{
 				if (who == M68K)
 					m68k_end_timeslice();
-				else if (who == GPU)
-					GPUReleaseTimeslice();
+				else if (who == DSP)
+					DSPReleaseTimeslice();
 
 				if (!wasRunning)
 					FlushDSPPipeline();
@@ -1955,7 +1956,7 @@ static void dsp_opcode_store_r14_indexed(void)
 	if (doDSPDis)
 		WriteLog("%06X: STORE  R%02u, (R14+$%02X) [NCZ:%u%u%u, R%02u=%08X, R14+$%02X=%08X]\n", dsp_pc-2, IMM_2, dsp_convert_zero[IMM_1] << 2, dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_2, RN, dsp_convert_zero[IMM_1] << 2, dsp_reg[14]+(dsp_convert_zero[IMM_1] << 2));
 #endif
-#ifdef DSP_CORRECT_ALIGNMENT
+#ifdef DSP_CORRECT_ALIGNMENT_STORE
 	DSPWriteLong((dsp_reg[14] & 0xFFFFFFFC) + (dsp_convert_zero[IMM_1] << 2), RN, DSP);
 #else
 	DSPWriteLong(dsp_reg[14] + (dsp_convert_zero[IMM_1] << 2), RN, DSP);
@@ -1968,7 +1969,7 @@ static void dsp_opcode_store_r15_indexed(void)
 	if (doDSPDis)
 		WriteLog("%06X: STORE  R%02u, (R15+$%02X) [NCZ:%u%u%u, R%02u=%08X, R15+$%02X=%08X]\n", dsp_pc-2, IMM_2, dsp_convert_zero[IMM_1] << 2, dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_2, RN, dsp_convert_zero[IMM_1] << 2, dsp_reg[15]+(dsp_convert_zero[IMM_1] << 2));
 #endif
-#ifdef DSP_CORRECT_ALIGNMENT
+#ifdef DSP_CORRECT_ALIGNMENT_STORE
 	DSPWriteLong((dsp_reg[15] & 0xFFFFFFFC) + (dsp_convert_zero[IMM_1] << 2), RN, DSP);
 #else
 	DSPWriteLong(dsp_reg[15] + (dsp_convert_zero[IMM_1] << 2), RN, DSP);
@@ -2045,7 +2046,7 @@ static void dsp_opcode_storew(void)
 	if (doDSPDis)
 		WriteLog("%06X: STOREW R%02u, (R%02u) [NCZ:%u%u%u, R%02u=%08X, R%02u=%08X]\n", dsp_pc-2, IMM_2, IMM_1, dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_2, RN, IMM_1, RM);
 #endif
-#ifdef DSP_CORRECT_ALIGNMENT
+#ifdef DSP_CORRECT_ALIGNMENT_STORE
 	if (RM >= DSP_WORK_RAM_BASE && RM <= (DSP_WORK_RAM_BASE + 0x1FFF))
 		DSPWriteLong(RM & 0xFFFFFFFE, RN & 0xFFFF, DSP);
 	else
@@ -2064,7 +2065,7 @@ static void dsp_opcode_store(void)
 	if (doDSPDis)
 		WriteLog("%06X: STORE  R%02u, (R%02u) [NCZ:%u%u%u, R%02u=%08X, R%02u=%08X]\n", dsp_pc-2, IMM_2, IMM_1, dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_2, RN, IMM_1, RM);
 #endif
-#ifdef DSP_CORRECT_ALIGNMENT
+#ifdef DSP_CORRECT_ALIGNMENT_STORE
 	DSPWriteLong(RM & 0xFFFFFFFC, RN, DSP);
 #else
 	DSPWriteLong(RM, RN, DSP);
@@ -2384,7 +2385,7 @@ static void dsp_opcode_normi(void)
 static void dsp_opcode_mmult(void)
 {
 	int count	= dsp_matrix_control&0x0f;
-	uint32 addr = dsp_pointer_to_matrix; // in the gpu ram
+	uint32 addr = dsp_pointer_to_matrix; // in the dsp ram
 	int64 accum = 0;
 	uint32 res;
 
@@ -4106,7 +4107,7 @@ static void DSP_mirror(void)
 static void DSP_mmult(void)
 {
 	int count	= dsp_matrix_control&0x0f;
-	uint32 addr = dsp_pointer_to_matrix; // in the gpu ram
+	uint32 addr = dsp_pointer_to_matrix; // in the dsp ram
 	int64 accum = 0;
 	uint32 res;
 
@@ -4527,7 +4528,7 @@ static void DSP_store(void)
 #endif
 //	DSPWriteLong(PRM, PRN, DSP);
 //	NO_WRITEBACK;
-#ifdef DSP_CORRECT_ALIGNMENT
+#ifdef DSP_CORRECT_ALIGNMENT_STORE
 	pipeline[plPtrExec].address = PRM & 0xFFFFFFFC;
 #else
 	pipeline[plPtrExec].address = PRM;
@@ -4577,7 +4578,7 @@ static void DSP_storew(void)
 //		JaguarWriteWord(PRM, PRN, DSP);
 //
 //	NO_WRITEBACK;
-#ifdef DSP_CORRECT_ALIGNMENT
+#ifdef DSP_CORRECT_ALIGNMENT_STORE
 	pipeline[plPtrExec].address = PRM & 0xFFFFFFFE;
 #else
 	pipeline[plPtrExec].address = PRM;
@@ -4604,7 +4605,7 @@ static void DSP_store_r14_i(void)
 #endif
 //	DSPWriteLong(dsp_reg[14] + (dsp_convert_zero[PIMM1] << 2), PRN, DSP);
 //	NO_WRITEBACK;
-#ifdef DSP_CORRECT_ALIGNMENT
+#ifdef DSP_CORRECT_ALIGNMENT_STORE
 	pipeline[plPtrExec].address = (dsp_reg[14] & 0xFFFFFFFC) + (dsp_convert_zero[PIMM1] << 2);
 #else
 	pipeline[plPtrExec].address = dsp_reg[14] + (dsp_convert_zero[PIMM1] << 2);
@@ -4618,7 +4619,7 @@ static void DSP_store_r14_r(void)
 {
 //	DSPWriteLong(dsp_reg[14] + PRM, PRN, DSP);
 //	NO_WRITEBACK;
-#ifdef DSP_CORRECT_ALIGNMENT
+#ifdef DSP_CORRECT_ALIGNMENT_STORE
 	pipeline[plPtrExec].address = (dsp_reg[14] + PRM) & 0xFFFFFFFC;
 #else
 	pipeline[plPtrExec].address = dsp_reg[14] + PRM;
@@ -4636,7 +4637,7 @@ static void DSP_store_r15_i(void)
 #endif
 //	DSPWriteLong(dsp_reg[15] + (dsp_convert_zero[PIMM1] << 2), PRN, DSP);
 //	NO_WRITEBACK;
-#ifdef DSP_CORRECT_ALIGNMENT
+#ifdef DSP_CORRECT_ALIGNMENT_STORE
 	pipeline[plPtrExec].address = (dsp_reg[15] & 0xFFFFFFFC) + (dsp_convert_zero[PIMM1] << 2);
 #else
 	pipeline[plPtrExec].address = dsp_reg[15] + (dsp_convert_zero[PIMM1] << 2);
@@ -4650,7 +4651,7 @@ static void DSP_store_r15_r(void)
 {
 //	DSPWriteLong(dsp_reg[15] + PRM, PRN, DSP);
 //	NO_WRITEBACK;
-#ifdef DSP_CORRECT_ALIGNMENT
+#ifdef DSP_CORRECT_ALIGNMENT_STORE
 	pipeline[plPtrExec].address = (dsp_reg[15] + PRM) & 0xFFFFFFFC;
 #else
 	pipeline[plPtrExec].address = dsp_reg[15] + PRM;
