@@ -44,7 +44,7 @@
 
 // For GPU dissasembly...
 
-#if 1
+#if 0
 #define GPU_DIS_ABS
 #define GPU_DIS_ADD
 #define GPU_DIS_ADDC
