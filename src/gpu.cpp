@@ -39,7 +39,6 @@
 
 // Seems alignment in loads & stores was off...
 #define GPU_CORRECT_ALIGNMENT
-//#define GPU_CORRECT_ALIGNMENT_STORE
 //#define GPU_DEBUG
 
 // For GPU dissasembly...
@@ -1732,8 +1731,13 @@ static void gpu_opcode_store_r14_indexed(void)
 	if (doGPUDis)
 		WriteLog("%06X: STORE  R%02u, (R14+$%02X) [NCZ:%u%u%u, R%02u=%08X, R14+$%02X=%08X]\n", gpu_pc-2, IMM_2, gpu_convert_zero[IMM_1] << 2, gpu_flag_n, gpu_flag_c, gpu_flag_z, IMM_2, RN, gpu_convert_zero[IMM_1] << 2, gpu_reg[14]+(gpu_convert_zero[IMM_1] << 2));
 #endif
-#ifdef GPU_CORRECT_ALIGNMENT_STORE
-	GPUWriteLong((gpu_reg[14] & 0xFFFFFFFC) + (gpu_convert_zero[IMM_1] << 2), RN, GPU);
+#ifdef GPU_CORRECT_ALIGNMENT
+	uint32 address = gpu_reg[14] + (gpu_convert_zero[IMM_1] << 2);
+	
+	if (address >= 0xF03000 && address <= 0xF03FFF)
+		GPUWriteLong(address & 0xFFFFFFFC, RN, GPU);
+	else
+		GPUWriteLong(address, RN, GPU);
 #else
 	GPUWriteLong(gpu_reg[14] + (gpu_convert_zero[IMM_1] << 2), RN, GPU);
 #endif
@@ -1745,8 +1749,13 @@ static void gpu_opcode_store_r15_indexed(void)
 	if (doGPUDis)
 		WriteLog("%06X: STORE  R%02u, (R15+$%02X) [NCZ:%u%u%u, R%02u=%08X, R15+$%02X=%08X]\n", gpu_pc-2, IMM_2, gpu_convert_zero[IMM_1] << 2, gpu_flag_n, gpu_flag_c, gpu_flag_z, IMM_2, RN, gpu_convert_zero[IMM_1] << 2, gpu_reg[15]+(gpu_convert_zero[IMM_1] << 2));
 #endif
-#ifdef GPU_CORRECT_ALIGNMENT_STORE
-	GPUWriteLong((gpu_reg[15] & 0xFFFFFFFC) + (gpu_convert_zero[IMM_1] << 2), RN, GPU);
+#ifdef GPU_CORRECT_ALIGNMENT
+	uint32 address = gpu_reg[15] + (gpu_convert_zero[IMM_1] << 2);
+
+	if (address >= 0xF03000 && address <= 0xF03FFF)
+		GPUWriteLong(address & 0xFFFFFFFC, RN, GPU);
+	else
+		GPUWriteLong(address, RN, GPU);
 #else
 	GPUWriteLong(gpu_reg[15] + (gpu_convert_zero[IMM_1] << 2), RN, GPU);
 #endif
@@ -1759,7 +1768,12 @@ static void gpu_opcode_load_r14_ri(void)
 		WriteLog("%06X: LOAD   (R14+R%02u), R%02u [NCZ:%u%u%u, R14+R%02u=%08X, R%02u=%08X] -> ", gpu_pc-2, IMM_1, IMM_2, gpu_flag_n, gpu_flag_c, gpu_flag_z, IMM_1, RM+gpu_reg[14], IMM_2, RN);
 #endif
 #ifdef GPU_CORRECT_ALIGNMENT
-	RN = GPUReadLong((gpu_reg[14] + RM) & 0xFFFFFFFC, GPU);
+	uint32 address = gpu_reg[14] + RM;
+
+	if (address >= 0xF03000 && address <= 0xF03FFF)
+		RN = GPUReadLong(address & 0xFFFFFFFC, GPU);
+	else
+		RN = GPUReadLong(address, GPU);
 #else
 	RN = GPUReadLong(gpu_reg[14] + RM, GPU);
 #endif
@@ -1776,7 +1790,12 @@ static void gpu_opcode_load_r15_ri(void)
 		WriteLog("%06X: LOAD   (R15+R%02u), R%02u [NCZ:%u%u%u, R15+R%02u=%08X, R%02u=%08X] -> ", gpu_pc-2, IMM_1, IMM_2, gpu_flag_n, gpu_flag_c, gpu_flag_z, IMM_1, RM+gpu_reg[15], IMM_2, RN);
 #endif
 #ifdef GPU_CORRECT_ALIGNMENT
-	RN = GPUReadLong((gpu_reg[15] + RM) & 0xFFFFFFFC, GPU);
+	uint32 address = gpu_reg[15] + RM;
+
+	if (address >= 0xF03000 && address <= 0xF03FFF)
+		RN = GPUReadLong(address & 0xFFFFFFFC, GPU);
+	else
+		RN = GPUReadLong(address, GPU);
 #else
 	RN = GPUReadLong(gpu_reg[15] + RM, GPU);
 #endif
@@ -1792,8 +1811,13 @@ static void gpu_opcode_store_r14_ri(void)
 	if (doGPUDis)
 		WriteLog("%06X: STORE  R%02u, (R14+R%02u) [NCZ:%u%u%u, R%02u=%08X, R14+R%02u=%08X]\n", gpu_pc-2, IMM_2, IMM_1, gpu_flag_n, gpu_flag_c, gpu_flag_z, IMM_2, RN, IMM_1, RM+gpu_reg[14]);
 #endif
-#ifdef GPU_CORRECT_ALIGNMENT_STORE
-	GPUWriteLong((gpu_reg[14] + RM) & 0xFFFFFFFC, RN, GPU);
+#ifdef GPU_CORRECT_ALIGNMENT
+	uint32 address = gpu_reg[14] + RM;
+
+	if (address >= 0xF03000 && address <= 0xF03FFF)
+		GPUWriteLong(address & 0xFFFFFFFC, RN, GPU);
+	else
+		GPUWriteLong(address, RN, GPU);
 #else
 	GPUWriteLong(gpu_reg[14] + RM, RN, GPU);
 #endif
@@ -1806,7 +1830,12 @@ static void gpu_opcode_store_r15_ri(void)
 		WriteLog("%06X: STORE  R%02u, (R15+R%02u) [NCZ:%u%u%u, R%02u=%08X, R15+R%02u=%08X]\n", gpu_pc-2, IMM_2, IMM_1, gpu_flag_n, gpu_flag_c, gpu_flag_z, IMM_2, RN, IMM_1, RM+gpu_reg[15]);
 #endif
 #ifdef GPU_CORRECT_ALIGNMENT_STORE
-	GPUWriteLong((gpu_reg[15] + RM) & 0xFFFFFFFC, RN, GPU);
+	uint32 address = gpu_reg[15] + RM;
+
+	if (address >= 0xF03000 && address <= 0xF03FFF)
+		GPUWriteLong(address & 0xFFFFFFFC, RN, GPU);
+	else
+		GPUWriteLong(address, RN, GPU);
 #else
 	GPUWriteLong(gpu_reg[15] + RM, RN, GPU);
 #endif
@@ -1859,11 +1888,11 @@ static void gpu_opcode_storew(void)
 	if (doGPUDis)
 		WriteLog("%06X: STOREW R%02u, (R%02u) [NCZ:%u%u%u, R%02u=%08X, R%02u=%08X]\n", gpu_pc-2, IMM_2, IMM_1, gpu_flag_n, gpu_flag_c, gpu_flag_z, IMM_2, RN, IMM_1, RM);
 #endif
-#ifdef GPU_CORRECT_ALIGNMENT_STORE
+#ifdef GPU_CORRECT_ALIGNMENT
 	if ((RM >= 0xF03000) && (RM <= 0xF03FFF))
 		GPUWriteLong(RM & 0xFFFFFFFE, RN & 0xFFFF, GPU);
 	else
-		JaguarWriteWord(RM & 0xFFFFFFFE, RN, GPU);
+		JaguarWriteWord(RM, RN, GPU);
 #else
 	if ((RM >= 0xF03000) && (RM <= 0xF03FFF))
 		GPUWriteLong(RM, RN & 0xFFFF, GPU);
@@ -1878,8 +1907,11 @@ static void gpu_opcode_store(void)
 	if (doGPUDis)
 		WriteLog("%06X: STORE  R%02u, (R%02u) [NCZ:%u%u%u, R%02u=%08X, R%02u=%08X]\n", gpu_pc-2, IMM_2, IMM_1, gpu_flag_n, gpu_flag_c, gpu_flag_z, IMM_2, RN, IMM_1, RM);
 #endif
-#ifdef GPU_CORRECT_ALIGNMENT_STORE
-	GPUWriteLong(RM & 0xFFFFFFFC, RN, GPU);
+#ifdef GPU_CORRECT_ALIGNMENT
+	if ((RM >= 0xF03000) && (RM <= 0xF03FFF))
+		GPUWriteLong(RM & 0xFFFFFFFC, RN, GPU);
+	else
+		GPUWriteLong(RM, RN, GPU);
 #else
 	GPUWriteLong(RM, RN, GPU);
 #endif
@@ -1887,9 +1919,17 @@ static void gpu_opcode_store(void)
 
 static void gpu_opcode_storep(void)
 {
-#ifdef GPU_CORRECT_ALIGNMENT_STORE
-	GPUWriteLong((RM & 0xFFFFFFF8) + 0, gpu_hidata, GPU);
-	GPUWriteLong((RM & 0xFFFFFFF8) + 4, RN, GPU);
+#ifdef GPU_CORRECT_ALIGNMENT
+	if ((RM >= 0xF03000) && (RM <= 0xF03FFF))
+	{
+		GPUWriteLong((RM & 0xFFFFFFF8) + 0, gpu_hidata, GPU);
+		GPUWriteLong((RM & 0xFFFFFFF8) + 4, RN, GPU);
+	}
+	else
+	{
+		GPUWriteLong(RM + 0, gpu_hidata, GPU);
+		GPUWriteLong(RM + 4, RN, GPU);
+	}
 #else
 	GPUWriteLong(RM + 0, gpu_hidata, GPU);
 	GPUWriteLong(RM + 4, RN, GPU);
@@ -1922,7 +1962,7 @@ static void gpu_opcode_loadw(void)
 	if ((RM >= 0xF03000) && (RM <= 0xF03FFF))
 		RN = GPUReadLong(RM & 0xFFFFFFFE, GPU) & 0xFFFF;
 	else
-		RN = JaguarReadWord(RM & 0xFFFFFFFE, GPU);
+		RN = JaguarReadWord(RM, GPU);
 #else
 	if ((RM >= 0xF03000) && (RM <= 0xF03FFF))
 		RN = GPUReadLong(RM, GPU) & 0xFFFF;
@@ -1938,6 +1978,9 @@ static void gpu_opcode_loadw(void)
 // According to the docs, & "Do The Same", this address is long aligned...
 // So let's try it:
 // And it works!!! Need to fix all instances...
+// Also, Power Drive Rally seems to contradict the idea that only LOADs in
+// the $F03000-$F03FFF range are aligned...
+#warning "!!! Alignment issues, need to find definitive final word on this !!!"
 static void gpu_opcode_load(void)
 {
 #ifdef GPU_DIS_LOAD
@@ -1945,7 +1988,10 @@ static void gpu_opcode_load(void)
 		WriteLog("%06X: LOAD   (R%02u), R%02u [NCZ:%u%u%u, R%02u=%08X, R%02u=%08X] -> ", gpu_pc-2, IMM_1, IMM_2, gpu_flag_n, gpu_flag_c, gpu_flag_z, IMM_1, RM, IMM_2, RN);
 #endif
 #ifdef GPU_CORRECT_ALIGNMENT
-	RN = GPUReadLong(RM & 0xFFFFFFFC, GPU);
+//	if ((RM >= 0xF03000) && (RM <= 0xF03FFF))
+		RN = GPUReadLong(RM & 0xFFFFFFFC, GPU);
+//	else
+//		RN = GPUReadLong(RM, GPU);
 #else
 	RN = GPUReadLong(RM, GPU);
 #endif
@@ -1958,8 +2004,16 @@ static void gpu_opcode_load(void)
 static void gpu_opcode_loadp(void)
 {
 #ifdef GPU_CORRECT_ALIGNMENT
-	gpu_hidata = GPUReadLong((RM & 0xFFFFFFF8) + 0, GPU);
-	RN		   = GPUReadLong((RM & 0xFFFFFFF8) + 4, GPU);
+	if ((RM >= 0xF03000) && (RM <= 0xF03FFF))
+	{
+		gpu_hidata = GPUReadLong((RM & 0xFFFFFFF8) + 0, GPU);
+		RN		   = GPUReadLong((RM & 0xFFFFFFF8) + 4, GPU);
+	}
+	else
+	{
+		gpu_hidata = GPUReadLong(RM + 0, GPU);
+		RN		   = GPUReadLong(RM + 4, GPU);
+	}
 #else
 	gpu_hidata = GPUReadLong(RM + 0, GPU);
 	RN		   = GPUReadLong(RM + 4, GPU);
@@ -1973,7 +2027,12 @@ static void gpu_opcode_load_r14_indexed(void)
 		WriteLog("%06X: LOAD   (R14+$%02X), R%02u [NCZ:%u%u%u, R14+$%02X=%08X, R%02u=%08X] -> ", gpu_pc-2, gpu_convert_zero[IMM_1] << 2, IMM_2, gpu_flag_n, gpu_flag_c, gpu_flag_z, gpu_convert_zero[IMM_1] << 2, gpu_reg[14]+(gpu_convert_zero[IMM_1] << 2), IMM_2, RN);
 #endif
 #ifdef GPU_CORRECT_ALIGNMENT
-	RN = GPUReadLong((gpu_reg[14] & 0xFFFFFFFC) + (gpu_convert_zero[IMM_1] << 2), GPU);
+	uint32 address = gpu_reg[14] + (gpu_convert_zero[IMM_1] << 2);
+
+	if ((RM >= 0xF03000) && (RM <= 0xF03FFF))
+		RN = GPUReadLong(address & 0xFFFFFFFC, GPU);
+	else
+		RN = GPUReadLong(address, GPU);
 #else
 	RN = GPUReadLong(gpu_reg[14] + (gpu_convert_zero[IMM_1] << 2), GPU);
 #endif
@@ -1990,7 +2049,12 @@ static void gpu_opcode_load_r15_indexed(void)
 		WriteLog("%06X: LOAD   (R15+$%02X), R%02u [NCZ:%u%u%u, R15+$%02X=%08X, R%02u=%08X] -> ", gpu_pc-2, gpu_convert_zero[IMM_1] << 2, IMM_2, gpu_flag_n, gpu_flag_c, gpu_flag_z, gpu_convert_zero[IMM_1] << 2, gpu_reg[15]+(gpu_convert_zero[IMM_1] << 2), IMM_2, RN);
 #endif
 #ifdef GPU_CORRECT_ALIGNMENT
-	RN = GPUReadLong((gpu_reg[15] & 0xFFFFFFFC) + (gpu_convert_zero[IMM_1] << 2), GPU);
+	uint32 address = gpu_reg[15] + (gpu_convert_zero[IMM_1] << 2);
+
+	if ((RM >= 0xF03000) && (RM <= 0xF03FFF))
+		RN = GPUReadLong(address & 0xFFFFFFFC, GPU);
+	else
+		RN = GPUReadLong(address, GPU);
 #else
 	RN = GPUReadLong(gpu_reg[15] + (gpu_convert_zero[IMM_1] << 2), GPU);
 #endif

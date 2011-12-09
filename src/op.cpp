@@ -51,8 +51,10 @@
 
 void OPProcessFixedBitmap(uint64 p0, uint64 p1, bool render);
 void OPProcessScaledBitmap(uint64 p0, uint64 p1, uint64 p2, bool render);
+void OPDumpObjectList(uint32 address);
 void DumpScaledObject(uint64 p0, uint64 p1, uint64 p2);
 void DumpFixedObject(uint64 p0, uint64 p1);
+void DumpBitmapCore(uint64 p0, uint64 p1);
 uint64 OPLoadPhrase(uint32 offset);
 
 // Local global variables
@@ -131,21 +133,31 @@ void OPReset(void)
 	objectp_running = 0;
 }
 
+static const char * opType[8] =
+{ "(BITMAP)", "(SCALED BITMAP)", "(GPU INT)", "(BRANCH)", "(STOP)", "???", "???", "???" };
+static const char * ccType[8] =
+	{ "\"==\"", "\"<\"", "\">\"", "(opflag set)", "(second half line)", "?", "?", "?" };
+static uint32 objectLink[8192];
+static uint32 numberOfLinks;
+
 void OPDone(void)
 {
-#warning "!!! Fix OL dump so that it follows links !!!"
-	const char * opType[8] =
-	{ "(BITMAP)", "(SCALED BITMAP)", "(GPU INT)", "(BRANCH)", "(STOP)", "???", "???", "???" };
-	const char * ccType[8] =
-		{ "\"==\"", "\"<\"", "\">\"", "(opflag set)", "(second half line)", "?", "?", "?" };
+//#warning "!!! Fix OL dump so that it follows links !!!"
+//	const char * opType[8] =
+//	{ "(BITMAP)", "(SCALED BITMAP)", "(GPU INT)", "(BRANCH)", "(STOP)", "???", "???", "???" };
+//	const char * ccType[8] =
+//		{ "\"==\"", "\"<\"", "\">\"", "(opflag set)", "(second half line)", "?", "?", "?" };
 
 	uint32 olp = OPGetListPointer();
-	WriteLog("OP: OLP = %08X\n", olp);
+	WriteLog("\nOP: OLP = $%08X\n", olp);
 	WriteLog("OP: Phrase dump\n    ----------\n");
+
+#if 0
 	for(uint32 i=0; i<0x100; i+=8)
 	{
 		uint32 hi = JaguarReadLong(olp + i, OP), lo = JaguarReadLong(olp + i + 4, OP);
 		WriteLog("\t%08X: %08X %08X %s", olp + i, hi, lo, opType[lo & 0x07]);
+
 		if ((lo & 0x07) == 3)
 		{
 			uint16 ypos = (lo >> 3) & 0x7FF;
@@ -153,17 +165,91 @@ void OPDone(void)
 			uint32 link = ((hi << 11) | (lo >> 21)) & 0x3FFFF8;
 			WriteLog(" YPOS=%u, CC=%s, link=%08X", ypos, ccType[cc], link);
 		}
+
 		WriteLog("\n");
+
 		if ((lo & 0x07) == 0)
 			DumpFixedObject(OPLoadPhrase(olp+i), OPLoadPhrase(olp+i+8));
+
 		if ((lo & 0x07) == 1)
 			DumpScaledObject(OPLoadPhrase(olp+i), OPLoadPhrase(olp+i+8), OPLoadPhrase(olp+i+16));
 	}
-	WriteLog("\n");
 
-//	memory_free(op_blend_y);
-//	memory_free(op_blend_cr);
+	WriteLog("\n");
+#else
+	numberOfLinks = 0;
+
+	OPDumpObjectList(olp);
+#endif
 }
+
+
+// To do this properly, we have to use recursion...
+void OPDumpObjectList(uint32 address)
+{
+	// Sanity checking: If we've already visited this link, bail out!
+	for(uint32 i=0; i<numberOfLinks; i++)
+	{
+		if (address == objectLink[i])
+			return;
+	}
+
+	objectLink[numberOfLinks++] = address;
+	uint8 objectType = 0;
+
+	do
+	{
+		uint32 hi = JaguarReadLong(address + 0, OP);
+		uint32 lo = JaguarReadLong(address + 4, OP);
+		objectType = lo & 0x07;
+		uint32 link = ((hi << 11) | (lo >> 21)) & 0x3FFFF8;
+		WriteLog("%08X: %08X %08X %s", address, hi, lo, opType[objectType]);
+
+		if (objectType == 3)
+		{
+			uint16 ypos = (lo >> 3) & 0x7FF;
+			uint8  cc   = (lo >> 14) & 0x07;	// Proper # of bits == 3
+			WriteLog(" YPOS=%u, CC=%s, link=$%08X", ypos, ccType[cc], link);
+
+			// Recursion needed to follow all links!
+			WriteLog("\n");
+			OPDumpObjectList(address + 8);
+
+			// Do the sanity check after recursive call: We may have already seen this...
+			// Sanity checking: If we've already visited this link, bail out!
+//disnowok: we added ourself above
+//			for(uint32 i=0; i<numberOfLinks; i++)
+//			{
+//				if (address == objectLink[i])
+//					return;
+//			}
+		}
+
+		WriteLog("\n");
+
+		if (objectType == 0)
+			DumpFixedObject(OPLoadPhrase(address + 0), OPLoadPhrase(address + 8));
+
+		if (objectType == 1)
+			DumpScaledObject(OPLoadPhrase(address + 0), OPLoadPhrase(address + 8),
+				OPLoadPhrase(address + 16));
+
+		if (address == link)	// Ruh roh...
+		{
+			// Runaway recursive link is bad!
+			WriteLog("***** SELF REFERENTIAL LINK *****\n\n");
+			return;
+		}
+
+		address = link;
+		objectLink[numberOfLinks++] = address;
+	}
+	while (objectType != 4);
+
+	WriteLog("\n");
+}
+
+
 
 //
 // Object Processor memory access
@@ -269,25 +355,9 @@ void OPStorePhrase(uint32 offset, uint64 p)
 //
 void DumpScaledObject(uint64 p0, uint64 p1, uint64 p2)
 {
-	WriteLog(" (SCALED BITMAP)");
-	WriteLog(" %08X --> phrase %08X %08X\n", op_pointer, (uint32)(p1>>32), (uint32)(p1&0xFFFFFFFF));
-	WriteLog("                 %08X --> phrase %08X %08X ", op_pointer+8, (uint32)(p2>>32), (uint32)(p2&0xFFFFFFFF));
-	uint8 bitdepth = (p1 >> 12) & 0x07;
-//WAS:	int16 ypos = ((p0 >> 3) & 0x3FF);			// ??? What if not interlaced (/2)?
-	int16 ypos = ((p0 >> 3) & 0x7FF);			// ??? What if not interlaced (/2)?
-	int32 xpos = p1 & 0xFFF;
-	xpos = (xpos & 0x800 ? xpos | 0xFFFFF000 : xpos);
-	uint32 iwidth = ((p1 >> 28) & 0x3FF);
-	uint32 dwidth = ((p1 >> 18) & 0x3FF);		// Unsigned!
-	uint16 height = ((p0 >> 14) & 0x3FF);
-	uint32 link = ((p0 >> 24) & 0x7FFFF) << 3;
-	uint32 ptr = ((p0 >> 43) & 0x1FFFFF) << 3;
-	uint32 firstPix = (p1 >> 49) & 0x3F;
-	uint8 flags = (p1 >> 45) & 0x0F;
-	uint8 idx = (p1 >> 38) & 0x7F;
-	uint32 pitch = (p1 >> 15) & 0x07;
-	WriteLog("\n    [%u (%u) x %u @ (%i, %u) (%u bpp), l: %08X, p: %08X fp: %02X, fl:%s%s%s%s, idx:%02X, pt:%02X]\n",
-		iwidth, dwidth, height, xpos, ypos, op_bitmap_bit_depth[bitdepth], link, ptr, firstPix, (flags&OPFLAG_REFLECT ? "REFLECT " : ""), (flags&OPFLAG_RMW ? "RMW " : ""), (flags&OPFLAG_TRANS ? "TRANS " : ""), (flags&OPFLAG_RELEASE ? "RELEASE" : ""), idx, pitch);
+	WriteLog("          %08X %08X\n", (uint32)(p1>>32), (uint32)(p1&0xFFFFFFFF));
+	WriteLog("          %08X %08X\n", (uint32)(p2>>32), (uint32)(p2&0xFFFFFFFF));
+	DumpBitmapCore(p0, p1);
 	uint32 hscale = p2 & 0xFF;
 	uint32 vscale = (p2 >> 8) & 0xFF;
 	uint32 remainder = (p2 >> 16) & 0xFF;
@@ -296,13 +366,17 @@ void DumpScaledObject(uint64 p0, uint64 p1, uint64 p2)
 
 void DumpFixedObject(uint64 p0, uint64 p1)
 {
-	WriteLog(" (BITMAP)");
-	WriteLog(" %08X --> phrase %08X %08X\n", op_pointer, (uint32)(p1>>32), (uint32)(p1&0xFFFFFFFF));
+	WriteLog("          %08X %08X\n", (uint32)(p1>>32), (uint32)(p1&0xFFFFFFFF));
+	DumpBitmapCore(p0, p1);
+}
+
+void DumpBitmapCore(uint64 p0, uint64 p1)
+{
 	uint8 bitdepth = (p1 >> 12) & 0x07;
 //WAS:	int16 ypos = ((p0 >> 3) & 0x3FF);			// ??? What if not interlaced (/2)?
 	int16 ypos = ((p0 >> 3) & 0x7FF);			// ??? What if not interlaced (/2)?
 	int32 xpos = p1 & 0xFFF;
-	xpos = (xpos & 0x800 ? xpos | 0xFFFFF000 : xpos);
+	xpos = (xpos & 0x800 ? xpos | 0xFFFFF000 : xpos);	// Sign extend that mutha!
 	uint32 iwidth = ((p1 >> 28) & 0x3FF);
 	uint32 dwidth = ((p1 >> 18) & 0x3FF);		// Unsigned!
 	uint16 height = ((p0 >> 14) & 0x3FF);
@@ -313,7 +387,10 @@ void DumpFixedObject(uint64 p0, uint64 p1)
 	uint8 idx = (p1 >> 38) & 0x7F;
 	uint32 pitch = (p1 >> 15) & 0x07;
 	WriteLog("    [%u (%u) x %u @ (%i, %u) (%u bpp), l: %08X, p: %08X fp: %02X, fl:%s%s%s%s, idx:%02X, pt:%02X]\n",
-		iwidth, dwidth, height, xpos, ypos, op_bitmap_bit_depth[bitdepth], link, ptr, firstPix, (flags&OPFLAG_REFLECT ? "REFLECT " : ""), (flags&OPFLAG_RMW ? "RMW " : ""), (flags&OPFLAG_TRANS ? "TRANS " : ""), (flags&OPFLAG_RELEASE ? "RELEASE" : ""), idx, pitch);
+		iwidth, dwidth, height, xpos, ypos, op_bitmap_bit_depth[bitdepth], link,
+		ptr, firstPix, (flags&OPFLAG_REFLECT ? "REFLECT " : ""),
+		(flags&OPFLAG_RMW ? "RMW " : ""), (flags&OPFLAG_TRANS ? "TRANS " : ""),
+		(flags&OPFLAG_RELEASE ? "RELEASE" : ""), idx, pitch);
 }
 
 //
@@ -658,6 +735,9 @@ OP: Scaled bitmap 4x? 4bpp at 34,? hscale=80 fpix=0 data=000756E8 pitch 1 hflipp
 		case OBJECT_TYPE_BRANCH:
 		{
 			uint16 ypos = (p0 >> 3) & 0x7FF;
+// NOTE: The JTRM sez there are only 2 bits used for the CC, but lists *five*
+//       conditions! Need at least one more bit for that! :-P
+#warning "!!! Possibly bad CC handling in OP (missing 1 bit) !!!"
 			uint8  cc   = (p0 >> 14) & 0x03;
 			uint32 link = (p0 >> 21) & 0x3FFFF8;
 

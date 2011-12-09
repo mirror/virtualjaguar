@@ -13,7 +13,7 @@
 // JLH  01/16/2010  Created this log ;-)
 // JLH  07/11/2011  Instead of dumping out on max log file size being reached, we
 //                  now just silently ignore any more output. 10 megs ought to be
-//                  enough for anybody. ;-)
+//                  enough for anybody. ;-) Except when it isn't. :-P
 //
 
 #include "log.h"

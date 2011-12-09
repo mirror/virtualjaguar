@@ -276,6 +276,8 @@
 #define MEMCON2		0x02
 #define HC			0x04
 #define VC			0x06
+#define OLP			0x20		// Object list pointer
+#define OBF			0x26		// Object processor flag
 #define VMODE		0x28
 #define   MODE		0x0006		// Line buffer to video generator mode
 #define   BGEN		0x0080		// Background enable (CRY & RGB16 only)
@@ -284,21 +286,26 @@
 #define BORD1		0x2A		// Border green/red values (8 BPP)
 #define BORD2		0x2C		// Border blue value (8 BPP)
 #define HP			0x2E		// Values range from 1 - 1024 (value written + 1)
-#define HBB			0x30
+#define HBB			0x30		// Horizontal blank begin
 #define HBE			0x32
+#define HS			0x34		// Horizontal sync
+#define HVS			0x36		// Horizontal vertical sync
 #define HDB1		0x38		// Horizontal display begin 1
 #define HDB2		0x3A
 #define HDE			0x3C
 #define VP			0x3E		// Value ranges from 1 - 2048 (value written + 1)
-#define VBB			0x40
+#define VBB			0x40		// Vertical blank begin
 #define VBE			0x42
-#define VS			0x44
-#define VDB			0x46
+#define VS			0x44		// Vertical sync
+#define VDB			0x46		// Vertical display begin
 #define VDE			0x48
-#define VI			0x4E
+#define VEB			0x4A		// Vertical equalization begin
+#define VEE			0x4C		// Vertical equalization end
+#define VI			0x4E		// Vertical interrupt
 #define PIT0		0x50
 #define PIT1		0x52
-#define BG			0x58
+#define HEQ			0x54		// Horizontal equalization end
+#define BG			0x58		// Background color
 #define INT1		0xE0
 
 //NOTE: These arbitrary cutoffs are NOT taken into account for PAL jaguar screens. !!! FIX !!!
@@ -1304,10 +1311,10 @@ void TOMWriteWord(uint32 offset, uint16 data, uint32 who/*=UNKNOWN*/)
 		return;
 #endif
 
-if (offset == 0xF00000 + MEMCON1)
-	WriteLog("TOM: Memory Configuration 1 written by %s: %04X\n", whoName[who], data);
-if (offset == 0xF00000 + MEMCON2)
-	WriteLog("TOM: Memory Configuration 2 written by %s: %04X\n", whoName[who], data);
+//if (offset == 0xF00000 + MEMCON1)
+//	WriteLog("TOM: Memory Configuration 1 written by %s: %04X\n", whoName[who], data);
+//if (offset == 0xF00000 + MEMCON2)
+//	WriteLog("TOM: Memory Configuration 2 written by %s: %04X\n", whoName[who], data);
 if (offset >= 0xF02000 && offset <= 0xF020FF)
 	WriteLog("TOM: Write attempted to GPU register file by %s (unimplemented)!\n", whoName[who]);
 
@@ -1390,38 +1397,64 @@ if (offset >= 0xF02000 && offset <= 0xF020FF)
 	TOMWriteByte(0xF00000 | offset, data >> 8, who);
 	TOMWriteByte(0xF00000 | (offset+1), data & 0xFF, who);
 
-if (offset == VDB)
-	WriteLog("TOM: Vertical Display Begin written by %s: %u\n", whoName[who], data);
-if (offset == VDE)
-	WriteLog("TOM: Vertical Display End written by %s: %u\n", whoName[who], data);
-if (offset == VP)
-	WriteLog("TOM: Vertical Period written by %s: %u (%sinterlaced)\n", whoName[who], data, (data & 0x01 ? "non-" : ""));
+if (offset == MEMCON1)
+	WriteLog("TOM: Memory Config 1 written by %s: $%04X\n", whoName[who], data);
+if (offset == MEMCON2)
+	WriteLog("TOM: Memory Config 2 written by %s: $%04X\n", whoName[who], data);
+//if (offset == OLP)
+//	WriteLog("TOM: Object List Pointer written by %s: $%04X\n", whoName[who], data);
+//if (offset == OLP + 2)
+//	WriteLog("TOM: Object List Pointer +2 written by %s: $%04X\n", whoName[who], data);
+//if (offset == OBF)
+//	WriteLog("TOM: Object Processor Flag written by %s: %u\n", whoName[who], data);
+if (offset == VMODE)
+	WriteLog("TOM: Video Mode written by %s: %04X. PWIDTH = %u, MODE = %s, flags:%s%s (VC = %u)\n", whoName[who], data, ((data >> 9) & 0x07) + 1, videoMode_to_str[(data & MODE) >> 1], (data & BGEN ? " BGEN" : ""), (data & VARMOD ? " VARMOD" : ""), GET16(tomRam8, VC));
+if (offset == BORD1)
+	WriteLog("TOM: Border 1 written by %s: $%04X\n", whoName[who], data);
+if (offset == BORD2)
+	WriteLog("TOM: Border 2 written by %s: $%04X\n", whoName[who], data);
+if (offset == HP)
+	WriteLog("TOM: Horizontal Period written by %s: %u (+1*2 = %u)\n", whoName[who], data, (data + 1) * 2);
+if (offset == HBB)
+	WriteLog("TOM: Horizontal Blank Begin written by %s: %u\n", whoName[who], data);
+if (offset == HBE)
+	WriteLog("TOM: Horizontal Blank End written by %s: %u\n", whoName[who], data);
+if (offset == HS)
+	WriteLog("TOM: Horizontal Sync written by %s: %u\n", whoName[who], data);
+if (offset == HVS)
+	WriteLog("TOM: Horizontal Vertical Sync written by %s: %u\n", whoName[who], data);
 if (offset == HDB1)
 	WriteLog("TOM: Horizontal Display Begin 1 written by %s: %u\n", whoName[who], data);
 if (offset == HDB2)
 	WriteLog("TOM: Horizontal Display Begin 2 written by %s: %u\n", whoName[who], data);
 if (offset == HDE)
 	WriteLog("TOM: Horizontal Display End written by %s: %u\n", whoName[who], data);
-if (offset == HP)
-	WriteLog("TOM: Horizontal Period written by %s: %u (+1*2 = %u)\n", whoName[who], data, (data + 1) * 2);
+if (offset == VP)
+	WriteLog("TOM: Vertical Period written by %s: %u (%sinterlaced)\n", whoName[who], data, (data & 0x01 ? "non-" : ""));
 if (offset == VBB)
 	WriteLog("TOM: Vertical Blank Begin written by %s: %u\n", whoName[who], data);
 if (offset == VBE)
 	WriteLog("TOM: Vertical Blank End written by %s: %u\n", whoName[who], data);
 if (offset == VS)
 	WriteLog("TOM: Vertical Sync written by %s: %u\n", whoName[who], data);
+if (offset == VDB)
+	WriteLog("TOM: Vertical Display Begin written by %s: %u\n", whoName[who], data);
+if (offset == VDE)
+	WriteLog("TOM: Vertical Display End written by %s: %u\n", whoName[who], data);
+if (offset == VEB)
+	WriteLog("TOM: Vertical Equalization Begin written by %s: %u\n", whoName[who], data);
+if (offset == VEE)
+	WriteLog("TOM: Vertical Equalization End written by %s: %u\n", whoName[who], data);
 if (offset == VI)
 	WriteLog("TOM: Vertical Interrupt written by %s: %u\n", whoName[who], data);
-if (offset == HBB)
-	WriteLog("TOM: Horizontal Blank Begin written by %s: %u\n", whoName[who], data);
-if (offset == HBE)
-	WriteLog("TOM: Horizontal Blank End written by %s: %u\n", whoName[who], data);
-if (offset == VMODE)
-	WriteLog("TOM: Video Mode written by %s: %04X. PWIDTH = %u, MODE = %s, flags:%s%s (VC = %u)\n", whoName[who], data, ((data >> 9) & 0x07) + 1, videoMode_to_str[(data & MODE) >> 1], (data & BGEN ? " BGEN" : ""), (data & VARMOD ? " VARMOD" : ""), GET16(tomRam8, VC));
 if (offset == PIT0)
 	WriteLog("TOM: PIT0 written by %s: %u\n", whoName[who], data);
 if (offset == PIT1)
 	WriteLog("TOM: PIT1 written by %s: %u\n", whoName[who], data);
+if (offset == HEQ)
+	WriteLog("TOM: Horizontal Equalization End written by %s: %u\n", whoName[who], data);
+//if (offset == BG)
+//	WriteLog("TOM: Background written by %s: %u\n", whoName[who], data);
 //if (offset == INT1)
 //	WriteLog("TOM: CPU Interrupt Control written by %s: $%04X (%s%s%s%s%s)\n", whoName[who], data, (data & 0x01 ? "Video" : ""), (data & 0x02 ? " GPU" : ""), (data & 0x04 ? " OP" : ""), (data & 0x08 ? " TOMPIT" : ""), (data & 0x10 ? " Jerry" : ""));
 
