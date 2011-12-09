@@ -51,7 +51,8 @@
 
 void OPProcessFixedBitmap(uint64 p0, uint64 p1, bool render);
 void OPProcessScaledBitmap(uint64 p0, uint64 p1, uint64 p2, bool render);
-void OPDumpObjectList(uint32 address);
+void OPDiscoverObjects(uint32 address);
+void OPDumpObjectList(void);
 void DumpScaledObject(uint64 p0, uint64 p1, uint64 p2);
 void DumpFixedObject(uint64 p0, uint64 p1);
 void DumpBitmapCore(uint64 p0, uint64 p1);
@@ -137,8 +138,10 @@ static const char * opType[8] =
 { "(BITMAP)", "(SCALED BITMAP)", "(GPU INT)", "(BRANCH)", "(STOP)", "???", "???", "???" };
 static const char * ccType[8] =
 	{ "\"==\"", "\"<\"", "\">\"", "(opflag set)", "(second half line)", "?", "?", "?" };
-static uint32 objectLink[8192];
-static uint32 numberOfLinks;
+static uint32 object[8192];
+static uint32 numberOfObjects;
+//static uint32 objectLink[8192];
+//static uint32 numberOfLinks;
 
 void OPDone(void)
 {
@@ -177,24 +180,23 @@ void OPDone(void)
 
 	WriteLog("\n");
 #else
-	numberOfLinks = 0;
-
-	OPDumpObjectList(olp);
+	numberOfObjects = 0;
+	OPDiscoverObjects(olp);
+	OPDumpObjectList();
 #endif
 }
 
-
-// To do this properly, we have to use recursion...
-void OPDumpObjectList(uint32 address)
+void OPDiscoverObjects(uint32 address)
 {
-	// Sanity checking: If we've already visited this link, bail out!
-	for(uint32 i=0; i<numberOfLinks; i++)
+	// Check to see if we've already seen this object
+	for(uint32 i=0; i<numberOfObjects; i++)
 	{
-		if (address == objectLink[i])
+		if (address == object[i])
 			return;
 	}
 
-	objectLink[numberOfLinks++] = address;
+	// Store the object...
+	object[numberOfObjects++] = address;
 	uint8 objectType = 0;
 
 	do
@@ -203,6 +205,52 @@ void OPDumpObjectList(uint32 address)
 		uint32 lo = JaguarReadLong(address + 4, OP);
 		objectType = lo & 0x07;
 		uint32 link = ((hi << 11) | (lo >> 21)) & 0x3FFFF8;
+
+		if (objectType == 3)
+		{
+			uint16 ypos = (lo >> 3) & 0x7FF;
+			uint8  cc   = (lo >> 14) & 0x07;	// Proper # of bits == 3
+
+			// Recursion needed to follow all links!
+			OPDiscoverObjects(address + 8);
+		}
+
+		if (address == link)	// Ruh roh...
+		{
+			// Runaway recursive link is bad!
+			return;
+		}
+
+		address = link;
+
+		// Check to see if we've already seen this object, and add it if not
+		bool seenObject = false;
+
+		for(uint32 i=0; i<numberOfObjects; i++)
+		{
+			if (address == object[i])
+			{
+				seenObject = true;
+				break;
+			}
+		}
+
+		if (!seenObject)
+			object[numberOfObjects++] = address;
+	}
+	while (objectType != 4);
+}
+
+void OPDumpObjectList(void)
+{
+	for(uint32 i=0; i<numberOfObjects; i++)
+	{
+		uint32 address = object[i];
+
+		uint32 hi = JaguarReadLong(address + 0, OP);
+		uint32 lo = JaguarReadLong(address + 4, OP);
+		uint8 objectType = lo & 0x07;
+		uint32 link = ((hi << 11) | (lo >> 21)) & 0x3FFFF8;
 		WriteLog("%08X: %08X %08X %s", address, hi, lo, opType[objectType]);
 
 		if (objectType == 3)
@@ -210,19 +258,6 @@ void OPDumpObjectList(uint32 address)
 			uint16 ypos = (lo >> 3) & 0x7FF;
 			uint8  cc   = (lo >> 14) & 0x07;	// Proper # of bits == 3
 			WriteLog(" YPOS=%u, CC=%s, link=$%08X", ypos, ccType[cc], link);
-
-			// Recursion needed to follow all links!
-			WriteLog("\n");
-			OPDumpObjectList(address + 8);
-
-			// Do the sanity check after recursive call: We may have already seen this...
-			// Sanity checking: If we've already visited this link, bail out!
-//disnowok: we added ourself above
-//			for(uint32 i=0; i<numberOfLinks; i++)
-//			{
-//				if (address == objectLink[i])
-//					return;
-//			}
 		}
 
 		WriteLog("\n");
@@ -238,18 +273,11 @@ void OPDumpObjectList(uint32 address)
 		{
 			// Runaway recursive link is bad!
 			WriteLog("***** SELF REFERENTIAL LINK *****\n\n");
-			return;
 		}
-
-		address = link;
-		objectLink[numberOfLinks++] = address;
 	}
-	while (objectType != 4);
 
 	WriteLog("\n");
 }
-
-
 
 //
 // Object Processor memory access
