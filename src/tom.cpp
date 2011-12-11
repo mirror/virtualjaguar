@@ -308,9 +308,10 @@
 #define BG			0x58		// Background color
 #define INT1		0xE0
 
-//NOTE: These arbitrary cutoffs are NOT taken into account for PAL jaguar screens. !!! FIX !!!
+//NOTE: These arbitrary cutoffs are NOT taken into account for PAL jaguar screens. !!! FIX !!! [DONE]
 
 // Arbitrary video cutoff values (i.e., first/last visible spots on a TV, in HC ticks)
+// Also note that VC is in *half* lines, i.e. divide by 2 to get the scanline
 /*#define LEFT_VISIBLE_HC			208
 #define RIGHT_VISIBLE_HC		1528//*/
 #define LEFT_VISIBLE_HC			208
@@ -793,13 +794,66 @@ No, the OP doesn't start until VDB, that much is certain. The thing is, VDB is t
 HALF line that the OP starts on--which means that it needs to start at VDB / 2!!!
 
 Hrm, doesn't seem to be enough, though it should be... still sticks for 20 frames.
+
+
+What triggers this is writing $FFFF to VDE. This causes the OP start signal in VID to 
+latch on, which in effect sets VDB to zero. So that much is correct. But the thing with
+Rayman is that it shouldn't cause the graphical glitches seen there, so still have to
+investigate what's going on there. By all rights, it shouldn't glitch because:
+
+00006C00: 0000000D 82008F73 (BRANCH) YPOS=494, CC=">", link=$00006C10
+00006C08: 000003FF 00008173 (BRANCH) YPOS=46, CC=">", link=$001FF800
+00006C10: 00000000 0000000C (STOP)
+001FF800: 12FC2BFF 02380000 (BITMAP)
+          00008004 8180CFF1
+
+Even if the OP is running all the time, the link should tell it to stop at the right
+place (which it seems to do). But we still get glitchy screen.
+
+Seems the glitchy screen went away... Maybe the GPU alignment fixes fixed it???
+Just need to add the proper checking here then.
+
+Some numbers, courtesy of the Jaguar BIOS:
+// NTSC:
+VP, 523			// Vertical Period (1-based; in this case VP = 524)
+VBE, 24			// Vertical Blank End
+VDB, 38			// Vertical Display Begin
+VDE, 518		// Vertical Display End
+VBB, 500		// Vertical Blank Begin
+VS, 517			// Vertical Sync
+
+// PAL Jaguar
+VP, 623			// Vertical Period (1-based; in this case VP = 624)
+VBE, 34			// Vertical Blank End
+VDB, 38			// Vertical Display Begin
+VDE, 518		// Vertical Display End
+VBB, 600		// Vertical Blank Begin
+VS, 618			// Vertical Sync
+
+Numbers for KM, NTSC:
+KM: (Note that with VDE <= 507, the OP starts at VDB as expected)
+TOM: Vertical Display Begin written by M68K: 41
+TOM: Vertical Display End written by M68K: 2047
+TOM: Vertical Interrupt written by M68K: 491
 */
 #if 1
+	// Initial values that "well behaved" programs use
+	uint16 startingHalfline = GET16(tomRam8, VDB);
+	uint16 endingHalfline = GET16(tomRam8, VDE);
+
+	// Simulate the OP start bug here!
+	// Really, this value is somewhere around 507 for an NTSC Jaguar. But this
+	// should work in a majority of cases, at least until we can figure it out properly.
+	if (endingHalfline > GET16(tomRam8, VP))
+		startingHalfline = 0;
+
+	if (halfline >= startingHalfline && halfline < endingHalfline)
+//	if (halfline >= 0 && halfline < (uint16)GET16(tomRam8, VDE))
 // 16 isn't enough, and neither is 32 for raptgun. 32 fucks up Rayman
 //	if (halfline >= ((uint16)GET16(tomRam8, VDB) / 2) && halfline < ((uint16)GET16(tomRam8, VDE) / 2))
-	if (halfline >= (uint16)GET16(tomRam8, VDB) && halfline < (uint16)GET16(tomRam8, VDE))
 //	if (halfline >= ((uint16)GET16(tomRam8, VDB) - 16) && halfline < (uint16)GET16(tomRam8, VDE))
 //	if (halfline >= 20 && halfline < (uint16)GET16(tomRam8, VDE))
+//	if (halfline >= (uint16)GET16(tomRam8, VDB) && halfline < (uint16)GET16(tomRam8, VDE))
 	{
 		if (render)
 		{
@@ -1064,34 +1118,34 @@ void TOMReset(void)
 	{
 		SET16(tomRam8, MEMCON1, 0x1861);
 		SET16(tomRam8, MEMCON2, 0x35CC);
-		SET16(tomRam8, HP, 844);				// Horizontal Period (1-based; HP=845)
+		SET16(tomRam8, HP, 844);			// Horizontal Period (1-based; HP=845)
 		SET16(tomRam8, HBB, 1713);			// Horizontal Blank Begin
-		SET16(tomRam8, HBE, 125);				// Horizontal Blank End
+		SET16(tomRam8, HBE, 125);			// Horizontal Blank End
 		SET16(tomRam8, HDE, 1665);			// Horizontal Display End
 		SET16(tomRam8, HDB1, 203);			// Horizontal Display Begin 1
-		SET16(tomRam8, VP, 523);				// Vertical Period (1-based; in this case VP = 524)
-		SET16(tomRam8, VBE, 24);				// Vertical Blank End
-		SET16(tomRam8, VDB, 38);				// Vertical Display Begin
-		SET16(tomRam8, VDE, 518);				// Vertical Display End
-		SET16(tomRam8, VBB, 500);				// Vertical Blank Begin
-		SET16(tomRam8, VS, 517);				// Vertical Sync
+		SET16(tomRam8, VP, 523);			// Vertical Period (1-based; in this case VP = 524)
+		SET16(tomRam8, VBE, 24);			// Vertical Blank End
+		SET16(tomRam8, VDB, 38);			// Vertical Display Begin
+		SET16(tomRam8, VDE, 518);			// Vertical Display End
+		SET16(tomRam8, VBB, 500);			// Vertical Blank Begin
+		SET16(tomRam8, VS, 517);			// Vertical Sync
 		SET16(tomRam8, VMODE, 0x06C1);
 	}
 	else	// PAL Jaguar
 	{
 		SET16(tomRam8, MEMCON1, 0x1861);
 		SET16(tomRam8, MEMCON2, 0x35CC);
-		SET16(tomRam8, HP, 850);				// Horizontal Period
+		SET16(tomRam8, HP, 850);			// Horizontal Period
 		SET16(tomRam8, HBB, 1711);			// Horizontal Blank Begin
-		SET16(tomRam8, HBE, 158);				// Horizontal Blank End
+		SET16(tomRam8, HBE, 158);			// Horizontal Blank End
 		SET16(tomRam8, HDE, 1665);			// Horizontal Display End
 		SET16(tomRam8, HDB1, 203);			// Horizontal Display Begin 1
-		SET16(tomRam8, VP, 623);				// Vertical Period (1-based; in this case VP = 624)
-		SET16(tomRam8, VBE, 34);				// Vertical Blank End
-		SET16(tomRam8, VDB, 38);				// Vertical Display Begin
-		SET16(tomRam8, VDE, 518);				// Vertical Display End
-		SET16(tomRam8, VBB, 600);				// Vertical Blank Begin
-		SET16(tomRam8, VS, 618);				// Vertical Sync
+		SET16(tomRam8, VP, 623);			// Vertical Period (1-based; in this case VP = 624)
+		SET16(tomRam8, VBE, 34);			// Vertical Blank End
+		SET16(tomRam8, VDB, 38);			// Vertical Display Begin
+		SET16(tomRam8, VDE, 518);			// Vertical Display End
+		SET16(tomRam8, VBB, 600);			// Vertical Blank Begin
+		SET16(tomRam8, VS, 618);			// Vertical Sync
 		SET16(tomRam8, VMODE, 0x06C1);
 	}
 

@@ -400,6 +400,7 @@ void DumpFixedObject(uint64 p0, uint64 p1)
 
 void DumpBitmapCore(uint64 p0, uint64 p1)
 {
+	uint32 bdMultiplier[8] = { 64, 32, 16, 8, 4, 2, 1, 1 };
 	uint8 bitdepth = (p1 >> 12) & 0x07;
 //WAS:	int16 ypos = ((p0 >> 3) & 0x3FF);			// ??? What if not interlaced (/2)?
 	int16 ypos = ((p0 >> 3) & 0x7FF);			// ??? What if not interlaced (/2)?
@@ -414,8 +415,9 @@ void DumpBitmapCore(uint64 p0, uint64 p1)
 	uint8 flags = (p1 >> 45) & 0x0F;
 	uint8 idx = (p1 >> 38) & 0x7F;
 	uint32 pitch = (p1 >> 15) & 0x07;
-	WriteLog("    [%u (%u) x %u @ (%i, %u) (%u bpp), l: %08X, p: %08X fp: %02X, fl:%s%s%s%s, idx:%02X, pt:%02X]\n",
-		iwidth, dwidth, height, xpos, ypos, op_bitmap_bit_depth[bitdepth], link,
+	WriteLog("    [%u x %u @ (%i, %u) (iw:%u, dw:%u) (%u bpp), l:%08X, p:%08X fp:%02X, fl:%s%s%s%s, idx:%02X, pt:%02X]\n",
+		iwidth * bdMultiplier[bitdepth],
+		height, xpos, ypos, iwidth, dwidth, op_bitmap_bit_depth[bitdepth], link,
 		ptr, firstPix, (flags&OPFLAG_REFLECT ? "REFLECT " : ""),
 		(flags&OPFLAG_RMW ? "RMW " : ""), (flags&OPFLAG_TRANS ? "TRANS " : ""),
 		(flags&OPFLAG_RELEASE ? "RELEASE" : ""), idx, pitch);
