@@ -68,6 +68,7 @@ uint32 jaguar_active_memory_dumps = 0;
 
 uint32 jaguarMainROMCRC32, jaguarROMSize, jaguarRunAddress;
 bool jaguarCartInserted = false;
+bool lowerField = false;
 
 #ifdef CPU_DEBUG_MEMORY
 uint8 writeMemMax[0x400000], writeMemMin[0x400000];
@@ -1650,6 +1651,7 @@ void JaguarInit(void)
 //Seems to want $01010101... Dunno why. Investigate!
 	memset(jaguarMainROM, 0x01, 0x600000);	// & set it to all 01s...
 //	memset(jaguar_mainRom, 0xFF, 0x600000);	// & set it to all Fs...
+	lowerField = false;								// Reset the lower field flag
 
 	m68k_set_cpu_type(M68K_CPU_TYPE_68000);
 	GPUInit();
@@ -1683,6 +1685,7 @@ void JaguarReset(void)
     m68k_pulse_reset();								// Reset the 68000
 	WriteLog("Jaguar: 68K reset. PC=%06X SP=%08X\n", m68k_get_reg(NULL, M68K_REG_PC), m68k_get_reg(NULL, M68K_REG_A7));
 
+	lowerField = false;								// Reset the lower field flag
 	// New timer base code stuffola...
 	InitializeEventList();
 //	SetCallbackTime(ScanlineCallback, 63.5555);
@@ -1957,7 +1960,8 @@ void JaguarExecuteNew(void)
 // The thing to keep in mind is that the VC is advanced every HALF line, regardless
 // of whether the display is interlaced or not. The only difference with an
 // interlaced display is that the high bit of VC will be set when the lower
-// field is being rendered.
+// field is being rendered. (NB: The high bit of VC is ALWAYS set on the lower field,
+// regardless of whether it's in interlace mode or not.)
 //
 // Normally, TVs will render a full frame in 1/30s (NTSC) or 1/25s (PAL) by
 // rendering two fields that are slighty vertically offset from each other.
@@ -1988,18 +1992,26 @@ void HalflineCallback(void)
 	// So we cut the number of half-lines in a frame in half. :-P
 	uint16 numHalfLines = ((vjs.hardwareTypeNTSC ? 525 : 625) * 2) / 2;
 
-	if (vc >= numHalfLines)
+	if ((vc & 0x7FF) >= numHalfLines)
 #else
-	if (vc >= vp)
+	if ((vc & 0x7FF) >= vp)
 #endif
+	{
 		vc = 0;
+		lowerField = !lowerField;
+
+		// If we're rendering the lower field, set the high bit (#12, counting
+		// from 1) of VC
+		if (lowerField)
+			vc = 0x0800;
+	}
 
 //WriteLog("SLC: Currently on line %u (VP=%u)...\n", vc, vp);
 	TOMWriteWord(0xF00006, vc, JAGUAR);
 
 //This is a crappy kludge, but maybe it'll work for now...
 //Maybe it's not so bad, since the IRQ happens on a scanline boundary...
-	if (vc == vi && vc > 0 && TOMIRQEnabled(IRQ_VIDEO))	// Time for Vertical Interrupt?
+	if ((vc & 0x7FF) == vi && (vc & 0x7FF) > 0 && TOMIRQEnabled(IRQ_VIDEO))	// Time for Vertical Interrupt?
 	{
 		// We don't have to worry about autovectors & whatnot because the Jaguar
 		// tells you through its HW registers who sent the interrupt...
@@ -2011,7 +2023,7 @@ void HalflineCallback(void)
 
 //Change this to VBB???
 //Doesn't seem to matter (at least for Flip Out & I-War)
-	if (vc == 0)
+	if ((vc & 0x7FF) == 0)
 //	if (vc == vbb)
 	{
 		JoystickExec();

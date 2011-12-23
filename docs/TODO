@@ -14,6 +14,9 @@ Stuff to add/fix for the next release of Virtual Jaguar
 - Need to propagate blitter fixes in the A1 <- A2 direction to the A1 -> A2
   direction and the GPU fixes to various instructions to the DSP. [Shamus]
 - Blitter needs fixing. [Shamus]
+- Command line switches for frontends. [Shamus]
+- In emulator screenshots. [Shamus]
+- Audio/video dumping. [Shamus]
 
 
 Stuff that was added/fixed

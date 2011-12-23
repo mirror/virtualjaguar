@@ -429,6 +429,10 @@ void DumpBitmapCore(uint64 p0, uint64 p1)
 #warning "Need to fix this so that when an GPU object IRQ happens, we can pick up OP processing where we left off. !!! FIX !!!"
 void OPProcessList(int halfline, bool render)
 {
+#warning "!!! NEED TO HANDLE MULTIPLE FIELDS PROPERLY !!!
+// We ignore them, for now; not good
+	halfline &= 0x7FF;
+
 extern int op_start_log;
 //	char * condition_to_str[8] =
 //		{ "==", "<", ">", "(opflag set)", "(second half line)", "?", "?", "?" };

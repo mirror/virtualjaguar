@@ -778,10 +778,14 @@ void tom_render_16bpp_rgb_scanline(uint32 * backbuffer)
 //
 void TOMExecHalfline(uint16 halfline, bool render)
 {
+#warning "!!! Need to handle multiple fields properly !!!"
+	// We ignore the problem for now
+	halfline &= 0x7FF;
+
 	bool inActiveDisplayArea = true;
 
 //Interlacing is still not handled correctly here... !!! FIX !!!
-	if (halfline & 0x01)							// Execute OP only on even lines (non-interlaced only!)
+	if (halfline & 0x01)							// Execute OP only on even halflines (non-interlaced only!)
 		return;
 
 //Hm, it seems that the OP needs to execute from zero, so let's try it:
@@ -1108,6 +1112,50 @@ uint32 TOMGetVideoModeHeight(void)
 // TOM reset code
 // Now PAL friendly!
 //
+/*
+The values in TOMReset come from the Jaguar BIOS.
+These values are from BJL:
+
+NSTC:
+CLK2	 181
+HP		 844
+HBB		 1713
+HBE		 125
+HS		 1741
+HVS		 651
+HEQ		 784
+HDE		 1696
+HDB1	 166
+HDB2	 166
+VP		 523
+VEE		 6
+VBE		 24
+VDB		 46
+VDE		 496
+VBB		 500
+VEB		 511
+VS		 517
+
+PAL:
+CLK2	 226
+HP		 850
+HBB		 1711
+HBE		 158
+HS		 1749
+HVS		 601
+HEQ		 787
+HDE		 1696
+HDB1	 166
+HDB2	 166
+VP		 625
+VEE		 6
+VBE		 34
+VDB		 46
+VDE		 429
+VBB		 600
+VEB		 613
+VS		 618
+*/
 void TOMReset(void)
 {
 	OPReset();

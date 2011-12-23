@@ -4,6 +4,11 @@ Virtual Jaguar v2.0.2 GCC/Qt
 * Fixed problem on OP with 24BPP bitmaps. [Shamus]
 * Cosmetic GUI fixes. [Shamus]
 * Switched to UAE 68000 CPU core. [Shamus]
+* Fixed some RISC STORE and LOAD alignment issues. Still need to verify against
+  real hardware. [Shamus]
+* Fixed video frame timing for both NTSC *and* PAL. [Shamus]
+* Improved OP logging, added emulation of OP bug. [Shamus]
+* Fixed VC behavior to match what a real Jaguar does. [Shamus]
 
 
 Virtual Jaguar v2.0.1 GCC/Qt
