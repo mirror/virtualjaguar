@@ -1961,7 +1961,8 @@ void JaguarExecuteNew(void)
 // of whether the display is interlaced or not. The only difference with an
 // interlaced display is that the high bit of VC will be set when the lower
 // field is being rendered. (NB: The high bit of VC is ALWAYS set on the lower field,
-// regardless of whether it's in interlace mode or not.)
+// regardless of whether it's in interlace mode or not.
+// NB2: Seems it doens't always, not sure what the constraint is...)
 //
 // Normally, TVs will render a full frame in 1/30s (NTSC) or 1/25s (PAL) by
 // rendering two fields that are slighty vertically offset from each other.
@@ -1998,7 +1999,7 @@ void HalflineCallback(void)
 #endif
 	{
 		vc = 0;
-		lowerField = !lowerField;
+//		lowerField = !lowerField;
 
 		// If we're rendering the lower field, set the high bit (#12, counting
 		// from 1) of VC

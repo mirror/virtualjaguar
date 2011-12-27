@@ -153,7 +153,7 @@ STATIC_INLINE uint32_t get_ibyte_prefetch(int32_t o)
 	/* printf ("get_ibyte PC %lx ADDR %lx OFFS %lx V %lx\n", currpc, addr, offs, v); */
 	return v;
 #else
-	return 0;
+	return get_ibyte(o);
 #endif
 }
 
@@ -178,7 +178,7 @@ STATIC_INLINE uint32_t get_iword_prefetch(int32_t o)
 /*	printf ("get_iword PC %lx ADDR %lx OFFS %lx V %lx\n", currpc, addr, offs, v); */
 	return v;
 #else
-	return 0;
+	return get_iword(o);
 #endif
 }
 
@@ -190,7 +190,7 @@ STATIC_INLINE uint32_t get_ilong_prefetch(int32_t o)
 	v |= get_iword_prefetch(o + 2);
 	return v;
 #else
-	return 0;
+	return get_ilong(o);
 #endif
 }
 

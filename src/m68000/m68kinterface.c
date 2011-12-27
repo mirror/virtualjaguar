@@ -263,6 +263,10 @@ if (inRoutine)
 	instSeen++;
 #endif
 		uint32_t opcode = get_iword(0);
+//if ((opcode & 0xFFF8) == 0x31C0)
+//{
+//	printf("MOVE.W D%i, EA\n", opcode & 0x07);
+//}
 		int32_t cycles = (int32_t)(*cpuFunctionTable[opcode])(opcode);
 		regs.remainingCycles -= cycles;
 //printf("Executed opcode $%04X (%i cycles)...\n", opcode, cycles);
@@ -588,11 +592,14 @@ void BuildCPUFunctionTable(void)
 	unsigned long opcode;
 
 	// We're only using the "fast" 68000 emulation here, not the "compatible"
+	// ("fast" doesn't throw exceptions, so we're using "compatible" now :-P)
 #if 0
 	const struct cputbl * tbl = (currprefs.cpu_compatible
 		? op_smalltbl_5_ff : op_smalltbl_4_ff);
 #else
-	const struct cputbl * tbl = op_smalltbl_4_ff;
+//let's try "compatible" and see what happens here...
+//	const struct cputbl * tbl = op_smalltbl_4_ff;
+	const struct cputbl * tbl = op_smalltbl_5_ff;
 #endif
 
 //	Log_Printf(LOG_DEBUG, "Building CPU function table (%d %d %d).\n",

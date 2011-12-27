@@ -97,6 +97,10 @@ void MakeFromSR(void)
 //
 // Rudimentary exception handling. This is really stripped down from what
 // was in Hatari.
+/*
+NB: Seems that when an address exception occurs, it doesn't get handled properly
+    as per test1.cof. Need to figure out why it keeps going when it should wedge. :-P
+*/
 //
 // Handle exceptions. We need a special case to handle MFP exceptions
 // on Atari ST, because it's possible to change the MFP's vector base
@@ -108,8 +112,25 @@ printf("Exception #%i occurred!\n", nr);
 printf("Vector @ #%i = %08X\n", nr, m68k_read_memory_32(nr * 4));
 //abort();
 	uint32_t currpc = m68k_getpc(), newpc;
+printf("PC = $%08X\n", currpc);
+printf("A0 = $%08X A1 = $%08X A2 = $%08X A3 = $%08X\n", m68k_areg(regs, 0), m68k_areg(regs, 1), m68k_areg(regs, 2), m68k_areg(regs, 3));
+printf("A4 = $%08X A5 = $%08X A6 = $%08X A7 = $%08X\n", m68k_areg(regs, 4), m68k_areg(regs, 5), m68k_areg(regs, 6), m68k_areg(regs, 7));
+printf("D0 = $%08X D1 = $%08X D2 = $%08X D3 = $%08X\n", m68k_dreg(regs, 0), m68k_dreg(regs, 1), m68k_dreg(regs, 2), m68k_dreg(regs, 3));
+printf("D4 = $%08X D5 = $%08X D6 = $%08X D7 = $%08X\n", m68k_dreg(regs, 4), m68k_dreg(regs, 5), m68k_dreg(regs, 6), m68k_dreg(regs, 7));
+printf("\n");
 
-	/*if( nr>=2 && nr<10 )  fprintf(stderr,"Exception (-> %i bombs)!\n",nr);*/
+uint32_t disPC = currpc - 10;
+char buffer[128];
+
+do
+{
+	uint32_t oldpc = disPC;
+	disPC += m68k_disassemble(buffer, disPC, 0);
+	printf("%s%08X: %s\n", (oldpc == currpc ? ">" : " "), oldpc, buffer);
+}
+while (disPC < (currpc + 10));
+
+/*if( nr>=2 && nr<10 )  fprintf(stderr,"Exception (-> %i bombs)!\n",nr);*/
 
 	MakeSR();
 
