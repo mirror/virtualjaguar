@@ -67,7 +67,7 @@
 /*			Sommarhack 2010) (see m68000.h)							*/
 
 
-const char GenCpu_fileid[] = "Hatari gencpu.c : " __DATE__ " " __TIME__;
+//const char GenCpu_fileid[] = "Hatari gencpu.c : " __DATE__ " " __TIME__;
 
 #include <ctype.h>
 #include <string.h>

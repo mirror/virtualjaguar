@@ -13,7 +13,7 @@ AR      := ar
 ARFLAGS := -rs
 
 # Note that we use optimization level 2 instead of 3--3 doesn't seem to gain much over 2
-CFLAGS  := -MMD -O2 -ffast-math -fomit-frame-pointer
+CFLAGS  := -MMD -O2 -ffast-math -fomit-frame-pointer -g
 
 INCS    := -I. -I./obj `sdl-config --cflags`
 

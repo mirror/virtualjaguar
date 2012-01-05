@@ -592,7 +592,10 @@ void MainWin::Unpause(void)
 	if (pauseForFileSelector)
 	{
 		pauseForFileSelector = false;
-		ToggleRunState();
+
+		// Some nutter might have unpaused while in the file selector, so check for that
+		if (!running)
+			ToggleRunState();
 	}
 }
 

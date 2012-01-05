@@ -234,6 +234,10 @@ int32_t ShowEA(FILE * f, int reg, amodes mode, wordsizes size, char * buf)
 //void m68k_disasm(FILE * f, uint32_t addr, uint32_t * nextpc, int cnt)
 unsigned int m68k_disasm(char * output, uint32_t addr, uint32_t * nextpc, int cnt)
 {
+	// Sanity checking...
+//	if (addr > 0xFFFFFF)
+//		addr = 0;
+
 	char f[256], str[256];
 	static const char * const ccnames[] =
 		{ "T ","F ","HI","LS","CC","CS","NE","EQ",

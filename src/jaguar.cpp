@@ -818,6 +818,39 @@ uint32 ReadDWord(uint32 adddress)
 }
 #endif
 
+void ShowM68KContext(void)
+{
+	printf("\t68K PC=%06X\n", m68k_get_reg(NULL, M68K_REG_PC));
+
+	for(int i=M68K_REG_D0; i<=M68K_REG_D7; i++)
+	{
+		printf("D%i = %08X ", i-M68K_REG_D0, m68k_get_reg(NULL, (m68k_register_t)i));
+
+		if (i == M68K_REG_D3 || i == M68K_REG_D7)
+			printf("\n");
+	}
+
+	for(int i=M68K_REG_A0; i<=M68K_REG_A7; i++)
+	{
+		printf("A%i = %08X ", i-M68K_REG_A0, m68k_get_reg(NULL, (m68k_register_t)i));
+
+		if (i == M68K_REG_A3 || i == M68K_REG_A7)
+			printf("\n");
+	}
+
+	uint32_t currpc = m68k_get_reg(NULL, M68K_REG_PC);
+	uint32_t disPC = currpc - 30;
+	char buffer[128];
+
+	do
+	{
+		uint32_t oldpc = disPC;
+		disPC += m68k_disassemble(buffer, disPC, 0);
+		printf("%s%08X: %s\n", (oldpc == currpc ? ">" : " "), oldpc, buffer);
+	}
+	while (disPC < (currpc + 10));
+}
+
 //
 // Musashi 68000 read/write/IRQ functions
 //
@@ -906,6 +939,8 @@ int irq_ack_handler(int level)
 
 unsigned int m68k_read_memory_8(unsigned int address)
 {
+	// Musashi does this automagically for you, UAE core does not :-P
+	address &= 0x00FFFFFF;
 #ifdef CPU_DEBUG_MEMORY
 	if ((address >= 0x000000) && (address <= 0x3FFFFF))
 	{
@@ -954,6 +989,8 @@ void gpu_dump_registers(void);
 
 unsigned int m68k_read_memory_16(unsigned int address)
 {
+	// Musashi does this automagically for you, UAE core does not :-P
+	address &= 0x00FFFFFF;
 #ifdef CPU_DEBUG_MEMORY
 /*	if ((address >= 0x000000) && (address <= 0x3FFFFE))
 	{
@@ -1052,6 +1089,8 @@ unsigned int m68k_read_memory_16(unsigned int address)
 
 unsigned int m68k_read_memory_32(unsigned int address)
 {
+	// Musashi does this automagically for you, UAE core does not :-P
+	address &= 0x00FFFFFF;
 //; So, it seems that it stores the returned DWORD at $51136 and $FB074.
 /*	if (address == 0x51136 || address == 0xFB074 || address == 0x1AF05E)
 		WriteLog("[RM32  PC=%08X] Addr: %08X, val: %08X\n", m68k_get_reg(NULL, M68K_REG_PC), address, (m68k_read_memory_16(address) << 16) | m68k_read_memory_16(address + 2));//*/
@@ -1066,6 +1105,8 @@ unsigned int m68k_read_memory_32(unsigned int address)
 
 void m68k_write_memory_8(unsigned int address, unsigned int value)
 {
+	// Musashi does this automagically for you, UAE core does not :-P
+	address &= 0x00FFFFFF;
 #ifdef CPU_DEBUG_MEMORY
 	if ((address >= 0x000000) && (address <= 0x3FFFFF))
 	{
@@ -1089,6 +1130,10 @@ void m68k_write_memory_8(unsigned int address, unsigned int value)
 //$53D0
 /*if (address >= 0x53D0 && address <= 0x53FF)
 	printf("M68K: Writing byte $%02X at $%08X, PC=$%08X\n", value, address, m68k_get_reg(NULL, M68K_REG_PC));//*/
+//Testing AvP on UAE core...
+//000075A0: FFFFF80E B6320220 (BITMAP)
+/*if (address == 0x75A0 && value == 0xFF)
+	printf("M68K: (8) Tripwire hit...\n");//*/
 
 #ifndef USE_NEW_MMU
 	if ((address >= 0x000000) && (address <= 0x3FFFFF))
@@ -1108,6 +1153,8 @@ void m68k_write_memory_8(unsigned int address, unsigned int value)
 
 void m68k_write_memory_16(unsigned int address, unsigned int value)
 {
+	// Musashi does this automagically for you, UAE core does not :-P
+	address &= 0x00FFFFFF;
 #ifdef CPU_DEBUG_MEMORY
 	if ((address >= 0x000000) && (address <= 0x3FFFFE))
 	{
@@ -1155,6 +1202,13 @@ if (address == 0xF02110)
 //$53D0
 /*if (address >= 0x53D0 && address <= 0x53FF)
 	printf("M68K: Writing word $%04X at $%08X, PC=$%08X\n", value, address, m68k_get_reg(NULL, M68K_REG_PC));//*/
+//Testing AvP on UAE core...
+//000075A0: FFFFF80E B6320220 (BITMAP)
+/*if (address == 0x75A0 && value == 0xFFFF)
+{
+	printf("\nM68K: (16) Tripwire hit...\n");
+	ShowM68KContext();
+}//*/
 
 #ifndef USE_NEW_MMU
 	if ((address >= 0x000000) && (address <= 0x3FFFFE))
@@ -1185,6 +1239,8 @@ if (address == 0xF02110)
 
 void m68k_write_memory_32(unsigned int address, unsigned int value)
 {
+	// Musashi does this automagically for you, UAE core does not :-P
+	address &= 0x00FFFFFF;
 /*if (address == 0x4E00)
 	WriteLog("M68K: Writing %02X at %08X, PC=%08X\n", value, address, m68k_get_reg(NULL, M68K_REG_PC));//*/
 //WriteLog("--> [WM32]\n");
@@ -1199,6 +1255,13 @@ if (address == 0xF03214 && value == 0x88E30047)
 	doGPUDis = true;//*/
 /*	if (address == 0x51136 || address == 0xFB074)
 		WriteLog("[WM32  PC=%08X] Addr: %08X, val: %02X\n", m68k_get_reg(NULL, M68K_REG_PC), address, value);//*/
+//Testing AvP on UAE core...
+//000075A0: FFFFF80E B6320220 (BITMAP)
+/*if (address == 0x75A0 && (value & 0xFFFF0000) == 0xFFFF0000)
+{
+	printf("\nM68K: (32) Tripwire hit...\n");
+	ShowM68KContext();
+}//*/
 
 #ifndef USE_NEW_MMU
 	m68k_write_memory_16(address, value >> 16);
@@ -1222,12 +1285,23 @@ bool JaguarInterruptHandlerIsValid(uint32 i) // Debug use only...
 
 void M68K_show_context(void)
 {
-	WriteLog("\t68K PC=%06X\n", m68k_get_reg(NULL, M68K_REG_PC));
+	WriteLog("68K PC=%06X\n", m68k_get_reg(NULL, M68K_REG_PC));
+
 	for(int i=M68K_REG_D0; i<=M68K_REG_D7; i++)
-		WriteLog("\tD%i = %08X\n", i-M68K_REG_D0, m68k_get_reg(NULL, (m68k_register_t)i));
-	WriteLog("\n");
+	{
+		WriteLog("D%i = %08X ", i-M68K_REG_D0, m68k_get_reg(NULL, (m68k_register_t)i));
+
+		if (i == M68K_REG_D3 || i == M68K_REG_D7)
+			WriteLog("\n");
+	}
+
 	for(int i=M68K_REG_A0; i<=M68K_REG_A7; i++)
-		WriteLog("\tA%i = %08X\n", i-M68K_REG_A0, m68k_get_reg(NULL, (m68k_register_t)i));
+	{
+		WriteLog("A%i = %08X ", i-M68K_REG_A0, m68k_get_reg(NULL, (m68k_register_t)i));
+
+		if (i == M68K_REG_A3 || i == M68K_REG_A7)
+			WriteLog("\n");
+	}
 
 	WriteLog("68K disasm\n");
 //	jaguar_dasm(s68000readPC()-0x1000,0x20000);
@@ -1651,9 +1725,10 @@ void JaguarInit(void)
 //Seems to want $01010101... Dunno why. Investigate!
 	memset(jaguarMainROM, 0x01, 0x600000);	// & set it to all 01s...
 //	memset(jaguar_mainRom, 0xFF, 0x600000);	// & set it to all Fs...
-	lowerField = false;								// Reset the lower field flag
+	lowerField = false;							// Reset the lower field flag
 
 	m68k_set_cpu_type(M68K_CPU_TYPE_68000);
+	m68k_pulse_reset();							// Need to do this so UAE disasm doesn't segfault on exit
 	GPUInit();
 	DSPInit();
 	TOMInit();
@@ -1819,6 +1894,8 @@ void JaguarDone(void)
 /*	WriteLog("\n\nM68000 disassembly at $4000...\n");
 	JaguarDasm(0x4000, 10000);
 	WriteLog("\n");//*/
+//	WriteLog("\n\nM68000 disassembly at $802000...\n");
+//	JaguarDasm(0x800830, 0x1000);
 }
 
 //

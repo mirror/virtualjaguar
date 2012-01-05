@@ -8,7 +8,7 @@ Virtual Jaguar v2.0.2 GCC/Qt
   real hardware. [Shamus]
 * Fixed video frame timing for both NTSC *and* PAL. [Shamus]
 * Improved OP logging, added emulation of OP bug. [Shamus]
-* Fixed VC behavior to match what a real Jaguar does. [Shamus]
+* Fixed addressing bug with UAE 68000 core. [Shamus]
 
 
 Virtual Jaguar v2.0.1 GCC/Qt
