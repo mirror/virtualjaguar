@@ -1,9 +1,9 @@
 //
 // mainwin.cpp - Qt-based GUI for Virtual Jaguar: Main Application Window
-// by James L. Hammons
+// by James Hammons
 // (C) 2009 Underground Software
 //
-// JLH = James L. Hammons <jlhamm@acm.org>
+// JLH = James Hammons <jlhamm@acm.org>
 //
 // Who  When        What
 // ---  ----------  -------------------------------------------------------------
@@ -592,7 +592,10 @@ void MainWin::Unpause(void)
 	if (pauseForFileSelector)
 	{
 		pauseForFileSelector = false;
-		ToggleRunState();
+
+		// Some nutter might have unpaused while in the file selector, so check for that
+		if (!running)
+			ToggleRunState();
 	}
 }
 

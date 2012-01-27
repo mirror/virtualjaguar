@@ -3,10 +3,10 @@
 //
 // Originally by David Raingeard
 // GCC/SDL port by Niels Wagenaar (Linux/WIN32) and Caz (BeOS)
-// Rewritten by James L. Hammons
+// Rewritten by James Hammons
 // (C) 2010 Underground Software
 //
-// JLH = James L. Hammons <jlhamm@acm.org>
+// JLH = James Hammons <jlhamm@acm.org>
 //
 // Who  When        What
 // ---  ----------  -------------------------------------------------------------
@@ -69,7 +69,6 @@ static uint8 SCLKFrequencyDivider = 19;				// Default is roughly 22 KHz (20774 H
 // Private function prototypes
 
 void SDLSoundCallback(void * userdata, Uint8 * buffer, int length);
-int GetCalculatedFrequency(void);
 
 //
 // Initialize the SDL sound system
@@ -199,6 +198,44 @@ int GetCalculatedFrequency(void)
 	// We divide by 32 here in order to find the frequency of 32 SCLKs in a row (transferring
 	// 16 bits of left data + 16 bits of right data = 32 bits, 1 SCLK = 1 bit transferred).
 	return systemClockFrequency / (32 * (2 * (SCLKFrequencyDivider + 1)));
+}
+
+static int oldFreq = 0;
+
+void DACSetNewFrequency(int freq)
+{
+	if (freq == oldFreq)
+		return;
+
+	oldFreq = freq;
+
+	// Should do some sanity checking on the frequency...
+
+	if (SDLSoundInitialized)
+		SDL_CloseAudio();
+
+	desired.freq = freq;// SDL will do conversion on the fly, if it can't get the exact rate. Nice!
+	WriteLog("DAC: Changing sample rate to %u Hz!\n", desired.freq);
+
+	if (SDLSoundInitialized)
+	{
+		if (SDL_OpenAudio(&desired, NULL) < 0)	// NULL means SDL guarantees what we want
+		{
+// This is bad, Bad, BAD !!! DON'T ABORT BECAUSE WE DIDN'T GET OUR FREQ! !!! FIX !!!
+#warning !!! FIX !!! Aborting because of SDL audio problem is bad!
+			WriteLog("DAC: Failed to initialize SDL sound: %s.\nDesired freq: %u\nShutting down!\n", SDL_GetError(), desired.freq);
+//						LogDone();
+//						exit(1);
+#warning "Reimplement GUICrashGracefully!"
+//						GUICrashGracefully("Failed to initialize SDL sound!");
+			return;
+		}
+	}
+
+	DACReset();
+
+	if (SDLSoundInitialized)
+		SDL_PauseAudio(false);			// Start playback!
 }
 
 //

@@ -11,6 +11,8 @@
 void DACInit(void);
 void DACReset(void);
 void DACDone(void);
+int GetCalculatedFrequency(void);
+void DACSetNewFrequency(int);
 
 // DAC memory access
 

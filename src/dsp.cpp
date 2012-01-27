@@ -3,10 +3,10 @@
 //
 // Originally by David Raingeard
 // GCC/SDL port by Niels Wagenaar (Linux/WIN32) and Caz (BeOS)
-// Extensive cleanups/rewrites by James L. Hammons
+// Extensive cleanups/rewrites by James Hammons
 // (C) 2010 Underground Software
 //
-// JLH = James L. Hammons <jlhamm@acm.org>
+// JLH = James Hammons <jlhamm@acm.org>
 //
 // Who  When        What
 // ---  ----------  -------------------------------------------------------------
@@ -18,6 +18,7 @@
 
 #include <SDL.h>								// Used only for SDL_GetTicks...
 #include <stdlib.h>
+#include "dac.h"
 #include "gpu.h"
 #include "jagdasm.h"
 #include "jaguar.h"
@@ -796,6 +797,28 @@ SET32(ram2, offset, data);
 			DSPUpdateRegisterBanks();
 			dsp_control &= ~((dsp_flags & CINT04FLAGS) >> 3);
 			dsp_control &= ~((dsp_flags & CINT5FLAG) >> 1);
+
+// NB: This is just a wild hairy-assed guess as to what the playback frequency is.
+//     It can be timed to anything really, anything that writes to L/RTXD at a regular
+//     interval. Most things seem to use either the I2S interrupt or the TIMER 0
+//     interrupt, so that's what we check for here. Just know that this approach
+//     can be easily fooled!
+//     Note also that if both interrupts are enabled, the I2S freq will win. :-P
+			if (data & INT_ENA1) // I2S interrupt
+			{
+				int freq = GetCalculatedFrequency();
+//This happens too often to be useful...
+//				WriteLog("DSP: Setting audio freqency to %u Hz...\n", freq);
+				DACSetNewFrequency(freq);
+			}
+			else if (data & INT_ENA2) // TIMER 0 interrupt
+			{
+				int freq = JERRYGetPIT1Frequency();
+//This happens too often to be useful...
+//				WriteLog("DSP: Setting audio freqency to %u Hz...\n", freq);
+				DACSetNewFrequency(freq);
+			}
+
 /*			if (IMASKCleared)						// If IMASK was cleared,
 #ifdef DSP_DEBUG_IRQ
 			{
@@ -1333,7 +1356,10 @@ void DSPDone(void)
 	// get the interrupt mask
 	int mask = ((dsp_flags >> 11) & 0x20) | ((dsp_flags >> 4) & 0x1F);
 
-	WriteLog("DSP: pending=%08X enabled=%08X\n", bits, mask);
+	WriteLog("DSP: pending=$%X enabled=$%X (%s%s%s%s%s%s)\n", bits, mask,
+		(mask & 0x01 ? "CPU " : ""), (mask & 0x02 ? "I2S " : ""),
+		(mask & 0x04 ? "Timer0 " : ""), (mask & 0x08 ? "Timer1 " : ""),
+		(mask & 0x10 ? "Ext0 " : ""), (mask & 0x20 ? "Ext1" : ""));
 	WriteLog("\nRegisters bank 0\n");
 	for(int j=0; j<8; j++)
 	{

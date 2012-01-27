@@ -3,10 +3,10 @@
 //
 // Originally by David Raingeard
 // GCC/SDL port by Niels Wagenaar (Linux/WIN32) and Caz (BeOS)
-// Extensive rewrites/cleanups/fixes by James L. Hammons
+// Extensive rewrites/cleanups/fixes by James Hammons
 // (C) 2010 Underground Software
 //
-// JLH = James L. Hammons <jlhamm@acm.org>
+// JLH = James Hammons <jlhamm@acm.org>
 //
 // Who  When        What
 // ---  ----------  -------------------------------------------------------------

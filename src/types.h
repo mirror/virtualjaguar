@@ -1,6 +1,6 @@
 //
 // GCC/SDL port by Niels Wagenaar (Linux/WIN32) and Caz (BeOS)
-// Removal of unsafe macros and addition of typdefs by James L. Hammons
+// Removal of unsafe macros and addition of typdefs by James Hammons
 //
 
 #ifndef __TYPES_H__

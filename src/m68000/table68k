@@ -29,7 +29,7 @@
 %
 % Fields on a line: 
 % 16 chars bitpattern : 
-% CPU level / privildge level :
+% CPU level / privilege level :
 %   CPU level 0: 68000
 %             1: 68010
 %             2: 68020

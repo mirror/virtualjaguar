@@ -1,10 +1,10 @@
 //
 // filepicker.cpp - A ROM chooser
 //
-// by James L. Hammons
+// by James Hammons
 // (C) 2010 Underground Software
 //
-// JLH = James L. Hammons <jlhamm@acm.org>
+// JLH = James Hammons <jlhamm@acm.org>
 //
 // Who  When        What
 // ---  ----------  -------------------------------------------------------------
@@ -86,26 +86,26 @@ printf("VSB size: %u, %u\n", sbSize3.width(), sbSize3.height());
 	// This sets it to the "too large size" as the minimum!
 	QScrollBar * vsb = new QScrollBar(Qt::Vertical, this);
 	int sbWidth = vsb->size().width();
-	printf("VSB size width: %u\n", sbWidth);
+//	printf("VSB size width: %u\n", sbWidth);
 	int sbWidth2 = vsb->sizeHint().width();
-	printf("VSB sizeHint width: %u\n", sbWidth2);
+//	printf("VSB sizeHint width: %u\n", sbWidth2);
 	int sbWidth3 = vsb->minimumSize().width();
-	printf("VSB minimum width: %u\n", sbWidth3);
+//	printf("VSB minimum width: %u\n", sbWidth3);
 	int sbWidth4 = vsb->frameSize().width();
-	printf("VSB frame width: %u\n", sbWidth4);
+//	printf("VSB frame width: %u\n", sbWidth4);
 	delete vsb;
 
 //	fileList->setFixedWidth((488/4) + 4);
 	int sbWidth5 = fileList->frameWidth();
-	printf("List frame width: %u, (diff=%d)\n", sbWidth5, sbWidth5 - ((488/4) + 4));
+//	printf("List frame width: %u, (diff=%d)\n", sbWidth5, sbWidth5 - ((488/4) + 4));
 	int sbWidth6 = fileList->sizeHint().width();
-	printf("List sizeHint width: %u\n", sbWidth6);
+//	printf("List sizeHint width: %u\n", sbWidth6);
 	int sbWidth7 = fileList->minimumSize().width();
-	printf("List minimum width: %u\n", sbWidth7);
+//	printf("List minimum width: %u\n", sbWidth7);
 	int sbWidth8 = fileList->minimumSizeHint().width();
-	printf("List minimum hint width: %u\n", sbWidth8);
-//	fileList->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Preferred);
-//	fileList->verticalScrollBar()->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Preferred);
+//	printf("List minimum hint width: %u\n", sbWidth8);
+////	fileList->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Preferred);
+////	fileList->verticalScrollBar()->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Preferred);
 	// (488/4) + 4 is the width of the object in the filelistmodel. Dunno why the QListView
 	// isn't picking that up. :-(
 	// 488/4 + 4 = 126

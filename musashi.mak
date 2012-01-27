@@ -1,7 +1,7 @@
 #
 # Makefile for Musashi Portable 68000 Emulator
 #
-# by James L. Hammons
+# by James Hammons
 #
 # This makefile is licensed under the GPL v3 or any later version. See the
 # file GPLv3 for details. ;-)

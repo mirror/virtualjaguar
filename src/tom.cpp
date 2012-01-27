@@ -3,10 +3,10 @@
 //
 // Originally by David Raingeard (cal2)
 // GCC/SDL port by Niels Wagenaar (Linux/WIN32) and Caz (BeOS)
-// Cleanups and endian wrongness amelioration by James L. Hammons
+// Cleanups and endian wrongness amelioration by James Hammons
 // (C) 2010 Underground Software
 //
-// JLH = James L. Hammons <jlhamm@acm.org>
+// JLH = James Hammons <jlhamm@acm.org>
 //
 // Who  When        What
 // ---  ----------  -------------------------------------------------------------
@@ -314,8 +314,15 @@
 // Also note that VC is in *half* lines, i.e. divide by 2 to get the scanline
 /*#define LEFT_VISIBLE_HC			208
 #define RIGHT_VISIBLE_HC		1528//*/
-#define LEFT_VISIBLE_HC			208
-#define RIGHT_VISIBLE_HC		1488
+// These were right for Rayman, but that one is offset on a real TV too.
+//#define LEFT_VISIBLE_HC			208
+//#define RIGHT_VISIBLE_HC		1488
+// This is more like a real TV display...
+//#define LEFT_VISIBLE_HC			(208 - 32)
+//#define RIGHT_VISIBLE_HC		(1488 - 32)
+// Split the difference? (Seems to be OK for the most part...)
+#define LEFT_VISIBLE_HC			(208 - 16)
+#define RIGHT_VISIBLE_HC		(1488 - 16)
 //#define TOP_VISIBLE_VC		25
 //#define BOTTOM_VISIBLE_VC		503
 #define TOP_VISIBLE_VC			31
@@ -324,8 +331,8 @@
 //Are these PAL horizontals correct?
 //They seem to be for the most part, but there are some games that seem to be
 //shifted over to the right from this "window".
-#define LEFT_VISIBLE_HC_PAL		208
-#define RIGHT_VISIBLE_HC_PAL	1488
+#define LEFT_VISIBLE_HC_PAL		(208 - 16)
+#define RIGHT_VISIBLE_HC_PAL	(1488 - 16)
 #define TOP_VISIBLE_VC_PAL		67
 #define BOTTOM_VISIBLE_VC_PAL	579
 

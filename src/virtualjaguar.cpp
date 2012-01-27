@@ -3,7 +3,7 @@
 //
 // Original codebase by David Raingeard (Cal2)
 // GCC/SDL port by Niels Wagenaar (Linux/WIN32) and Caz (BeOS)
-// Cleanups/fixes/enhancements by James L. Hammons and Adam Green
+// Cleanups/fixes/enhancements by James Hammons and Adam Green
 //
 
 #include <SDL.h>
@@ -51,7 +51,7 @@ int main_old(int argc, char * argv[])
 #endif
 	printf("Based upon Virtual Jaguar core v1.0.0 by David Raingeard.\n");
 	printf("Written by Niels Wagenaar (Linux/WIN32), Carwin Jones (BeOS),\n");
-	printf("James L. Hammons (WIN32) and Adam Green (MacOS)\n");
+	printf("James Hammons (WIN32) and Adam Green (MacOS)\n");
 	printf("Contact: http://sdlemu.ngemu.com/ | sdlemu@ngemu.com\n");
 
 	bool haveCart = false;							// Assume there is no cartridge...!

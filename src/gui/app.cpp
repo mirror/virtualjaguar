@@ -1,10 +1,10 @@
 //
 // app.cpp - Qt-based GUI for Virtual Jaguar
 //
-// by James L. Hammons
+// by James Hammons
 // (C) 2010 Underground Software
 //
-// JLH = James L. Hammons <jlhamm@acm.org>
+// JLH = James Hammons <jlhamm@acm.org>
 //
 // Who  When        What
 // ---  ----------  -------------------------------------------------------------
@@ -40,8 +40,8 @@ int main(int argc, char * argv[])
 		{
 			printf("Virtual Jaguar 2.0.0 help\n");
 			printf("\n");
-			printf("Command line interface is non-functional ATM, but may return if there is\n"
-				"enough demand for it. :-)\n");
+			printf("Command line interface is mostly non-functional ATM, but may return if\n"
+				"there is enough demand for it. :-)\n");
 			return 0;
 		}
 		if (strcmp(argv[1], "--yarrr") == 0)
@@ -63,8 +63,11 @@ int main(int argc, char * argv[])
 	// This is so we can pass this stuff using signal/slot mechanism...
 //ick	int id = qRegisterMetaType<uint32>();
 
-	LogInit("virtualjaguar.log");				// Init logfile
+	bool success = (bool)LogInit("virtualjaguar.log");	// Init logfile
 	int retVal = -1;							// Default is failure
+
+	if (!success)
+		printf("Failed to open virtualjaguar.log for writing!\n");
 
 	// Set up SDL library
 	if (SDL_Init(SDL_INIT_JOYSTICK | SDL_INIT_AUDIO) < 0)

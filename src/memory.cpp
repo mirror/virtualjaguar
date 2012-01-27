@@ -1,9 +1,9 @@
 //
 // Jaguar memory and I/O physical (hosted!) memory
 //
-// by James L. Hammons
+// by James Hammons
 //
-// JLH = James L. Hammons
+// JLH = James Hammons
 //
 // WHO  WHEN        WHAT
 // ---  ----------  -----------------------------------------------------------

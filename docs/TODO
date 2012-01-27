@@ -1,6 +1,8 @@
 Stuff to add/fix for the next release of Virtual Jaguar
 -------------------------------------------------------
 
+- Fix VC behavior to match what a real Jaguar does. Still not sure just what
+  the heck is going on there. [Shamus]
 - Fix DSP code so that it doesn't hang in a spinlock waiting for the sound
   buffer to empty. Probably a CS lock contention issue. [Shamus]
 - Create an EEPROMs directory (or whatever is in EEPROMPath[]) if it doesn't

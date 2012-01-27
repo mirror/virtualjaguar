@@ -1,5 +1,5 @@
 -------------------------------------------
-Virtual Jaguar v2.0.2 GCC/Qt release README
+Virtual Jaguar v2.0.3 GCC/Qt release README
 -------------------------------------------
 
 --------------
@@ -93,7 +93,7 @@ systems as well but we can not guarantee that.
 
 The port was done by the SDLEMU crew (http://sdlemu.ngemu.com) and especially
 by Niels Wagenaar and Carwin Jones. A major portion of the rewrite was done by
-James L. Hammons. You may contact us by e-mail (sdlemu@ngemu.com) or leave a
+James Hammons. You may contact us by e-mail (sdlemu@ngemu.com) or leave a
 message on the SDLEMU Official Forum (see the website). Patches and bugfixes
 are particularly welcome! :)
 

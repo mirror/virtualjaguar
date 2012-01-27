@@ -236,7 +236,7 @@ unsigned int m68k_disasm(char * output, uint32_t addr, uint32_t * nextpc, int cn
 {
 	char f[256], str[256];
 	static const char * const ccnames[] =
-		{ "T ","F ","HI","LS","CC","CS","NE","EQ",
+		{ "RA","RN","HI","LS","CC","CS","NE","EQ",
 		  "VC","VS","PL","MI","GE","LT","GT","LE" };
 
 	str[0] = 0;
@@ -299,10 +299,10 @@ unsigned int m68k_disasm(char * output, uint32_t addr, uint32_t * nextpc, int cn
 #else
 		switch (dp->size)
 		{
-			case sz_byte: strcat(str, ".B "); break;
-			case sz_word: strcat(str, ".W "); break;
-			case sz_long: strcat(str, ".L "); break;
-			default: strcat(str, "   "); break;
+			case sz_byte: strcat(str, ".B\t"); break;
+			case sz_word: strcat(str, ".W\t"); break;
+			case sz_long: strcat(str, ".L\t"); break;
+			default: strcat(str, "\t"); break;
 		}
 #endif
 
@@ -319,7 +319,7 @@ unsigned int m68k_disasm(char * output, uint32_t addr, uint32_t * nextpc, int cn
 		{
 //			sprintf(f, ",");
 //			strcat(str, f);
-			strcat(str, ",");
+			strcat(str, ", ");
 		}
 #endif
 

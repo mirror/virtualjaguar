@@ -1,10 +1,10 @@
 //
 // filedb.cpp - File database
 //
-// by James L. Hammons
+// by James Hammons
 // (C) 2010 Underground Software
 //
-// JLH = James L. Hammons <jlhamm@acm.org>
+// JLH = James Hammons <jlhamm@acm.org>
 //
 // Who  When        What
 // ---  ----------  -------------------------------------------------------------

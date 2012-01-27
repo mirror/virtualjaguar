@@ -1,7 +1,7 @@
 #
 # Makefile for Virtual Jaguar core library
 #
-# by James L. Hammons
+# by James Hammons
 #
 # This software is licensed under the GPL v3 or any later version. See the
 # file GPLv3 for details. ;-)

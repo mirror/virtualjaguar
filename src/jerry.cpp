@@ -3,9 +3,9 @@
 //
 // Originally by David Raingeard
 // GCC/SDL port by Niels Wagenaar (Linux/WIN32) and Carwin Jones (BeOS)
-// Cleanups/rewrites/fixes by James L. Hammons
+// Cleanups/rewrites/fixes by James Hammons
 //
-// JLH = James L. Hammons
+// JLH = James Hammons <jlhamm@acm.org>
 //
 // WHO  WHEN        WHAT
 // ---  ----------  -----------------------------------------------------------
@@ -164,6 +164,7 @@
 #include "joystick.h"
 #include "log.h"
 #include "m68k.h"
+#include "settings.h"
 #include "tom.h"
 //#include "memory.h"
 #include "wavetable.h"
@@ -809,6 +810,10 @@ else if (offset == 0xF10012)
 	WriteLog("JERRY: CLK2 word written by %s: %u\n", whoName[who], data);
 else if (offset == 0xF10014)
 	WriteLog("JERRY: CLK3 word written by %s: %u\n", whoName[who], data);
+//else if (offset == 0xF1A100)
+//	WriteLog("JERRY: D_FLAGS word written by %s: %u\n", whoName[who], data);
+//else if (offset == 0xF1A102)
+//	WriteLog("JERRY: D_FLAGS+2 word written by %s: %u\n", whoName[who], data);
 //else if (offset == 0xF10020)
 //	WriteLog("JERRY: JINTCTRL word written by %s: $%04X\n", whoName[who], data);
 #endif
@@ -826,7 +831,7 @@ else if (offset == 0xF10014)
 //NOTE: This should be taken care of in DAC...
 	else if (offset == 0xF1A152)					// Bottom half of SCLK ($F1A150)
 	{
-		WriteLog("JERRY: Writing %04X to SCLK (by %s)...\n", data, whoName[who]);
+		WriteLog("JERRY: Writing $%X to SCLK (by %s)...\n", data, whoName[who]);
 //This should *only* be enabled when SMODE has its INTERNAL bit set! !!! FIX !!!
 		JERRYI2SInterruptDivide = (uint8)data;
 		JERRYI2SInterruptTimer = -1;
@@ -912,4 +917,16 @@ WriteLog("JERRY: Unhandled timer write %04X (WORD) at %08X by %s...\n", data, of
 
 	jerry_ram_8[(offset+0) & 0xFFFF] = (data >> 8) & 0xFF;
 	jerry_ram_8[(offset+1) & 0xFFFF] = data & 0xFF;
+}
+
+int JERRYGetPIT1Frequency(void)
+{
+	int systemClockFrequency = (vjs.hardwareTypeNTSC ? RISC_CLOCK_RATE_NTSC : RISC_CLOCK_RATE_PAL);
+	return systemClockFrequency / ((JERRYPIT1Prescaler + 1) * (JERRYPIT1Divider + 1));
+}
+
+int JERRYGetPIT2Frequency(void)
+{
+	int systemClockFrequency = (vjs.hardwareTypeNTSC ? RISC_CLOCK_RATE_NTSC : RISC_CLOCK_RATE_PAL);
+	return systemClockFrequency / ((JERRYPIT2Prescaler + 1) * (JERRYPIT2Divider + 1));
 }

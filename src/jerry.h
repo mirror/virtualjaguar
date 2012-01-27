@@ -20,6 +20,9 @@ void JERRYWriteWord(uint32 offset, uint16 data, uint32 who = UNKNOWN);
 void JERRYExecPIT(uint32 cycles);
 void JERRYI2SExec(uint32 cycles);
 
+int JERRYGetPIT1Frequency(void);
+int JERRYGetPIT2Frequency(void);
+
 // 68000 Interrupt bit positions (enabled at $F10020)
 
 //enum { IRQ2_EXTERNAL = 0, IRQ2_DSP, IRQ2_TIMER1, IRQ2_TIMER2, IRQ2_ASI, IRQ2_SSI };

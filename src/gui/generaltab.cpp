@@ -5,7 +5,7 @@
 // (C) 2011 Underground Software
 // See the README and GPLv3 files for licensing and warranty information
 //
-// JLH = James L. Hammons <jlhamm@acm.org>
+// JLH = James Hammons <jlhamm@acm.org>
 //
 // WHO  WHEN        WHAT
 // ---  ----------  ------------------------------------------------------------

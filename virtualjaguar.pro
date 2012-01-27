@@ -1,7 +1,7 @@
 #
 # Virtual Jaguar Qt project file
 #
-# by James L. Hammons
+# by James Hammons
 # Copyright (C) 2011 Underground Software
 #
 # See the README and GPLv3 files for licensing and warranty information
@@ -15,8 +15,8 @@
 TARGET     = virtualjaguar
 CONFIG    += qt warn_on release debug
 RESOURCES += virtualjaguar.qrc
-#LIBS      += -lz -Lobj -ljaguarcore -lmusashi
-LIBS      += -lz -Lobj -ljaguarcore -lm68k
+#LIBS      += -Lobj -ljaguarcore -lz -lmusashi
+LIBS      += -Lobj -ljaguarcore -lz -lm68k
 QT        += opengl
 
 # We stuff all the intermediate crap into obj/ so it won't confuse us mere mortals ;-)

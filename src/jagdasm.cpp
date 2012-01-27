@@ -61,8 +61,9 @@ char * signed_16bit(int16 val)
 	return temp;
 }
 
-unsigned dasmjag(int dsp_type, char * buffer, unsigned pc)
+unsigned dasmjag(int dsp_type, char * bufferOut, unsigned pc)
 {
+	char buffer[64];
 	int op = ROPCODE(pc);
 	int reg1 = (op >> 5) & 31;
 	int reg2 = op & 31;
@@ -160,7 +161,7 @@ unsigned dasmjag(int dsp_type, char * buffer, unsigned pc)
 						sprintf(buffer, "ADDQMOD $%X,R%02d", convert_zero[reg1], reg2);
 					break;
 	}
-	sprintf(buffer,"%-24s (%04X)", buffer, op);
+	sprintf(bufferOut,"%-24s (%04X)", buffer, op);
 
 	return size;
 }

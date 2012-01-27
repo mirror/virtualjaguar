@@ -3,9 +3,9 @@
 //
 // Jaguar Memory Manager Unit
 //
-// by James L. Hammons
+// by James Hammons
 //
-// JLH = James L. Hammons
+// JLH = James Hammons <jlhamm@acm.org>
 //
 // WHO  WHEN        WHAT
 // ---  ----------  -----------------------------------------------------------

@@ -1,10 +1,10 @@
 //
 // m68kinterface.c: Code interface to the UAE 68000 core and support code
 //
-// by James L. Hammons
+// by James Hammons
 // (C) 2011 Underground Software
 //
-// JLH = James L. Hammons <jlhamm@acm.org>
+// JLH = James Hammons <jlhamm@acm.org>
 //
 // Who  When        What
 // ---  ----------  -------------------------------------------------------------
@@ -80,6 +80,8 @@ cpuop_func * cpuFunctionTable[65536];
 void Dasm(uint32_t offset, uint32_t qt)
 {
 #ifdef CPU_DEBUG
+// back up a few instructions...
+//offset -= 100;
 	static char buffer[2048];//, mem[64];
 	int pc = offset, oldpc;
 	uint32_t i;
@@ -99,6 +101,21 @@ void Dasm(uint32_t offset, uint32_t qt)
 	}
 #endif
 }
+
+#ifdef CPU_DEBUG
+void DumpRegisters(void)
+{
+	uint32_t i;
+
+	for(i=0; i<16; i++)
+	{
+		printf("%s%i: %08X ", (i < 8 ? "D" : "A"), i & 0x7, regs.regs[i]);
+
+		if ((i & 0x03) == 3)
+			printf("\n");
+	}
+}
+#endif
 
 
 void m68k_set_cpu_type(unsigned int type)
@@ -261,6 +278,34 @@ else if (regs.pc == 0x803422)
 
 if (inRoutine)
 	instSeen++;
+#endif
+// AvP testing... (problem was: 32 bit addresses on 24 bit address cpu--FIXED)
+#if 0
+	static int go = 0;
+
+	if (regs.pc == 0x94BA)
+	{
+		go = 1;
+		printf("\n");
+	}
+
+	if (regs.pc == 0x94C6)
+		go = 0;
+
+//	if (regs.regs[10] == 0xFFFFFFFF && go)
+	if (go)
+	{
+//		printf("A2=-1, PC=%08X\n", regs.pc);
+//		go = 0;
+//		Dasm(regs.pc, 130);
+		Dasm(regs.pc, 1);
+		DumpRegisters();
+	}
+//94BA: 2468 0000                MOVEA.L	(A0,$0000) == $0002328A, A2
+//94BE: 200A                     MOVE.L	A2, D0
+//94C0: 6A02                     BPL.B	$94C4
+//94C2: 2452                     MOVEA.L	(A2), A2			; <--- HERE
+//94C4: 4283                     CLR.L	D3
 #endif
 		uint32_t opcode = get_iword(0);
 //if ((opcode & 0xFFF8) == 0x31C0)

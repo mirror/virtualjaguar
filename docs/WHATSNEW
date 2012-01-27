@@ -1,3 +1,12 @@
+Virtual Jaguar v2.0.3 GCC/Qt
+----------------------------
+
+* Kludged a fix into the audio handler to set the correct frequency for audio
+  playback. Note that there could still be problems with this approach, as it
+  can be easily fooled. Thanks to Dr. Typo for the initial analysis and insight
+  into this bug. :-) [Shamus]
+
+
 Virtual Jaguar v2.0.2 GCC/Qt
 ----------------------------
 
@@ -8,7 +17,7 @@ Virtual Jaguar v2.0.2 GCC/Qt
   real hardware. [Shamus]
 * Fixed video frame timing for both NTSC *and* PAL. [Shamus]
 * Improved OP logging, added emulation of OP bug. [Shamus]
-* Fixed VC behavior to match what a real Jaguar does. [Shamus]
+* Fixed addressing bug with UAE 68000 core. [Shamus]
 
 
 Virtual Jaguar v2.0.1 GCC/Qt

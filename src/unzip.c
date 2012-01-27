@@ -2,10 +2,10 @@
 // ZIP file support (mostly ripped from MAME--thx MAME team!)
 // Mostly this is here to simplify interfacing to zlib...
 //
-// Added by James L. Hammons
+// Added by James Hammons
 // (C) 2010 Underground Software
 //
-// JLH = James L. Hammons <jlhamm@acm.org>
+// JLH = James Hammons <jlhamm@acm.org>
 //
 // Who  When        What
 // ---  ----------  -------------------------------------------------------------
