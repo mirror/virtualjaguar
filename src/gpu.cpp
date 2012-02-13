@@ -1981,6 +1981,17 @@ static void gpu_opcode_loadw(void)
 // Also, Power Drive Rally seems to contradict the idea that only LOADs in
 // the $F03000-$F03FFF range are aligned...
 #warning "!!! Alignment issues, need to find definitive final word on this !!!"
+/*
+Preliminary testing on real hardware seems to confirm that something strange goes on
+with unaligned reads in main memory. When the address is off by 1, the result is the
+same as the long address with the top byte replaced by something. So if the read is
+from $401, and $400 has 12 34 56 78, the value read will be $nn345678, where nn is a currently unknown vlaue.
+When the address is off by 2, the result would be $nnnn5678, where nnnn is unknown.
+When the address is off by 3, the result would be $nnnnnn78, where nnnnnn is unknown.
+It may be that the "unknown" values come from the prefetch queue, but not sure how
+to test that. They seem to be stable, though, which would indicate such a mechanism.
+Sometimes, however, the off by 2 case returns $12345678!
+*/
 static void gpu_opcode_load(void)
 {
 #ifdef GPU_DIS_LOAD
@@ -1988,10 +1999,16 @@ static void gpu_opcode_load(void)
 		WriteLog("%06X: LOAD   (R%02u), R%02u [NCZ:%u%u%u, R%02u=%08X, R%02u=%08X] -> ", gpu_pc-2, IMM_1, IMM_2, gpu_flag_n, gpu_flag_c, gpu_flag_z, IMM_1, RM, IMM_2, RN);
 #endif
 #ifdef GPU_CORRECT_ALIGNMENT
+	uint32 mask[4] = { 0x00000000, 0xFF000000, 0xFFFF0000, 0xFFFFFF00 };
 //	if ((RM >= 0xF03000) && (RM <= 0xF03FFF))
 		RN = GPUReadLong(RM & 0xFFFFFFFC, GPU);
+//		RN = GPUReadLong(RM & 0x00FFFFFC, GPU);
 //	else
 //		RN = GPUReadLong(RM, GPU);
+	// Simulate garbage in unaligned reads...
+//seems that this behavior is different in GPU mem vs. main mem...
+//	if ((RM < 0xF03000) || (RM > 0xF0BFFF))
+//		RN |= mask[RM & 0x03];
 #else
 	RN = GPUReadLong(RM, GPU);
 #endif

@@ -942,7 +942,8 @@ unsigned int m68k_read_memory_8(unsigned int address)
 	// Musashi does this automagically for you, UAE core does not :-P
 	address &= 0x00FFFFFF;
 #ifdef CPU_DEBUG_MEMORY
-	if ((address >= 0x000000) && (address <= 0x3FFFFF))
+	// Note that the Jaguar only has 2M of RAM, not 4!
+	if ((address >= 0x000000) && (address <= 0x1FFFFF))
 	{
 		if (startMemLog)
 			readMem[address] = 1;
@@ -956,7 +957,8 @@ unsigned int m68k_read_memory_8(unsigned int address)
 #ifndef USE_NEW_MMU
 	unsigned int retVal = 0;
 
-	if ((address >= 0x000000) && (address <= 0x3FFFFF))
+	// Note that the Jaguar only has 2M of RAM, not 4!
+	if ((address >= 0x000000) && (address <= 0x1FFFFF))
 		retVal = jaguarMainRAM[address];
 //	else if ((address >= 0x800000) && (address <= 0xDFFFFF))
 	else if ((address >= 0x800000) && (address <= 0xDFFEFF))
@@ -1054,7 +1056,8 @@ unsigned int m68k_read_memory_16(unsigned int address)
 #ifndef USE_NEW_MMU
     unsigned int retVal = 0;
 
-	if ((address >= 0x000000) && (address <= 0x3FFFFE))
+	// Note that the Jaguar only has 2M of RAM, not 4!
+	if ((address >= 0x000000) && (address <= 0x1FFFFE))
 //		retVal = (jaguar_mainRam[address] << 8) | jaguar_mainRam[address+1];
 		retVal = GET16(jaguarMainRAM, address);
 //	else if ((address >= 0x800000) && (address <= 0xDFFFFE))
@@ -1108,7 +1111,8 @@ void m68k_write_memory_8(unsigned int address, unsigned int value)
 	// Musashi does this automagically for you, UAE core does not :-P
 	address &= 0x00FFFFFF;
 #ifdef CPU_DEBUG_MEMORY
-	if ((address >= 0x000000) && (address <= 0x3FFFFF))
+	// Note that the Jaguar only has 2M of RAM, not 4!
+	if ((address >= 0x000000) && (address <= 0x1FFFFF))
 	{
 		if (startMemLog)
 		{
@@ -1136,7 +1140,8 @@ void m68k_write_memory_8(unsigned int address, unsigned int value)
 	printf("M68K: (8) Tripwire hit...\n");//*/
 
 #ifndef USE_NEW_MMU
-	if ((address >= 0x000000) && (address <= 0x3FFFFF))
+	// Note that the Jaguar only has 2M of RAM, not 4!
+	if ((address >= 0x000000) && (address <= 0x1FFFFF))
 		jaguarMainRAM[address] = value;
 	else if ((address >= 0xDFFF00) && (address <= 0xDFFFFF))
 		CDROMWriteByte(address, value, M68K);
@@ -1156,7 +1161,8 @@ void m68k_write_memory_16(unsigned int address, unsigned int value)
 	// Musashi does this automagically for you, UAE core does not :-P
 	address &= 0x00FFFFFF;
 #ifdef CPU_DEBUG_MEMORY
-	if ((address >= 0x000000) && (address <= 0x3FFFFE))
+	// Note that the Jaguar only has 2M of RAM, not 4!
+	if ((address >= 0x000000) && (address <= 0x1FFFFE))
 	{
 		if (startMemLog)
 		{
@@ -1211,7 +1217,8 @@ if (address == 0xF02110)
 }//*/
 
 #ifndef USE_NEW_MMU
-	if ((address >= 0x000000) && (address <= 0x3FFFFE))
+	// Note that the Jaguar only has 2M of RAM, not 4!
+	if ((address >= 0x000000) && (address <= 0x1FFFFE))
 	{
 /*		jaguar_mainRam[address] = value >> 8;
 		jaguar_mainRam[address + 1] = value & 0xFF;*/
@@ -1458,7 +1465,7 @@ uint8 JaguarReadByte(uint32 offset, uint32 who/*=UNKNOWN*/)
 	uint8 data = 0x00;
 
 	offset &= 0xFFFFFF;
-	if (offset < 0x400000)
+	if (offset < 0x200000)
 		data = jaguarMainRAM[offset & 0x3FFFFF];
 	else if ((offset >= 0x800000) && (offset < 0xC00000))
 		data = jaguarMainROM[offset - 0x800000];
@@ -1481,9 +1488,9 @@ uint8 JaguarReadByte(uint32 offset, uint32 who/*=UNKNOWN*/)
 uint16 JaguarReadWord(uint32 offset, uint32 who/*=UNKNOWN*/)
 {
 	offset &= 0xFFFFFF;
-	if (offset <= 0x3FFFFE)
+	if (offset <= 0x1FFFFE)
 	{
-		return (jaguarMainRAM[(offset+0) & 0x3FFFFF] << 8) | jaguarMainRAM[(offset+1) & 0x3FFFFF];
+		return (jaguarMainRAM[(offset+0) & 0x1FFFFF] << 8) | jaguarMainRAM[(offset+1) & 0x1FFFFF];
 	}
 	else if ((offset >= 0x800000) && (offset <= 0xBFFFFE))
 	{
@@ -1515,9 +1522,9 @@ void JaguarWriteByte(uint32 offset, uint8 data, uint32 who/*=UNKNOWN*/)
 		WriteLog("JWB: Byte %02X written at %08X by %s\n", data, offset, whoName[who]);//*/
 
 	offset &= 0xFFFFFF;
-	if (offset < 0x400000)
+	if (offset < 0x200000)
 	{
-		jaguarMainRAM[offset & 0x3FFFFF] = data;
+		jaguarMainRAM[offset & 0x1FFFFF] = data;
 		return;
 	}
 	else if ((offset >= 0xDFFF00) && (offset <= 0xDFFFFF))
@@ -1559,7 +1566,7 @@ if (offset == 0x0102)//64*4)
 
 	offset &= 0xFFFFFF;
 
-	if (offset <= 0x3FFFFE)
+	if (offset <= 0x1FFFFE)
 	{
 /*
 GPU Table (CD BIOS)
@@ -1647,8 +1654,8 @@ if (who == GPU && (gpu_pc == 0xF03604 || gpu_pc == 0xF03638))
 if (offset == 0x11D31A + 0x48000 || offset == 0x11D31A)
 	WriteLog("JWW: %s writing star %04X at %08X...\n", whoName[who], data, offset);//*/
 
-		jaguarMainRAM[(offset+0) & 0x3FFFFF] = data >> 8;
-		jaguarMainRAM[(offset+1) & 0x3FFFFF] = data & 0xFF;
+		jaguarMainRAM[(offset+0) & 0x1FFFFF] = data >> 8;
+		jaguarMainRAM[(offset+1) & 0x1FFFFF] = data & 0xFF;
 		return;
 	}
 	else if (offset >= 0xDFFF00 && offset <= 0xDFFFFE)
@@ -1717,7 +1724,7 @@ void JaguarInit(void)
 	memset(writeMemMin, 0xFF, 0x400000);
 	memset(writeMemMax, 0x00, 0x400000);
 #endif
-	memset(jaguarMainRAM, 0x00, 0x400000);
+	memset(jaguarMainRAM, 0x00, 0x200000);
 //	memset(jaguar_mainRom, 0xFF, 0x200000);	// & set it to all Fs...
 //	memset(jaguar_mainRom, 0x00, 0x200000);	// & set it to all 0s...
 //NOTE: This *doesn't* fix FlipOut...
@@ -1726,6 +1733,8 @@ void JaguarInit(void)
 	memset(jaguarMainROM, 0x01, 0x600000);	// & set it to all 01s...
 //	memset(jaguar_mainRom, 0xFF, 0x600000);	// & set it to all Fs...
 	lowerField = false;							// Reset the lower field flag
+//temp, for crappy crap that sux
+memset(jaguarMainRAM + 0x804, 0xFF, 4);
 
 	m68k_set_cpu_type(M68K_CPU_TYPE_68000);
 	m68k_pulse_reset();							// Need to do this so UAE disasm doesn't segfault on exit
@@ -1895,7 +1904,7 @@ void JaguarDone(void)
 	JaguarDasm(0x4000, 10000);
 	WriteLog("\n");//*/
 //	WriteLog("\n\nM68000 disassembly at $802000...\n");
-//	JaguarDasm(0x800830, 0x1000);
+//	JaguarDasm(0x802000, 0x1000);
 //	WriteLog("\n\nM68000 disassembly at $4100...\n");
 //	JaguarDasm(0x4100, 200);
 //	WriteLog("\n\nM68000 disassembly at $800800...\n");

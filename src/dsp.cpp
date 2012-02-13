@@ -413,9 +413,12 @@ static uint32 dsp_opcode_second_parameter;
 #define SET_ZNC_ADD(a,b,r)	SET_N(r); SET_Z(r); SET_C_ADD(a,b)
 #define SET_ZNC_SUB(a,b,r)	SET_N(r); SET_Z(r); SET_C_SUB(a,b)
 
-uint32 dsp_convert_zero[32] = { 32,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31 };
-uint8 * dsp_branch_condition_table = NULL;
-static uint16 * mirror_table = NULL;
+uint32 dsp_convert_zero[32] = {
+	32, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,
+	17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31
+};
+uint8 dsp_branch_condition_table[32 * 8];
+static uint16 mirror_table[65536];
 static uint8 dsp_ram_8[0x2000];
 
 #define BRANCH_CONDITION(x)		dsp_branch_condition_table[(x) + ((jaguar_flags & 7) << 5)]
@@ -454,49 +457,39 @@ void DSPReleaseTimeslice(void)
 
 void dsp_build_branch_condition_table(void)
 {
-	// Allocate the mirror table
-	if (!mirror_table)
-		mirror_table = (uint16 *)malloc(65536 * sizeof(uint16));
-
 	// Fill in the mirror table
-	if (mirror_table)
-		for(int i=0; i<65536; i++)
-			mirror_table[i] = ((i >> 15) & 0x0001) | ((i >> 13) & 0x0002) |
-			                  ((i >> 11) & 0x0004) | ((i >> 9)  & 0x0008) |
-			                  ((i >> 7)  & 0x0010) | ((i >> 5)  & 0x0020) |
-			                  ((i >> 3)  & 0x0040) | ((i >> 1)  & 0x0080) |
-			                  ((i << 1)  & 0x0100) | ((i << 3)  & 0x0200) |
-			                  ((i << 5)  & 0x0400) | ((i << 7)  & 0x0800) |
-			                  ((i << 9)  & 0x1000) | ((i << 11) & 0x2000) |
-			                  ((i << 13) & 0x4000) | ((i << 15) & 0x8000);
-
-	if (!dsp_branch_condition_table)
+	for(int i=0; i<65536; i++)
 	{
-		dsp_branch_condition_table = (uint8 *)malloc(32 * 8 * sizeof(uint8));
+		mirror_table[i] = ((i >> 15) & 0x0001) | ((i >> 13) & 0x0002)
+			| ((i >> 11) & 0x0004) | ((i >> 9)  & 0x0008)
+			| ((i >> 7)  & 0x0010) | ((i >> 5)  & 0x0020)
+			| ((i >> 3)  & 0x0040) | ((i >> 1)  & 0x0080)
+			| ((i << 1)  & 0x0100) | ((i << 3)  & 0x0200)
+			| ((i << 5)  & 0x0400) | ((i << 7)  & 0x0800)
+			| ((i << 9)  & 0x1000) | ((i << 11) & 0x2000)
+			| ((i << 13) & 0x4000) | ((i << 15) & 0x8000);
+	}
 
-		// Fill in the condition table
-		if (dsp_branch_condition_table)
+	// Fill in the condition table
+	for(int i=0; i<8; i++)
+	{
+		for(int j=0; j<32; j++)
 		{
-			for(int i=0; i<8; i++)
-			{
-				for(int j=0; j<32; j++)
-				{
-					int result = 1;
-					if (j & 1)
-						if (i & ZERO_FLAG)
-							result = 0;
-					if (j & 2)
-						if (!(i & ZERO_FLAG))
-							result = 0;
-					if (j & 4)
-						if (i & (CARRY_FLAG << (j >> 4)))
-							result = 0;
-					if (j & 8)
-						if (!(i & (CARRY_FLAG << (j >> 4))))
-							result = 0;
-					dsp_branch_condition_table[i * 32 + j] = result;
-				}
-			}
+			int result = 1;
+
+			if ((j & 1) && (i & ZERO_FLAG))
+				result = 0;
+
+			if ((j & 2) && (!(i & ZERO_FLAG)))
+				result = 0;
+
+			if ((j & 4) && (i & (CARRY_FLAG << (j >> 4))))
+				result = 0;
+
+			if ((j & 8) && (!(i & (CARRY_FLAG << (j >> 4)))))
+				result = 0;
+
+			dsp_branch_condition_table[i * 32 + j] = result;
 		}
 	}
 }
@@ -1313,6 +1306,7 @@ void DSPDumpDisassembly(void)
 
 	WriteLog("\n---[DSP code at 00F1B000]---------------------------\n");
 	uint32 j = 0xF1B000;
+
 	while (j <= 0xF1CFFF)
 	{
 		uint32 oldj = j;
@@ -1326,6 +1320,7 @@ void DSPDumpRegisters(void)
 //Shoud add modulus, etc to dump here...
 	WriteLog("\n---[DSP flags: NCZ %d%d%d, DSP PC: %08X]------------\n", dsp_flag_n, dsp_flag_c, dsp_flag_z, dsp_pc);
 	WriteLog("\nRegisters bank 0\n");
+
 	for(int j=0; j<8; j++)
 	{
 		WriteLog("\tR%02i = %08X R%02i = %08X R%02i = %08X R%02i = %08X\n",
@@ -1334,7 +1329,9 @@ void DSPDumpRegisters(void)
 						  (j << 2) + 2, dsp_reg_bank_0[(j << 2) + 2],
 						  (j << 2) + 3, dsp_reg_bank_0[(j << 2) + 3]);
 	}
+
 	WriteLog("Registers bank 1\n");
+
 	for(int j=0; j<8; j++)
 	{
 		WriteLog("\tR%02i = %08X R%02i = %08X R%02i = %08X R%02i = %08X\n",
@@ -1348,7 +1345,7 @@ void DSPDumpRegisters(void)
 void DSPDone(void)
 {
 	int i, j;
-	WriteLog("DSP: Stopped at PC=%08X dsp_modulo=%08X (dsp %s running)\n", dsp_pc, dsp_modulo, (DSP_RUNNING ? "was" : "wasn't"));
+	WriteLog("DSP: Stopped at PC=%08X dsp_modulo=%08X (dsp was%s running)\n", dsp_pc, dsp_modulo, (DSP_RUNNING ? "" : "n't"));
 	WriteLog("DSP: %sin interrupt handler\n", (dsp_flags & IMASK ? "" : "not "));
 
 	// get the active interrupt bits
@@ -1361,6 +1358,7 @@ void DSPDone(void)
 		(mask & 0x04 ? "Timer0 " : ""), (mask & 0x08 ? "Timer1 " : ""),
 		(mask & 0x10 ? "Ext0 " : ""), (mask & 0x20 ? "Ext1" : ""));
 	WriteLog("\nRegisters bank 0\n");
+
 	for(int j=0; j<8; j++)
 	{
 		WriteLog("\tR%02i=%08X R%02i=%08X R%02i=%08X R%02i=%08X\n",
@@ -1369,7 +1367,9 @@ void DSPDone(void)
 						  (j << 2) + 2, dsp_reg_bank_0[(j << 2) + 2],
 						  (j << 2) + 3, dsp_reg_bank_0[(j << 2) + 3]);
 	}
+
 	WriteLog("\nRegisters bank 1\n");
+
 	for (j=0; j<8; j++)
 	{
 		WriteLog("\tR%02i=%08X R%02i=%08X R%02i=%08X R%02i=%08X\n",
@@ -1382,6 +1382,7 @@ void DSPDone(void)
 
 	static char buffer[512];
 	j = DSP_WORK_RAM_BASE;
+
 	while (j <= 0xF1BFFF)
 	{
 		uint32 oldj = j;
@@ -1390,6 +1391,7 @@ void DSPDone(void)
 	}//*/
 
 	WriteLog("DSP opcodes use:\n");
+
 	for (i=0;i<64;i++)
 	{
 		if (dsp_opcode_use[i])
@@ -1399,11 +1401,11 @@ void DSPDone(void)
 //	memory_free(dsp_ram_8);
 //	memory_free(dsp_reg_bank_0);
 //	memory_free(dsp_reg_bank_1);
-	if (dsp_branch_condition_table)
-		free(dsp_branch_condition_table);
+//	if (dsp_branch_condition_table)
+//		free(dsp_branch_condition_table);
 
-	if (mirror_table)
-		free(mirror_table);
+//	if (mirror_table)
+//		free(mirror_table);
 }
 
 

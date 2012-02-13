@@ -616,8 +616,17 @@ if (!inhibit)	// For OP testing only!
 /*	if (op_pointer > ((p0 & 0x000007FFFF000000LL) >> 21))
 		return;*/
 
-			op_pointer = (p0 & 0x000007FFFF000000LL) >> 21;
+// NOTE: The link address only replaces bits 3-21 in the OLP, and this replaces
+//       EVERYTHING. !!! FIX !!! [DONE]
+#warning "!!! Link address is not linked properly for all object types !!!"
+#warning "!!! Only BITMAP is properly handled !!!"
+			op_pointer &= 0xFFC00007;
+			op_pointer |= (p0 & 0x000007FFFF000000LL) >> 21;
 //WriteLog("New OP: %08X\n", op_pointer);
+//kludge: Seems that memory access is mirrored in the first 8MB of memory...
+if (op_pointer > 0x1FFFFF && op_pointer < 0x800000)
+	op_pointer &= 0xFF1FFFFF;	// Knock out bits 21-23
+
 			break;
 		}
 		case OBJECT_TYPE_SCALE:
@@ -771,6 +780,7 @@ OP: Scaled bitmap 4x? 4bpp at 34,? hscale=80 fpix=0 data=000756E8 pitch 1 hflipp
 			uint16 ypos = (p0 >> 3) & 0x7FF;
 // NOTE: The JTRM sez there are only 2 bits used for the CC, but lists *five*
 //       conditions! Need at least one more bit for that! :-P
+// Also, the ASIC nets imply that it uses bits 14-16 (height in BM & SBM objects)
 #warning "!!! Possibly bad CC handling in OP (missing 1 bit) !!!"
 			uint8  cc   = (p0 >> 14) & 0x03;
 			uint32 link = (p0 >> 21) & 0x3FFFF8;
@@ -836,7 +846,7 @@ OP: Scaled bitmap 4x? 4bpp at 34,? hscale=80 fpix=0 data=000756E8 pitch 1 hflipp
 //			break;
 		}
 		default:
-			WriteLog("op: unknown object type %i\n", ((uint8)p0 & 0x07));
+//			WriteLog("op: unknown object type %i\n", ((uint8)p0 & 0x07));
 			return;
 		}
 
@@ -894,6 +904,13 @@ void OPProcessFixedBitmap(uint64 p0, uint64 p1, bool render)
 // Is it OK to have a 0 for the data width??? (i.e., undocumented?)
 // Seems to be... Seems that dwidth *can* be zero (i.e., reuse same line) as well.
 // Pitch == 0 is OK too...
+
+//kludge: Seems that the OP treats iwidth == 0 as iwidth == 1... Need to investigate
+//        on real hardware...
+#warning "!!! Need to investigate iwidth == 0 behavior on real hardware !!!"
+if (iwidth == 0)
+	iwidth = 1;
+
 //	if (!render || op_pointer == 0 || ptr == 0 || pitch == 0)
 //I'm not convinced that we need to concern ourselves with data & op_pointer here either!
 	if (!render || iwidth == 0)

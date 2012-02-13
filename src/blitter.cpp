@@ -1559,10 +1559,17 @@ uint8 BlitterReadByte(uint32 offset, uint32 who/*=UNKNOWN*/)
 	// status register
 //This isn't cycle accurate--how to fix? !!! FIX !!!
 //Probably have to do some multi-threaded implementation or at least a reentrant safe implementation...
+//Real hardware returns $00000805, just like the JTRM says.
+	if (offset == (0x38 + 0))
+		return 0x00;
+	if (offset == (0x38 + 1))
+		return 0x00;
+	if (offset == (0x38 + 2))
+		return 0x08;
 	if (offset == (0x38 + 3))
-		return 0x01;	// always idle
+		return 0x05;	// always idle/never stopped (collision detection ignored!)
 
-// CHECK HERE ONCE THIS FIX HAS BEEN TESTED: [ ]
+// CHECK HERE ONCE THIS FIX HAS BEEN TESTED: [X]
 //Fix for AvP:
 	if (offset >= 0x04 && offset <= 0x07)
 //This is it. I wonder if it just ignores the lower three bits?

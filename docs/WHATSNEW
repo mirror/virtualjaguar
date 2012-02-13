@@ -5,6 +5,9 @@ Virtual Jaguar v2.0.3 GCC/Qt
   playback. Note that there could still be problems with this approach, as it
   can be easily fooled. Thanks to Dr. Typo for the initial analysis and insight
   into this bug. :-) [Shamus]
+* Preliminary fixes for proper emulation of memory reads between $200000 and
+  $800000. [Shamus]
+* Proper handling in the OP of objects with 0 IWIDTH. [Shamus]
 
 
 Virtual Jaguar v2.0.2 GCC/Qt

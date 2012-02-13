@@ -841,8 +841,9 @@ if (cdBufPtr % 32 == 30)
 
 bool ButchIsReadyToSend(void)
 {
+#ifdef LOG_CDROM_VERBOSE
 WriteLog("Butch is%s ready to send...\n", cdRam[I2CNTRL + 3] & 0x02 ? "" : " not");
-
+#endif
 	return (cdRam[I2CNTRL + 3] & 0x02 ? true : false);
 }
 
