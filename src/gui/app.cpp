@@ -27,11 +27,17 @@
 #undef main
 #endif
 
+//hm. :-/
+// This is stuff we pass into the mainWindow...
+bool noUntunedTankPlease = false;
+
 // Here's the main application loop--short and simple...
 int main(int argc, char * argv[])
 {
 	// Normally, this would be read in from the settings module... :-P
 	vjs.hardwareTypeAlpine = false;
+	// This is stuff we pass into the mainWindow...
+//	noUntunedTankPlease = false;
 
 	if (argc > 1)
 	{
@@ -44,6 +50,7 @@ int main(int argc, char * argv[])
 				"there is enough demand for it. :-)\n");
 			return 0;
 		}
+
 		if (strcmp(argv[1], "--yarrr") == 0)
 		{
 			printf("\n");
@@ -51,10 +58,16 @@ int main(int argc, char * argv[])
 			printf("\n");
 			return 0;
 		}
+
 		if ((strcmp(argv[1], "--alpine") == 0) || (strcmp(argv[1], "-a") == 0))
 		{
 			printf("Alpine Mode enabled.\n");
 			vjs.hardwareTypeAlpine = true;
+		}
+
+		if (strcmp(argv[1], "--please-dont-kill-my-computer") == 0)
+		{
+			noUntunedTankPlease = true;
 		}
 	}
 
@@ -94,5 +107,6 @@ int main(int argc, char * argv[])
 App::App(int argc, char * argv[]): QApplication(argc, argv)
 {
 	mainWindow = new MainWin();
+	mainWindow->plzDontKillMyComputer = noUntunedTankPlease;
 	mainWindow->show();
 }

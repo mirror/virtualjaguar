@@ -1,7 +1,7 @@
 //
 // EVENT.H: System timing support functionality
 //
-// by James L. Hammons
+// by James Hammons
 //
 
 #ifndef __EVENT_H__

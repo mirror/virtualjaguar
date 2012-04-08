@@ -72,7 +72,7 @@
 
 MainWin::MainWin(): running(true), powerButtonOn(false), showUntunedTankCircuit(true),
 	cartridgeLoaded(false), CDActive(false),//, alpineLoadSuccessful(false),
-	pauseForFileSelector(false)
+	pauseForFileSelector(false), plzDontKillMyComputer(false)
 {
 	videoWidget = new GLWidget(this);
 	setCentralWidget(videoWidget);
@@ -442,6 +442,9 @@ void MainWin::Timer(void)
 
 	if (showUntunedTankCircuit)
 	{
+		// Some machines can't handle this, so we give them the option to disable it. :-)
+		if (!plzDontKillMyComputer)
+		{
 		// Random hash & trash
 		// We try to simulate an untuned tank circuit here... :-)
 		for(uint32_t x=0; x<videoWidget->rasterWidth; x++)
@@ -451,6 +454,7 @@ void MainWin::Timer(void)
 				videoWidget->buffer[(y * videoWidget->textureWidth) + x]
 					= (rand() & 0xFF) << 8 | (rand() & 0xFF) << 16 | (rand() & 0xFF) << 24;
 			}
+		}
 		}
 	}
 	else

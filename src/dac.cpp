@@ -26,6 +26,27 @@
 //       to prevent things like the DSP filling only one side and such. Do such
 //       mono modes exist on the Jag? Seems to according to Super Burnout.
 
+// After testing on a real Jaguar, it seems clear that the I2S interrupt drives
+// the audio subsystem. So while you can drive the audio at a *slower* rate than
+// set by SCLK, you can't drive it any *faster*. Also note, that if the I2S
+// interrupt is not enabled/running on the DSP, then there is no audio. Also,
+// audio can be muted by clearing bit 8 of JOYSTICK (JOY1).
+//
+// Approach: We can run the DSP in the host system's audio IRQ, by running the
+// DSP for the alloted time (depending on the host buffer size & sample rate)
+// by simply reading the L/R_I2S (L/RTXD) registers at regular intervals. We
+// would also have to time the I2S/TIMER0/TIMER1 interrupts in the DSP as well.
+// This way, we can run the host audio IRQ at, say, 48 KHz and not have to care
+// so much about SCLK and running a separate buffer and all the attendant
+// garbage that comes with that awful approach.
+//
+// There would still be potential gotchas, as the SCLK can theoretically drive
+// the I2S at 26590906 / 2 (for SCLK == 0) = 13.3 MHz which corresponds to an
+// audio rate 416 KHz (dividing the I2S rate by 32, for 16-bit stereo). It
+// seems doubtful that anything useful could come of such a high rate, and we
+// can probably safely ignore any such ridiculously high audio rates. It won't
+// sound the same as on a real Jaguar, but who cares? :-)
+
 #include "dac.h"
 
 #include "SDL.h"
@@ -126,6 +147,16 @@ void DACDone(void)
 //	memory_free(DACBuffer);
 	WriteLog("DAC: Done.\n");
 }
+
+
+// Approach: Run the DSP for however many cycles needed to correspond to whatever sample rate
+// we've set the audio to run at. So, e.g., if we run it at 48 KHz, then we would run the DSP
+// for however much time it takes to fill the buffer. So with a 2K buffer, this would correspond
+// to running the DSP for 0.042666... seconds. At 26590906 Hz, this would correspond to
+// running the DSP for 1134545 cycles. You would then sample the L/RTXD registers every
+// 1134545 / 2048 = 554 cycles to fill the buffer. You would also have to manage interrupt
+// timing as well (generating them at the proper times), but that shouldn't be too difficult...
+// If the DSP isn't running, then fill the buffer with L/RTXD and exit.
 
 //
 // SDL callback routine to fill audio buffer

@@ -18,6 +18,7 @@
 
 #include <SDL.h>								// Used only for SDL_GetTicks...
 #include <stdlib.h>
+#include <time.h>
 #include "dac.h"
 #include "gpu.h"
 #include "jagdasm.h"
@@ -779,7 +780,7 @@ SET32(ram2, offset, data);
 		case 0x00:
 		{
 #ifdef DSP_DEBUG
-			WriteLog("DSP: Writing %08X to DSP_FLAGS by %s (REGPAGE is %s)...\n", data, whoName[who], (dsp_flags & REGPAGE ? "set" : "not set"));
+			WriteLog("DSP: Writing %08X to DSP_FLAGS by %s (REGPAGE is %sset)...\n", data, whoName[who], (dsp_flags & REGPAGE ? "" : "not "));
 #endif
 //			bool IMASKCleared = (dsp_flags & IMASK) && !(data & IMASK);
 			IMASKCleared = (dsp_flags & IMASK) && !(data & IMASK);
@@ -797,6 +798,19 @@ SET32(ram2, offset, data);
 //     interrupt, so that's what we check for here. Just know that this approach
 //     can be easily fooled!
 //     Note also that if both interrupts are enabled, the I2S freq will win. :-P
+
+// Further Note:
+// The impetus for this "fix" was Cybermorph, which sets the SCLK to 7 which is an
+// audio frequency > 48 KHz. However, it stuffs the L/RTXD registers using TIMER0.
+// So, while this works, it's a by-product of the lame way in which audio is currently
+// handled. Hopefully, once we run the DSP in the host audio IRQ, this problem will
+// go away of its own accord. :-P
+// Or does it? It seems the I2S interrupt isn't on with Cybermorph, so something
+// weird is going on here...
+// Maybe it works like this: It acknowledges the 1st interrupt, but never clears it.
+// So subsequent interrupts come into the chip, but they're never serviced but the
+// I2S subsystem keeps going.
+
 			if (data & INT_ENA1) // I2S interrupt
 			{
 				int freq = GetCalculatedFrequency();
@@ -872,7 +886,7 @@ if (who != DSP)
 		case 0x14:
 		{
 //#ifdef DSP_DEBUG
-WriteLog("Write to DSP CTRL by %s: %08X\n", whoName[who], data);
+WriteLog("Write to DSP CTRL by %s: %08X (DSP PC=$%08X)\n", whoName[who], data, dsp_pc);
 //#endif
 			bool wasRunning = DSP_RUNNING;
 //			uint32 dsp_was_running = DSP_RUNNING;
@@ -1271,6 +1285,7 @@ void DSPInit(void)
 
 	dsp_build_branch_condition_table();
 	DSPReset();
+	srandom(time(NULL));							// For randomizing local RAM
 }
 
 void DSPReset(void)
@@ -1297,7 +1312,12 @@ void DSPReset(void)
 	IMASKCleared = false;
 	FlushDSPPipeline();
 	dsp_reset_stats();
-	memset(dsp_ram_8, 0xFF, 0x2000);
+//	memset(dsp_ram_8, 0xFF, 0x2000);
+	// Contents of local RAM are quasi-stable; we simulate this by randomizing RAM contents
+	for(uint32 i=0; i<8192; i+=4)
+	{
+		*((uint32 *)(&dsp_ram_8[i])) = random();
+	}
 }
 
 void DSPDumpDisassembly(void)
@@ -1377,13 +1397,14 @@ void DSPDone(void)
 						  (j << 2) + 1, dsp_reg_bank_1[(j << 2) + 1],
 						  (j << 2) + 2, dsp_reg_bank_1[(j << 2) + 2],
 						  (j << 2) + 3, dsp_reg_bank_1[(j << 2) + 3]);
-
 	}
+
+	WriteLog("\n");
 
 	static char buffer[512];
 	j = DSP_WORK_RAM_BASE;
 
-	while (j <= 0xF1BFFF)
+	while (j <= 0xF1CFFF)
 	{
 		uint32 oldj = j;
 		j += dasmjag(JAGUAR_DSP, buffer, j);

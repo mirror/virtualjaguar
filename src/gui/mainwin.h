@@ -71,7 +71,9 @@ class MainWin: public QMainWindow
 		bool CDActive;
 //		bool alpineLoadSuccessful;
 		bool pauseForFileSelector;
-
+	public:
+		bool plzDontKillMyComputer;
+	private:
 		QMenu * fileMenu;
 		QMenu * helpMenu;
 		QToolBar * toolbar;

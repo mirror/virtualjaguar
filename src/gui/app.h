@@ -21,6 +21,7 @@ class App: public QApplication
 
 	private:
 		MainWin * mainWindow;
+//		bool noUntunedTankPlease;
 
 	// Globally accessible stuff goes here...
 	// Although... Globally accessible stuff should go into settings.cpp...
