@@ -1,7 +1,7 @@
 //
 // configdialog.h - Configuration dialog
 //
-// by James L. Hammons
+// by James Hammons
 // (C) 2010 Underground Software
 //
 

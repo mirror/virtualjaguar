@@ -30,6 +30,8 @@
 //hm. :-/
 // This is stuff we pass into the mainWindow...
 bool noUntunedTankPlease = false;
+bool loadAndGo = false;
+QString filename;
 
 // Here's the main application loop--short and simple...
 int main(int argc, char * argv[])
@@ -69,6 +71,13 @@ int main(int argc, char * argv[])
 		{
 			noUntunedTankPlease = true;
 		}
+
+		// Check for filename
+		if (argv[1][0] != '-')
+		{
+			loadAndGo = true;
+			filename = argv[1];
+		}
 	}
 
 	Q_INIT_RESOURCE(virtualjaguar);	// This must the same name as the exe filename
@@ -106,7 +115,7 @@ int main(int argc, char * argv[])
 
 App::App(int argc, char * argv[]): QApplication(argc, argv)
 {
-	mainWindow = new MainWin();
+	mainWindow = new MainWin(filename);
 	mainWindow->plzDontKillMyComputer = noUntunedTankPlease;
 	mainWindow->show();
 }

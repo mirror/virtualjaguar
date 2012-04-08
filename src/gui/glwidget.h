@@ -1,6 +1,6 @@
 // Implementation of OpenGL widget using Qt
 //
-// by James L. Hammons
+// by James Hammons
 // (C) 2010 Underground Software
 
 #ifndef __GLWIDGET_H__

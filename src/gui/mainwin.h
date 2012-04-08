@@ -1,7 +1,7 @@
 //
 // mainwin.h: Header file
 //
-// by James L. Hammons
+// by James Hammons
 // (C) 2010 Underground Software
 //
 
@@ -23,7 +23,7 @@ class MainWin: public QMainWindow
 	Q_OBJECT
 
 	public:
-		MainWin();
+		MainWin(QString);
 
 	protected:
 		void closeEvent(QCloseEvent *);
@@ -71,6 +71,7 @@ class MainWin: public QMainWindow
 		bool CDActive;
 //		bool alpineLoadSuccessful;
 		bool pauseForFileSelector;
+		bool loadAndGo;
 	public:
 		bool plzDontKillMyComputer;
 	private:

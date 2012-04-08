@@ -1,7 +1,7 @@
 //
 // keygrabber.h - Widget to grab a key and dismiss itself
 //
-// by James L. Hammons
+// by James Hammons
 // (C) 2011 Underground Software
 //
 

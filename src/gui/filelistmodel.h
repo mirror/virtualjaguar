@@ -1,7 +1,7 @@
 //
 // filelistmodel.h: Class definition
 //
-// by James L. Hammons
+// by James Hammons
 // (C) 2010 Underground Software
 //
 

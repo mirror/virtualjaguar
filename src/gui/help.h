@@ -1,7 +1,7 @@
 //
 // help.h: Built-in help system
 //
-// by James L. Hammons
+// by James Hammons
 // (C) 2011 Underground Software
 //
 

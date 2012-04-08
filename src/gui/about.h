@@ -1,7 +1,7 @@
 //
 // about.h: Credits where credits are due ;-)
 //
-// by James L. Hammons
+// by James Hammons
 // (C) 2010 Underground Software
 //
 

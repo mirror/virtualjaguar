@@ -34,6 +34,7 @@
 #include "mainwin.h"
 
 #include "SDL.h"
+#include "app.h"
 #include "glwidget.h"
 #include "about.h"
 #include "help.h"
@@ -70,9 +71,10 @@
 // We'll make the VJ core modular so that it doesn't matter what GUI is in
 // use, we can drop it in anywhere and use it as-is.
 
-MainWin::MainWin(): running(true), powerButtonOn(false), showUntunedTankCircuit(true),
-	cartridgeLoaded(false), CDActive(false),//, alpineLoadSuccessful(false),
-	pauseForFileSelector(false), plzDontKillMyComputer(false)
+MainWin::MainWin(QString filenameToRun): running(true), powerButtonOn(false),
+	showUntunedTankCircuit(true), cartridgeLoaded(false), CDActive(false),
+	//, alpineLoadSuccessful(false),
+	pauseForFileSelector(false), loadAndGo(false), plzDontKillMyComputer(false)
 {
 	videoWidget = new GLWidget(this);
 	setCentralWidget(videoWidget);
@@ -259,7 +261,15 @@ MainWin::MainWin(): running(true), powerButtonOn(false), showUntunedTankCircuit(
 	WriteLog("VJ: Initializing jaguar subsystem...\n");
 	JaguarInit();
 
-	filePickWin->ScanSoftwareFolder(allowUnknownSoftware);
+	if (!filenameToRun.isEmpty())
+	{
+		loadAndGo = true;
+		// Attempt to load/run the file the user passed in...
+		LoadSoftware(filenameToRun);
+		memcpy(jagMemSpace + 0xE00000, jaguarBootROM, 0x20000);	// Use the stock BIOS
+		// Prevent the scanner from running...
+		return;
+	}
 
 	// Load up the default ROM if in Alpine mode:
 	if (vjs.hardwareTypeAlpine)
@@ -279,9 +289,13 @@ MainWin::MainWin(): running(true), powerButtonOn(false), showUntunedTankCircuit(
 		// Attempt to load/run the ABS file...
 		LoadSoftware(vjs.absROMPath);
 		memcpy(jagMemSpace + 0xE00000, jaguarDevBootROM2, 0x20000);	// Use the stub BIOS
+		// Prevent the scanner from running...
+		return;
 	}
 	else
 		memcpy(jagMemSpace + 0xE00000, jaguarBootROM, 0x20000);	// Otherwise, use the stock BIOS
+
+	filePickWin->ScanSoftwareFolder(allowUnknownSoftware);
 }
 
 void MainWin::closeEvent(QCloseEvent * event)
@@ -622,7 +636,7 @@ void MainWin::LoadSoftware(QString file)
 	powerButtonOn = false;
 	TogglePowerState();
 
-	if (!vjs.hardwareTypeAlpine)
+	if (!vjs.hardwareTypeAlpine && !loadAndGo)
 	{
 		QString newTitle = QString("Virtual Jaguar " VJ_RELEASE_VERSION " - Now playing: %1")
 			.arg(filePickWin->GetSelectedPrettyName());
