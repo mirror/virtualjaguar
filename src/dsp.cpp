@@ -29,12 +29,6 @@
 //#include "memory.h"
 
 
-#ifdef __GCCWIN32__
-// Apparently on win32, they left of the last little bits of these. So let's do this:
-#define random rand
-#define srandom srand
-#endif
-
 // Seems alignment in loads & stores was off...
 #define DSP_CORRECT_ALIGNMENT
 //#define DSP_CORRECT_ALIGNMENT_STORE
@@ -1294,7 +1288,7 @@ void DSPInit(void)
 
 	dsp_build_branch_condition_table();
 	DSPReset();
-	srandom(time(NULL));							// For randomizing local RAM
+	srand(time(NULL));							// For randomizing local RAM
 }
 
 void DSPReset(void)
@@ -1325,7 +1319,7 @@ void DSPReset(void)
 	// Contents of local RAM are quasi-stable; we simulate this by randomizing RAM contents
 	for(uint32 i=0; i<8192; i+=4)
 	{
-		*((uint32 *)(&dsp_ram_8[i])) = random();
+		*((uint32 *)(&dsp_ram_8[i])) = rand();
 	}
 }
 
