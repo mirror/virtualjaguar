@@ -29,6 +29,12 @@
 //#include "memory.h"
 
 
+#ifdef __GCCWIN32__
+// Apparently on win32, they left of the last little bits of these. So let's do this:
+#define random rand
+#define srandom srand
+#endif
+
 // Seems alignment in loads & stores was off...
 #define DSP_CORRECT_ALIGNMENT
 //#define DSP_CORRECT_ALIGNMENT_STORE
@@ -810,6 +816,9 @@ SET32(ram2, offset, data);
 // Maybe it works like this: It acknowledges the 1st interrupt, but never clears it.
 // So subsequent interrupts come into the chip, but they're never serviced but the
 // I2S subsystem keeps going.
+// After some testing on real hardware, it seems that if you enable TIMER0 and EXTERNAL
+// IRQs on J_INT ($F10020), you don't have to run an I2S interrupt on the DSP. Also,
+// It seems that it's only stable for values of SCLK <= 9.
 
 			if (data & INT_ENA1) // I2S interrupt
 			{

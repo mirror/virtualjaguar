@@ -260,13 +260,15 @@ MainWin::MainWin(QString filenameToRun): running(true), powerButtonOn(false),
 	WriteLog("Virtual Jaguar %s (Last full build was on %s %s)\n", VJ_RELEASE_VERSION, __DATE__, __TIME__);
 	WriteLog("VJ: Initializing jaguar subsystem...\n");
 	JaguarInit();
+	memcpy(jagMemSpace + 0xE00000, jaguarBootROM, 0x20000);	// Use the stock BIOS
 
+	// Check for filename passed in on the command line...
 	if (!filenameToRun.isEmpty())
 	{
 		loadAndGo = true;
 		// Attempt to load/run the file the user passed in...
 		LoadSoftware(filenameToRun);
-		memcpy(jagMemSpace + 0xE00000, jaguarBootROM, 0x20000);	// Use the stock BIOS
+//		memcpy(jagMemSpace + 0xE00000, jaguarBootROM, 0x20000);	// Use the stock BIOS
 		// Prevent the scanner from running...
 		return;
 	}
@@ -292,9 +294,11 @@ MainWin::MainWin(QString filenameToRun): running(true), powerButtonOn(false),
 		// Prevent the scanner from running...
 		return;
 	}
-	else
-		memcpy(jagMemSpace + 0xE00000, jaguarBootROM, 0x20000);	// Otherwise, use the stock BIOS
+//	else
+//		memcpy(jagMemSpace + 0xE00000, jaguarBootROM, 0x20000);	// Otherwise, use the stock BIOS
 
+	// Run the scanner if nothing passed in and *not* Alpine mode...
+	// NB: Really need to look into caching the info scanned in here...
 	filePickWin->ScanSoftwareFolder(allowUnknownSoftware);
 }
 

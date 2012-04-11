@@ -814,8 +814,11 @@ else if (offset == 0xF10014)
 //	WriteLog("JERRY: D_FLAGS word written by %s: %u\n", whoName[who], data);
 //else if (offset == 0xF1A102)
 //	WriteLog("JERRY: D_FLAGS+2 word written by %s: %u\n", whoName[who], data);
-//else if (offset == 0xF10020)
-//	WriteLog("JERRY: JINTCTRL word written by %s: $%04X\n", whoName[who], data);
+else if (offset == 0xF10020)
+	WriteLog("JERRY: JINTCTRL word written by %s: $%04X (%s%s%s%s%s%s)\n", whoName[who], data,
+		(data & 0x01 ? "Extrnl " : ""), (data & 0x02 ? "DSP " : ""),
+		(data & 0x04 ? "Timer0 " : ""), (data & 0x08 ? "Timer1 " : ""),
+		(data & 0x10 ? "ASI " : ""), (data & 0x20 ? "I2S " : ""));
 #endif
 
 	if ((offset >= DSP_CONTROL_RAM_BASE) && (offset < DSP_CONTROL_RAM_BASE+0x20))
