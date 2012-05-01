@@ -691,6 +691,8 @@ void MainWin::ResizeMainWindow(void)
 	}
 }
 
+#warning "!!! Need to check the window geometry to see if the positions are legal !!!"
+// i.e., someone could drag it to another screen, close it, then disconnect that screen
 void MainWin::ReadSettings(void)
 {
 	QSettings settings("Underground Software", "Virtual Jaguar");
@@ -731,6 +733,7 @@ WriteLog("   EEPROMPath = \"%s\"\n", vjs.EEPROMPath);
 WriteLog("      ROMPath = \"%s\"\n", vjs.ROMPath);
 WriteLog("AlpineROMPath = \"%s\"\n", vjs.alpineROMPath);
 WriteLog("   absROMPath = \"%s\"\n", vjs.absROMPath);
+WriteLog("Pipelined DSP = %s\n", (vjs.usePipelinedDSP ? "ON" : "off"));
 
 	// Keybindings in order of U, D, L, R, C, B, A, Op, Pa, 0-9, #, *
 	vjs.p1KeyBindings[BUTTON_U] = settings.value("p1k_up", Qt::Key_S).toInt();

@@ -50,16 +50,21 @@
 #include "dac.h"
 
 #include "SDL.h"
-//#include "gui.h"
+#include "cdrom.h"
+#include "dsp.h"
+#include "event.h"
+#include "jerry.h"
 #include "jaguar.h"
 #include "log.h"
 #include "m68k.h"
 //#include "memory.h"
 #include "settings.h"
 
+
 //#define DEBUG_DAC
 
-#define BUFFER_SIZE		0x10000						// Make the DAC buffers 64K x 16 bits
+#define BUFFER_SIZE			0x10000				// Make the DAC buffers 64K x 16 bits
+#define DAC_AUDIO_RATE		48000				// Set the audio rate to 48 KHz
 
 // Jaguar memory locations
 
@@ -72,7 +77,7 @@
 
 // Global variables
 
-//uint16 lrxd, rrxd;									// I2S ports (into Jaguar)
+//uint16 lrxd, rrxd;							// I2S ports (into Jaguar)
 
 // Local variables
 
@@ -84,12 +89,15 @@ static bool SDLSoundInitialized;
 // endian when looking at the sample buffer, i.e., no need to worry about it.
 
 static uint16 DACBuffer[BUFFER_SIZE];
-static uint8 SCLKFrequencyDivider = 19;				// Default is roughly 22 KHz (20774 Hz in NTSC mode)
+static uint8 SCLKFrequencyDivider = 19;			// Default is roughly 22 KHz (20774 Hz in NTSC mode)
 /*static*/ uint16 serialMode = 0;
 
 // Private function prototypes
 
 void SDLSoundCallback(void * userdata, Uint8 * buffer, int length);
+void SDLSoundCallbackNew(void * userdata, Uint8 * buffer, int length);
+void DSPSampleCallback(void);
+
 
 //
 // Initialize the SDL sound system
@@ -104,6 +112,13 @@ void DACInit(void)
 		return;
 	}
 
+#ifdef NEW_DAC_CODE
+	desired.freq = DAC_AUDIO_RATE;
+	desired.format = AUDIO_S16SYS;
+	desired.channels = 2;
+	desired.samples = 2048;
+	desired.callback = SDLSoundCallbackNew;
+#else
 //	memory_malloc_secure((void **)&DACBuffer, BUFFER_SIZE * sizeof(uint16), "DAC buffer");
 //	DACBuffer = (uint16 *)memory_malloc(BUFFER_SIZE * sizeof(uint16), "DAC buffer");
 
@@ -113,6 +128,7 @@ void DACInit(void)
 //	desired.samples = 4096;							// Let's try a 4K buffer (can always go lower)
 	desired.samples = 2048;							// Let's try a 2K buffer (can always go lower)
 	desired.callback = SDLSoundCallback;
+#endif
 
 	if (SDL_OpenAudio(&desired, NULL) < 0)			// NULL means SDL guarantees what we want
 		WriteLog("DAC: Failed to initialize SDL sound...\n");
@@ -120,10 +136,17 @@ void DACInit(void)
 	{
 		SDLSoundInitialized = true;
 		DACReset();
-		SDL_PauseAudio(false);							// Start playback!
-		WriteLog("DAC: Successfully initialized.\n");
+		SDL_PauseAudio(false);						// Start playback!
+		WriteLog("DAC: Successfully initialized. Sample rate: %u\n", desired.freq);
 	}
+
+	ltxd = lrxd = desired.silence;
+
+	uint32_t riscClockRate = (vjs.hardwareTypeNTSC ? RISC_CLOCK_RATE_NTSC : RISC_CLOCK_RATE_PAL);
+	uint32_t cyclesPerSample = riscClockRate / DAC_AUDIO_RATE;
+	WriteLog("DAC: RISC clock = %u, cyclesPerSample = %u\n", riscClockRate, cyclesPerSample);
 }
+
 
 //
 // Reset the sound buffer FIFOs
@@ -131,7 +154,9 @@ void DACInit(void)
 void DACReset(void)
 {
 	LeftFIFOHeadPtr = LeftFIFOTailPtr = 0, RightFIFOHeadPtr = RightFIFOTailPtr = 1;
+	ltxd = lrxd = desired.silence;
 }
+
 
 //
 // Close down the SDL sound subsystem
@@ -162,6 +187,138 @@ void DACDone(void)
 // SDL callback routine to fill audio buffer
 //
 // Note: The samples are packed in the buffer in 16 bit left/16 bit right pairs.
+//       Also, length is the length of the buffer in BYTES
+//
+//static double timePerSample = 0;
+static Uint8 * sampleBuffer;
+static int bufferIndex = 0;
+static int numberOfSamples = 0;
+static bool bufferDone = false;
+void SDLSoundCallbackNew(void * userdata, Uint8 * buffer, int length)
+{
+	// 1st, check to see if the DSP is running. If not, fill the buffer with L/RXTD and exit.
+
+	if (!DSPIsRunning())
+	{
+		for(int i=0; i<(length/2); i+=2)
+		{
+			((uint16_t *)buffer)[i + 0] = ltxd;
+			((uint16_t *)buffer)[i + 1] = rtxd;
+		}
+
+		return;
+	}
+
+	// The length of time we're dealing with here is 1/48000 s, so we multiply this
+	// by the number of cycles per second to get the number of cycles for one sample.
+	uint32_t riscClockRate = (vjs.hardwareTypeNTSC ? RISC_CLOCK_RATE_NTSC : RISC_CLOCK_RATE_PAL);
+	uint32_t cyclesPerSample = riscClockRate / DAC_AUDIO_RATE;
+	// This is the length of time
+//	timePerSample = (1000000.0 / (double)riscClockRate) * ();
+
+	// Now, run the DSP for that length of time for each sample we need to make
+
+#if 0
+	for(int i=0; i<(length/2); i+=2)
+	{
+//This stuff is from the old Jaguar execute loop. New stuff is timer based...
+//which means we need to figure that crap out, and how to make it work here.
+//Seems like we need two separate timing queues. Tho not sure how to make that work here...
+//Maybe like the "frameDone" in JaguarExecuteNew() in jaguar.cpp?
+//		JERRYExecPIT(cyclesPerSample);
+//		JERRYI2SExec(cyclesPerSample);
+//		BUTCHExec(cyclesPerSample);
+
+		if (vjs.DSPEnabled)
+		{
+			if (vjs.usePipelinedDSP)
+				DSPExecP2(cyclesPerSample);
+			else
+				DSPExec(cyclesPerSample);
+		}
+
+		((uint16_t *)buffer)[i + 0] = ltxd;
+		((uint16_t *)buffer)[i + 1] = rtxd;
+	}
+#else
+	bufferIndex = 0;
+	sampleBuffer = buffer;
+	numberOfSamples = length / 2;
+	bufferDone = false;
+
+	SetCallbackTime(DSPSampleCallback, 1000000.0 / (double)DAC_AUDIO_RATE, EVENT_JERRY);
+
+	// These timings are tied to NTSC, need to fix that in event.cpp/h!
+	do
+	{
+		double timeToNextEvent = GetTimeToNextEvent(EVENT_JERRY);
+
+		if (vjs.DSPEnabled)
+		{
+			if (vjs.usePipelinedDSP)
+				DSPExecP2(USEC_TO_RISC_CYCLES(timeToNextEvent));
+			else
+				DSPExec(USEC_TO_RISC_CYCLES(timeToNextEvent));
+		}
+
+		HandleNextEvent(EVENT_JERRY);
+	}
+	while (!bufferDone);
+
+	// We do this to prevent problems with trying to write past the end of the buffer...
+//	RemoveCallback(DSPSampleCallback);
+#endif
+}
+
+
+void DSPSampleCallback(void)
+{
+	((uint16_t *)sampleBuffer)[bufferIndex + 0] = ltxd;
+	((uint16_t *)sampleBuffer)[bufferIndex + 1] = rtxd;
+	bufferIndex += 2;
+
+	if (bufferIndex == numberOfSamples)
+	{
+		bufferDone = true;
+		return;
+	}
+
+	SetCallbackTime(DSPSampleCallback, 1000000.0 / (double)DAC_AUDIO_RATE, EVENT_JERRY);
+}
+#if 0
+	frameDone = false;
+
+	do
+	{
+		double timeToNextEvent = GetTimeToNextEvent();
+//WriteLog("JEN: Time to next event (%u) is %f usec (%u RISC cycles)...\n", nextEvent, timeToNextEvent, USEC_TO_RISC_CYCLES(timeToNextEvent));
+
+		m68k_execute(USEC_TO_M68K_CYCLES(timeToNextEvent));
+
+		if (vjs.GPUEnabled)
+			GPUExec(USEC_TO_RISC_CYCLES(timeToNextEvent));
+
+#ifndef NEW_DAC_CODE
+		if (vjs.DSPEnabled)
+		{
+			if (vjs.usePipelinedDSP)
+				DSPExecP2(USEC_TO_RISC_CYCLES(timeToNextEvent));	// Pipelined DSP execution (3 stage)...
+			else
+				DSPExec(USEC_TO_RISC_CYCLES(timeToNextEvent));		// Ordinary non-pipelined DSP
+		}
+#endif
+
+		HandleNextEvent();
+ 	}
+	while (!frameDone);
+#endif
+
+
+//
+// SDL callback routine to fill audio buffer
+//
+// Note: The samples are packed in the buffer in 16 bit left/16 bit right pairs.
+//       Also, length is the length of the buffer in BYTES
 //
 void SDLSoundCallback(void * userdata, Uint8 * buffer, int length)
 {
@@ -219,6 +376,7 @@ if (numLeftSamplesReady == 0 || numRightSamplesReady == 0)
 //		WriteLog("DAC: Silence...!\n");
 }
 
+
 //
 // Calculate the frequency of SCLK * 32 using the divider
 //
@@ -231,10 +389,13 @@ int GetCalculatedFrequency(void)
 	return systemClockFrequency / (32 * (2 * (SCLKFrequencyDivider + 1)));
 }
 
+
 static int oldFreq = 0;
 
 void DACSetNewFrequency(int freq)
 {
+#ifdef NEW_DAC_CODE
+#else
 	if (freq == oldFreq)
 		return;
 
@@ -267,7 +428,9 @@ void DACSetNewFrequency(int freq)
 
 	if (SDLSoundInitialized)
 		SDL_PauseAudio(false);			// Start playback!
+#endif
 }
+
 
 //
 // LTXD/RTXD/SCLK/SMODE ($F1A148/4C/50/54)
@@ -279,12 +442,17 @@ void DACWriteByte(uint32 offset, uint8 data, uint32 who/*= UNKNOWN*/)
 		DACWriteWord(offset - 3, (uint16)data);
 }
 
+
 void DACWriteWord(uint32 offset, uint16 data, uint32 who/*= UNKNOWN*/)
 {
 	if (offset == LTXD + 2)
 	{
 		if (!SDLSoundInitialized)
 			return;
+
+#ifdef NEW_DAC_CODE
+		ltxd = data;
+#else
 		// Spin until buffer has been drained (for too fast processors!)...
 //Small problem--if Head == 0 and Tail == buffer end, then this will fail... !!! FIX !!!
 //[DONE]
@@ -321,6 +489,7 @@ WriteLog("Tail=%X, Head=%X", ltail, lhead);
 		LeftFIFOTailPtr = (LeftFIFOTailPtr + 2) % BUFFER_SIZE;
 		DACBuffer[LeftFIFOTailPtr] = data;
 		SDL_UnlockAudio();
+#endif
 	}
 	else if (offset == RTXD + 2)
 	{
@@ -381,6 +550,9 @@ LTail=60D8, LHead=60D8, BUFFER_SIZE-1=FFFF
 RTail=DB, RHead=60D9, BUFFER_SIZE-1=FFFF
 From while: Tail=60DA, Head=60D8
 */
+#ifdef NEW_DAC_CODE
+		rtxd = data;
+#else
 #warning Spinlock problem--!!! FIX !!!
 #warning Odd: The right FIFO is empty, but the left FIFO is full!
 		// Spin until buffer has been drained (for too fast processors!)...
@@ -416,6 +588,7 @@ WriteLog("Tail=%X, Head=%X", rtail, rhead);
 		else
 			WriteLog("DAC: Ran into FIFO's right tail pointer!\n");
 #endif*/
+#endif
 	}
 	else if (offset == SCLK + 2)					// Sample rate
 	{
@@ -423,6 +596,8 @@ WriteLog("Tail=%X, Head=%X", rtail, rhead);
 		if ((uint8)data != SCLKFrequencyDivider)
 		{
 			SCLKFrequencyDivider = (uint8)data;
+#ifdef NEW_DAC_CODE
+#else
 //Of course a better way would be to query the hardware to find the upper limit...
 			if (data > 7)	// Anything less than 8 is too high!
 			{
@@ -452,6 +627,7 @@ WriteLog("Tail=%X, Head=%X", rtail, rhead);
 				if (SDLSoundInitialized)
 					SDL_PauseAudio(false);			// Start playback!
 			}
+#endif
 		}
 	}
 	else if (offset == SMODE + 2)
@@ -465,6 +641,7 @@ WriteLog("Tail=%X, Head=%X", rtail, rhead);
 	}
 }
 
+
 //
 // LRXD/RRXD/SSTAT ($F1A148/4C/50)
 //
@@ -473,6 +650,7 @@ uint8 DACReadByte(uint32 offset, uint32 who/*= UNKNOWN*/)
 //	WriteLog("DAC: %s reading byte from %08X\n", whoName[who], offset);
 	return 0xFF;
 }
+
 
 //static uint16 fakeWord = 0;
 uint16 DACReadWord(uint32 offset, uint32 who/*= UNKNOWN*/)

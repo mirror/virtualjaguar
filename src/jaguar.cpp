@@ -852,7 +852,7 @@ void ShowM68KContext(void)
 }
 
 //
-// Musashi 68000 read/write/IRQ functions
+// Custom UAE 68000 read/write/IRQ functions
 //
 
 #if 0
@@ -1750,6 +1750,8 @@ void HalflineCallback(void);
 void RenderCallback(void);
 void JaguarReset(void)
 {
+	// New timer base code stuffola...
+	InitializeEventList();
 //Need to change this so it uses the single RAM space and load the BIOS
 //into it somewhere...
 //Also, have to change this here and in JaguarReadXX() currently
@@ -1770,8 +1772,6 @@ void JaguarReset(void)
 	WriteLog("Jaguar: 68K reset. PC=%06X SP=%08X\n", m68k_get_reg(NULL, M68K_REG_PC), m68k_get_reg(NULL, M68K_REG_A7));
 
 	lowerField = false;								// Reset the lower field flag
-	// New timer base code stuffola...
-	InitializeEventList();
 //	SetCallbackTime(ScanlineCallback, 63.5555);
 //	SetCallbackTime(ScanlineCallback, 31.77775);
 	SetCallbackTime(HalflineCallback, (vjs.hardwareTypeNTSC ? 31.777777777 : 32.0));
@@ -1911,89 +1911,6 @@ void JaguarDone(void)
 //	JaguarDasm(0x800800, 0x1000);
 }
 
-//
-// Main Jaguar execution loop (1 frame)
-//
-void JaguarExecute(uint32 * backbuffer, bool render)
-{
-	uint16 vp = TOMReadWord(0xF0003E, JAGUAR) + 1;
-	uint16 vi = TOMReadWord(0xF0004E, JAGUAR);
-//Using WO registers is OK, since we're the ones controlling access--there's nothing wrong here! ;-)
-//Though we shouldn't be able to do it using TOMReadWord... !!! FIX !!!
-
-//	uint16 vdb = TOMReadWord(0xF00046, JAGUAR);
-//Note: This is the *definite* end of the display, though VDE *might* be less than this...
-//	uint16 vbb = TOMReadWord(0xF00040, JAGUAR);
-//It seems that they mean it when they say that VDE is the end of object processing.
-//However, we need to be able to tell the OP (or TOM) that we've reached the end of the
-//buffer and not to write any more pixels... !!! FIX !!!
-//	uint16 vde = TOMReadWord(0xF00048, JAGUAR);
-
-	uint16 refreshRate = (vjs.hardwareTypeNTSC ? 60 : 50);
-	uint32 m68kClockRate = (vjs.hardwareTypeNTSC ? M68K_CLOCK_RATE_NTSC : M68K_CLOCK_RATE_PAL);
-//Not sure the above is correct, since the number of lines and timings given in the JTRM
-//seem to indicate the refresh rate is *half* the above...
-//	uint16 refreshRate = (vjs.hardwareTypeNTSC ? 30 : 25);
-	// Should these be hardwired or read from VP? Yes, from VP!
-	// Err, actually, they should be hardwired, and hardwired to a set # of
-	// lines as well...
-	uint32 M68KCyclesPerScanline = m68kClockRate / (vp * refreshRate);
-	uint32 RISCCyclesPerScanline = m68kClockRate / (vp * refreshRate);
-
-/*extern int effect_start;
-if (effect_start)
-	WriteLog("JagExe: VP=%u, VI=%u, CPU CPS=%u, GPU CPS=%u\n", vp, vi, M68KCyclesPerScanline, RISCCyclesPerScanline);//*/
-
-//extern int start_logging;
-	for(uint16 i=0; i<vp; i++)
-	{
-		// Increment the horizontal count (why? RNG? Besides which, this is *NOT* cycle accurate!)
-		TOMWriteWord(0xF00004, (TOMReadWord(0xF00004, JAGUAR) + 1) & 0x7FF, JAGUAR);
-		TOMWriteWord(0xF00006, i, JAGUAR);			// Write the VC
-
-//Not sure if this is correct...
-//Seems to be, kinda. According to the JTRM, this should only fire on odd lines in non-interlace mode...
-//Which means that it normally wouldn't go when it's zero.
-		if (i == vi && i > 0 && TOMIRQEnabled(IRQ_VIDEO))	// Time for Vertical Interrupt?
-		{
-			// We don't have to worry about autovectors & whatnot because the Jaguar
-			// tells you through its HW registers who sent the interrupt...
-			TOMSetPendingVideoInt();
-			m68k_set_irq(2);
-		}
-
-//if (start_logging)
-//	WriteLog("About to execute M68K (%u)...\n", i);
-		m68k_execute(M68KCyclesPerScanline);
-//if (start_logging)
-//	WriteLog("About to execute TOM's PIT (%u)...\n", i);
-		TOMExecPIT(RISCCyclesPerScanline);
-//if (start_logging)
-//	WriteLog("About to execute JERRY's PIT (%u)...\n", i);
-		JERRYExecPIT(RISCCyclesPerScanline);
-//if (start_logging)
-//	WriteLog("About to execute JERRY's SSI (%u)...\n", i);
-		JERRYI2SExec(RISCCyclesPerScanline);
-		BUTCHExec(RISCCyclesPerScanline);
-//if (start_logging)
-//	WriteLog("About to execute GPU (%u)...\n", i);
-		if (vjs.GPUEnabled)
-			GPUExec(RISCCyclesPerScanline);
-
-		if (vjs.DSPEnabled)
-		{
-			if (vjs.usePipelinedDSP)
-				DSPExecP2(RISCCyclesPerScanline);	// Pipelined DSP execution (3 stage)...
-			else
-				DSPExec(RISCCyclesPerScanline);		// Ordinary non-pipelined DSP
-//			DSPExecComp(RISCCyclesPerScanline);		// Comparison core
-		}
-
-//if (start_logging)
-//	WriteLog("About to execute OP (%u)...\n", i);
-		TOMExecHalfline(i, render);
-	}
-}
 
 // Temp debugging stuff
 
@@ -2008,10 +1925,12 @@ void DumpMainMemory(void)
 	fclose(fp);
 }
 
+
 uint8 * GetRamPtr(void)
 {
 	return jaguarMainRAM;
 }
+
 
 //
 // New Jaguar execution stack
@@ -2032,6 +1951,7 @@ void JaguarExecuteNew(void)
 		if (vjs.GPUEnabled)
 			GPUExec(USEC_TO_RISC_CYCLES(timeToNextEvent));
 
+#ifndef NEW_DAC_CODE
 		if (vjs.DSPEnabled)
 		{
 			if (vjs.usePipelinedDSP)
@@ -2039,11 +1959,13 @@ void JaguarExecuteNew(void)
 			else
 				DSPExec(USEC_TO_RISC_CYCLES(timeToNextEvent));		// Ordinary non-pipelined DSP
 		}
+#endif
 
 		HandleNextEvent();
  	}
 	while (!frameDone);
 }
+
 
 #define USE_CORRECT_PAL_TIMINGS
 // A lot of confusion comes from here...
@@ -2128,6 +2050,7 @@ void HalflineCallback(void)
 	SetCallbackTime(HalflineCallback, 31.77775);
 #endif
 }
+
 
 // This isn't currently used, but maybe it should be...
 /*

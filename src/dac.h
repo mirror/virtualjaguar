@@ -5,6 +5,9 @@
 #ifndef __DAC_H__
 #define __DAC_H__
 
+//this is here, because we have to compensate in more than just dac.cpp...
+#define NEW_DAC_CODE							// New code paths!
+
 //#include "types.h"
 #include "memory.h"
 

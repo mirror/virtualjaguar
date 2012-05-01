@@ -156,6 +156,8 @@ uint32 butch, dscntrl, ds_data, i2cntrl, sbcntrl, subdata, subdatb, sb_time, fif
 // Actually, considering that "byteswap.h" doesn't exist elsewhere, the above
 // is probably our best bet here. Just need to rename them to ESAFExx().
 
+// Look at <endian.h> and see if that header is portable or not.
+
 uint16 & memcon1   = *((uint16 *)&jagMemSpace[0xF00000]);
 uint16 & memcon2   = *((uint16 *)&jagMemSpace[0xF00002]);
 uint16 & hc        = *((uint16 *)&jagMemSpace[0xF00004]);

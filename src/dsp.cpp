@@ -1280,6 +1280,11 @@ DSPHandleIRQsNP();
 //	GPUSetIRQLine(GPUIRQ_DSP, ASSERT_LINE);
 }
 
+bool DSPIsRunning(void)
+{
+	return (DSP_RUNNING ? true : false);
+}
+
 void DSPInit(void)
 {
 //	memory_malloc_secure((void **)&dsp_ram_8, 0x2000, "DSP work RAM");
