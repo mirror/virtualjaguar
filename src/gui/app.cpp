@@ -11,6 +11,7 @@
 // JLH  12/23/2009  Created this file
 // JLH  01/21/2011  Added SDL initialization
 // JLH  06/26/2011  Added fix to keep SDL from hijacking main() on win32
+// JLH  05/24/2012  Added option switches
 //
 
 #include "app.h"
@@ -21,16 +22,24 @@
 #include "mainwin.h"
 #include "settings.h"
 #include "types.h"
+#include "version.h"
 
-#ifdef __GCCWIN32__
+
 // Apparently on win32, SDL is hijacking main from Qt. So let's do this:
+#ifdef __GCCWIN32__
 #undef main
 #endif
+
+// Function prototypes...
+static bool ParseCommandLine(int argc, char * argv[]);
+static void ParseOptions(int argc, char * argv[]);
+
 
 //hm. :-/
 // This is stuff we pass into the mainWindow...
 bool noUntunedTankPlease = false;
 bool loadAndGo = false;
+bool useLogfile = true;
 QString filename;
 
 // Here's the main application loop--short and simple...
@@ -41,55 +50,25 @@ int main(int argc, char * argv[])
 	// This is stuff we pass into the mainWindow...
 //	noUntunedTankPlease = false;
 
-	if (argc > 1)
-	{
-		if ((strcmp(argv[1], "--help") == 0) || (strcmp(argv[1], "-h") == 0)
-			|| (strcmp(argv[1], "-?") == 0))
-		{
-			printf("Virtual Jaguar 2.0.0 help\n");
-			printf("\n");
-			printf("Command line interface is mostly non-functional ATM, but may return if\n"
-				"there is enough demand for it. :-)\n");
-			return 0;
-		}
-
-		if (strcmp(argv[1], "--yarrr") == 0)
-		{
-			printf("\n");
-			printf("Shiver me timbers!\n");
-			printf("\n");
-			return 0;
-		}
-
-		if ((strcmp(argv[1], "--alpine") == 0) || (strcmp(argv[1], "-a") == 0))
-		{
-			printf("Alpine Mode enabled.\n");
-			vjs.hardwareTypeAlpine = true;
-		}
-
-		if (strcmp(argv[1], "--please-dont-kill-my-computer") == 0)
-		{
-			noUntunedTankPlease = true;
-		}
-
-		// Check for filename
-		if (argv[1][0] != '-')
-		{
-			loadAndGo = true;
-			filename = argv[1];
-		}
-	}
+	// Check for options that must be in place be constructing the App object
+	if (!ParseCommandLine(argc, argv))
+		return 0;
 
 	Q_INIT_RESOURCE(virtualjaguar);	// This must the same name as the exe filename
 //or is it the .qrc filename???
 	// This is so we can pass this stuff using signal/slot mechanism...
+//this is left here to remind me not to try doing this again :-P
 //ick	int id = qRegisterMetaType<uint32>();
 
-	bool success = (bool)LogInit("virtualjaguar.log");	// Init logfile
 	int retVal = -1;							// Default is failure
 
-	if (!success)
-		printf("Failed to open virtualjaguar.log for writing!\n");
+	if (useLogfile)
+	{
+		bool success = (bool)LogInit("./virtualjaguar.log");	// Init logfile
+
+		if (!success)
+			printf("Failed to open virtualjaguar.log for writing!\n");
+	}
 
 	// Set up SDL library
 	if (SDL_Init(SDL_INIT_JOYSTICK | SDL_INIT_AUDIO) < 0)
@@ -111,11 +90,207 @@ int main(int argc, char * argv[])
 	return retVal;
 }
 
-// Main app constructor--we stick globally accessible stuff here...
-
+//
+// Main app constructor--we stick globally accessible stuff here... (?)
+//
 App::App(int argc, char * argv[]): QApplication(argc, argv)
 {
-	mainWindow = new MainWin(filename);
+	bool loadAndGo = !filename.isEmpty();
+
+	mainWindow = new MainWin(loadAndGo);
 	mainWindow->plzDontKillMyComputer = noUntunedTankPlease;
+	ParseOptions(argc, argv);					// Override defaults with command line (if any)
+	mainWindow->SyncUI();
+
+	if (loadAndGo)
+		mainWindow->LoadFile(filename);
+
 	mainWindow->show();
 }
+
+
+//
+// Here we parse out stuff that needs to be looked at *before* we construct the 
+// App object.
+//
+bool ParseCommandLine(int argc, char * argv[])
+{
+	for(int i=1; i<argc; i++)
+	{
+		if ((strcmp(argv[i], "--help") == 0) || (strcmp(argv[i], "-h") == 0)
+			|| (strcmp(argv[i], "-?") == 0))
+		{
+			printf(
+				"Virtual Jaguar " VJ_RELEASE_VERSION " (" VJ_RELEASE_SUBVERSION ")\n"
+				"Based upon Virtual Jaguar core v1.0.0 by David Raingeard.\n"
+				"Written by Niels Wagenaar (Linux/WIN32), Carwin Jones (BeOS),\n"
+				"James Hammons (Linux/WIN32) and Adam Green (MacOS)\n"
+				"Contact: http://sdlemu.ngemu.com/ | sdlemu@ngemu.com\n"
+				"\n"
+				"Usage:\n"
+				"   virtualjaguar [<filename>] [switches]\n"
+				"\n"
+				"   Option            Description\n"
+				"   ----------------  -----------------------------------\n"
+				"   <filename>        Name of file to autoload\n"
+				"   --alpine      -a  Put Virtual Jaguar into Alpine mode\n"
+				"   --pal         -p  PAL mode\n"
+				"   --ntsc        -n  NTSC mode\n"
+				"   --bios        -b  Boot using Jagaur BIOS\n"
+				"   --no-bios         Do not use Jaguar BIOS\n"
+				"   --gpu         -g  Enable GPU\n"
+				"   --no-gpu          Disable GPU\n"
+				"   --dsp         -d  Enable DSP\n"
+				"   --no-dsp          Disable DSP\n"
+				"   --fullscreen  -f  Start in full screen mode\n"
+				"   --blur        -B  Enable GL bilinear filter\n"
+				"   --no-blur         Disable GL bilinear filtering\n"
+				"   --log         -l  Create and use log file\n"
+				"   --no-log          Do not use log file\n"
+				"   --help        -h  Show this message\n"
+				"\n"
+				"Invoking Virtual Jagaur with no filename will cause it to boot up\n"
+				"with the VJ GUI.\n"
+				"\n");
+			return false;
+		}
+
+		if (strcmp(argv[i], "--yarrr") == 0)
+		{
+			printf("\n");
+			printf("Shiver me timbers!\n");
+			printf("\n");
+			return false;
+		}
+
+		if ((strcmp(argv[i], "--alpine") == 0) || (strcmp(argv[i], "-a") == 0))
+		{
+			printf("Alpine Mode enabled.\n");
+			vjs.hardwareTypeAlpine = true;
+		}
+
+		if (strcmp(argv[i], "--please-dont-kill-my-computer") == 0)
+		{
+			noUntunedTankPlease = true;
+		}
+
+		if ((strcmp(argv[i], "--log") == 0) || (strcmp(argv[i], "-l") == 0))
+		{
+			useLogfile = true;
+		}
+
+		if (strcmp(argv[i], "--no-log") == 0)
+		{
+			useLogfile = false;
+		}
+
+		// Check for filename
+		if (argv[i][0] != '-')
+		{
+			loadAndGo = true;
+			filename = argv[i];
+		}
+	}
+
+	return true;
+}
+
+
+//
+// This is to override settings loaded from the config file.
+// Note that settings set here will become the new defaults!
+//
+void ParseOptions(int argc, char * argv[])
+{
+	for(int i=1; i<argc; i++)
+	{
+		if ((strcmp(argv[i], "--pal") == 0) || (strcmp(argv[i], "-p") == 0))
+		{
+			vjs.hardwareTypeNTSC = false;
+		}
+
+		if ((strcmp(argv[i], "--ntsc") == 0) || (strcmp(argv[i], "-n") == 0))
+		{
+			vjs.hardwareTypeNTSC = true;
+		}
+
+		if ((strcmp(argv[i], "--bios") == 0) || (strcmp(argv[i], "-b") == 0))
+		{
+			vjs.useJaguarBIOS = true;
+		}
+
+		if (strcmp(argv[i], "--no-bios") == 0)
+		{
+			vjs.useJaguarBIOS = false;
+		}
+
+		if ((strcmp(argv[i], "--gpu") == 0) || (strcmp(argv[i], "-g") == 0))
+		{
+			vjs.GPUEnabled = true;
+		}
+
+		if (strcmp(argv[i], "--no-gpu") == 0)
+		{
+			vjs.GPUEnabled = false;
+		}
+
+		if ((strcmp(argv[i], "--dsp") == 0) || (strcmp(argv[i], "-d") == 0))
+		{
+			vjs.DSPEnabled = true;
+			vjs.audioEnabled = true;
+		}
+
+		if (strcmp(argv[i], "--no-dsp") == 0)
+		{
+			vjs.DSPEnabled = false;
+			vjs.audioEnabled = false;
+		}
+
+		if ((strcmp(argv[i], "--fullscreen") == 0) || (strcmp(argv[i], "-f") == 0))
+		{
+			vjs.fullscreen = true;
+		}
+
+		if ((strcmp(argv[i], "--blur") == 0) || (strcmp(argv[i], "-B") == 0))
+		{
+			vjs.glFilter = 1;
+		}
+
+		if (strcmp(argv[i], "--no-blur") == 0)
+		{
+			vjs.glFilter = 0;
+		}
+	}
+}
+
+#if 0
+	bool useJoystick;
+	int32 joyport;								// Joystick port
+	bool hardwareTypeNTSC;						// Set to false for PAL
+	bool useJaguarBIOS;
+	bool GPUEnabled;
+	bool DSPEnabled;
+	bool usePipelinedDSP;
+	bool fullscreen;
+	bool useOpenGL;
+	uint32 glFilter;
+	bool hardwareTypeAlpine;
+	bool audioEnabled;
+	uint32 frameSkip;
+	uint32 renderType;
+	bool allowWritesToROM;
+
+	// Keybindings in order of U, D, L, R, C, B, A, Op, Pa, 0-9, #, *
+
+	uint32 p1KeyBindings[21];
+	uint32 p2KeyBindings[21];
+
+	// Paths
+
+	char ROMPath[MAX_PATH];
+	char jagBootPath[MAX_PATH];
+	char CDBootPath[MAX_PATH];
+	char EEPROMPath[MAX_PATH];
+	char alpineROMPath[MAX_PATH];
+	char absROMPath[MAX_PATH];
+#endif

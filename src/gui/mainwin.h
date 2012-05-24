@@ -23,7 +23,10 @@ class MainWin: public QMainWindow
 	Q_OBJECT
 
 	public:
-		MainWin(QString);
+//		MainWin(QString);
+		MainWin(bool);
+		void LoadFile(QString);
+		void SyncUI(void);
 
 	protected:
 		void closeEvent(QCloseEvent *);
@@ -55,6 +58,7 @@ class MainWin: public QMainWindow
 		void ResizeMainWindow(void);
 		void ReadSettings(void);
 		void WriteSettings(void);
+		void WriteUISettings(void);
 
 //	public:
 		GLWidget * videoWidget;
@@ -72,6 +76,7 @@ class MainWin: public QMainWindow
 //		bool alpineLoadSuccessful;
 		bool pauseForFileSelector;
 		bool loadAndGo;
+		bool keyHeld[8];
 	public:
 		bool plzDontKillMyComputer;
 	private:

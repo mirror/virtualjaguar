@@ -13,7 +13,9 @@ AR      := ar
 ARFLAGS := -rs
 
 # Note that we use optimization level 2 instead of 3--3 doesn't seem to gain much over 2
-CFLAGS  := -MMD -O2 -ffast-math -fomit-frame-pointer -g
+#CFLAGS  := -MMD -O2 -ffast-math -fomit-frame-pointer -g
+CFLAGS  ?= -O2 -ffast-math -fomit-frame-pointer -g
+GCC_DEPS = -MMD
 
 INCS    := -I. -I./obj `sdl-config --cflags`
 
@@ -25,8 +27,6 @@ OBJS = \
 	obj/readcpu.o \
 	obj/m68kinterface.o \
 	obj/m68kdasm.o
-
-#	obj/newcpu.o \
 
 # Targets for convenience sake, not "real" targets
 .PHONY: clean
@@ -45,11 +45,13 @@ obj:
 
 obj/%.o: %.c
 	@echo -e "\033[01;33m***\033[00;32m Compiling $<...\033[00m"
-	@$(CC) $(CFLAGS) $(INCS) -c $< -o $@
+#	@$(CC) $(CFLAGS) $(INCS) -c $< -o $@
+	@$(CC) $(GCC_DEPS) $(CFLAGS) $(INCS) -c $< -o $@
 
 obj/%.o: obj/%.c
 	@echo -e "\033[01;33m***\033[00;32m Compiling $<...\033[00m"
-	@$(CC) $(CFLAGS) $(INCS) -c $< -o $@
+#	@$(CC) $(CFLAGS) $(INCS) -c $< -o $@
+	@$(CC) $(GCC_DEPS) $(CFLAGS) $(INCS) -c $< -o $@
 
 # Generated code
 
@@ -60,7 +62,8 @@ obj/cpustbl.c: obj/gencpu
 
 obj/gencpu: obj/cpudefs.c
 	@echo -e "\033[01;33m***\033[00;32m Generating gencpu...\033[00m"
-	@$(CC) $(CFLAGS) gencpu.c readcpu.c obj/cpudefs.c -o obj/gencpu -I. -I./obj
+#	@$(CC) $(CFLAGS) gencpu.c readcpu.c obj/cpudefs.c -o obj/gencpu -I. -I./obj
+	@$(CC) $(GCC_DEPS) $(CFLAGS) gencpu.c readcpu.c obj/cpudefs.c -o obj/gencpu -I. -I./obj
 
 obj/cpudefs.c: obj/build68k
 	@echo -e "\033[01;33m***\033[00;32m Generating cpudefs.c...\033[00m"
@@ -68,7 +71,8 @@ obj/cpudefs.c: obj/build68k
 
 obj/build68k: build68k.c
 	@echo -e "\033[01;33m***\033[00;32m Compiling build68k.c...\033[00m"
-	@$(CC) $(CFLAGS) build68k.c -o obj/build68k
+#	@$(CC) $(CFLAGS) build68k.c -o obj/build68k
+	@$(CC) $(GCC_DEPS) $(CFLAGS) build68k.c -o obj/build68k
 
 clean:
 	@echo -ne "\033[01;33m***\033[00;32m Cleaning out the garbage...\033[00m"

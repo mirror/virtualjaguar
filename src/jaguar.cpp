@@ -1900,8 +1900,8 @@ void JaguarDone(void)
 	JaguarDasm(0x802000, 6000);
 	WriteLog("\n");//*/
 #endif
-/*	WriteLog("\n\nM68000 disassembly at $4000...\n");
-	JaguarDasm(0x4000, 10000);
+/*	WriteLog("\n\nM68000 disassembly at $6004...\n");
+	JaguarDasm(0x6004, 10000);
 	WriteLog("\n");//*/
 //	WriteLog("\n\nM68000 disassembly at $802000...\n");
 //	JaguarDasm(0x802000, 0x1000);
@@ -1950,16 +1950,6 @@ void JaguarExecuteNew(void)
 
 		if (vjs.GPUEnabled)
 			GPUExec(USEC_TO_RISC_CYCLES(timeToNextEvent));
-
-#ifndef NEW_DAC_CODE
-		if (vjs.DSPEnabled)
-		{
-			if (vjs.usePipelinedDSP)
-				DSPExecP2(USEC_TO_RISC_CYCLES(timeToNextEvent));	// Pipelined DSP execution (3 stage)...
-			else
-				DSPExec(USEC_TO_RISC_CYCLES(timeToNextEvent));		// Ordinary non-pipelined DSP
-		}
-#endif
 
 		HandleNextEvent();
  	}

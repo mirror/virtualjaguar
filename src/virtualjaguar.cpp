@@ -146,7 +146,7 @@ int main_old(int argc, char * argv[])
 			printf("  -ntsc           : Force VJ to NTSC mode                     \n");
 			printf("\nInvoking Virtual Jagaur with no ROM file will cause it to boot up\n");
 			printf("with the VJ GUI.\n");
- 			return 1;
+			return 1;
 		}
     }
 

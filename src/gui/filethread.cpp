@@ -125,7 +125,7 @@ void FileThread::HandleFile(QFileInfo fileInfo)
 	}
 
 	// Try to divine the file type by size & header
-	int fileType = ParseFileType(buffer[0], buffer[1], fileSize);
+	int fileType = ParseFileType(buffer, fileSize);
 
 	// Check for Alpine ROM w/Universal Header
 	bool foundUniversalHeader = HasUniversalHeader(buffer, fileSize);

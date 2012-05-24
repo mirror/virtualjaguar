@@ -29,7 +29,7 @@ static uint32 logSize = 0;
 
 int LogInit(const char * path)
 {
-	log_stream = fopen(path, "wrt");
+	log_stream = fopen(path, "w");
 
 	if (log_stream == NULL)
 		return 0;
@@ -67,12 +67,11 @@ void WriteLog(const char * text, ...)
 
 	if (logSize > MAX_LOG_SIZE)
 	{
+		// Instead of dumping out, we just close the file and ignore any more output.
 		fflush(log_stream);
 		fclose(log_stream);
-		// Instead of dumping out, we just close the file and ignore any more output.
 		log_stream = NULL;
-//		exit(1);
-	}//*/
+	}
 
 	va_end(arg);
 	fflush(log_stream);					// Make sure that text is written!

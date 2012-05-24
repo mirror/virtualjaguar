@@ -125,7 +125,7 @@ bool JaguarLoadFile(char * path)
 //       directory, copy the one from the ZIP file, if it exists.
 	EepromInit();
 	jaguarRunAddress = 0x802000;					// For non-BIOS runs, this is true
-	int fileType = ParseFileType(buffer[0], buffer[1], jaguarROMSize);
+	int fileType = ParseFileType(buffer, jaguarROMSize);
 	jaguarCartInserted = false;
 
 	if (fileType == JST_ROM)
@@ -171,13 +171,71 @@ bool JaguarLoadFile(char * path)
 		jaguarRunAddress = runAddress;
 		return true;
 	}
+	// NB: This is *wrong*
+	/*
+	Basically, if there is no "JAG" at position $1C, then the long there is the load/start
+	address in LITTLE ENDIAN.
+	If "JAG" is present, the the next character ("R" or "L") determines the size of the
+	JagServer command (2 bytes vs. 4). Following that are the commands themselves;
+	typically it will either be 2 (load) or 3 (load & run). Command headers go like so:
+	2:
+	Load address (long)
+	Length (long)
+	payload
+	3:
+	Load address (long)
+	Length (long)
+	Run address (long)
+	payload
+	5: (Reset)
+	[command only]
+	7: (Run at address)
+	Run address (long)
+	[no payload]
+	9: (Clear memory)
+	Start address (long)
+	End address (long)
+	[no payload]
+	10: (Poll for commands)
+	[command only]
+	12: (Load & run user program)
+	filname, terminated with NULL
+	[no payload]
+	$FFFF: (Halt)
+	[no payload]
+	*/
 	else if (fileType == JST_JAGSERVER)
 	{
-		uint32 loadAddress = GET32(buffer, 0x22), runAddress = GET32(buffer, 0x2A);
-		WriteLog("FILE: Setting up homebrew (Jag Server)... Run address: %08X, length: %08X\n", runAddress, jaguarROMSize - 0x2E);
-		memcpy(jagMemSpace + loadAddress, buffer + 0x2E, jaguarROMSize - 0x2E);
+		// This kind of shiaut should be in the detection code below...
+		// (and now it is! :-)
+//		if (buffer[0x1C] == 'J' && buffer[0x1D] == 'A' && buffer[0x1E] == 'G')
+//		{
+			// Still need to do some checking here for type 2 vs. type 3. This assumes 3
+			// Also, JAGR vs. JAGL (word command size vs. long command size)
+			uint32 loadAddress = GET32(buffer, 0x22), runAddress = GET32(buffer, 0x2A);
+			WriteLog("FILE: Setting up homebrew (Jag Server)... Run address: $%X, length: $%X\n", runAddress, jaguarROMSize - 0x2E);
+			memcpy(jagMemSpace + loadAddress, buffer + 0x2E, jaguarROMSize - 0x2E);
+			delete[] buffer;
+			jaguarRunAddress = runAddress;
+			return true;
+//		}
+//		else // Special WTFOMGBBQ type here...
+//		{
+//			uint32_t loadAddress = (buffer[0x1F] << 24) | (buffer[0x1E] << 16) | (buffer[0x1D] << 8) | buffer[0x1C];
+//			WriteLog("FILE: Setting up homebrew (GEMDOS WTFOMGBBQ type)... Run address: $%X, length: $%X\n", loadAddress, jaguarROMSize - 0x20);
+//			memcpy(jagMemSpace + loadAddress, buffer + 0x20, jaguarROMSize - 0x20);
+//			delete[] buffer;
+//			jaguarRunAddress = loadAddress;
+//			return true;
+//		}
+	}
+	else if (fileType == JST_WTFOMGBBQ)
+	{
+		uint32_t loadAddress = (buffer[0x1F] << 24) | (buffer[0x1E] << 16) | (buffer[0x1D] << 8) | buffer[0x1C];
+		WriteLog("FILE: Setting up homebrew (GEMDOS WTFOMGBBQ type)... Run address: $%X, length: $%X\n", loadAddress, jaguarROMSize - 0x20);
+		memcpy(jagMemSpace + loadAddress, buffer + 0x20, jaguarROMSize - 0x20);
 		delete[] buffer;
-		jaguarRunAddress = runAddress;
+		jaguarRunAddress = loadAddress;
 		return true;
 	}
 
@@ -352,21 +410,26 @@ uint32 GetFileFromZIP(const char * zipFile, FileType type, uint8 * &buffer)
 //
 // Parse the file type based upon file size and/or headers.
 //
-uint32 ParseFileType(uint8 header1, uint8 header2, uint32 size)
+uint32 ParseFileType(uint8_t * buffer, uint32 size)
 {
 	// Check headers first...
 
 	// ABS/COFF type 1
-	if (header1 == 0x60 && header2 == 0x1B)
+	if (buffer[0] == 0x60 && buffer[1] == 0x1B)
 		return JST_ABS_TYPE1;
 
 	// ABS/COFF type 2
-	if (header1 == 0x01 && header2 == 0x50)
+	if (buffer[0] == 0x01 && buffer[1] == 0x50)
 		return JST_ABS_TYPE2;
 
-	// Jag Server
-	if (header1 == 0x60 && header2 == 0x1A)
-		return JST_JAGSERVER;
+	// Jag Server & other old shite
+	if (buffer[0] == 0x60 && buffer[1] == 0x1A)
+	{
+		if (buffer[0x1C] == 'J' && buffer[0x1D] == 'A' && buffer[0x1E] == 'G')
+			return JST_JAGSERVER;
+		else
+			return JST_WTFOMGBBQ;
+	}
 
 	// And if that fails, try file sizes...
 

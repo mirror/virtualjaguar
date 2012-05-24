@@ -11,22 +11,26 @@
 
 OSTYPE := $(shell uname -a)
 
-ifeq "$(findstring Msys,$(OSTYPE))" "Msys"			# Win32
+# Win32
+ifeq "$(findstring Msys,$(OSTYPE))" "Msys"
 
 SYSTYPE    := __GCCWIN32__
 SDLLIBTYPE := --libs
 
-else ifeq "$(findstring Darwin,$(OSTYPE))" "Darwin"	# Should catch both 'darwin' and 'darwin7.0'
+# Apple. Should catch both 'darwin' and 'darwin7.0'
+else ifeq "$(findstring Darwin,$(OSTYPE))" "Darwin"
 
 SYSTYPE    := __GCCUNIX__ -D__THINK_STUPID__
 SDLLIBTYPE := --static-libs
 
-else ifeq "$(findstring Linux,$(OSTYPE))" "Linux"		# Linux
+# Linux
+else ifeq "$(findstring Linux,$(OSTYPE))" "Linux"
 
 SYSTYPE    := __GCCUNIX__
 SDLLIBTYPE := --libs
 
-else											# ???
+# ??? Throw error, unknown OS
+else
 
 $(error OS TYPE UNDETECTED)
 
@@ -41,14 +45,20 @@ HAVECDIO :=
 CDIOLIB  :=
 endif
 
-CC      := gcc
-LD      := gcc
-AR      := ar
-ARFLAGS := -rs
+CC       := gcc
+LD       := gcc
+AR       := ar
+ARFLAGS  := -rs
 
 # Note that we use optimization level 2 instead of 3--3 doesn't seem to gain much over 2
-CFLAGS  := -MMD -O2 -ffast-math -fomit-frame-pointer `sdl-config --cflags` -D$(SYSTYPE)
-CXXFLAGS  := -MMD -O2 -ffast-math -fomit-frame-pointer `sdl-config --cflags` -D$(SYSTYPE)
+#CFLAGS  := -MMD -O2 -ffast-math -fomit-frame-pointer `sdl-config --cflags` -D$(SYSTYPE)
+#CXXFLAGS  := -MMD -O2 -ffast-math -fomit-frame-pointer `sdl-config --cflags` -D$(SYSTYPE)
+CFLAGS ?= -O2 -ffast-math -fomit-frame-pointer
+CXXFLAGS ?= -O2 -ffast-math -fomit-frame-pointer
+
+SDL_CFLAGS = `sdl-config --cflags`
+DEFINES = -D$(SYSTYPE)
+GCC_DEPS = "-MMD"
 
 INCS := -I./src
 
@@ -101,10 +111,12 @@ obj/libjaguarcore.a: $(OBJS)
 
 obj/%.o: src/%.c
 	@echo -e "\033[01;33m***\033[00;32m Compiling $<...\033[00m"
-	@$(CC) $(CFLAGS) $(INCS) -c $< -o $@
+#	@$(CC) $(CFLAGS) $(INCS) -c $< -o $@
+	@$(CC) $(GCC_DEPS) $(CFLAGS) $(SDL_CFLAGS) $(DEFINES) $(INCS) -c $< -o $@
 
 obj/%.o: src/%.cpp
 	@echo -e "\033[01;33m***\033[00;32m Compiling $<...\033[00m"
-	@$(CC) $(CXXFLAGS) $(INCS) -c $< -o $@
+#	@$(CC) $(CXXFLAGS) $(INCS) -c $< -o $@
+	@$(CC) $(GCC_DEPS) $(CXXFLAGS) $(SDL_CFLAGS) $(DEFINES) $(INCS) -c $< -o $@
 
 -include obj/*.d

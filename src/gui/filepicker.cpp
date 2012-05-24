@@ -375,7 +375,7 @@ void FilePickerWindow::UpdateSelection(const QModelIndex & current, const QModel
 				cart = QImage(":/res/alpine-file.png");
 		}
 		else if (haveUnknown && (fileType == JST_ABS_TYPE1 || fileType == JST_ABS_TYPE2
-			|| fileType == JST_JAGSERVER))
+			|| fileType == JST_JAGSERVER) || fileType == JST_WTFOMGBBQ)
 		{
 			cart = QImage(":/res/homebrew-file.png");
 		}

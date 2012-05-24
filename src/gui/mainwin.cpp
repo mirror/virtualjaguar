@@ -54,10 +54,11 @@
 #include "jagstub2bios.h"
 #include "joystick.h"
 
-#ifdef __GCCWIN32__
+// According to SebRmv, this header isn't seen on Arch Linux either... :-/
+//#ifdef __GCCWIN32__
 // Apparently on win32, usleep() is not pulled in by the usual suspects.
 #include <unistd.h>
-#endif
+//#endif
 
 // The way BSNES controls things is by setting a timer with a zero
 // timeout, sleeping if not emulating anything. Seems there has to be a
@@ -71,11 +72,16 @@
 // We'll make the VJ core modular so that it doesn't matter what GUI is in
 // use, we can drop it in anywhere and use it as-is.
 
-MainWin::MainWin(QString filenameToRun): running(true), powerButtonOn(false),
+//MainWin::MainWin(QString filenameToRun): running(true), powerButtonOn(false),
+MainWin::MainWin(bool autoRun): running(true), powerButtonOn(false),
 	showUntunedTankCircuit(true), cartridgeLoaded(false), CDActive(false),
 	//, alpineLoadSuccessful(false),
-	pauseForFileSelector(false), loadAndGo(false), plzDontKillMyComputer(false)
+//	pauseForFileSelector(false), loadAndGo(false), plzDontKillMyComputer(false)
+	pauseForFileSelector(false), loadAndGo(autoRun), plzDontKillMyComputer(false)
 {
+	for(int i=0; i<8; i++)
+		keyHeld[i] = false;
+
 	videoWidget = new GLWidget(this);
 	setCentralWidget(videoWidget);
 	setWindowIcon(QIcon(":/res/vj-icon.png"));
@@ -230,16 +236,6 @@ MainWin::MainWin(QString filenameToRun): running(true), powerButtonOn(false),
 
 	ReadSettings();
 
-	// Set toolbar buttons/menus based on settings read in (sync the UI)...
-	blurAct->setChecked(vjs.glFilter);
-	x1Act->setChecked(zoomLevel == 1);
-	x2Act->setChecked(zoomLevel == 2);
-	x3Act->setChecked(zoomLevel == 3);
-//	running = powerAct->isChecked();
-	ntscAct->setChecked(vjs.hardwareTypeNTSC);
-	palAct->setChecked(!vjs.hardwareTypeNTSC);
-	powerAct->setIcon(vjs.hardwareTypeNTSC ? powerRed : powerGreen);
-
 	// Do this in case original size isn't correct (mostly for the first-run case)
 	ResizeMainWindow();
 
@@ -263,13 +259,14 @@ MainWin::MainWin(QString filenameToRun): running(true), powerButtonOn(false),
 	memcpy(jagMemSpace + 0xE00000, jaguarBootROM, 0x20000);	// Use the stock BIOS
 
 	// Check for filename passed in on the command line...
-	if (!filenameToRun.isEmpty())
+//	if (!filenameToRun.isEmpty())
+	if (autoRun)
 	{
-		loadAndGo = true;
+//		loadAndGo = true;
 		// Attempt to load/run the file the user passed in...
-		LoadSoftware(filenameToRun);
-//		memcpy(jagMemSpace + 0xE00000, jaguarBootROM, 0x20000);	// Use the stock BIOS
-		// Prevent the scanner from running...
+//		LoadSoftware(filenameToRun);
+////		memcpy(jagMemSpace + 0xE00000, jaguarBootROM, 0x20000);	// Use the stock BIOS
+		// Prevent the file scanner from running...
 		return;
 	}
 
@@ -302,12 +299,36 @@ MainWin::MainWin(QString filenameToRun): running(true), powerButtonOn(false),
 	filePickWin->ScanSoftwareFolder(allowUnknownSoftware);
 }
 
+
+void MainWin::LoadFile(QString file)
+{
+	LoadSoftware(file);
+}
+
+
+void MainWin::SyncUI(void)
+{
+	// Set toolbar buttons/menus based on settings read in (sync the UI)...
+	blurAct->setChecked(vjs.glFilter);
+	x1Act->setChecked(zoomLevel == 1);
+	x2Act->setChecked(zoomLevel == 2);
+	x3Act->setChecked(zoomLevel == 3);
+//	running = powerAct->isChecked();
+	ntscAct->setChecked(vjs.hardwareTypeNTSC);
+	palAct->setChecked(!vjs.hardwareTypeNTSC);
+	powerAct->setIcon(vjs.hardwareTypeNTSC ? powerRed : powerGreen);
+}
+
+
 void MainWin::closeEvent(QCloseEvent * event)
 {
 	JaguarDone();
-	WriteSettings();
+// This should only be done by the config dialog
+//	WriteSettings();
+	WriteUISettings();
 	event->accept(); // ignore() if can't close for some reason
 }
+
 
 void MainWin::keyPressEvent(QKeyEvent * e)
 {
@@ -321,6 +342,7 @@ void MainWin::keyPressEvent(QKeyEvent * e)
 	HandleKeys(e, true);
 }
 
+
 void MainWin::keyReleaseEvent(QKeyEvent * e)
 {
 	// We ignore the Alt key for now, since it causes problems with the GUI
@@ -333,12 +355,18 @@ void MainWin::keyReleaseEvent(QKeyEvent * e)
 	HandleKeys(e, false);
 }
 
+
 void MainWin::HandleKeys(QKeyEvent * e, bool state)
 {
+	enum { P1LEFT = 0, P1RIGHT, P1UP, P1DOWN, P2LEFT, P2RIGHT, P2UP, P2DOWN };
 	// We kill bad key combos here, before they can get to the emulator...
 	// This also kills the illegal instruction problem that cropped up in Rayman!
 	// May want to do this by killing the old one instead of ignoring the new one...
 	// Seems to work better that way...
+
+// The problem with this approach is that it causes bad results because it doesn't do
+// any checking of previous states. Need to come up with something better because this
+// causes problems where the keyboard acts as if it were unresponsive. :-P
 #if 0
 	if ((e->key() == vjs.p1KeyBindings[BUTTON_L] && joypad_0_buttons[BUTTON_R])
 		|| (e->key() == vjs.p1KeyBindings[BUTTON_R] && joypad_0_buttons[BUTTON_L])
@@ -346,6 +374,7 @@ void MainWin::HandleKeys(QKeyEvent * e, bool state)
 		|| (e->key() == vjs.p1KeyBindings[BUTTON_D] && joypad_0_buttons[BUTTON_U]))
 		return;
 #else
+#if 0
 	if (e->key() == (int)vjs.p1KeyBindings[BUTTON_L] && joypad_0_buttons[BUTTON_R])
 		joypad_0_buttons[BUTTON_R] = 0;
 	if (e->key() == (int)vjs.p1KeyBindings[BUTTON_R] && joypad_0_buttons[BUTTON_L])
@@ -363,6 +392,33 @@ void MainWin::HandleKeys(QKeyEvent * e, bool state)
 		joypad_1_buttons[BUTTON_D] = 0;
 	if (e->key() == (int)vjs.p2KeyBindings[BUTTON_D] && joypad_1_buttons[BUTTON_U])
 		joypad_1_buttons[BUTTON_U] = 0;
+#else
+//hrm, this still has sticky state problems... Ugh!
+	// First, settle key states...
+	if (e->key() == (int)vjs.p1KeyBindings[BUTTON_L])
+		keyHeld[P1LEFT] = state;
+	else if (e->key() == (int)vjs.p1KeyBindings[BUTTON_R])
+		keyHeld[P1RIGHT] = state;
+	else if (e->key() == (int)vjs.p1KeyBindings[BUTTON_U])
+		keyHeld[P1UP] = state;
+	else if (e->key() == (int)vjs.p1KeyBindings[BUTTON_D])
+		keyHeld[P1DOWN] = state;
+	else if (e->key() == (int)vjs.p2KeyBindings[BUTTON_L])
+		keyHeld[P2LEFT] = state;
+	else if (e->key() == (int)vjs.p2KeyBindings[BUTTON_R])
+		keyHeld[P2RIGHT] = state;
+	else if (e->key() == (int)vjs.p2KeyBindings[BUTTON_U])
+		keyHeld[P2UP] = state;
+	else if (e->key() == (int)vjs.p2KeyBindings[BUTTON_D])
+		keyHeld[P2DOWN] = state;
+
+	// Next, check for conflicts and bail out if there are any...
+	if ((keyHeld[P1LEFT] && keyHeld[P1RIGHT])
+		|| (keyHeld[P1UP] && keyHeld[P1DOWN])
+		|| (keyHeld[P2LEFT] && keyHeld[P2RIGHT])
+		|| (keyHeld[P2UP] && keyHeld[P2DOWN]))
+		return;
+#endif
 #endif
 
 	// No bad combos exist, let's stuff the emulator key buffers...!
@@ -380,9 +436,11 @@ void MainWin::HandleKeys(QKeyEvent * e, bool state)
 	}
 }
 
+
 void MainWin::Open(void)
 {
 }
+
 
 void MainWin::Configure(void)
 {
@@ -450,6 +508,7 @@ void MainWin::Configure(void)
 	WriteSettings();
 }
 
+
 //
 // Here's the main emulator loop
 //
@@ -483,6 +542,7 @@ void MainWin::Timer(void)
 
 	videoWidget->updateGL();
 }
+
 
 void MainWin::TogglePowerState(void)
 {
@@ -528,6 +588,7 @@ void MainWin::TogglePowerState(void)
 	}
 }
 
+
 void MainWin::ToggleRunState(void)
 {
 	running = !running;
@@ -546,11 +607,13 @@ void MainWin::ToggleRunState(void)
 	}
 }
 
+
 void MainWin::SetZoom100(void)
 {
 	zoomLevel = 1;
 	ResizeMainWindow();
 }
+
 
 void MainWin::SetZoom200(void)
 {
@@ -558,11 +621,13 @@ void MainWin::SetZoom200(void)
 	ResizeMainWindow();
 }
 
+
 void MainWin::SetZoom300(void)
 {
 	zoomLevel = 3;
 	ResizeMainWindow();
 }
+
 
 void MainWin::SetNTSC(void)
 {
@@ -570,7 +635,9 @@ void MainWin::SetNTSC(void)
 	timer->setInterval(16);
 	vjs.hardwareTypeNTSC = true;
 	ResizeMainWindow();
+	WriteSettings();
 }
+
 
 void MainWin::SetPAL(void)
 {
@@ -578,22 +645,28 @@ void MainWin::SetPAL(void)
 	timer->setInterval(20);
 	vjs.hardwareTypeNTSC = false;
 	ResizeMainWindow();
+	WriteSettings();
 }
+
 
 void MainWin::ToggleBlur(void)
 {
 	vjs.glFilter = !vjs.glFilter;
+	WriteSettings();
 }
+
 
 void MainWin::ShowAboutWin(void)
 {
 	aboutWin->show();
 }
 
+
 void MainWin::ShowHelpWin(void)
 {
 	helpWin->show();
 }
+
 
 void MainWin::InsertCart(void)
 {
@@ -608,6 +681,7 @@ void MainWin::InsertCart(void)
 	filePickWin->show();
 }
 
+
 void MainWin::Unpause(void)
 {
 	// Here we unpause the emulator if it was paused when we went into the file selector
@@ -620,6 +694,7 @@ void MainWin::Unpause(void)
 			ToggleRunState();
 	}
 }
+
 
 void MainWin::LoadSoftware(QString file)
 {
@@ -648,6 +723,7 @@ void MainWin::LoadSoftware(QString file)
 	}
 }
 
+
 void MainWin::ToggleCDUsage(void)
 {
 	CDActive = !CDActive;
@@ -670,6 +746,7 @@ void MainWin::ToggleCDUsage(void)
 #endif
 }
 
+
 void MainWin::FrameAdvance(void)
 {
 //printf("Frame Advance...\n");
@@ -677,6 +754,7 @@ void MainWin::FrameAdvance(void)
 	JaguarExecuteNew();
 	videoWidget->updateGL();
 }
+
 
 void MainWin::ResizeMainWindow(void)
 {
@@ -690,6 +768,7 @@ void MainWin::ResizeMainWindow(void)
 		QApplication::processEvents();
 	}
 }
+
 
 #warning "!!! Need to check the window geometry to see if the positions are legal !!!"
 // i.e., someone could drag it to another screen, close it, then disconnect that screen
@@ -781,6 +860,7 @@ WriteLog("Pipelined DSP = %s\n", (vjs.usePipelinedDSP ? "ON" : "off"));
 	vjs.p2KeyBindings[BUTTON_s] = settings.value("p2k_star", Qt::Key_Asterisk).toInt();
 }
 
+
 void MainWin::WriteSettings(void)
 {
 	QSettings settings("Underground Software", "Virtual Jaguar");
@@ -855,4 +935,15 @@ void MainWin::WriteSettings(void)
 	settings.setValue("p2k_9", vjs.p2KeyBindings[BUTTON_9]);
 	settings.setValue("p2k_pound", vjs.p2KeyBindings[BUTTON_d]);
 	settings.setValue("p2k_star", vjs.p2KeyBindings[BUTTON_s]);
+}
+
+
+void MainWin::WriteUISettings(void)
+{
+	QSettings settings("Underground Software", "Virtual Jaguar");
+	settings.setValue("pos", pos());
+	settings.setValue("size", size());
+	settings.setValue("cartLoadPos", filePickWin->pos());
+
+	settings.setValue("zoom", zoomLevel);
 }

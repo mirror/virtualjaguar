@@ -814,6 +814,9 @@ SET32(ram2, offset, data);
 // IRQs on J_INT ($F10020), you don't have to run an I2S interrupt on the DSP. Also,
 // It seems that it's only stable for values of SCLK <= 9.
 
+// All of the preceeding is moot now; we run the DSP in the host audio IRQ. This means
+// that we don't actually need this stuff anymore. :-D
+#if 0
 			if (data & INT_ENA1) // I2S interrupt
 			{
 				int freq = GetCalculatedFrequency();
@@ -828,6 +831,7 @@ SET32(ram2, offset, data);
 //				WriteLog("DSP: Setting audio freqency to %u Hz...\n", freq);
 				DACSetNewFrequency(freq);
 			}
+#endif
 
 /*			if (IMASKCleared)						// If IMASK was cleared,
 #ifdef DSP_DEBUG_IRQ
