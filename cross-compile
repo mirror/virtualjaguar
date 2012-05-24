@@ -1,0 +1,11 @@
+#!/bin/bash
+#
+# Short script to do cross compilation with MXE on Linux
+#
+# by James Hammons
+# (C) 2012 Underground Software
+#
+echo "Cross compiling for Win32..."
+export PATH=/opt/mxe/usr/bin:$PATH
+rm makefile-qt
+make CROSS=i686-pc-mingw32-

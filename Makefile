@@ -9,6 +9,10 @@
 
 FIND = find
 
+# For cross-compilation with MXE
+# We use a script to do this now...
+#CROSS = i686-pc-mingw32-
+
 # Gah
 OSTYPE := $(shell uname -a)
 
@@ -47,11 +51,11 @@ prepare: obj
 
 virtualjaguar: sources libs makefile-qt
 	@echo -e "\033[01;33m***\033[00;32m Making Virtual Jaguar GUI...\033[00m"
-	$(MAKE) -f makefile-qt
+	$(MAKE) -f makefile-qt CROSS=$(CROSS)
 
 makefile-qt: virtualjaguar.pro
 	@echo -e "\033[01;33m***\033[00;32m Creating Qt makefile...\033[00m"
-	qmake $(QMAKE_EXTRA) virtualjaguar.pro -o makefile-qt
+	$(CROSS)qmake $(QMAKE_EXTRA) virtualjaguar.pro -o makefile-qt
 
 #libs: obj/libmusashi.a obj/libjaguarcore.a
 libs: obj/libm68k.a obj/libjaguarcore.a
@@ -60,7 +64,7 @@ libs: obj/libm68k.a obj/libjaguarcore.a
 obj/libm68k.a: src/m68000/Makefile sources
 	@echo -e "\033[01;33m***\033[00;32m Making Customized UAE 68K Core...\033[00m"
 #	@$(MAKE) -C src/m68000
-	@$(MAKE) -C src/m68000 CFLAGS="$(CFLAGS)"
+	@$(MAKE) -C src/m68000 CROSS=$(CROSS) CFLAGS="$(CFLAGS)"
 	@cp src/m68000/obj/libm68k.a obj/
 
 obj/libmusashi.a: musashi.mak sources
@@ -70,7 +74,7 @@ obj/libmusashi.a: musashi.mak sources
 obj/libjaguarcore.a: jaguarcore.mak sources
 	@echo -e "\033[01;33m***\033[00;32m Making Virtual Jaguar core...\033[00m"
 #	$(MAKE) -f jaguarcore.mak
-	$(MAKE) -f jaguarcore.mak CFLAGS="$(CFLAGS)" CXXFLAGS="$(CXXFLAGS)"
+	$(MAKE) -f jaguarcore.mak CROSS=$(CROSS) CFLAGS="$(CFLAGS)" CXXFLAGS="$(CXXFLAGS)"
 
 sources: src/*.h src/*.cpp src/*.c src/m68000/*.c src/m68000/*.h
 

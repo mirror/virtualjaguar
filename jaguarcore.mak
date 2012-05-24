@@ -7,8 +7,12 @@
 # file GPLv3 for details. ;-)
 #
 
+# Cross compilation with MXE
+#CROSS = i686-pc-mingw32-
+
 # Figure out which system we're compiling for, and set the appropriate variables
 
+ifeq "$(CROSS)" ""
 OSTYPE := $(shell uname -a)
 
 # Win32
@@ -35,6 +39,10 @@ else
 $(error OS TYPE UNDETECTED)
 
 endif
+else
+SYSTYPE    := __GCCWIN32__
+SDLLIBTYPE := --libs
+endif
 
 # Set vars for libcdio
 ifneq "$(shell pkg-config --silence-errors --libs libcdio)" ""
@@ -45,10 +53,10 @@ HAVECDIO :=
 CDIOLIB  :=
 endif
 
-CC       := gcc
-LD       := gcc
-AR       := ar
-ARFLAGS  := -rs
+CC      := $(CROSS)gcc
+LD      := $(CROSS)gcc
+AR      := $(CROSS)ar
+ARFLAGS := -rs
 
 # Note that we use optimization level 2 instead of 3--3 doesn't seem to gain much over 2
 #CFLAGS  := -MMD -O2 -ffast-math -fomit-frame-pointer `sdl-config --cflags` -D$(SYSTYPE)
@@ -56,7 +64,7 @@ ARFLAGS  := -rs
 CFLAGS ?= -O2 -ffast-math -fomit-frame-pointer
 CXXFLAGS ?= -O2 -ffast-math -fomit-frame-pointer
 
-SDL_CFLAGS = `sdl-config --cflags`
+SDL_CFLAGS = `$(CROSS)sdl-config --cflags`
 DEFINES = -D$(SYSTYPE)
 GCC_DEPS = "-MMD"
 

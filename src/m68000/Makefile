@@ -7,9 +7,12 @@
 # This makefile is released under the GPLv3 or later
 #
 
-CC      := gcc
-LD      := gcc
-AR      := ar
+# Cross compilation using MXE
+#CROSS = i686-pc-mingw32-
+
+CC      := $(CROSS)gcc
+LD      := $(CROSS)gcc
+AR      := $(CROSS)ar
 ARFLAGS := -rs
 
 # Note that we use optimization level 2 instead of 3--3 doesn't seem to gain much over 2
@@ -35,7 +38,7 @@ all: obj obj/libm68k.a
 	@echo "Done!"
 
 # Library rules (might not be cross-platform compatible)
-obj/libm68k.a: $(OBJS) 
+obj/libm68k.a: $(OBJS)
 	@$(AR) $(ARFLAGS) obj/libm68k.a $(OBJS)
 
 obj:
@@ -62,8 +65,8 @@ obj/cpustbl.c: obj/gencpu
 
 obj/gencpu: obj/cpudefs.c
 	@echo -e "\033[01;33m***\033[00;32m Generating gencpu...\033[00m"
-#	@$(CC) $(CFLAGS) gencpu.c readcpu.c obj/cpudefs.c -o obj/gencpu -I. -I./obj
-	@$(CC) $(GCC_DEPS) $(CFLAGS) gencpu.c readcpu.c obj/cpudefs.c -o obj/gencpu -I. -I./obj
+#	@$(CC) $(GCC_DEPS) $(CFLAGS) gencpu.c readcpu.c obj/cpudefs.c -o obj/gencpu -I. -I./obj
+	@gcc $(GCC_DEPS) $(CFLAGS) gencpu.c readcpu.c obj/cpudefs.c -o obj/gencpu -I. -I./obj
 
 obj/cpudefs.c: obj/build68k
 	@echo -e "\033[01;33m***\033[00;32m Generating cpudefs.c...\033[00m"
@@ -71,8 +74,8 @@ obj/cpudefs.c: obj/build68k
 
 obj/build68k: build68k.c
 	@echo -e "\033[01;33m***\033[00;32m Compiling build68k.c...\033[00m"
-#	@$(CC) $(CFLAGS) build68k.c -o obj/build68k
-	@$(CC) $(GCC_DEPS) $(CFLAGS) build68k.c -o obj/build68k
+#	@$(CC) $(GCC_DEPS) $(CFLAGS) build68k.c -o obj/build68k
+	@gcc $(GCC_DEPS) $(CFLAGS) build68k.c -o obj/build68k
 
 clean:
 	@echo -ne "\033[01;33m***\033[00;32m Cleaning out the garbage...\033[00m"
