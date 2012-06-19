@@ -1,3 +1,18 @@
+//
+// Jaguar RISC Disassembly
+//
+// Originally by David Raingeard
+// GCC/SDL port by Niels Wagenaar (Linux/WIN32) and Carwin Jones (BeOS)
+// Minor cleanups by James Hammons
+// (C) 2012 Underground Software
+//
+// JLH = James Hammons <jlhamm@acm.org>
+//
+// Who  When        What
+// ---  ----------  -------------------------------------------------------------
+// JLH  06/01/2012  Created this log (long overdue! ;-)
+//
+
 #include "jagdasm.h"
 
 #include <stdio.h>

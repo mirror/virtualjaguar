@@ -58,15 +58,9 @@ LD      := $(CROSS)gcc
 AR      := $(CROSS)ar
 ARFLAGS := -rs
 
-# Note that we use optimization level 2 instead of 3--3 doesn't seem to gain much over 2
-#CFLAGS  := -MMD -O2 -ffast-math -fomit-frame-pointer `sdl-config --cflags` -D$(SYSTYPE)
-#CXXFLAGS  := -MMD -O2 -ffast-math -fomit-frame-pointer `sdl-config --cflags` -D$(SYSTYPE)
-CFLAGS ?= -O2 -ffast-math -fomit-frame-pointer
-CXXFLAGS ?= -O2 -ffast-math -fomit-frame-pointer
-
 SDL_CFLAGS = `$(CROSS)sdl-config --cflags`
 DEFINES = -D$(SYSTYPE)
-GCC_DEPS = "-MMD"
+GCC_DEPS = -MMD
 
 INCS := -I./src
 
@@ -117,14 +111,8 @@ obj/libjaguarcore.a: $(OBJS)
 
 # Main source compilation (implicit rules)...
 
-obj/%.o: src/%.c
-	@echo -e "\033[01;33m***\033[00;32m Compiling $<...\033[00m"
-#	@$(CC) $(CFLAGS) $(INCS) -c $< -o $@
-	@$(CC) $(GCC_DEPS) $(CFLAGS) $(SDL_CFLAGS) $(DEFINES) $(INCS) -c $< -o $@
-
 obj/%.o: src/%.cpp
 	@echo -e "\033[01;33m***\033[00;32m Compiling $<...\033[00m"
-#	@$(CC) $(CXXFLAGS) $(INCS) -c $< -o $@
 	@$(CC) $(GCC_DEPS) $(CXXFLAGS) $(SDL_CFLAGS) $(DEFINES) $(INCS) -c $< -o $@
 
 -include obj/*.d

@@ -1,6 +1,8 @@
 //
 // Inline functions used by cpuemu.c
 //
+// by Bernd Schmidt, Thomas Huth, and James Hammons
+//
 // Since inline functions have to be in a header, we have them all defined
 // here, in one place to make finding them easy.
 //

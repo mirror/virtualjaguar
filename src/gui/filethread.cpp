@@ -92,6 +92,9 @@ printf("FileThread: Aborting!!!\n");
 //
 void FileThread::HandleFile(QFileInfo fileInfo)
 {
+	// Really, need to come up with some kind of cacheing scheme here, so we don't
+	// fish through these files every time we run VJ :-P
+#warning "!!! Need to come up with some kind of cacheing scheme here !!!"
 	bool haveZIPFile = (fileInfo.suffix().compare("zip", Qt::CaseInsensitive) == 0
 		? true : false);
 	uint32_t fileSize = 0;

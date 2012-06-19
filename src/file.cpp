@@ -11,6 +11,7 @@
 // ---  ----------  -------------------------------------------------------------
 // JLH  01/16/2010  Created this log ;-)
 // JLH  02/28/2010  Added functions to look inside .ZIP files and handle contents
+// JLH  06/01/2012  Added function to check ZIP file CRCs against file DB
 //
 
 #include "file.h"
@@ -18,6 +19,7 @@
 #include <stdarg.h>
 #include <string.h>
 #include "crc32.h"
+#include "filedb.h"
 #include "eeprom.h"
 #include "jaguar.h"
 #include "log.h"
@@ -101,6 +103,7 @@ uint32 JaguarLoadROM(uint8 * &rom, char * path)
 
 	return romSize;
 }
+
 
 //
 // Jaguar file loading
@@ -243,6 +246,7 @@ bool JaguarLoadFile(char * path)
 	return false;
 }
 
+
 //
 // "Alpine" file loading
 // Since the developers were coming after us with torches and pitchforks, we decided to
@@ -281,6 +285,7 @@ bool AlpineLoadFile(char * path)
 	return true;
 }
 
+
 //
 // Get the length of a (possibly) gzipped file
 //
@@ -307,22 +312,24 @@ static int gzfilelength(gzFile gd)
    return length;
 }
 
+
 //
 // Compare extension to passed in filename. If equal, return true; otherwise false.
 //
-static bool CheckExtension(const char * filename, const char * ext)
+static bool CheckExtension(const uint8 * filename, const char * ext)
 {
 	// Sanity checking...
 	if ((filename == NULL) || (ext == NULL))
 		return false;
 
-	const char * filenameExt = strrchr(filename, '.');	// Get the file's extension (if any)
+	const char * filenameExt = strrchr((const char *)filename, '.');	// Get the file's extension (if any)
 
 	if (filenameExt == NULL)
 		return false;
 
 	return (strcasecmp(filenameExt, ext) == 0 ? true : false);
 }
+
 
 //
 // Get file from .ZIP
@@ -336,7 +343,8 @@ uint32 GetFileFromZIP(const char * zipFile, FileType type, uint8 * &buffer)
 //       size of the Jaguar console.
 #warning "!!! FIX !!! Should have sanity checking for ROM size to prevent buffer overflow!"
 	const char ftStrings[5][32] = { "Software", "EEPROM", "Label", "Box Art", "Controller Overlay" };
-	ZIP * zip = openzip(0, 0, zipFile);
+//	ZIP * zip = openzip(0, 0, zipFile);
+	FILE * zip = fopen(zipFile, "rb");
 
 	if (zip == NULL)
 	{
@@ -344,39 +352,44 @@ uint32 GetFileFromZIP(const char * zipFile, FileType type, uint8 * &buffer)
 		return 0;
 	}
 
-	zipent * ze;
+//	zipent * ze;
+	ZipFileEntry ze;
 	bool found = false;
 
 	// The order is here is important: If the file is found, we need to short-circuit the
 	// readzip() call because otherwise, 'ze' will be pointing to the wrong file!
-	while (!found && readzip(zip))
+//	while (!found && readzip(zip))
+	while (!found && GetZIPHeader(zip, ze))
 	{
-		ze = &zip->ent;
+//		ze = &zip->ent;
 
 		// Here we simply rely on the file extension to tell the truth, but we know
 		// that extensions lie like sons-a-bitches. So this is naive, we need to do
 		// something a little more robust to keep bad things from happening here.
 #warning "!!! Checking for image by extension can be fooled !!!"
-		if ((type == FT_LABEL) && (CheckExtension(ze->name, ".png") || CheckExtension(ze->name, ".jpg") || CheckExtension(ze->name, ".gif")))
+		if ((type == FT_LABEL) && (CheckExtension(ze.filename, ".png") || CheckExtension(ze.filename, ".jpg") || CheckExtension(ze.filename, ".gif")))
 		{
 			found = true;
-			WriteLog("FILE: Found image file '%s'.\n", ze->name);
+			WriteLog("FILE: Found image file '%s'.\n", ze.filename);
 		}
 
-		if ((type == FT_SOFTWARE) && (CheckExtension(ze->name, ".j64")
-			|| CheckExtension(ze->name, ".rom") || CheckExtension(ze->name, ".abs")
-			|| CheckExtension(ze->name, ".cof") || CheckExtension(ze->name, ".coff")
-			|| CheckExtension(ze->name, ".jag")))
+		if ((type == FT_SOFTWARE) && (CheckExtension(ze.filename, ".j64")
+			|| CheckExtension(ze.filename, ".rom") || CheckExtension(ze.filename, ".abs")
+			|| CheckExtension(ze.filename, ".cof") || CheckExtension(ze.filename, ".coff")
+			|| CheckExtension(ze.filename, ".jag")))
 		{
 			found = true;
-			WriteLog("FILE: Found software file '%s'.\n", ze->name);
+			WriteLog("FILE: Found software file '%s'.\n", ze.filename);
 		}
 
-		if ((type == FT_EEPROM) && (CheckExtension(ze->name, ".eep") || CheckExtension(ze->name, ".eeprom")))
+		if ((type == FT_EEPROM) && (CheckExtension(ze.filename, ".eep") || CheckExtension(ze.filename, ".eeprom")))
 		{
 			found = true;
-			WriteLog("FILE: Found EEPROM file '%s'.\n", ze->name);
+			WriteLog("FILE: Found EEPROM file '%s'.\n", ze.filename);
 		}
+
+		if (!found)
+			fseek(zip, ze.compressedSize, SEEK_CUR);
 	}
 
 	uint32 fileSize = 0;
@@ -385,11 +398,13 @@ uint32 GetFileFromZIP(const char * zipFile, FileType type, uint8 * &buffer)
 	{
 		WriteLog("FILE: Uncompressing...");
 // Insert file size sanity check here...
-		buffer = new uint8[ze->uncompressed_size];
+		buffer = new uint8[ze.uncompressedSize];
 
-		if (readuncompresszip(zip, ze, (char *)buffer) == 0)
+//		if (readuncompresszip(zip, ze.compressedSize, buffer) == 0)
+//		if (UncompressFileFromZIP(zip, ze.compressedSize, buffer) == 0)
+		if (UncompressFileFromZIP(zip, ze, buffer) == 0)
 		{
-			fileSize = ze->uncompressed_size;
+			fileSize = ze.uncompressedSize;
 			WriteLog("success! (%u bytes)\n", fileSize);
 		}
 		else
@@ -403,9 +418,78 @@ uint32 GetFileFromZIP(const char * zipFile, FileType type, uint8 * &buffer)
 		// Didn't find what we're looking for...
 		WriteLog("FILE: Failed to find file of type %s...\n", ftStrings[type]);
 
-	closezip(zip);
+//	closezip(zip);
+	fclose(zip);
 	return fileSize;
 }
+
+
+uint32_t GetFileDBIdentityFromZIP(const char * zipFile)
+{
+	FILE * zip = fopen(zipFile, "rb");
+
+	if (zip == NULL)
+	{
+		WriteLog("FILE: Could not open file '%s'!\n", zipFile);
+		return 0;
+	}
+
+	ZipFileEntry ze;
+
+	// Loop through all files in the zip file under consideration
+	while (GetZIPHeader(zip, ze))
+	{
+		// & loop through all known CRC32s in our file DB to see if it's there!
+		uint32_t index = 0;
+
+		while (romList[index].crc32 != 0xFFFFFF)
+		{
+			if (romList[index].crc32 == ze.crc32)
+			{
+				fclose(zip);
+				return index;
+			}
+
+			index++;
+		}
+
+		// We didn't find it, so skip the compressed data...
+		fseek(zip, ze.compressedSize, SEEK_CUR);
+	}
+
+	fclose(zip);
+	return -1;
+}
+
+
+bool FindFileInZIPWithCRC32(const char * zipFile, uint32 crc)
+{
+	FILE * zip = fopen(zipFile, "rb");
+
+	if (zip == NULL)
+	{
+		WriteLog("FILE: Could not open file '%s'!\n", zipFile);
+		return 0;
+	}
+
+	ZipFileEntry ze;
+
+	// Loop through all files in the zip file under consideration
+	while (GetZIPHeader(zip, ze))
+	{
+		if (ze.crc32 == crc)
+		{
+			fclose(zip);
+			return true;
+		}
+
+		fseek(zip, ze.compressedSize, SEEK_CUR);
+	}
+
+	fclose(zip);
+	return false;
+}
+
 
 //
 // Parse the file type based upon file size and/or headers.

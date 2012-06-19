@@ -85,24 +85,24 @@ printf("VSB size: %u, %u\n", sbSize3.width(), sbSize3.height());
 #else
 	// This sets it to the "too large size" as the minimum!
 	QScrollBar * vsb = new QScrollBar(Qt::Vertical, this);
-	int sbWidth = vsb->size().width();
+//	int sbWidth = vsb->size().width();
 //	printf("VSB size width: %u\n", sbWidth);
 	int sbWidth2 = vsb->sizeHint().width();
 //	printf("VSB sizeHint width: %u\n", sbWidth2);
-	int sbWidth3 = vsb->minimumSize().width();
+//	int sbWidth3 = vsb->minimumSize().width();
 //	printf("VSB minimum width: %u\n", sbWidth3);
-	int sbWidth4 = vsb->frameSize().width();
+//	int sbWidth4 = vsb->frameSize().width();
 //	printf("VSB frame width: %u\n", sbWidth4);
 	delete vsb;
 
 //	fileList->setFixedWidth((488/4) + 4);
 	int sbWidth5 = fileList->frameWidth();
 //	printf("List frame width: %u, (diff=%d)\n", sbWidth5, sbWidth5 - ((488/4) + 4));
-	int sbWidth6 = fileList->sizeHint().width();
+//	int sbWidth6 = fileList->sizeHint().width();
 //	printf("List sizeHint width: %u\n", sbWidth6);
-	int sbWidth7 = fileList->minimumSize().width();
+//	int sbWidth7 = fileList->minimumSize().width();
 //	printf("List minimum width: %u\n", sbWidth7);
-	int sbWidth8 = fileList->minimumSizeHint().width();
+//	int sbWidth8 = fileList->minimumSizeHint().width();
 //	printf("List minimum hint width: %u\n", sbWidth8);
 ////	fileList->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Preferred);
 ////	fileList->verticalScrollBar()->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Preferred);
@@ -138,9 +138,13 @@ printf("VSB size: %u, %u\n", sbSize3.width(), sbSize3.height());
 	title = new QLabel(QString(tr("<h2>...</h2>")));
 	title->setMargin(6);
 	title->setAlignment(Qt::AlignCenter);
+//no.
+//title->setFixedWidth(cartImage->width());
+//title->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Preferred);
+//YESH!!!!
+	title->setFixedWidth(cartImage->sizeHint().width());
 	vLayout->addWidget(title);
 
-#if 1
 	QHBoxLayout * dataLayout = new QHBoxLayout;
 	vLayout->addLayout(dataLayout);
 
@@ -169,17 +173,6 @@ printf("VSB size: %u, %u\n", sbSize3.width(), sbSize3.height());
 	insertCart->setDefault(true);				// We want this button to be the default
 	insertCart->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Preferred);
 	dataLayout->addWidget(insertCart);
-#else
-	QLabel * text2 = new QLabel(QString(tr(
-		"<table>"
-		"<tr><td align='right'><b>Type: </b></td><td>4MB Cartridge</td></tr>"
-		"<tr><td align='right'><b>CRC32: </b></td><td>FEDCBA98</td></tr>"
-		"<tr><td align='right'><b>Compatibility: </b></td><td>DOES NOT WORK</td></tr>"
-		"<tr><td align='right'><b>Notes: </b></td><td>Universal Header detected; Requires DSP</td></tr>"
-		"</table>"
-	)));
-	vLayout->addWidget(text2);
-#endif
 
 	fileThread = new FileThread(this);
 //	connect(fileThread, SIGNAL(FoundAFile(unsigned long)), this, SLOT(AddFileToList(unsigned long)));
@@ -206,6 +199,8 @@ New sizes: 373x172 (label), 420x340 (cart)
 //	connect(fileList, SIGNAL(doubleClicked()), this, SLOT(LoadButtonPressed()));
 // This returns:
 // Object::connect: No such signal QListView::QAbstractItemView::doubleClicked() in src/gui/filepicker.cpp:203
+//can't do this, nothing's rendered yet...
+//setFixedWidth(width());
 }
 
 void FilePickerWindow::keyPressEvent(QKeyEvent * e)
@@ -396,7 +391,15 @@ void FilePickerWindow::UpdateSelection(const QModelIndex & current, const QModel
 		prettyFilename = "\"" + currentFile.mid(lastSlashPos + 1) + "\"";
 	}
 
+	// Ensure that the title isn't longer than the width of the dialog...
+#if 1
 	title->setText(QString("<h2>%1</h2>").arg(prettyFilename));
+#else
+	// This doesn't work...
+	QFontMetrics metrics(title->font());
+	QString elidedText = metrics.elidedText(QString("<h2>%1</h2>").arg(prettyFilename), Qt::ElideRight, title->sizeHint().width());
+	title->setText(elidedText);
+#endif
 
 //Kludge for now, we'll have to fix this later...
 // So let's fix it now!

@@ -6,7 +6,7 @@
 #
 # See the README and GPLv3 files for licensing and warranty information
 #
-# NOTE: Musashi is built and linked in as a library, so there should be no more
+# NOTE: M68000 core is built and linked in as a library, so there should be no more
 #       problems with using the qmake build system as-is. :-)
 #       Other than on the Mac, where it stupidly defaults to making XCode binaries. >:-(
 #       Well, we fixed it in the Makefile, by doing platfrom detection there. :-/
@@ -16,10 +16,8 @@ TARGET     = virtualjaguar
 CONFIG    += qt warn_on release
 # debug
 RESOURCES += virtualjaguar.qrc
-#LIBS      += -Lobj -ljaguarcore -lz -lmusashi
 LIBS      += -Lobj -ljaguarcore -lz -lm68k
 QT        += opengl
-#CROSS      = i686-pc-mingw32-
 
 # We stuff all the intermediate crap into obj/ so it won't confuse us mere mortals ;-)
 OBJECTS_DIR = obj
@@ -42,8 +40,8 @@ win32 { LIBS += res/vj-ico.o }
 # C/C++ flags...
 # NOTE: May have to put -Wall back in, but only on non-release cycles. It can
 #       cause problems if you're not careful. (Can do this via command line in qmake)
-QMAKE_CFLAGS += `$(CROSS)sdl-config --cflags` -O2 -ffast-math -fomit-frame-pointer
-QMAKE_CXXFLAGS += `$(CROSS)sdl-config --cflags` -O2 -ffast-math -fomit-frame-pointer
+QMAKE_CFLAGS += `$(CROSS)sdl-config --cflags`
+QMAKE_CXXFLAGS += `$(CROSS)sdl-config --cflags`
 
 # Need to add libcdio stuffola (checking/including)...
 

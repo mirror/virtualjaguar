@@ -25,7 +25,7 @@
 #include "jaguar.h"
 #include "jerry.h"
 #include "log.h"
-#include "m68k.h"
+#include "m68000/m68kinterface.h"
 //#include "memory.h"
 
 

@@ -193,7 +193,7 @@ MainWin::MainWin(bool autoRun): running(true), powerButtonOn(false),
 	useCDAct->setCheckable(true);
 	connect(useCDAct, SIGNAL(triggered()), this, SLOT(ToggleCDUsage()));
 
-	frameAdvanceAct = new QAction(QIcon(":/res/generic.png"), tr("&Frame Advance"), this);
+	frameAdvanceAct = new QAction(QIcon(":/res/frame-advance.png"), tr("&Frame Advance"), this);
 	frameAdvanceAct->setShortcut(QKeySequence(tr("F7")));
 	connect(frameAdvanceAct, SIGNAL(triggered()), this, SLOT(FrameAdvance()));
 

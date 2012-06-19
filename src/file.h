@@ -21,6 +21,8 @@ uint32 JaguarLoadROM(uint8 * &rom, char * path);
 bool JaguarLoadFile(char * path);
 bool AlpineLoadFile(char * path);
 uint32 GetFileFromZIP(const char * zipFile, FileType type, uint8 * &buffer);
+uint32_t GetFileDBIdentityFromZIP(const char * zipFile);
+bool FindFileInZIPWithCRC32(const char * zipFile, uint32 crc);
 uint32 ParseFileType(uint8_t * buffer, uint32 size);
 bool HasUniversalHeader(uint8 * rom, uint32 romSize);
 

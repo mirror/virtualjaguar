@@ -86,6 +86,8 @@ void m68k_write_memory_8(unsigned int address, unsigned int value);
 void m68k_write_memory_16(unsigned int address, unsigned int value);
 void m68k_write_memory_32(unsigned int address, unsigned int value);
 
+int irq_ack_handler(int);
+
 // Convenience functions
 
 /* Peek at the internals of a CPU context.  This can either be a context

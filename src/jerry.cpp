@@ -163,7 +163,7 @@
 #include "jaguar.h"
 #include "joystick.h"
 #include "log.h"
-#include "m68k.h"
+#include "m68000/m68kinterface.h"
 #include "settings.h"
 #include "tom.h"
 //#include "memory.h"

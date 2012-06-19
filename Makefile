@@ -9,10 +9,6 @@
 
 FIND = find
 
-# For cross-compilation with MXE
-# We use a script to do this now...
-#CROSS = i686-pc-mingw32-
-
 # Gah
 OSTYPE := $(shell uname -a)
 
@@ -21,12 +17,14 @@ ifeq "$(findstring Darwin,$(OSTYPE))" "Darwin"
 QMAKE_EXTRA := -spec macx-g++
 endif
 
-# Eh?
-CFLAGS ?= ""
-CPPFLAGS ?= ""
-CXXFLAGS ?= ""
-LDFLAGS ?= ""
+# (This will only assign if the var doesn't exist already. Without these flags,
+# Virtual Jaguar will run very slow.)
+CFLAGS ?= -O2 -ffast-math -fomit-frame-pointer
+CPPFLAGS ?= -O2 -ffast-math -fomit-frame-pointer
+CXXFLAGS ?= -O2 -ffast-math -fomit-frame-pointer
+LDFLAGS ?= 
 
+# Flags to pass on to qmake...
 QMAKE_EXTRA += "QMAKE_CFLAGS_RELEASE=$(CFLAGS)"
 QMAKE_EXTRA += "QMAKE_CXXFLAGS_RELEASE=$(CXXFLAGS)"
 QMAKE_EXTRA += "QMAKE_LFLAGS_RELEASE=$(LDFLAGS)"
@@ -51,32 +49,25 @@ prepare: obj
 
 virtualjaguar: sources libs makefile-qt
 	@echo -e "\033[01;33m***\033[00;32m Making Virtual Jaguar GUI...\033[00m"
-	$(MAKE) -f makefile-qt CROSS=$(CROSS)
+	@$(MAKE) -f makefile-qt CROSS=$(CROSS)
 
 makefile-qt: virtualjaguar.pro
 	@echo -e "\033[01;33m***\033[00;32m Creating Qt makefile...\033[00m"
-	$(CROSS)qmake $(QMAKE_EXTRA) virtualjaguar.pro -o makefile-qt
+	@$(CROSS)qmake $(QMAKE_EXTRA) virtualjaguar.pro -o makefile-qt
 
-#libs: obj/libmusashi.a obj/libjaguarcore.a
 libs: obj/libm68k.a obj/libjaguarcore.a
 	@echo -e "\033[01;33m***\033[00;32m Libraries successfully made.\033[00m"
 
 obj/libm68k.a: src/m68000/Makefile sources
 	@echo -e "\033[01;33m***\033[00;32m Making Customized UAE 68K Core...\033[00m"
-#	@$(MAKE) -C src/m68000
 	@$(MAKE) -C src/m68000 CROSS=$(CROSS) CFLAGS="$(CFLAGS)"
 	@cp src/m68000/obj/libm68k.a obj/
 
-obj/libmusashi.a: musashi.mak sources
-	@echo -e "\033[01;33m***\033[00;32m Making Musashi...\033[00m"
-	$(MAKE) -f musashi.mak
-
 obj/libjaguarcore.a: jaguarcore.mak sources
 	@echo -e "\033[01;33m***\033[00;32m Making Virtual Jaguar core...\033[00m"
-#	$(MAKE) -f jaguarcore.mak
-	$(MAKE) -f jaguarcore.mak CROSS=$(CROSS) CFLAGS="$(CFLAGS)" CXXFLAGS="$(CXXFLAGS)"
+	@$(MAKE) -f jaguarcore.mak CROSS=$(CROSS) CFLAGS="$(CFLAGS)" CXXFLAGS="$(CXXFLAGS)"
 
-sources: src/*.h src/*.cpp src/*.c src/m68000/*.c src/m68000/*.h
+sources: src/*.h src/*.cpp src/m68000/*.c src/m68000/*.h
 
 clean:
 	@echo -ne "\033[01;33m***\033[00;32m Cleaning out the garbage...\033[00m"

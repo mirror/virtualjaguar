@@ -9,3 +9,5 @@ echo "Cross compiling for Win32..."
 export PATH=/opt/mxe/usr/bin:$PATH
 rm makefile-qt
 make CROSS=i686-pc-mingw32-
+rel=`svn info | grep Revision | cut -f 2 -d ' '`
+cd release && upx -9v release/virtualjaguar.exe && zip -9v vj-r$rel.zip virtualjaguar.exe

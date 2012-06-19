@@ -32,7 +32,7 @@
 #include "jagdasm.h"
 #include "jaguar.h"
 #include "log.h"
-#include "m68k.h"
+#include "m68000/m68kinterface.h"
 //#include "memory.h"
 #include "tom.h"
 

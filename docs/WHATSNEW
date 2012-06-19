@@ -1,6 +1,9 @@
-Virtual Jaguar v2.0.3 GCC/Qt
+Virtual Jaguar v2.1.0 GCC/Qt
 ----------------------------
 
+* Re-added command line switches. [Shamus]
+* Moved JERRY into host audio IRQ. This should make sound much smoother, though
+  it may run ahead of the rest of the emulator. [Shamus]
 * Kludged a fix into the audio handler to set the correct frequency for audio
   playback. Note that there could still be problems with this approach, as it
   can be easily fooled. Thanks to Dr. Typo for the initial analysis and insight

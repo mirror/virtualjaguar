@@ -43,11 +43,11 @@ char ControllerWidget::keyName2[64][16] = {
 // This is hard-coded crap. It's crap-tastic!
 // These are the positions to draw the button names at, ordered by the BUTTON_* sequence
 // found in joystick.h.
-int ControllerWidget::buttonPos[21][2] = { { 86, 59 }, { 86, 94 }, { 68, 76 }, { 108, 76 },
-	{ 125, 223 }, { 125, 200 }, { 125, 177 }, { 125, 153 },
-	{ 160, 223 }, { 160, 200 }, { 160, 177 }, { 160, 153 },
-	{ 196, 223 }, { 196, 200 }, { 196, 177 }, { 196, 153 },
-	{ 242, 60 }, { 224, 80 }, { 207, 104 }, { 164, 101 }, { 141, 108+13 }
+int ControllerWidget::buttonPos[21][2] = { { 74, 32 }, { 71, 67 }, { 53, 49 }, { 93, 49 },
+	{ 110, 200 }, { 110, 175 }, { 110, 151 }, { 110, 126 },
+	{ 148, 200 }, { 148, 175 }, { 148, 151 }, { 148, 126 },
+	{ 186, 200 }, { 186, 175 }, { 186, 151 }, { 186, 126 },
+	{ 234, 31 }, { 216, 51 }, { 199, 71 }, { 164-11, 101-30 }, { 141-11, 108+13-30 }
 };
 
 ControllerWidget::ControllerWidget(QWidget * parent/*= 0*/): QWidget(parent),
@@ -94,13 +94,13 @@ void ControllerWidget::paintEvent(QPaintEvent * /*event*/)
 	blackPen.setWidth(4);
 	QPen colorPen(QColor(48, 255, 255, 255));
 	colorPen.setWidth(2);
-	QLine line(QPoint(141, 100), QPoint(141, 108+5));
+	QLine line(QPoint(141-11, 100-30), QPoint(141-11, 108+5-30));
 
 	painter.setPen(blackPen);
 	painter.drawLine(line);
 	blackPen.setWidth(1);
 	painter.setPen(blackPen);
-	painter.drawEllipse(QPoint(141, 100), 4, 4);
+	painter.drawEllipse(QPoint(141-11, 100-30), 4, 4);
 	painter.setPen(colorPen);
 	painter.drawLine(line);
 

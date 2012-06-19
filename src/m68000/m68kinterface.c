@@ -45,7 +45,7 @@ extern const struct cputbl op_smalltbl_4_ff[];	/* 68000 */
 extern const struct cputbl op_smalltbl_5_ff[];	/* 68000 slow but compatible.  */
 
 // Externs, supplied by the user...
-extern int irq_ack_handler(int);
+//extern int irq_ack_handler(int);
 
 // Function prototypes...
 STATIC_INLINE void m68ki_check_interrupts(void);

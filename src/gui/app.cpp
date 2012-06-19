@@ -45,6 +45,17 @@ QString filename;
 // Here's the main application loop--short and simple...
 int main(int argc, char * argv[])
 {
+	// Win32 console redirection, because MS and their band of super geniuses decided
+	// that nobody would ever launch an app from the command line. :-P
+	// And, of course, this doesn't work, but causes weird problems. Yay Microsoft. :-/
+#ifdef __GCCWIN32__
+#if 0
+	FILE * ctt = fopen("CON", "w");
+	freopen("CON", "w", stdout);
+	freopen("CON", "w", stderr);
+#endif
+#endif
+
 	// Normally, this would be read in from the settings module... :-P
 	vjs.hardwareTypeAlpine = false;
 	// This is stuff we pass into the mainWindow...
@@ -52,7 +63,14 @@ int main(int argc, char * argv[])
 
 	// Check for options that must be in place be constructing the App object
 	if (!ParseCommandLine(argc, argv))
+	{
+#ifdef __GCCWIN32__
+#if 0
+		fclose(ctt);
+#endif
+#endif
 		return 0;
+	}
 
 	Q_INIT_RESOURCE(virtualjaguar);	// This must the same name as the exe filename
 //or is it the .qrc filename???
@@ -86,6 +104,11 @@ int main(int argc, char * argv[])
 		SDL_Quit();
 	}
 
+#ifdef __GCCWIN32__
+#if 0
+	fclose(ctt);
+#endif
+#endif
 	LogDone();									// Close logfile
 	return retVal;
 }
@@ -123,8 +146,8 @@ bool ParseCommandLine(int argc, char * argv[])
 			printf(
 				"Virtual Jaguar " VJ_RELEASE_VERSION " (" VJ_RELEASE_SUBVERSION ")\n"
 				"Based upon Virtual Jaguar core v1.0.0 by David Raingeard.\n"
-				"Written by Niels Wagenaar (Linux/WIN32), Carwin Jones (BeOS),\n"
-				"James Hammons (Linux/WIN32) and Adam Green (MacOS)\n"
+				"Written by James Hammons (Linux/WIN32), Niels Wagenaar (Linux/WIN32),\n"
+				"Carwin Jones (BeOS), and Adam Green (MacOS)\n"
 				"Contact: http://sdlemu.ngemu.com/ | sdlemu@ngemu.com\n"
 				"\n"
 				"Usage:\n"
@@ -169,7 +192,7 @@ bool ParseCommandLine(int argc, char * argv[])
 			vjs.hardwareTypeAlpine = true;
 		}
 
-		if (strcmp(argv[i], "--please-dont-kill-my-computer") == 0)
+		if ((strcmp(argv[i], "--please-dont-kill-my-computer") == 0) || (strcmp(argv[i], "-z") == 0))
 		{
 			noUntunedTankPlease = true;
 		}
@@ -199,6 +222,8 @@ bool ParseCommandLine(int argc, char * argv[])
 //
 // This is to override settings loaded from the config file.
 // Note that settings set here will become the new defaults!
+// (Not any more: Settings are only saved if the config dialog was OKed, or
+// the toolbar buttons were pressed.)
 //
 void ParseOptions(int argc, char * argv[])
 {

@@ -28,7 +28,7 @@
 #include "jerry.h"
 #include "joystick.h"
 #include "log.h"
-#include "m68k.h"
+#include "m68000/m68kinterface.h"
 //#include "memory.h"
 #include "mmu.h"
 #include "settings.h"
@@ -133,7 +133,7 @@ if (inRoutine)
 		static char buffer[2048];
 		for(int i=0; i<0x400; i++)
 		{
-			m68k_disassemble(buffer, pcQueue[(pcQPtr + i) & 0x3FF], M68K_CPU_TYPE_68000);
+			m68k_disassemble(buffer, pcQueue[(pcQPtr + i) & 0x3FF], 0);//M68K_CPU_TYPE_68000);
 			WriteLog("\t%08X: %s\n", pcQueue[(pcQPtr + i) & 0x3FF], buffer);
 		}
 		WriteLog("\n");
@@ -273,7 +273,7 @@ if (m68kPC == 0x802058) start = true;
 	if (m68kPC == 0x82E1A)
 	{
 		static char buffer[2048];
-		m68k_disassemble(buffer, m68kPC, M68K_CPU_TYPE_68000);
+		m68k_disassemble(buffer, m68kPC, 0);//M68K_CPU_TYPE_68000);
 		WriteLog("--> [Routine start] %08X: %s", m68kPC, buffer);
 		WriteLog("\t\tA0=%08X, A1=%08X, D0=%08X(cmd), D1=%08X(# bytes), D2=%08X\n",
 			m68k_get_reg(NULL, M68K_REG_A0), m68k_get_reg(NULL, M68K_REG_A1),
@@ -356,7 +356,7 @@ CD_switch::	-> $306C
 #endif
 
 #ifdef ABORT_ON_ILLEGAL_INSTRUCTIONS
-	if (!m68k_is_valid_instruction(m68k_read_memory_16(m68kPC), M68K_CPU_TYPE_68000))
+	if (!m68k_is_valid_instruction(m68k_read_memory_16(m68kPC), 0))//M68K_CPU_TYPE_68000))
 	{
 #ifndef ABORT_ON_OFFICIAL_ILLEGAL_INSTRUCTION
 		if (m68k_read_memory_16(m68kPC) == 0x4AFC)
@@ -1454,7 +1454,7 @@ void JaguarDasm(uint32 offset, uint32 qt)
 		pc += Dasm68000((char *)mem, buffer, 0);
 		WriteLog("%08X: %s\n", oldpc, buffer);//*/
 		oldpc = pc;
-		pc += m68k_disassemble(buffer, pc, M68K_CPU_TYPE_68000);
+		pc += m68k_disassemble(buffer, pc, 0);//M68K_CPU_TYPE_68000);
 		WriteLog("%08X: %s\n", oldpc, buffer);//*/
 	}
 #endif
@@ -1736,7 +1736,7 @@ void JaguarInit(void)
 //temp, for crappy crap that sux
 memset(jaguarMainRAM + 0x804, 0xFF, 4);
 
-	m68k_set_cpu_type(M68K_CPU_TYPE_68000);
+//	m68k_set_cpu_type(M68K_CPU_TYPE_68000);
 	m68k_pulse_reset();							// Need to do this so UAE disasm doesn't segfault on exit
 	GPUInit();
 	DSPInit();
