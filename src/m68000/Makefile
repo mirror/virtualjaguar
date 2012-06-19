@@ -15,7 +15,7 @@ LD      := $(CROSS)gcc
 AR      := $(CROSS)ar
 ARFLAGS := -rs
 GCC_DEPS = -MMD
-INCS    := -I. -I./obj `sdl-config --cflags`
+INCS    := -I. -I./obj `$(CROSS)sdl-config --cflags`
 
 OBJS = \
 	obj/cpustbl.o \
