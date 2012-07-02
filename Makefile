@@ -44,7 +44,7 @@ prepare: obj
 	@echo -e "\033[01;33m***\033[00;32m Preparing to compile Virtual Jaguar...\033[00m"
 #	@echo "#define VJ_RELEASE_VERSION \"v2.1.0\"" > src/version.h
 #	@echo "#define VJ_RELEASE_SUBVERSION \"Final\"" >> src/version.h
-	@echo "#define VJ_RELEASE_VERSION \"SVN `svn info | grep -i revision`\"" > src/version.h
+	@echo "#define VJ_RELEASE_VERSION \"GIT `date +%Y%m%d`\"" > src/version.h
 	@echo "#define VJ_RELEASE_SUBVERSION \"2.1.0 Prerelease\"" >> src/version.h
 
 virtualjaguar: sources libs makefile-qt
