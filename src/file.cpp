@@ -135,6 +135,9 @@ bool JaguarLoadFile(char * path)
 	{
 		jaguarCartInserted = true;
 		memcpy(jagMemSpace + 0x800000, buffer, jaguarROMSize);
+// Checking something...
+jaguarRunAddress = GET32(jagMemSpace, 0x800404);
+WriteLog("FILE: Cartridge run address is reported as $%X...\n", jaguarRunAddress);
 		delete[] buffer;
 		return true;
 	}
