@@ -180,6 +180,9 @@ void OPDone(void)
 
 	WriteLog("\n");
 #else
+//temp, to keep the following function from locking up on bad/weird OLs
+return;
+
 	numberOfObjects = 0;
 	OPDiscoverObjects(olp);
 	OPDumpObjectList();
