@@ -455,12 +455,14 @@ void MainWin::Configure(void)
 	QString before = vjs.ROMPath;
 	QString alpineBefore = vjs.alpineROMPath;
 	QString absBefore = vjs.absROMPath;
-	bool audioBefore = vjs.audioEnabled;
+//	bool audioBefore = vjs.audioEnabled;
+	bool audioBefore = vjs.DSPEnabled;
 	dlg.UpdateVJSettings();
 	QString after = vjs.ROMPath;
 	QString alpineAfter = vjs.alpineROMPath;
 	QString absAfter = vjs.absROMPath;
-	bool audioAfter = vjs.audioEnabled;
+//	bool audioAfter = vjs.audioEnabled;
+	bool audioAfter = vjs.DSPEnabled;
 
 	bool allowOld = allowUnknownSoftware;
 	//ick.
@@ -497,7 +499,8 @@ void MainWin::Configure(void)
 		}
 	}
 
-	// If the "Enable audio" checkbox changed, then we have to re-init the DAC...
+	// If the "Enable DSP" checkbox changed, then we have to re-init the DAC,
+	// since it's running in the host audio IRQ...
 	if (audioBefore != audioAfter)
 	{
 		DACDone();

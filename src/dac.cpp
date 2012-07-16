@@ -97,9 +97,10 @@ void DACInit(void)
 {
 	SDLSoundInitialized = false;
 
-	if (!vjs.audioEnabled)
+//	if (!vjs.audioEnabled)
+	if (!vjs.DSPEnabled)
 	{
-		WriteLog("DAC: Host audio playback disabled.\n");
+		WriteLog("DAC: DSP/host audio playback disabled.\n");
 		return;
 	}
 

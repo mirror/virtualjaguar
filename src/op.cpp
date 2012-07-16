@@ -180,6 +180,7 @@ void OPDone(void)
 
 	WriteLog("\n");
 #else
+#warning "!!! Fix lockup in OPDiscoverObjects() !!!"
 //temp, to keep the following function from locking up on bad/weird OLs
 return;
 

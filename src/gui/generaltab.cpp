@@ -19,17 +19,17 @@ GeneralTab::GeneralTab(QWidget * parent/*= 0*/): QWidget(parent)
 // I'm thinking we should scan the bios folder for the 5 known BIOSes, and
 // just present a radio button to choose between them...
 // (BIOS is built-in now...)
-	QLabel * label1 = new QLabel("Boot ROM:");
-	QLabel * label2 = new QLabel("CD Boot ROM:");
+//	QLabel * label1 = new QLabel("Boot ROM:");
+//	QLabel * label2 = new QLabel("CD Boot ROM:");
 	QLabel * label3 = new QLabel("EEPROMs:");
 	QLabel * label4 = new QLabel("Software:");
 
-	edit1 = new QLineEdit("");
-	edit2 = new QLineEdit("");
+//	edit1 = new QLineEdit("");
+//	edit2 = new QLineEdit("");
 	edit3 = new QLineEdit("");
 	edit4 = new QLineEdit("");
-	edit1->setPlaceholderText("Boot ROM location");
-	edit2->setPlaceholderText("CD Boot ROM location");
+//	edit1->setPlaceholderText("Boot ROM location");
+//	edit2->setPlaceholderText("CD Boot ROM location");
 	edit3->setPlaceholderText("EEPROM path");
 	edit4->setPlaceholderText("Software path");
 
@@ -56,13 +56,13 @@ GeneralTab::GeneralTab(QWidget * parent/*= 0*/): QWidget(parent)
 	useBIOS            = new QCheckBox(tr("Enable Jaguar BIOS"));
 	useGPU             = new QCheckBox(tr("Enable GPU"));
 	useDSP             = new QCheckBox(tr("Enable DSP"));
-	useHostAudio       = new QCheckBox(tr("Enable audio playback (requires DSP)"));
+//	useHostAudio       = new QCheckBox(tr("Enable audio playback (requires DSP)"));
 	useUnknownSoftware = new QCheckBox(tr("Show all files in file chooser"));
 
 	layout4->addWidget(useBIOS);
 	layout4->addWidget(useGPU);
 	layout4->addWidget(useDSP);
-	layout4->addWidget(useHostAudio);
+//	layout4->addWidget(useHostAudio);
 	layout4->addWidget(useUnknownSoftware);
 
 	setLayout(layout4);
