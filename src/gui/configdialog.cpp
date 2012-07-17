@@ -62,8 +62,8 @@ ConfigDialog::~ConfigDialog()
 
 void ConfigDialog::LoadDialogFromSettings(void)
 {
-	generalTab->edit1->setText(vjs.jagBootPath);
-	generalTab->edit2->setText(vjs.CDBootPath);
+//	generalTab->edit1->setText(vjs.jagBootPath);
+//	generalTab->edit2->setText(vjs.CDBootPath);
 	generalTab->edit3->setText(vjs.EEPROMPath);
 	generalTab->edit4->setText(vjs.ROMPath);
 
@@ -88,8 +88,8 @@ void ConfigDialog::LoadDialogFromSettings(void)
 
 void ConfigDialog::UpdateVJSettings(void)
 {
-	strcpy(vjs.jagBootPath, generalTab->edit1->text().toAscii().data());
-	strcpy(vjs.CDBootPath,  generalTab->edit2->text().toAscii().data());
+//	strcpy(vjs.jagBootPath, generalTab->edit1->text().toAscii().data());
+//	strcpy(vjs.CDBootPath,  generalTab->edit2->text().toAscii().data());
 	strcpy(vjs.EEPROMPath,  CheckForTrailingSlash(
 		generalTab->edit3->text()).toAscii().data());
 	strcpy(vjs.ROMPath,     CheckForTrailingSlash(
