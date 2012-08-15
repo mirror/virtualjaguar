@@ -44,6 +44,7 @@
 #include "generaltab.h"
 #include "version.h"
 #include "debug/memorybrowser.h"
+#include "debug/cpubrowser.h"
 
 #include "dac.h"
 #include "jaguar.h"
@@ -98,6 +99,7 @@ MainWin::MainWin(bool autoRun): running(true), powerButtonOn(false),
 	helpWin = new HelpWindow(this);
 	filePickWin = new FilePickerWindow(this);
 	memBrowseWin = new MemoryBrowserWindow(this);
+	cpuBrowseWin = new CPUBrowserWindow(this);
 
     videoWidget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
@@ -205,6 +207,11 @@ MainWin::MainWin(bool autoRun): running(true), powerButtonOn(false),
 //	memBrowseAct->setCheckable(true);
 	connect(memBrowseAct, SIGNAL(triggered()), this, SLOT(ShowMemoryBrowserWin()));
 
+	cpuBrowseAct = new QAction(QIcon(":/res/generic.png"), tr("CPU Browser"), this);
+	cpuBrowseAct->setStatusTip(tr("Shows the Jaguar CPU browser window"));
+//	memBrowseAct->setCheckable(true);
+	connect(cpuBrowseAct, SIGNAL(triggered()), this, SLOT(ShowCPUBrowserWin()));
+
 	// Misc. connections...
 	connect(filePickWin, SIGNAL(RequestLoad(QString)), this, SLOT(LoadSoftware(QString)));
 	connect(filePickWin, SIGNAL(FilePickerHiding()), this, SLOT(Unpause()));
@@ -224,6 +231,7 @@ MainWin::MainWin(bool autoRun): running(true), powerButtonOn(false),
 	{
 		debugMenu = menuBar()->addMenu(tr("&Debug"));
 		debugMenu->addAction(memBrowseAct);
+		debugMenu->addAction(cpuBrowseAct);
 	}
 
 	helpMenu = menuBar()->addMenu(tr("&Help"));
@@ -249,6 +257,7 @@ MainWin::MainWin(bool autoRun): running(true), powerButtonOn(false),
 	{
 		debugbar = addToolBar(tr("&Debug"));
 		debugbar->addAction(memBrowseAct);
+		debugbar->addAction(cpuBrowseAct);
 	}
 
 	//	Create status bar
@@ -783,6 +792,13 @@ void MainWin::ShowMemoryBrowserWin(void)
 {
 	memBrowseWin->show();
 	memBrowseWin->RefreshContents();
+}
+
+
+void MainWin::ShowCPUBrowserWin(void)
+{
+	cpuBrowseWin->show();
+	cpuBrowseWin->RefreshContents();
 }
 
 

@@ -73,6 +73,7 @@ HEADERS = \
 	src/gui/imagedelegate.h \
 	src/gui/keygrabber.h \
 	src/gui/mainwin.h \
+	src/gui/debug/cpubrowser.h \
 	src/gui/debug/memorybrowser.h \
 #	src/gui/sdljoystick.h
 
@@ -92,5 +93,6 @@ SOURCES = \
 	src/gui/imagedelegate.cpp \
 	src/gui/keygrabber.cpp \
 	src/gui/mainwin.cpp \
+	src/gui/debug/cpubrowser.cpp \
 	src/gui/debug/memorybrowser.cpp \
 #	src/gui/sdljoystick.cpp
