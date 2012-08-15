@@ -108,7 +108,19 @@ NB: Seems that when an address exception occurs, it doesn't get handled properly
 //
 void Exception(int nr, uint32_t oldpc, int ExceptionSource)
 {
-printf("Exception #%i occurred!\n", nr);
+char excNames[33][64] = {
+	"???", "???", "Bus Error", "Address Error",
+	"Illegal Instruction", "Zero Divide", "CHK", "TrapV",
+	"Privilege Violation", "Trace", "Line A", "Line F",
+	"???", "???", "Format Error", "Uninitialized Interrupt",
+	"???", "???", "???", "???",
+	"???", "???", "???", "???",
+	"Spurious/Autovector", "???", "???", "???",
+	"???", "???", "???", "???",
+	"Trap #"
+};
+
+printf("Exception #%i occurred! (%s)\n", nr, (nr < 32 ? excNames[nr] : (nr < 48 ? "Trap #" : "????")));
 printf("Vector @ #%i = %08X\n", nr, m68k_read_memory_32(nr * 4));
 //abort();
 	uint32_t currpc = m68k_getpc(), newpc;

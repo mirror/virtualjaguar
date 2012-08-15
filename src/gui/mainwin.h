@@ -16,6 +16,7 @@ class GLWidget;
 class AboutWindow;
 class HelpWindow;
 class FilePickerWindow;
+class MemoryBrowserWindow;
 
 class MainWin: public QMainWindow
 {
@@ -53,6 +54,8 @@ class MainWin: public QMainWindow
 		void ToggleCDUsage(void);
 		void FrameAdvance(void);
 
+		void ShowMemoryBrowserWin(void);
+
 	private:
 		void HandleKeys(QKeyEvent *, bool);
 		void ResizeMainWindow(void);
@@ -65,6 +68,7 @@ class MainWin: public QMainWindow
 		AboutWindow * aboutWin;
 		HelpWindow * helpWin;
 		FilePickerWindow * filePickWin;
+		MemoryBrowserWindow * memBrowseWin;
 		QTimer * timer;
 		bool running;
 		int zoomLevel;
@@ -82,7 +86,9 @@ class MainWin: public QMainWindow
 	private:
 		QMenu * fileMenu;
 		QMenu * helpMenu;
+		QMenu * debugMenu;
 		QToolBar * toolbar;
+		QToolBar * debugbar;
 
 		QActionGroup * zoomActs;
 		QActionGroup * tvTypeActs;
@@ -102,7 +108,9 @@ class MainWin: public QMainWindow
 		QAction * configAct;
 		QAction * useCDAct;
 		QAction * frameAdvanceAct;
-		
+
+		QAction * memBrowseAct;
+
 		QIcon powerGreen;
 		QIcon powerRed;
 };

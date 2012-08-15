@@ -52,6 +52,7 @@ INCLUDEPATH += \
 DEPENDPATH = \
 	src \
 	src/gui \
+	src/gui/debug \
 	src/m68000
 
 # The GUI
@@ -72,6 +73,7 @@ HEADERS = \
 	src/gui/imagedelegate.h \
 	src/gui/keygrabber.h \
 	src/gui/mainwin.h \
+	src/gui/debug/memorybrowser.h \
 #	src/gui/sdljoystick.h
 
 SOURCES = \
@@ -90,4 +92,5 @@ SOURCES = \
 	src/gui/imagedelegate.cpp \
 	src/gui/keygrabber.cpp \
 	src/gui/mainwin.cpp \
+	src/gui/debug/memorybrowser.cpp \
 #	src/gui/sdljoystick.cpp

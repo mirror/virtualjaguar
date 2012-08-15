@@ -43,6 +43,7 @@
 #include "configdialog.h"
 #include "generaltab.h"
 #include "version.h"
+#include "debug/memorybrowser.h"
 
 #include "dac.h"
 #include "jaguar.h"
@@ -96,6 +97,7 @@ MainWin::MainWin(bool autoRun): running(true), powerButtonOn(false),
 	aboutWin = new AboutWindow(this);
 	helpWin = new HelpWindow(this);
 	filePickWin = new FilePickerWindow(this);
+	memBrowseWin = new MemoryBrowserWindow(this);
 
     videoWidget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
@@ -197,6 +199,12 @@ MainWin::MainWin(bool autoRun): running(true), powerButtonOn(false),
 	frameAdvanceAct->setShortcut(QKeySequence(tr("F7")));
 	connect(frameAdvanceAct, SIGNAL(triggered()), this, SLOT(FrameAdvance()));
 
+	// Debugger Actions
+	memBrowseAct = new QAction(QIcon(":/res/generic.png"), tr("Memory Browser"), this);
+	memBrowseAct->setStatusTip(tr("Shows the Jaguar memory browser window"));
+//	memBrowseAct->setCheckable(true);
+	connect(memBrowseAct, SIGNAL(triggered()), this, SLOT(ShowMemoryBrowserWin()));
+
 	// Misc. connections...
 	connect(filePickWin, SIGNAL(RequestLoad(QString)), this, SLOT(LoadSoftware(QString)));
 	connect(filePickWin, SIGNAL(FilePickerHiding()), this, SLOT(Unpause()));
@@ -211,6 +219,12 @@ MainWin::MainWin(bool autoRun): running(true), powerButtonOn(false),
 	fileMenu->addAction(useCDAct);
 	fileMenu->addAction(configAct);
 	fileMenu->addAction(quitAppAct);
+
+	if (vjs.hardwareTypeAlpine)
+	{
+		debugMenu = menuBar()->addMenu(tr("&Debug"));
+		debugMenu->addAction(memBrowseAct);
+	}
 
 	helpMenu = menuBar()->addMenu(tr("&Help"));
 	helpMenu->addAction(helpAct);
@@ -230,6 +244,12 @@ MainWin::MainWin(bool autoRun): running(true), powerButtonOn(false),
 	toolbar->addAction(palAct);
 	toolbar->addSeparator();
 	toolbar->addAction(blurAct);
+
+	if (vjs.hardwareTypeAlpine)
+	{
+		debugbar = addToolBar(tr("&Debug"));
+		debugbar->addAction(memBrowseAct);
+	}
 
 	//	Create status bar
 	statusBar()->showMessage(tr("Ready"));
@@ -756,6 +776,13 @@ void MainWin::FrameAdvance(void)
 	// Execute 1 frame, then exit (only useful in Pause mode)
 	JaguarExecuteNew();
 	videoWidget->updateGL();
+}
+
+
+void MainWin::ShowMemoryBrowserWin(void)
+{
+	memBrowseWin->show();
+	memBrowseWin->RefreshContents();
 }
 
 
