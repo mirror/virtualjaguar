@@ -54,12 +54,14 @@ class MainWin: public QMainWindow
 		void LoadSoftware(QString);
 		void ToggleCDUsage(void);
 		void FrameAdvance(void);
+		void ToggleFullScreen(void);
 
 		void ShowMemoryBrowserWin(void);
 		void ShowCPUBrowserWin(void);
 
 	private:
 		void HandleKeys(QKeyEvent *, bool);
+		void SetFullScreen(bool state = true);
 		void ResizeMainWindow(void);
 		void ReadSettings(void);
 		void WriteSettings(void);
@@ -84,6 +86,7 @@ class MainWin: public QMainWindow
 		bool pauseForFileSelector;
 		bool loadAndGo;
 		bool keyHeld[8];
+		bool fullScreen;
 	public:
 		bool plzDontKillMyComputer;
 	private:
@@ -111,6 +114,7 @@ class MainWin: public QMainWindow
 		QAction * configAct;
 		QAction * useCDAct;
 		QAction * frameAdvanceAct;
+		QAction * fullScreenAct;
 
 		QAction * memBrowseAct;
 		QAction * cpuBrowseAct;

@@ -70,6 +70,7 @@ void ConfigDialog::LoadDialogFromSettings(void)
 	generalTab->useBIOS->setChecked(vjs.useJaguarBIOS);
 	generalTab->useGPU->setChecked(vjs.GPUEnabled);
 	generalTab->useDSP->setChecked(vjs.DSPEnabled);
+	generalTab->useFullScreen->setChecked(vjs.fullscreen);
 //	generalTab->useHostAudio->setChecked(vjs.audioEnabled);
 
 	if (vjs.hardwareTypeAlpine)
@@ -98,6 +99,7 @@ void ConfigDialog::UpdateVJSettings(void)
 	vjs.useJaguarBIOS = generalTab->useBIOS->isChecked();
 	vjs.GPUEnabled    = generalTab->useGPU->isChecked();
 	vjs.DSPEnabled    = generalTab->useDSP->isChecked();
+	vjs.fullscreen    = generalTab->useFullScreen->isChecked();
 //	vjs.audioEnabled  = generalTab->useHostAudio->isChecked();
 
 	if (vjs.hardwareTypeAlpine)

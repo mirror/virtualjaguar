@@ -201,6 +201,10 @@ MainWin::MainWin(bool autoRun): running(true), powerButtonOn(false),
 	frameAdvanceAct->setShortcut(QKeySequence(tr("F7")));
 	connect(frameAdvanceAct, SIGNAL(triggered()), this, SLOT(FrameAdvance()));
 
+	fullScreenAct = new QAction(QIcon(":/res/generic.png"), tr("F&ull Screen"), this);
+	fullScreenAct->setShortcut(QKeySequence(tr("F9")));
+	connect(fullScreenAct, SIGNAL(triggered()), this, SLOT(ToggleFullScreen()));
+
 	// Debugger Actions
 	memBrowseAct = new QAction(QIcon(":/res/generic.png"), tr("Memory Browser"), this);
 	memBrowseAct->setStatusTip(tr("Shows the Jaguar memory browser window"));
@@ -252,6 +256,7 @@ MainWin::MainWin(bool autoRun): running(true), powerButtonOn(false),
 	toolbar->addAction(palAct);
 	toolbar->addSeparator();
 	toolbar->addAction(blurAct);
+	toolbar->addAction(fullScreenAct);
 
 	if (vjs.hardwareTypeAlpine)
 	{
@@ -338,6 +343,7 @@ void MainWin::LoadFile(QString file)
 void MainWin::SyncUI(void)
 {
 	// Set toolbar buttons/menus based on settings read in (sync the UI)...
+	// (Really, this is to sync command line options passed in)
 	blurAct->setChecked(vjs.glFilter);
 	x1Act->setChecked(zoomLevel == 1);
 	x2Act->setChecked(zoomLevel == 2);
@@ -346,6 +352,9 @@ void MainWin::SyncUI(void)
 	ntscAct->setChecked(vjs.hardwareTypeNTSC);
 	palAct->setChecked(!vjs.hardwareTypeNTSC);
 	powerAct->setIcon(vjs.hardwareTypeNTSC ? powerRed : powerGreen);
+
+	fullScreen = vjs.fullscreen;
+	SetFullScreen(fullScreen);
 }
 
 
@@ -367,7 +376,13 @@ void MainWin::keyPressEvent(QKeyEvent * e)
 		e->accept();
 		return;
 	}
-
+/*
+	if (e->key() == Qt::Key_F9)
+	{
+		ToggleFullScreen();
+		return;
+	}
+*/
 	HandleKeys(e, true);
 }
 
@@ -785,6 +800,44 @@ void MainWin::FrameAdvance(void)
 	// Execute 1 frame, then exit (only useful in Pause mode)
 	JaguarExecuteNew();
 	videoWidget->updateGL();
+}
+
+
+void MainWin::SetFullScreen(bool state/*= true*/)
+{
+	if (state)
+	{
+		menuBar()->hide();
+		statusBar()->hide();
+		showFullScreen();
+		QRect r = QApplication::desktop()->availableGeometry();
+		double targetWidth = 320.0, targetHeight = (vjs.hardwareTypeNTSC ? 240.0 : 256.0);
+		double aspectRatio = targetWidth / targetHeight;
+		// NOTE: Really should check here to see which dimension constrains the other.
+		//       Right now, we assume that height is the constraint.
+		int newWidth = (int)(aspectRatio * (double)r.height());
+
+		videoWidget->setFixedSize(newWidth, r.height());
+		showFullScreen();
+	}
+	else
+	{
+		menuBar()->show();
+		statusBar()->show();
+		showNormal();
+		ResizeMainWindow();
+	}
+
+	// For some reason, this doesn't work: If the emu is paused, toggling from
+	// fullscreen to windowed (& vice versa) shows a white screen.
+//	videoWidget->updateGL();
+}
+
+
+void MainWin::ToggleFullScreen(void)
+{
+	fullScreen = !fullScreen;
+	SetFullScreen(fullScreen);
 }
 
 

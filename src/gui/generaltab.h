@@ -20,7 +20,8 @@ class GeneralTab: public QWidget
 		QCheckBox * useBIOS;
 		QCheckBox * useGPU;
 		QCheckBox * useDSP;
-		QCheckBox * useHostAudio;
+//		QCheckBox * useHostAudio;
+		QCheckBox * useFullScreen;
 		QCheckBox * useUnknownSoftware;
 };
 
