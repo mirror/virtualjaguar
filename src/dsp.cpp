@@ -624,12 +624,9 @@ uint32 DSPReadLong(uint32 offset, uint32 who/*=UNKNOWN*/)
 		offset &= 0x3F;
 		switch (offset)
 		{
-		case 0x00:	/*dsp_flag_c?(dsp_flag_c=1):(dsp_flag_c=0);
-					dsp_flag_z?(dsp_flag_z=1):(dsp_flag_z=0);
-					dsp_flag_n?(dsp_flag_n=1):(dsp_flag_n=0);*/
-
-					dsp_flags = (dsp_flags & 0xFFFFFFF8) | (dsp_flag_n << 2) | (dsp_flag_c << 1) | dsp_flag_z;
-					return dsp_flags & 0xFFFFC1FF;
+		case 0x00:
+			dsp_flags = (dsp_flags & 0xFFFFFFF8) | (dsp_flag_n << 2) | (dsp_flag_c << 1) | dsp_flag_z;
+			return dsp_flags & 0xFFFFC1FF;
 		case 0x04: return dsp_matrix_control;
 		case 0x08: return dsp_pointer_to_matrix;
 		case 0x0C: return dsp_data_organization;
@@ -725,19 +722,22 @@ SET16(ram2, offset, data);
 		if ((offset & 0x1C) == 0x1C)
 		{
 			if (offset & 0x03)
-				dsp_div_control = (dsp_div_control&0xffff0000)|(data&0xffff);
+				dsp_div_control = (dsp_div_control & 0xFFFF0000) | (data & 0xFFFF);
 			else
-				dsp_div_control = (dsp_div_control&0xffff)|((data&0xffff)<<16);
+				dsp_div_control = (dsp_div_control & 0xFFFF) | ((data & 0xFFFF) << 16);
 		}
 		else
 		{
-			uint32 old_data = DSPReadLong(offset & 0xffffffc, who);
+			uint32 old_data = DSPReadLong(offset & 0xFFFFFFC, who);
+
 			if (offset & 0x03)
-				old_data = (old_data&0xffff0000)|(data&0xffff);
+				old_data = (old_data & 0xFFFF0000) | (data & 0xFFFF);
 			else
-				old_data = (old_data&0xffff)|((data&0xffff)<<16);
-			DSPWriteLong(offset & 0xffffffc, old_data, who);
+				old_data = (old_data & 0xFFFF) | ((data & 0xFFFF) << 16);
+
+			DSPWriteLong(offset & 0xFFFFFFC, old_data, who);
 		}
+
 		return;
 	}
 
@@ -784,7 +784,9 @@ SET32(ram2, offset, data);
 #endif
 //			bool IMASKCleared = (dsp_flags & IMASK) && !(data & IMASK);
 			IMASKCleared = (dsp_flags & IMASK) && !(data & IMASK);
-			dsp_flags = data;
+			// NOTE: According to the JTRM, writing a 1 to IMASK has no effect; only the
+			//       IRQ logic can set it. So we mask it out here to prevent problems...
+			dsp_flags = data & (~IMASK);
 			dsp_flag_z = dsp_flags & 0x01;
 			dsp_flag_c = (dsp_flags >> 1) & 0x01;
 			dsp_flag_n = (dsp_flags >> 2) & 0x01;

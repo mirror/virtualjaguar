@@ -647,12 +647,15 @@ void GPUWriteWord(uint32 offset, uint16 data, uint32 who/*=UNKNOWN*/)
 		{
 //WriteLog("[GPU W16:%08X,%04X]", offset, data);
 			uint32 old_data = GPUReadLong(offset & 0xFFFFFFC, who);
+
 			if (offset & 0x02)
 				old_data = (old_data & 0xFFFF0000) | (data & 0xFFFF);
 			else
 				old_data = (old_data & 0x0000FFFF) | ((data & 0xFFFF) << 16);
+
 			GPUWriteLong(offset & 0xFFFFFFC, old_data, who);
 		}
+
 		return;
 	}
 	else if ((offset == GPU_WORK_RAM_BASE + 0x0FFF) || (GPU_CONTROL_RAM_BASE + 0x1F))
@@ -700,7 +703,9 @@ void GPUWriteLong(uint32 offset, uint32 data, uint32 who/*=UNKNOWN*/)
 		case 0x00:
 		{
 			bool IMASKCleared = (gpu_flags & IMASK) && !(data & IMASK);
-			gpu_flags = data;
+			// NOTE: According to the JTRM, writing a 1 to IMASK has no effect; only the
+			//       IRQ logic can set it. So we mask it out here to prevent problems...
+			gpu_flags = data & (~IMASK);
 			gpu_flag_z = gpu_flags & ZERO_FLAG;
 			gpu_flag_c = (gpu_flags & CARRY_FLAG) >> 1;
 			gpu_flag_n = (gpu_flags & NEGA_FLAG) >> 2;
