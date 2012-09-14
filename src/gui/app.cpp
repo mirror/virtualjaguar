@@ -116,7 +116,7 @@ int main(int argc, char * argv[])
 //
 // Main app constructor--we stick globally accessible stuff here... (?)
 //
-App::App(int argc, char * argv[]): QApplication(argc, argv)
+App::App(int & argc, char * argv[]): QApplication(argc, argv)
 {
 	bool loadAndGo = !filename.isEmpty();
 
