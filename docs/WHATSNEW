@@ -1,6 +1,8 @@
 Virtual Jaguar v2.1.0 GCC/Qt
 ----------------------------
 
+* Added fullscreen option. [Shamus]
+* Added some more developer goodies to Alpine mode. [Shamus]
 * Re-added command line switches. [Shamus]
 * Moved JERRY into host audio IRQ. This should make sound much smoother, though
   it may run ahead of the rest of the emulator. [Shamus]
