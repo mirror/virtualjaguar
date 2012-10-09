@@ -276,13 +276,13 @@ MainWin::MainWin(bool autoRun): running(true), powerButtonOn(false),
 	// Set up timer based loop for animation...
 	timer = new QTimer(this);
 	connect(timer, SIGNAL(timeout()), this, SLOT(Timer()));
-//This is only correct for PAL. !!! FIX !!! [DONE]
-//Use timer->setInterval( int msec ) to fix this on the fly
-//	timer->start(20);
+
 	// This isn't very accurate for NTSC: This is early by 40 msec per frame.
 	// This is because it's discarding the 0.6666... on the end of the fraction.
 	// Alas, 6 doesn't divide cleanly into 10. :-P
-	timer->start(vjs.hardwareTypeNTSC ? 16 : 20);
+//Should we defer this until SyncUI? Probably.
+//No, it doesn't work, because it uses setInterval() instead of start()...
+//	timer->start(vjs.hardwareTypeNTSC ? 16 : 20);
 
 	// We set this initially, to make VJ behave somewhat as it would if no
 	// cart were inserted and the BIOS was set as active...
@@ -355,6 +355,10 @@ void MainWin::SyncUI(void)
 
 	fullScreen = vjs.fullscreen;
 	SetFullScreen(fullScreen);
+
+	// Reset the timer to be what was set in the command line (if any):
+//	timer->setInterval(vjs.hardwareTypeNTSC ? 16 : 20);
+	timer->start(vjs.hardwareTypeNTSC ? 16 : 20);
 }
 
 
