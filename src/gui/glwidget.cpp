@@ -23,7 +23,7 @@
 #endif
 
 GLWidget::GLWidget(QWidget * parent/*= 0*/): QGLWidget(parent), texture(0),
-	textureWidth(0), textureHeight(0), buffer(0), rasterWidth(320), rasterHeight(240)
+	textureWidth(0), textureHeight(0), buffer(0), rasterWidth(340), rasterHeight(240)
 {
 	// Screen pitch has to be the texture width (in 32-bit pixels)...
 	JaguarSetScreenPitch(1024);
@@ -52,7 +52,7 @@ void GLWidget::initializeGL()
 void GLWidget::paintGL()
 {
 //kludge
-rasterHeight = (vjs.hardwareTypeNTSC ? 240 : 256);
+rasterHeight = (vjs.hardwareTypeNTSC ? VIRTUAL_SCREEN_HEIGHT_NTSC : VIRTUAL_SCREEN_HEIGHT_PAL);
 
 	unsigned outputWidth  = width();
 	unsigned outputHeight = height();

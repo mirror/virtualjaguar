@@ -815,7 +815,9 @@ void MainWin::SetFullScreen(bool state/*= true*/)
 		statusBar()->hide();
 		showFullScreen();
 		QRect r = QApplication::desktop()->availableGeometry();
-		double targetWidth = 320.0, targetHeight = (vjs.hardwareTypeNTSC ? 240.0 : 256.0);
+//		double targetWidth = 320.0, targetHeight = (vjs.hardwareTypeNTSC ? 240.0 : 256.0);
+		double targetWidth = (double)VIRTUAL_SCREEN_WIDTH,
+			targetHeight = (double)(vjs.hardwareTypeNTSC ? VIRTUAL_SCREEN_HEIGHT_NTSC : VIRTUAL_SCREEN_HEIGHT_PAL);
 		double aspectRatio = targetWidth / targetHeight;
 		// NOTE: Really should check here to see which dimension constrains the other.
 		//       Right now, we assume that height is the constraint.
@@ -861,7 +863,9 @@ void MainWin::ShowCPUBrowserWin(void)
 
 void MainWin::ResizeMainWindow(void)
 {
-	videoWidget->setFixedSize(zoomLevel * 320, zoomLevel * (vjs.hardwareTypeNTSC ? 240 : 256));
+//	videoWidget->setFixedSize(zoomLevel * 320, zoomLevel * (vjs.hardwareTypeNTSC ? 240 : 256));
+	videoWidget->setFixedSize(zoomLevel * VIRTUAL_SCREEN_WIDTH,
+		zoomLevel * (vjs.hardwareTypeNTSC ? VIRTUAL_SCREEN_HEIGHT_NTSC : VIRTUAL_SCREEN_HEIGHT_PAL));
 	show();
 
 	for(int i=0; i<2; i++)

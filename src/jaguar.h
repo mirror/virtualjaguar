@@ -45,7 +45,9 @@ extern bool jaguarCartInserted;
 
 // Video stuff (should go in tom.h?)
 
-#define VIRTUAL_SCREEN_WIDTH            320
+// NB: This virtual width is for PWIDTH = 4
+//#define VIRTUAL_SCREEN_WIDTH            320
+#define VIRTUAL_SCREEN_WIDTH            340
 #define VIRTUAL_SCREEN_HEIGHT_NTSC      240
 #define VIRTUAL_SCREEN_HEIGHT_PAL       256
 

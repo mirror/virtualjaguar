@@ -321,8 +321,11 @@
 //#define LEFT_VISIBLE_HC			(208 - 32)
 //#define RIGHT_VISIBLE_HC		(1488 - 32)
 // Split the difference? (Seems to be OK for the most part...)
-#define LEFT_VISIBLE_HC			(208 - 16)
-#define RIGHT_VISIBLE_HC		(1488 - 16)
+
+// (-8 +8)*4 is for opening up the display by 16 pixels (may go to 20). Need to change VIRTUAL_SCREEN_WIDTH to match this as well (went from 320 to 336; this is 4 HCs per one of those pixels). <-- actually, not true. This is only place referenced.
+#define LEFT_VISIBLE_HC			(208 - 16 - (10 * 4))
+//#define RIGHT_VISIBLE_HC		(1488 - 16 + (10 * 4))
+#define RIGHT_VISIBLE_HC		(LEFT_VISIBLE_HC + (VIRTUAL_SCREEN_WIDTH * 4))
 //#define TOP_VISIBLE_VC		25
 //#define BOTTOM_VISIBLE_VC		503
 #define TOP_VISIBLE_VC			31
@@ -331,8 +334,9 @@
 //Are these PAL horizontals correct?
 //They seem to be for the most part, but there are some games that seem to be
 //shifted over to the right from this "window".
-#define LEFT_VISIBLE_HC_PAL		(208 - 16)
-#define RIGHT_VISIBLE_HC_PAL	(1488 - 16)
+#define LEFT_VISIBLE_HC_PAL		(208 - 16 - (10 * 4))
+//#define RIGHT_VISIBLE_HC_PAL	(1488 - 16 + (10 * 4))
+#define RIGHT_VISIBLE_HC_PAL	(LEFT_VISIBLE_HC_PAL + (VIRTUAL_SCREEN_WIDTH * 4))
 #define TOP_VISIBLE_VC_PAL		67
 #define BOTTOM_VISIBLE_VC_PAL	579
 
