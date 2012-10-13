@@ -12,6 +12,14 @@
 #define VIDEO_MODE_16BPP_DIRECT 2
 #define VIDEO_MODE_16BPP_RGB	3
 
+// Virtual screen size stuff
+
+// NB: This virtual width is for PWIDTH = 4
+//#define VIRTUAL_SCREEN_WIDTH            320
+#define VIRTUAL_SCREEN_WIDTH            340
+#define VIRTUAL_SCREEN_HEIGHT_NTSC      240
+#define VIRTUAL_SCREEN_HEIGHT_PAL       256
+
 // 68000 Interrupt bit positions (enabled at $F000E0)
 
 enum { IRQ_VIDEO = 0, IRQ_GPU, IRQ_OPFLAG, IRQ_TIMER, IRQ_DSP };

@@ -90,6 +90,8 @@ class MainWin: public QMainWindow
 	public:
 		bool plzDontKillMyComputer;
 	private:
+		QPoint mainWinPosition;
+//		QSize mainWinSize;
 		QMenu * fileMenu;
 		QMenu * helpMenu;
 		QMenu * debugMenu;

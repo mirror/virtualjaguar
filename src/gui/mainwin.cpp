@@ -809,8 +809,18 @@ void MainWin::FrameAdvance(void)
 
 void MainWin::SetFullScreen(bool state/*= true*/)
 {
+#if 0
+	QPoint pos = settings.value("pos", QPoint(200, 200)).toPoint();
+	QSize size = settings.value("size", QSize(400, 400)).toSize();
+	resize(size);
+	move(pos);
+	settings.setValue("pos", pos());
+	settings.setValue("size", size());
+#endif
 	if (state)
 	{
+		mainWinPosition = pos();
+//		mainWinSize = size();
 		menuBar()->hide();
 		statusBar()->hide();
 		showFullScreen();
@@ -832,6 +842,7 @@ void MainWin::SetFullScreen(bool state/*= true*/)
 		statusBar()->show();
 		showNormal();
 		ResizeMainWindow();
+		move(mainWinPosition);
 	}
 
 	// For some reason, this doesn't work: If the emu is paused, toggling from
@@ -882,11 +893,11 @@ void MainWin::ResizeMainWindow(void)
 void MainWin::ReadSettings(void)
 {
 	QSettings settings("Underground Software", "Virtual Jaguar");
-	QPoint pos = settings.value("pos", QPoint(200, 200)).toPoint();
+	mainWinPosition = settings.value("pos", QPoint(200, 200)).toPoint();
 	QSize size = settings.value("size", QSize(400, 400)).toSize();
 	resize(size);
-	move(pos);
-	pos = settings.value("cartLoadPos", QPoint(200, 200)).toPoint();
+	move(mainWinPosition);
+	QPoint pos = settings.value("cartLoadPos", QPoint(200, 200)).toPoint();
 	filePickWin->move(pos);
 
 	zoomLevel = settings.value("zoom", 2).toInt();

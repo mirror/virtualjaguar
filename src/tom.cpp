@@ -322,7 +322,7 @@
 //#define RIGHT_VISIBLE_HC		(1488 - 32)
 // Split the difference? (Seems to be OK for the most part...)
 
-// (-8 +8)*4 is for opening up the display by 16 pixels (may go to 20). Need to change VIRTUAL_SCREEN_WIDTH to match this as well (went from 320 to 336; this is 4 HCs per one of those pixels). <-- actually, not true. This is only place referenced.
+// (-10 +10)*4 is for opening up the display by 16 pixels (may go to 20). Need to change VIRTUAL_SCREEN_WIDTH to match this as well (went from 320 to 340; this is 4 HCs per one of those pixels).
 #define LEFT_VISIBLE_HC			(208 - 16 - (10 * 4))
 //#define RIGHT_VISIBLE_HC		(1488 - 16 + (10 * 4))
 #define RIGHT_VISIBLE_HC		(LEFT_VISIBLE_HC + (VIRTUAL_SCREEN_WIDTH * 4))

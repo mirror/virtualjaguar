@@ -20,8 +20,6 @@ void JaguarWriteLong(uint32 offset, uint32 data, uint32 who = UNKNOWN);
 bool JaguarInterruptHandlerIsValid(uint32 i);
 void JaguarDasm(uint32 offset, uint32 qt);
 
-void JaguarExecute(uint32 * backbuffer, bool render);
-//For testing the new system...
 void JaguarExecuteNew(void);
 
 // Exports from JAGUAR.CPP
@@ -42,14 +40,6 @@ extern bool jaguarCartInserted;
 
 #define ASSERT_LINE		1
 #define CLEAR_LINE		0
-
-// Video stuff (should go in tom.h?)
-
-// NB: This virtual width is for PWIDTH = 4
-//#define VIRTUAL_SCREEN_WIDTH            320
-#define VIRTUAL_SCREEN_WIDTH            340
-#define VIRTUAL_SCREEN_HEIGHT_NTSC      240
-#define VIRTUAL_SCREEN_HEIGHT_PAL       256
 
 //Temp debug stuff (will go away soon, so don't depend on these)
 
