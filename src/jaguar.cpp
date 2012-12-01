@@ -376,15 +376,15 @@ CD_switch::	-> $306C
 		WriteLog("\nM68K encountered an illegal instruction at %08X!!!\n\nAborting!\n", m68kPC);
 		uint32 topOfStack = m68k_get_reg(NULL, M68K_REG_A7);
 		WriteLog("M68K: Top of stack: %08X. Stack trace:\n", JaguarReadLong(topOfStack));
-		uint32 address = topOfStack - (8 * 4 * 3);
+		uint32 address = topOfStack - (4 * 4 * 3);
 
 		for(int i=0; i<10; i++)
 		{
 			WriteLog("%06X:", address);
 
-			for(int j=0; j<8; j++)
+			for(int j=0; j<4; j++)
 			{
-				WriteLog(" %08X", JaguarReadLong(address);
+				WriteLog(" %08X", JaguarReadLong(address));
 				address += 4;
 			}
 
