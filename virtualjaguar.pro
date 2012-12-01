@@ -75,6 +75,7 @@ HEADERS = \
 	src/gui/mainwin.h \
 	src/gui/debug/cpubrowser.h \
 	src/gui/debug/memorybrowser.h \
+	src/gui/debug/opbrowser.h \
 #	src/gui/sdljoystick.h
 
 SOURCES = \
@@ -95,4 +96,5 @@ SOURCES = \
 	src/gui/mainwin.cpp \
 	src/gui/debug/cpubrowser.cpp \
 	src/gui/debug/memorybrowser.cpp \
+	src/gui/debug/opbrowser.cpp \
 #	src/gui/sdljoystick.cpp

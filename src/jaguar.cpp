@@ -376,8 +376,21 @@ CD_switch::	-> $306C
 		WriteLog("\nM68K encountered an illegal instruction at %08X!!!\n\nAborting!\n", m68kPC);
 		uint32 topOfStack = m68k_get_reg(NULL, M68K_REG_A7);
 		WriteLog("M68K: Top of stack: %08X. Stack trace:\n", JaguarReadLong(topOfStack));
+		uint32 address = topOfStack - (8 * 4 * 3);
+
 		for(int i=0; i<10; i++)
-			WriteLog("%06X: %08X\n", topOfStack - (i * 4), JaguarReadLong(topOfStack - (i * 4)));
+		{
+			WriteLog("%06X:", address);
+
+			for(int j=0; j<8; j++)
+			{
+				WriteLog(" %08X", JaguarReadLong(address);
+				address += 4;
+			}
+
+			WriteLog("\n");
+		}
+
 		WriteLog("Jaguar: VBL interrupt is %s\n", ((TOMIRQEnabled(IRQ_VIDEO)) && (JaguarInterruptHandlerIsValid(64))) ? "enabled" : "disabled");
 		M68K_show_context();
 
@@ -1977,7 +1990,7 @@ void JaguarExecuteNew(void)
 // it will be half this number for a half frame. BUT, since we're counting
 // HALF lines, we double this number and we're back at 525 for NTSC, 625 for PAL.
 //
-// Scanline times are 63.5555... µs in NTSC and 64 µs in PAL
+// Scanline times are 63.5555...  s in NTSC and 64  s in PAL
 // Half line times are, naturally, half of this. :-P
 void HalflineCallback(void)
 {

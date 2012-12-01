@@ -18,6 +18,7 @@ class HelpWindow;
 class FilePickerWindow;
 class MemoryBrowserWindow;
 class CPUBrowserWindow;
+class OPBrowserWindow;
 
 class MainWin: public QMainWindow
 {
@@ -58,6 +59,7 @@ class MainWin: public QMainWindow
 
 		void ShowMemoryBrowserWin(void);
 		void ShowCPUBrowserWin(void);
+		void ShowOPBrowserWin(void);
 
 	private:
 		void HandleKeys(QKeyEvent *, bool);
@@ -74,6 +76,7 @@ class MainWin: public QMainWindow
 		FilePickerWindow * filePickWin;
 		MemoryBrowserWindow * memBrowseWin;
 		CPUBrowserWindow * cpuBrowseWin;
+		OPBrowserWindow * opBrowseWin;
 		QTimer * timer;
 		bool running;
 		int zoomLevel;
@@ -120,6 +123,7 @@ class MainWin: public QMainWindow
 
 		QAction * memBrowseAct;
 		QAction * cpuBrowseAct;
+		QAction * opBrowseAct;
 
 		QIcon powerGreen;
 		QIcon powerRed;

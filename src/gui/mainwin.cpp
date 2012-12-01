@@ -45,6 +45,7 @@
 #include "version.h"
 #include "debug/memorybrowser.h"
 #include "debug/cpubrowser.h"
+#include "debug/opbrowser.h"
 
 #include "dac.h"
 #include "jaguar.h"
@@ -100,6 +101,7 @@ MainWin::MainWin(bool autoRun): running(true), powerButtonOn(false),
 	filePickWin = new FilePickerWindow(this);
 	memBrowseWin = new MemoryBrowserWindow(this);
 	cpuBrowseWin = new CPUBrowserWindow(this);
+	opBrowseWin = new OPBrowserWindow(this);
 
     videoWidget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
@@ -216,6 +218,11 @@ MainWin::MainWin(bool autoRun): running(true), powerButtonOn(false),
 //	memBrowseAct->setCheckable(true);
 	connect(cpuBrowseAct, SIGNAL(triggered()), this, SLOT(ShowCPUBrowserWin()));
 
+	opBrowseAct = new QAction(QIcon(":/res/generic.png"), tr("OP Browser"), this);
+	opBrowseAct->setStatusTip(tr("Shows the Jaguar OP browser window"));
+//	memBrowseAct->setCheckable(true);
+	connect(opBrowseAct, SIGNAL(triggered()), this, SLOT(ShowOPBrowserWin()));
+
 	// Misc. connections...
 	connect(filePickWin, SIGNAL(RequestLoad(QString)), this, SLOT(LoadSoftware(QString)));
 	connect(filePickWin, SIGNAL(FilePickerHiding()), this, SLOT(Unpause()));
@@ -236,6 +243,7 @@ MainWin::MainWin(bool autoRun): running(true), powerButtonOn(false),
 		debugMenu = menuBar()->addMenu(tr("&Debug"));
 		debugMenu->addAction(memBrowseAct);
 		debugMenu->addAction(cpuBrowseAct);
+		debugMenu->addAction(opBrowseAct);
 	}
 
 	helpMenu = menuBar()->addMenu(tr("&Help"));
@@ -263,6 +271,7 @@ MainWin::MainWin(bool autoRun): running(true), powerButtonOn(false),
 		debugbar = addToolBar(tr("&Debug"));
 		debugbar->addAction(memBrowseAct);
 		debugbar->addAction(cpuBrowseAct);
+		debugbar->addAction(opBrowseAct);
 	}
 
 	//	Create status bar
@@ -869,6 +878,13 @@ void MainWin::ShowCPUBrowserWin(void)
 {
 	cpuBrowseWin->show();
 	cpuBrowseWin->RefreshContents();
+}
+
+
+void MainWin::ShowOPBrowserWin(void)
+{
+	opBrowseWin->show();
+	opBrowseWin->RefreshContents();
 }
 
 
