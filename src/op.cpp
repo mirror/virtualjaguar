@@ -141,7 +141,7 @@ void OPReset(void)
 static const char * opType[8] =
 { "(BITMAP)", "(SCALED BITMAP)", "(GPU INT)", "(BRANCH)", "(STOP)", "???", "???", "???" };
 static const char * ccType[8] =
-	{ "\"==\"", "\"<\"", "\">\"", "(opflag set)", "(second half line)", "?", "?", "?" };
+	{ "==", "<", ">", "(opflag set)", "(second half line)", "?", "?", "?" };
 static uint32 object[8192];
 static uint32 numberOfObjects;
 //static uint32 objectLink[8192];
@@ -190,9 +190,7 @@ void OPDone(void)
 //return;
 
 	numberOfObjects = 0;
-//printf("OPDiscoverObjects...\n");
 	OPDiscoverObjects(olp);
-//printf("OPDumpObjectList...\n");
 	OPDumpObjectList();
 #endif
 }
@@ -254,13 +252,13 @@ void OPDumpObjectList(void)
 		uint32 lo = JaguarReadLong(address + 4, OP);
 		uint8 objectType = lo & 0x07;
 		uint32 link = ((hi << 11) | (lo >> 21)) & 0x3FFFF8;
-		WriteLog("%08X: %08X %08X %s", address, hi, lo, opType[objectType]);
+		WriteLog("%08X: %08X %08X %s -> $08X", address, hi, lo, opType[objectType], link);
 
 		if (objectType == 3)
 		{
 			uint16 ypos = (lo >> 3) & 0x7FF;
 			uint8  cc   = (lo >> 14) & 0x07;	// Proper # of bits == 3
-			WriteLog(" YPOS=%u, CC=%s, link=$%08X", ypos, ccType[cc], link);
+			WriteLog(" YPOS %s %u", ccType[cc], ypos);
 		}
 
 		WriteLog("\n");
@@ -428,9 +426,9 @@ void DumpBitmapCore(uint64 p0, uint64 p1)
 	uint8 flags = (p1 >> 45) & 0x0F;
 	uint8 idx = (p1 >> 38) & 0x7F;
 	uint32 pitch = (p1 >> 15) & 0x07;
-	WriteLog("    [%u x %u @ (%i, %u) (iw:%u, dw:%u) (%u bpp), l:%08X, p:%08X fp:%02X, fl:%s%s%s%s, idx:%02X, pt:%02X]\n",
+	WriteLog("    [%u x %u @ (%i, %u) (iw:%u, dw:%u) (%u bpp), p:%08X fp:%02X, fl:%s%s%s%s, idx:%02X, pt:%02X]\n",
 		iwidth * bdMultiplier[bitdepth],
-		height, xpos, ypos, iwidth, dwidth, op_bitmap_bit_depth[bitdepth], link,
+		height, xpos, ypos, iwidth, dwidth, op_bitmap_bit_depth[bitdepth],
 		ptr, firstPix, (flags&OPFLAG_REFLECT ? "REFLECT " : ""),
 		(flags&OPFLAG_RMW ? "RMW " : ""), (flags&OPFLAG_TRANS ? "TRANS " : ""),
 		(flags&OPFLAG_RELEASE ? "RELEASE" : ""), idx, pitch);
@@ -443,7 +441,7 @@ void DumpBitmapCore(uint64 p0, uint64 p1)
 #warning "Need to fix this so that when an GPU object IRQ happens, we can pick up OP processing where we left off. !!! FIX !!!"
 void OPProcessList(int halfline, bool render)
 {
-#warning "!!! NEED TO HANDLE MULTIPLE FIELDS PROPERLY !!!
+#warning "!!! NEED TO HANDLE MULTIPLE FIELDS PROPERLY !!!"
 // We ignore them, for now; not good
 	halfline &= 0x7FF;
 

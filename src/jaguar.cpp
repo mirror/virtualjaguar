@@ -1830,9 +1830,26 @@ void JaguarDone(void)
 //	for(int i=M68K_REG_A0; i<=M68K_REG_A7; i++)
 //		WriteLog("\tA%i = 0x%.8x\n", i-M68K_REG_A0, m68k_get_reg(NULL, (m68k_register_t)i));
 	int32 topOfStack = m68k_get_reg(NULL, M68K_REG_A7);
-	WriteLog("M68K: Top of stack: %08X. Stack trace:\n", JaguarReadLong(topOfStack));
+	WriteLog("M68K: Top of stack: %08X -> (%08X). Stack trace:\n", topOfStack, JaguarReadLong(topOfStack));
+#if 0
 	for(int i=-2; i<9; i++)
 		WriteLog("%06X: %08X\n", topOfStack + (i * 4), JaguarReadLong(topOfStack + (i * 4)));
+#else
+	uint32 address = topOfStack - (4 * 4 * 3);
+
+	for(int i=0; i<10; i++)
+	{
+		WriteLog("%06X:", address);
+
+		for(int j=0; j<4; j++)
+		{
+			WriteLog(" %08X", JaguarReadLong(address));
+			address += 4;
+		}
+
+		WriteLog("\n");
+	}
+#endif
 
 /*	WriteLog("\nM68000 disassembly at $802288...\n");
 	jaguar_dasm(0x802288, 3);
