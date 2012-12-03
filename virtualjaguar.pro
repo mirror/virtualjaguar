@@ -74,7 +74,9 @@ HEADERS = \
 	src/gui/keygrabber.h \
 	src/gui/mainwin.h \
 	src/gui/debug/cpubrowser.h \
+	src/gui/debug/m68kdasmbrowser.h \
 	src/gui/debug/memorybrowser.h \
+	src/gui/debug/opbrowser.h \
 #	src/gui/sdljoystick.h
 
 SOURCES = \
@@ -94,5 +96,7 @@ SOURCES = \
 	src/gui/keygrabber.cpp \
 	src/gui/mainwin.cpp \
 	src/gui/debug/cpubrowser.cpp \
+	src/gui/debug/m68kdasmbrowser.cpp \
 	src/gui/debug/memorybrowser.cpp \
+	src/gui/debug/opbrowser.cpp \
 #	src/gui/sdljoystick.cpp

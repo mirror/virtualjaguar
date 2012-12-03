@@ -42,10 +42,12 @@
 #define CONDITION_OP_FLAG_SET		3
 #define CONDITION_SECOND_HALF_LINE	4
 
+#if 0
 #define OPFLAG_RELEASE		8					// Bus release bit
 #define OPFLAG_TRANS		4					// Transparency bit
 #define OPFLAG_RMW			2					// Read-Modify-Write bit
 #define OPFLAG_REFLECT		1					// Horizontal mirror bit
+#endif
 
 // Private function prototypes
 
@@ -125,6 +127,7 @@ void OPInit(void)
 	OPReset();
 }
 
+
 //
 // Object Processor reset
 //
@@ -134,14 +137,16 @@ void OPReset(void)
 	objectp_running = 0;
 }
 
+
 static const char * opType[8] =
 { "(BITMAP)", "(SCALED BITMAP)", "(GPU INT)", "(BRANCH)", "(STOP)", "???", "???", "???" };
 static const char * ccType[8] =
-	{ "\"==\"", "\"<\"", "\">\"", "(opflag set)", "(second half line)", "?", "?", "?" };
+	{ "==", "<", ">", "(opflag set)", "(second half line)", "?", "?", "?" };
 static uint32 object[8192];
 static uint32 numberOfObjects;
 //static uint32 objectLink[8192];
 //static uint32 numberOfLinks;
+
 
 void OPDone(void)
 {
@@ -180,9 +185,9 @@ void OPDone(void)
 
 	WriteLog("\n");
 #else
-#warning "!!! Fix lockup in OPDiscoverObjects() !!!"
+//#warning "!!! Fix lockup in OPDiscoverObjects() !!!"
 //temp, to keep the following function from locking up on bad/weird OLs
-return;
+//return;
 
 	numberOfObjects = 0;
 	OPDiscoverObjects(olp);
@@ -190,21 +195,34 @@ return;
 #endif
 }
 
-void OPDiscoverObjects(uint32 address)
+
+bool OPObjectExists(uint32 address)
 {
-	// Check to see if we've already seen this object
+	// Yes, we really do a linear search, every time. :-/
 	for(uint32 i=0; i<numberOfObjects; i++)
 	{
 		if (address == object[i])
-			return;
+			return true;
 	}
 
-	// Store the object...
-	object[numberOfObjects++] = address;
+	return false;
+}
+
+
+void OPDiscoverObjects(uint32 address)
+{
 	uint8 objectType = 0;
 
 	do
 	{
+		// If we've seen this object already, bail out!
+		// Otherwise, add it to the list
+		if (OPObjectExists(address))
+			return;
+
+		object[numberOfObjects++] = address;
+
+		// Get the object & decode its type, link address
 		uint32 hi = JaguarReadLong(address + 0, OP);
 		uint32 lo = JaguarReadLong(address + 4, OP);
 		objectType = lo & 0x07;
@@ -212,38 +230,17 @@ void OPDiscoverObjects(uint32 address)
 
 		if (objectType == 3)
 		{
-			uint16 ypos = (lo >> 3) & 0x7FF;
-			uint8  cc   = (lo >> 14) & 0x07;	// Proper # of bits == 3
-
-			// Recursion needed to follow all links!
+			// Recursion needed to follow all links! This does depth-first recursion
+			// on the not-taken objects
 			OPDiscoverObjects(address + 8);
 		}
 
-		if (address == link)	// Ruh roh...
-		{
-			// Runaway recursive link is bad!
-			return;
-		}
-
+		// Get the next object...
 		address = link;
-
-		// Check to see if we've already seen this object, and add it if not
-		bool seenObject = false;
-
-		for(uint32 i=0; i<numberOfObjects; i++)
-		{
-			if (address == object[i])
-			{
-				seenObject = true;
-				break;
-			}
-		}
-
-		if (!seenObject)
-			object[numberOfObjects++] = address;
 	}
 	while (objectType != 4);
 }
+
 
 void OPDumpObjectList(void)
 {
@@ -255,13 +252,13 @@ void OPDumpObjectList(void)
 		uint32 lo = JaguarReadLong(address + 4, OP);
 		uint8 objectType = lo & 0x07;
 		uint32 link = ((hi << 11) | (lo >> 21)) & 0x3FFFF8;
-		WriteLog("%08X: %08X %08X %s", address, hi, lo, opType[objectType]);
+		WriteLog("%08X: %08X %08X %s -> $08X", address, hi, lo, opType[objectType], link);
 
 		if (objectType == 3)
 		{
 			uint16 ypos = (lo >> 3) & 0x7FF;
 			uint8  cc   = (lo >> 14) & 0x07;	// Proper # of bits == 3
-			WriteLog(" YPOS=%u, CC=%s, link=$%08X", ypos, ccType[cc], link);
+			WriteLog(" YPOS %s %u", ccType[cc], ypos);
 		}
 
 		WriteLog("\n");
@@ -282,6 +279,7 @@ void OPDumpObjectList(void)
 
 	WriteLog("\n");
 }
+
 
 //
 // Object Processor memory access
@@ -323,11 +321,13 @@ WriteLog("OP: Setting hi list pointer: %04X\n", data);//*/
 }
 #endif
 
+
 uint32 OPGetListPointer(void)
 {
 	// Note: This register is LO / HI WORD, hence the funky look of this...
 	return GET16(tomRam8, 0x20) | (GET16(tomRam8, 0x22) << 16);
 }
+
 
 // This is WRONG, since the OBF is only 16 bits wide!!! [FIXED]
 
@@ -336,6 +336,7 @@ uint32 OPGetStatusRegister(void)
 	return GET16(tomRam8, 0x26);
 }
 
+
 // This is WRONG, since the OBF is only 16 bits wide!!! [FIXED]
 
 void OPSetStatusRegister(uint32 data)
@@ -343,6 +344,7 @@ void OPSetStatusRegister(uint32 data)
 	tomRam8[0x26] = (data & 0x0000FF00) >> 8;
 	tomRam8[0x27] |= (data & 0xFE);
 }
+
 
 void OPSetCurrentObject(uint64 object)
 {
@@ -369,11 +371,13 @@ void OPSetCurrentObject(uint64 object)
 	tomRam8[0x10] = object & 0xFF;
 }
 
+
 uint64 OPLoadPhrase(uint32 offset)
 {
 	offset &= ~0x07;						// 8 byte alignment
 	return ((uint64)JaguarReadLong(offset, OP) << 32) | (uint64)JaguarReadLong(offset+4, OP);
 }
+
 
 void OPStorePhrase(uint32 offset, uint64 p)
 {
@@ -381,6 +385,7 @@ void OPStorePhrase(uint32 offset, uint64 p)
 	JaguarWriteLong(offset, p >> 32, OP);
 	JaguarWriteLong(offset + 4, p & 0xFFFFFFFF, OP);
 }
+
 
 //
 // Debugging routines
@@ -396,11 +401,13 @@ void DumpScaledObject(uint64 p0, uint64 p1, uint64 p2)
 	WriteLog("    [hsc: %02X, vsc: %02X, rem: %02X]\n", hscale, vscale, remainder);
 }
 
+
 void DumpFixedObject(uint64 p0, uint64 p1)
 {
 	WriteLog("          %08X %08X\n", (uint32)(p1>>32), (uint32)(p1&0xFFFFFFFF));
 	DumpBitmapCore(p0, p1);
 }
+
 
 void DumpBitmapCore(uint64 p0, uint64 p1)
 {
@@ -419,13 +426,14 @@ void DumpBitmapCore(uint64 p0, uint64 p1)
 	uint8 flags = (p1 >> 45) & 0x0F;
 	uint8 idx = (p1 >> 38) & 0x7F;
 	uint32 pitch = (p1 >> 15) & 0x07;
-	WriteLog("    [%u x %u @ (%i, %u) (iw:%u, dw:%u) (%u bpp), l:%08X, p:%08X fp:%02X, fl:%s%s%s%s, idx:%02X, pt:%02X]\n",
+	WriteLog("    [%u x %u @ (%i, %u) (iw:%u, dw:%u) (%u bpp), p:%08X fp:%02X, fl:%s%s%s%s, idx:%02X, pt:%02X]\n",
 		iwidth * bdMultiplier[bitdepth],
-		height, xpos, ypos, iwidth, dwidth, op_bitmap_bit_depth[bitdepth], link,
+		height, xpos, ypos, iwidth, dwidth, op_bitmap_bit_depth[bitdepth],
 		ptr, firstPix, (flags&OPFLAG_REFLECT ? "REFLECT " : ""),
 		(flags&OPFLAG_RMW ? "RMW " : ""), (flags&OPFLAG_TRANS ? "TRANS " : ""),
 		(flags&OPFLAG_RELEASE ? "RELEASE" : ""), idx, pitch);
 }
+
 
 //
 // Object Processor main routine
@@ -433,7 +441,7 @@ void DumpBitmapCore(uint64 p0, uint64 p1)
 #warning "Need to fix this so that when an GPU object IRQ happens, we can pick up OP processing where we left off. !!! FIX !!!"
 void OPProcessList(int halfline, bool render)
 {
-#warning "!!! NEED TO HANDLE MULTIPLE FIELDS PROPERLY !!!
+#warning "!!! NEED TO HANDLE MULTIPLE FIELDS PROPERLY !!!"
 // We ignore them, for now; not good
 	halfline &= 0x7FF;
 
@@ -864,6 +872,7 @@ OP: Scaled bitmap 4x? 4bpp at 34,? hscale=80 fpix=0 data=000756E8 pitch 1 hflipp
 			return;
 	}
 }
+
 
 //
 // Store fixed size bitmap in line buffer
@@ -1328,6 +1337,7 @@ if (firstPix)
 		}
 	}
 }
+
 
 //
 // Store scaled bitmap in line buffer
