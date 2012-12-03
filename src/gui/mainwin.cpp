@@ -809,14 +809,6 @@ void MainWin::FrameAdvance(void)
 
 void MainWin::SetFullScreen(bool state/*= true*/)
 {
-#if 0
-	QPoint pos = settings.value("pos", QPoint(200, 200)).toPoint();
-	QSize size = settings.value("size", QSize(400, 400)).toSize();
-	resize(size);
-	move(pos);
-	settings.setValue("pos", pos());
-	settings.setValue("size", size());
-#endif
 	if (state)
 	{
 		mainWinPosition = pos();

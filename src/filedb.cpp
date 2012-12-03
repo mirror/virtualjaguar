@@ -44,6 +44,7 @@ RomIdentifier romList[] = {
 	{ 0x0AC83D77, "NBA Jam T.E. (World)", FF_ROM | FF_VERIFIED },
 	{ 0x0EC5369D, "Evolution - Dino Dudes (World)", FF_ROM | FF_VERIFIED },
 	{ 0x0F6A1C2C, "Ultra Vortek (World)", FF_ROM | FF_VERIFIED },
+	{ 0x0FDCEB66, "Brutal Sports Football (World)", FF_ROM | FF_BAD_DUMP },
 	{ 0x14915F20, "White Men Can't Jump (World)", FF_ROM | FF_VERIFIED },
 	{ 0x1660F070, "Power Drive Rally (World)", FF_ROM | FF_VERIFIED },
 	{ 0x1A20C5C4, "Protector (World)", FF_ROM | FF_VERIFIED | FF_REQ_DSP },
