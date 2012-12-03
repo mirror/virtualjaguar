@@ -28,13 +28,9 @@ AboutWindow::AboutWindow(QWidget * parent/*= 0*/): QWidget(parent, Qt::Dialog)
 	layout->setSizeConstraint(QLayout::SetFixedSize);
 	setLayout(layout);
 
-	image = new QLabel();
-	image->setAlignment(Qt::AlignRight);
-	image->setPixmap(QPixmap(":/res/vj_title_small.png"));
-	layout->addWidget(image);
-
 	QString s;
 	s.append(tr(
+		"<img src=':/res/vj_title_small.png' style='float: right'>"
 		"<table>"
 		"<tr><td align='right'><b>Version: </b></td><td>"
 		VJ_RELEASE_VERSION " (" VJ_RELEASE_SUBVERSION ")"

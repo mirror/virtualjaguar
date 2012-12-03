@@ -43,8 +43,9 @@
 #include "configdialog.h"
 #include "generaltab.h"
 #include "version.h"
-#include "debug/memorybrowser.h"
 #include "debug/cpubrowser.h"
+#include "debug/m68kdasmbrowser.h"
+#include "debug/memorybrowser.h"
 #include "debug/opbrowser.h"
 
 #include "dac.h"
@@ -102,6 +103,7 @@ MainWin::MainWin(bool autoRun): running(true), powerButtonOn(false),
 	memBrowseWin = new MemoryBrowserWindow(this);
 	cpuBrowseWin = new CPUBrowserWindow(this);
 	opBrowseWin = new OPBrowserWindow(this);
+	m68kDasmBrowseWin = new M68KDasmBrowserWindow(this);
 
     videoWidget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
@@ -223,6 +225,11 @@ MainWin::MainWin(bool autoRun): running(true), powerButtonOn(false),
 //	memBrowseAct->setCheckable(true);
 	connect(opBrowseAct, SIGNAL(triggered()), this, SLOT(ShowOPBrowserWin()));
 
+	m68kDasmBrowseAct = new QAction(QIcon(":/res/generic.png"), tr("68K Listing Browser"), this);
+	m68kDasmBrowseAct->setStatusTip(tr("Shows the 68K disassembly browser window"));
+//	memBrowseAct->setCheckable(true);
+	connect(m68kDasmBrowseAct, SIGNAL(triggered()), this, SLOT(ShowM68KDasmBrowserWin()));
+
 	// Misc. connections...
 	connect(filePickWin, SIGNAL(RequestLoad(QString)), this, SLOT(LoadSoftware(QString)));
 	connect(filePickWin, SIGNAL(FilePickerHiding()), this, SLOT(Unpause()));
@@ -244,6 +251,7 @@ MainWin::MainWin(bool autoRun): running(true), powerButtonOn(false),
 		debugMenu->addAction(memBrowseAct);
 		debugMenu->addAction(cpuBrowseAct);
 		debugMenu->addAction(opBrowseAct);
+		debugMenu->addAction(m68kDasmBrowseAct);
 	}
 
 	helpMenu = menuBar()->addMenu(tr("&Help"));
@@ -272,6 +280,7 @@ MainWin::MainWin(bool autoRun): running(true), powerButtonOn(false),
 		debugbar->addAction(memBrowseAct);
 		debugbar->addAction(cpuBrowseAct);
 		debugbar->addAction(opBrowseAct);
+		debugbar->addAction(m68kDasmBrowseAct);
 	}
 
 	//	Create status bar
@@ -885,6 +894,13 @@ void MainWin::ShowOPBrowserWin(void)
 {
 	opBrowseWin->show();
 	opBrowseWin->RefreshContents();
+}
+
+
+void MainWin::ShowM68KDasmBrowserWin(void)
+{
+	m68kDasmBrowseWin->show();
+	m68kDasmBrowseWin->RefreshContents();
 }
 
 
