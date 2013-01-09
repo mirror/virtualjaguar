@@ -67,6 +67,7 @@ HEADERS = \
 	src/gui/filelistmodel.h \
 	src/gui/filepicker.h \
 	src/gui/filethread.h \
+	src/gui/gamepad.h \
 	src/gui/generaltab.h \
 	src/gui/glwidget.h \
 	src/gui/help.h \
@@ -89,6 +90,7 @@ SOURCES = \
 	src/gui/filelistmodel.cpp \
 	src/gui/filepicker.cpp \
 	src/gui/filethread.cpp \
+	src/gui/gamepad.cpp \
 	src/gui/generaltab.cpp \
 	src/gui/glwidget.cpp \
 	src/gui/help.cpp \

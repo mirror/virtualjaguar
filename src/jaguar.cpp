@@ -2007,7 +2007,7 @@ void JaguarExecuteNew(void)
 // it will be half this number for a half frame. BUT, since we're counting
 // HALF lines, we double this number and we're back at 525 for NTSC, 625 for PAL.
 //
-// Scanline times are 63.5555...  s in NTSC and 64  s in PAL
+// Scanline times are 63.5555... μs in NTSC and 64 μs in PAL
 // Half line times are, naturally, half of this. :-P
 void HalflineCallback(void)
 {
