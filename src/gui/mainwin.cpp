@@ -35,13 +35,14 @@
 
 #include "SDL.h"
 #include "app.h"
-#include "glwidget.h"
 #include "about.h"
+#include "configdialog.h"
+#include "filepicker.h"
+#include "gamepad.h"
+#include "generaltab.h"
+#include "glwidget.h"
 #include "help.h"
 #include "settings.h"
-#include "filepicker.h"
-#include "configdialog.h"
-#include "generaltab.h"
 #include "version.h"
 #include "debug/cpubrowser.h"
 #include "debug/m68kdasmbrowser.h"
@@ -503,6 +504,21 @@ void MainWin::HandleKeys(QKeyEvent * e, bool state)
 }
 
 
+void MainWin::HandleGamepads(void)
+{
+	Gamepad::Update();
+
+	for(int i=BUTTON_FIRST; i<=BUTTON_LAST; i++)
+	{
+		if (vjs.p1KeyBindings[i] & (JOY_BUTTON | JOY_HAT))
+			joypad_0_buttons[i] = (Gamepad::GetState(0, vjs.p1KeyBindings[i]) ? 0x01 : 0x00);
+
+		if (vjs.p2KeyBindings[i] & (JOY_BUTTON | JOY_HAT))
+			joypad_1_buttons[i] = (Gamepad::GetState(1, vjs.p2KeyBindings[i]) ? 0x01 : 0x00);
+	}
+}
+
+
 void MainWin::Open(void)
 {
 }
@@ -606,6 +622,7 @@ void MainWin::Timer(void)
 	else
 	{
 		// Otherwise, run the Jaguar simulation
+		HandleGamepads();
 		JaguarExecuteNew();
 	}
 

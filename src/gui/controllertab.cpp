@@ -33,9 +33,11 @@ ControllerTab::ControllerTab(QWidget * parent/*= 0*/): QWidget(parent)
 	connect(redefineAll, SIGNAL(clicked()), this, SLOT(DefineAllKeys()));
 }
 
+
 ControllerTab::~ControllerTab()
 {
 }
+
 
 void ControllerTab::DefineAllKeys(void)
 {
@@ -60,3 +62,4 @@ void ControllerTab::DefineAllKeys(void)
 		controllerWidget->update();
 	}
 }
+

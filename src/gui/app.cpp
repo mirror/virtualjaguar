@@ -18,6 +18,7 @@
 
 #include <SDL.h>
 #include <QApplication>
+#include "gamepad.h"
 #include "log.h"
 #include "mainwin.h"
 #include "settings.h"
@@ -97,7 +98,9 @@ int main(int argc, char * argv[])
 	{
 		WriteLog("VJ: SDL (joystick, audio) successfully initialized.\n");
 		App app(argc, argv);					// Declare an instance of the application
+		Gamepad::AllocateJoysticks();
 		retVal = app.exec();					// And run it!
+		Gamepad::DeallocateJoysticks();
 
 		// Free SDL components last...!
 		SDL_QuitSubSystem(SDL_INIT_JOYSTICK | SDL_INIT_AUDIO);

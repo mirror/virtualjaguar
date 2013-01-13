@@ -15,7 +15,9 @@
 #include "controllerwidget.h"
 
 #include "joystick.h"
+#include "gamepad.h"
 #include "keygrabber.h"
+
 
 // These tables are used to convert Qt keycodes into human readable form. Note that
 // a lot of these are just filler.
@@ -40,6 +42,8 @@ char ControllerWidget::keyName2[64][16] = {
 	"F14", "F15", "F16"
 };
 
+char ControllerWidget::hatName[4][16] = { "Up", "Rt", "Dn", "Lf" };
+
 // This is hard-coded crap. It's crap-tastic!
 // These are the positions to draw the button names at, ordered by the BUTTON_* sequence
 // found in joystick.h.
@@ -49,6 +53,7 @@ int ControllerWidget::buttonPos[21][2] = { { 74, 32 }, { 71, 67 }, { 53, 49 }, {
 	{ 186, 200 }, { 186, 175 }, { 186, 151 }, { 186, 126 },
 	{ 234, 31 }, { 216, 51 }, { 199, 71 }, { 164-11, 101-30 }, { 141-11, 108+13-30 }
 };
+
 
 ControllerWidget::ControllerWidget(QWidget * parent/*= 0*/): QWidget(parent),
 	controllerPic(":/res/controller.png"), widgetSize(controllerPic.size()),
@@ -60,19 +65,23 @@ ControllerWidget::ControllerWidget(QWidget * parent/*= 0*/): QWidget(parent),
 	setMouseTracking(true);
 }
 
+
 ControllerWidget::~ControllerWidget()
 {
 }
+
 
 QSize ControllerWidget::sizeHint(void) const
 {
 	return widgetSize;
 }
 
+
 QSizePolicy ControllerWidget::sizePolicy(void) const
 {
 	return QSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
 }
+
 
 void ControllerWidget::paintEvent(QPaintEvent * /*event*/)
 {
@@ -127,16 +136,30 @@ void ControllerWidget::paintEvent(QPaintEvent * /*event*/)
 			DrawBorderedText(painter, buttonPos[i][0], buttonPos[i][1],
 				QString(keyName2[keys[i] & 0x3F]));
 		}
+#if 1
+		else if (keys[i] & JOY_BUTTON)
+		{
+			DrawBorderedText(painter, buttonPos[i][0], buttonPos[i][1],
+				QString("JB%1").arg(keys[i] & JOY_BUTTON_MASK));
+		}
+		else if (keys[i] & JOY_HAT)
+		{
+			DrawBorderedText(painter, buttonPos[i][0], buttonPos[i][1],
+				QString("j%1").arg(hatName[keys[i] & JOY_BUTTON_MASK]));
+		}
+#endif
 		else
 			DrawBorderedText(painter, buttonPos[i][0], buttonPos[i][1], QString("???"));
 	}
 }
+
 
 void ControllerWidget::mousePressEvent(QMouseEvent * /*event*/)
 {
 	mouseDown = true;
 	update();
 }
+
 
 void ControllerWidget::mouseReleaseEvent(QMouseEvent * /*event*/)
 {
@@ -155,6 +178,7 @@ void ControllerWidget::mouseReleaseEvent(QMouseEvent * /*event*/)
 	keyToHighlight = keyToHighlightSave;
 	update();
 }
+
 
 void ControllerWidget::mouseMoveEvent(QMouseEvent * event)
 {
@@ -184,11 +208,13 @@ void ControllerWidget::mouseMoveEvent(QMouseEvent * event)
 		update();
 }
 
+
 void ControllerWidget::leaveEvent(QEvent * /*event*/)
 {
 	keyToHighlight = -1;
 	update();
 }
+
 
 void ControllerWidget::DrawBorderedText(QPainter & painter, int x, int y, QString text)
 {
@@ -210,3 +236,4 @@ void ControllerWidget::DrawBorderedText(QPainter & painter, int x, int y, QStrin
 	rect.moveCenter(QPoint(x, y));
 	painter.drawText(rect, Qt::AlignCenter, text);
 }
+

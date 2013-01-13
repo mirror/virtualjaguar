@@ -22,8 +22,14 @@ class KeyGrabber: public QDialog
 	protected:
 		void keyPressEvent(QKeyEvent *);
 
-private:
+	private slots:
+		void CheckGamepad();
+
+	private:
 		QLabel * label;
+		QTimer * timer;
+		bool buttonDown;
+		int button;
 
 	public:
 		int key;

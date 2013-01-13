@@ -12,25 +12,32 @@
 //
 
 #include "keygrabber.h"
+#include "gamepad.h"
 
 
-KeyGrabber::KeyGrabber(QWidget * parent/*= 0*/): QDialog(parent)
+KeyGrabber::KeyGrabber(QWidget * parent/*= 0*/): QDialog(parent),
+	label(new QLabel), timer(new QTimer), buttonDown(false)
 {
-	label = new QLabel(this);
+//	label = new QLabel(this);
 	QVBoxLayout * mainLayout = new QVBoxLayout;
 	mainLayout->addWidget(label);
 	setLayout(mainLayout);
 	setWindowTitle(tr("Grab"));
+	connect(timer, SIGNAL(timeout()), this, SLOT(CheckGamepad()));
+	timer->setInterval(100);
+	timer->start();
 
 	// Will this make Mac OSX work???
 	setFocusPolicy(Qt::StrongFocus);
 }
 
+
 KeyGrabber::~KeyGrabber()
 {
+	timer->stop();
 }
 
-//void KeyGrabber::SetText(QString keyText)
+
 void KeyGrabber::SetKeyText(int keyNum)
 {
 	char jagButtonName[21][10] = { "Up", "Down", "Left", "Right",
@@ -42,6 +49,7 @@ void KeyGrabber::SetKeyText(int keyNum)
 	label->setText(text);
 }
 
+
 void KeyGrabber::keyPressEvent(QKeyEvent * e)
 {
 	key = e->key();
@@ -50,3 +58,31 @@ void KeyGrabber::keyPressEvent(QKeyEvent * e)
 	if (key != Qt::Key_Alt)
 		accept();
 }
+
+
+void KeyGrabber::CheckGamepad(void)
+{
+	// How do we determine which joystick it is, if more than one?
+	// Possibly by a combobox selecting the stick you want to configure...
+	Gamepad::Update();
+
+	if (!buttonDown)
+	{
+		button = Gamepad::CheckButtonPressed();
+
+		if  (button == -1)
+			return;
+
+		buttonDown = true;
+	}
+	else
+	{
+		if (Gamepad::CheckButtonPressed() == button)
+			return;
+
+		key = button;
+		accept();
+		buttonDown = false;
+	}
+}
+

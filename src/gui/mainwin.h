@@ -65,6 +65,7 @@ class MainWin: public QMainWindow
 
 	private:
 		void HandleKeys(QKeyEvent *, bool);
+		void HandleGamepads(void);
 		void SetFullScreen(bool state = true);
 		void ResizeMainWindow(void);
 		void ReadSettings(void);

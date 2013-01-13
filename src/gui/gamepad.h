@@ -8,16 +8,17 @@
 #ifndef __GAMEPAD_H__
 #define __GAMEPAD_H__
 
-#define JOY_BUTTON		0x0100
-#define JOY_HAT			0x0200
+#define JOY_KEY			0x000000
+#define JOY_BUTTON		0x010000
+#define JOY_HAT			0x020000
 
-#define	JOY_TYPE_MASK	0xFF00
-#define JOY_HATNUM_MASK	0x00F8
-#define JOY_HATBUT_MASK	0x0007
+#define	JOY_TYPE_MASK	0xFF0000
+#define JOY_BUTTON_MASK 0x00FFFF
+#define JOY_HATNUM_MASK	0x0000F8
+#define JOY_HATBUT_MASK	0x000007
 
 #include <stdint.h>
-
-uint8_t hatMask[8] = { 1, 2, 4, 8, 16, 32, 64, 128 };
+#include "SDL.h"
 
 // buttonID is the combination of the type (BUTTON, HAT) and the button #
 // (0-255 for buttons, 0-31 for hats). Hats also have 0-7 for a button #
@@ -31,9 +32,22 @@ class Gamepad
 		Gamepad();
 		~Gamepad();
 
-		bool GetState(int joystickID, int buttonID);
-		int GetButtonID(void);
-		int GetJoystickID(void);
+		// Class methods...
+		static void AllocateJoysticks(void);
+		static void DeallocateJoysticks(void);
+		static bool GetState(int joystickID, int buttonID);
+		static int CheckButtonPressed(void);
+		static int GetButtonID(void);
+		static int GetJoystickID(void);
+		static void Update(void);
+
+		// Support up to 8 gamepads
+		static int numJoysticks;
+		static SDL_Joystick * pad[8];
+		static int numButtons[8];
+		static int numHats[8];
+		static bool button[8][256];
+		static uint8_t hat[8][32];
 };
 
 #endif	// __GAMEPAD_H__
