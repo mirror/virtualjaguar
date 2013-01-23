@@ -92,7 +92,7 @@ RomIdentifier romList[] = {
 	{ 0x97EB4651, "I-War (World)", FF_ROM | FF_VERIFIED },
 	{ 0xA0A25A67, "Missile Command VR", FF_ALPINE },
 	{ 0xA27823D8, "Ultra Vortek (World) (v0.94) (Beta)", FF_ROM },
-	{ 0xA7E01FEF, "Mad Bodies (2008)", FF_ROM | FF_REQ_BIOS },
+	{ 0xA7E01FEF, "Mad Bodies (2008)", FF_ROM },
 	{ 0xA9F8A00E, "Rayman (World)", FF_ROM | FF_VERIFIED },
 	{ 0xAEA9D831, "Barkley Shut Up & Jam", FF_ROM | FF_VERIFIED },
 	{ 0xB14C4753, "Fight for Life (World)", FF_ROM | FF_VERIFIED },

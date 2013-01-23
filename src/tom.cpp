@@ -1268,7 +1268,7 @@ uint16 TOMReadWord(uint32 offset, uint32 who/*=UNKNOWN*/)
 	WriteLog("TOM: Reading word at %06X for %s\n", offset, whoName[who]);
 #endif
 if (offset >= 0xF02000 && offset <= 0xF020FF)
-	WriteLog("TOM: Read attempted from GPU register file by %s (unimplemented)!\n", whoName[who]);
+	WriteLog("TOM: ReadWord attempted from GPU register file by %s (unimplemented)!\n", whoName[who]);
 
 	if (offset == 0xF000E0)
 	{
@@ -1429,7 +1429,7 @@ void TOMWriteWord(uint32 offset, uint16 data, uint32 who/*=UNKNOWN*/)
 //if (offset == 0xF00000 + MEMCON2)
 //	WriteLog("TOM: Memory Configuration 2 written by %s: %04X\n", whoName[who], data);
 if (offset >= 0xF02000 && offset <= 0xF020FF)
-	WriteLog("TOM: Write attempted to GPU register file by %s (unimplemented)!\n", whoName[who]);
+	WriteLog("TOM: WriteWord attempted to GPU register file by %s (unimplemented)!\n", whoName[who]);
 
 	if ((offset >= GPU_CONTROL_RAM_BASE) && (offset < GPU_CONTROL_RAM_BASE+0x20))
 	{

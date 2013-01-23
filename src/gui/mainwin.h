@@ -20,6 +20,7 @@ class MemoryBrowserWindow;
 class CPUBrowserWindow;
 class OPBrowserWindow;
 class M68KDasmBrowserWindow;
+class RISCDasmBrowserWindow;
 
 class MainWin: public QMainWindow
 {
@@ -62,6 +63,7 @@ class MainWin: public QMainWindow
 		void ShowCPUBrowserWin(void);
 		void ShowOPBrowserWin(void);
 		void ShowM68KDasmBrowserWin(void);
+		void ShowRISCDasmBrowserWin(void);
 
 	private:
 		void HandleKeys(QKeyEvent *, bool);
@@ -81,6 +83,7 @@ class MainWin: public QMainWindow
 		CPUBrowserWindow * cpuBrowseWin;
 		OPBrowserWindow * opBrowseWin;
 		M68KDasmBrowserWindow * m68kDasmBrowseWin;
+		RISCDasmBrowserWindow * riscDasmBrowseWin;
 		QTimer * timer;
 		bool running;
 		int zoomLevel;
@@ -129,6 +132,7 @@ class MainWin: public QMainWindow
 		QAction * cpuBrowseAct;
 		QAction * opBrowseAct;
 		QAction * m68kDasmBrowseAct;
+		QAction * riscDasmBrowseAct;
 
 		QIcon powerGreen;
 		QIcon powerRed;

@@ -76,7 +76,6 @@ bool Gamepad::GetState(int joystickID, int buttonID)
 	{
 		// Handle SDL button
 		int buttonNum = (buttonID & JOY_BUTTON_MASK);
-//		SDL_JoystickGetButton(pad[joystickID]);
 		return button[joystickID][buttonNum];
 	}
 	else if (buttonID & JOY_HAT)
@@ -84,8 +83,6 @@ bool Gamepad::GetState(int joystickID, int buttonID)
 		// Handle SDL hats
 		int hatNumber = (buttonID & JOY_HATNUM_MASK) >> 3;
 		uint8_t hatDirection = hatMask[buttonID & JOY_HATBUT_MASK];
-//		uint8 direction = SDL_JoystickGetHat(pad[joystickID], hatNumber);
-//		return (
 		return (hat[joystickID][hatNumber] & hatDirection ? true : false);
 	}
 
@@ -153,6 +150,7 @@ void Gamepad::Update(void)
 #if 0
 // Need to test this. It may be that the only time joysticks are detected is
 // when the program is first run. That would suck.
+// Well, it turns out that SDL doesn't do hot plugging. :-(
 void Gamepad::CheckConsistency(void)
 {
 	int currentNumJoysticks = SDL_NumJoysticks();

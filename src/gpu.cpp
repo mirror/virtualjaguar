@@ -501,7 +501,11 @@ uint16 GPUReadWord(uint32 offset, uint32 who/*=UNKNOWN*/)
 uint32 GPUReadLong(uint32 offset, uint32 who/*=UNKNOWN*/)
 {
 	if (offset >= 0xF02000 && offset <= 0xF020FF)
-		WriteLog("GPU: ReadLong--Attempt to read from GPU register file by %s!\n", whoName[who]);
+	{
+		WriteLog("GPU: ReadLong--Attempt to read from GPU register file (%X) by %s!\n", offset, whoName[who]);
+		uint32 reg = (offset & 0xFC) >> 2;
+		return (reg < 32 ? gpu_reg_bank_0[reg] : gpu_reg_bank_1[reg - 32]); 
+	}
 
 //	if ((offset >= GPU_WORK_RAM_BASE) && (offset < GPU_WORK_RAM_BASE + 0x1000))
 	if ((offset >= GPU_WORK_RAM_BASE) && (offset <= GPU_WORK_RAM_BASE + 0x0FFC))

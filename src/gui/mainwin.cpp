@@ -48,6 +48,7 @@
 #include "debug/m68kdasmbrowser.h"
 #include "debug/memorybrowser.h"
 #include "debug/opbrowser.h"
+#include "debug/riscdasmbrowser.h"
 
 #include "dac.h"
 #include "jaguar.h"
@@ -105,9 +106,10 @@ MainWin::MainWin(bool autoRun): running(true), powerButtonOn(false),
 	cpuBrowseWin = new CPUBrowserWindow(this);
 	opBrowseWin = new OPBrowserWindow(this);
 	m68kDasmBrowseWin = new M68KDasmBrowserWindow(this);
+	riscDasmBrowseWin = new RISCDasmBrowserWindow(this);
 
-    videoWidget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-    setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+	videoWidget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+	setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
 
 	setUnifiedTitleAndToolBarOnMac(true);
 
@@ -231,6 +233,11 @@ MainWin::MainWin(bool autoRun): running(true), powerButtonOn(false),
 //	memBrowseAct->setCheckable(true);
 	connect(m68kDasmBrowseAct, SIGNAL(triggered()), this, SLOT(ShowM68KDasmBrowserWin()));
 
+	riscDasmBrowseAct = new QAction(QIcon(":/res/generic.png"), tr("RISC Listing Browser"), this);
+	riscDasmBrowseAct->setStatusTip(tr("Shows the RISC disassembly browser window"));
+//	memBrowseAct->setCheckable(true);
+	connect(riscDasmBrowseAct, SIGNAL(triggered()), this, SLOT(ShowRISCDasmBrowserWin()));
+
 	// Misc. connections...
 	connect(filePickWin, SIGNAL(RequestLoad(QString)), this, SLOT(LoadSoftware(QString)));
 	connect(filePickWin, SIGNAL(FilePickerHiding()), this, SLOT(Unpause()));
@@ -253,6 +260,7 @@ MainWin::MainWin(bool autoRun): running(true), powerButtonOn(false),
 		debugMenu->addAction(cpuBrowseAct);
 		debugMenu->addAction(opBrowseAct);
 		debugMenu->addAction(m68kDasmBrowseAct);
+		debugMenu->addAction(riscDasmBrowseAct);
 	}
 
 	helpMenu = menuBar()->addMenu(tr("&Help"));
@@ -282,6 +290,7 @@ MainWin::MainWin(bool autoRun): running(true), powerButtonOn(false),
 		debugbar->addAction(cpuBrowseAct);
 		debugbar->addAction(opBrowseAct);
 		debugbar->addAction(m68kDasmBrowseAct);
+		debugbar->addAction(riscDasmBrowseAct);
 	}
 
 	//	Create status bar
@@ -910,6 +919,13 @@ void MainWin::ShowM68KDasmBrowserWin(void)
 {
 	m68kDasmBrowseWin->show();
 	m68kDasmBrowseWin->RefreshContents();
+}
+
+
+void MainWin::ShowRISCDasmBrowserWin(void)
+{
+	riscDasmBrowseWin->show();
+	riscDasmBrowseWin->RefreshContents();
 }
 
 
