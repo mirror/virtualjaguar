@@ -616,16 +616,16 @@ void MainWin::Timer(void)
 		// Some machines can't handle this, so we give them the option to disable it. :-)
 		if (!plzDontKillMyComputer)
 		{
-		// Random hash & trash
-		// We try to simulate an untuned tank circuit here... :-)
-		for(uint32_t x=0; x<videoWidget->rasterWidth; x++)
-		{
-			for(uint32_t y=0; y<videoWidget->rasterHeight; y++)
+			// Random hash & trash
+			// We try to simulate an untuned tank circuit here... :-)
+			for(uint32_t x=0; x<videoWidget->rasterWidth; x++)
 			{
-				videoWidget->buffer[(y * videoWidget->textureWidth) + x]
-					= (rand() & 0xFF) << 8 | (rand() & 0xFF) << 16 | (rand() & 0xFF) << 24;
+				for(uint32_t y=0; y<videoWidget->rasterHeight; y++)
+				{
+					videoWidget->buffer[(y * videoWidget->textureWidth) + x]
+						= (rand() & 0xFF) << 8 | (rand() & 0xFF) << 16 | (rand() & 0xFF) << 24;
+				}
 			}
-		}
 		}
 	}
 	else
@@ -655,6 +655,7 @@ void MainWin::TogglePowerState(void)
 		showUntunedTankCircuit = true;
 		// This is just in case the ROM we were playing was in a narrow or wide field mode,
 		// so the untuned tank sim doesn't look wrong. :-)
+		DACPauseAudioThread();
 		TOMReset();
 	}
 	else
@@ -680,6 +681,7 @@ void MainWin::TogglePowerState(void)
 
 		WriteLog("GUI: Resetting Jaguar...\n");
 		JaguarReset();
+		DACPauseAudioThread(false);
 	}
 }
 
@@ -700,6 +702,9 @@ void MainWin::ToggleRunState(void)
 
 		videoWidget->updateGL();
 	}
+
+	// Pause/unpause any running/non-running threads...
+	DACPauseAudioThread(!running);
 }
 
 

@@ -1,5 +1,5 @@
 //
-// LOG.H
+// log.h: Logfile support
 //
 
 #ifndef __LOG_H__
@@ -19,5 +19,9 @@ void WriteLog(const char * text, ...);
 #ifdef __cplusplus
 }
 #endif
+
+// Some useful defines... :-)
+//#define GPU_DEBUG
+//#define LOG_BLITS
 
 #endif	// __LOG_H__

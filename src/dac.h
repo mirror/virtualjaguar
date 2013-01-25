@@ -9,6 +9,7 @@
 
 void DACInit(void);
 void DACReset(void);
+void DACPauseAudioThread(bool state = true);
 void DACDone(void);
 //int GetCalculatedFrequency(void);
 

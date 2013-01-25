@@ -780,6 +780,7 @@ WriteLog("GPU: %s setting GPU PC to %08X %s\n", whoName[who], gpu_pc, (GPU_RUNNI
 			{
 				//WriteLog("asked to perform a single step (single step is %senabled)\n",(data&0x8)?"":"not ");
 			}
+
 			gpu_control = (gpu_control & 0xF7C0) | (data & (~0xF7C0));
 
 			// if gpu wasn't running but is now running, execute a few cycles

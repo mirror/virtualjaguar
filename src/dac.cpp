@@ -139,6 +139,15 @@ void DACReset(void)
 
 
 //
+// Pause/unpause the SDL audio thread
+//
+void DACPauseAudioThread(bool state/*= true*/)
+{
+		SDL_PauseAudio(state);
+}
+
+
+//
 // Close down the SDL sound subsystem
 //
 void DACDone(void)
