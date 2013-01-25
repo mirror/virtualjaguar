@@ -558,6 +558,7 @@ uint32 RGB16ToRGB32[0x10000];
 uint32 CRY16ToRGB32[0x10000];
 uint32 MIX16ToRGB32[0x10000];
 
+
 #warning "This is not endian-safe. !!! FIX !!!"
 void TOMFillLookupTables(void)
 {
@@ -589,41 +590,49 @@ void TOMFillLookupTables(void)
 	}
 }
 
+
 void TOMSetPendingJERRYInt(void)
 {
 	tom_jerry_int_pending = 1;
 }
+
 
 void TOMSetPendingTimerInt(void)
 {
 	tom_timer_int_pending = 1;
 }
 
+
 void TOMSetPendingObjectInt(void)
 {
 	tom_object_int_pending = 1;
 }
+
 
 void TOMSetPendingGPUInt(void)
 {
 	tom_gpu_int_pending = 1;
 }
 
+
 void TOMSetPendingVideoInt(void)
 {
 	tom_video_int_pending = 1;
 }
+
 
 uint8 * TOMGetRamPointer(void)
 {
 	return tomRam8;
 }
 
+
 uint8 TOMGetVideoMode(void)
 {
 	uint16 vmode = GET16(tomRam8, VMODE);
 	return ((vmode & VARMOD) >> 6) | ((vmode & MODE) >> 1);
 }
+
 
 //Used in only one place (and for debug purposes): OBJECTP.CPP
 #warning "Used in only one place (and for debug purposes): OBJECTP.CPP !!! FIX !!!"
@@ -632,6 +641,8 @@ uint16 TOMGetVDB(void)
 	return GET16(tomRam8, VDB);
 }
 
+
+#define LEFT_BG_FIX
 //
 // 16 BPP CRY/RGB mixed mode rendering
 //
@@ -646,15 +657,32 @@ void tom_render_16bpp_cry_rgb_mix_scanline(uint32 * backbuffer)
 	//NOTE: May have to check HDB2 as well!
 	// Get start position in HC ticks
 	int16 startPos = GET16(tomRam8, HDB1) - (vjs.hardwareTypeNTSC ? LEFT_VISIBLE_HC : LEFT_VISIBLE_HC_PAL);
+	// Convert to pixels
 	startPos /= pwidth;
+
 	if (startPos < 0)
+		// This is x2 because current_line_buffer is uint8 & we're in a 16bpp mode
 		current_line_buffer += 2 * -startPos;
 	else
 //This case doesn't properly handle the "start on the right side of virtual screen" case
 //Dunno why--looks Ok...
-//What *is* for sure wrong is that it doesn't copy the linebuffer's BG pixels...
+//What *is* for sure wrong is that it doesn't copy the linebuffer's BG pixels... [FIXED NOW]
 //This should likely be 4 instead of 2 (?--not sure)
+// Actually, there should be NO multiplier, as startPos is expressed in PIXELS
+// and so is the backbuffer.
+#ifdef LEFT_BG_FIX
+	{
+		uint8 g = tomRam8[BORD1], r = tomRam8[BORD1 + 1], b = tomRam8[BORD2 + 1];
+		uint32 pixel = 0x000000FF | (r << 24) | (g << 16) | (b << 8);
+
+		for(int16 i=0; i<startPos; i++)
+			*backbuffer++ = pixel;
+
+		width -= startPos;
+	}
+#else
 		backbuffer += 2 * startPos, width -= startPos;
+#endif
 
 	while (width)
 	{
@@ -664,6 +692,7 @@ void tom_render_16bpp_cry_rgb_mix_scanline(uint32 * backbuffer)
 		width--;
 	}
 }
+
 
 //
 // 16 BPP CRY mode rendering
@@ -682,8 +711,20 @@ void tom_render_16bpp_cry_scanline(uint32 * backbuffer)
 	if (startPos < 0)
 		current_line_buffer += 2 * -startPos;
 	else
+#ifdef LEFT_BG_FIX
+	{
+		uint8 g = tomRam8[BORD1], r = tomRam8[BORD1 + 1], b = tomRam8[BORD2 + 1];
+		uint32 pixel = 0x000000FF | (r << 24) | (g << 16) | (b << 8);
+
+		for(int16 i=0; i<startPos; i++)
+			*backbuffer++ = pixel;
+
+		width -= startPos;
+	}
+#else
 //This should likely be 4 instead of 2 (?--not sure)
 		backbuffer += 2 * startPos, width -= startPos;
+#endif
 
 	while (width)
 	{
@@ -693,6 +734,7 @@ void tom_render_16bpp_cry_scanline(uint32 * backbuffer)
 		width--;
 	}
 }
+
 
 //
 // 24 BPP mode rendering
@@ -711,8 +753,20 @@ void tom_render_24bpp_scanline(uint32 * backbuffer)
 	if (startPos < 0)
 		current_line_buffer += 4 * -startPos;
 	else
+#ifdef LEFT_BG_FIX
+	{
+		uint8 g = tomRam8[BORD1], r = tomRam8[BORD1 + 1], b = tomRam8[BORD2 + 1];
+		uint32 pixel = 0x000000FF | (r << 24) | (g << 16) | (b << 8);
+
+		for(int16 i=0; i<startPos; i++)
+			*backbuffer++ = pixel;
+
+		width -= startPos;
+	}
+#else
 //This should likely be 4 instead of 2 (?--not sure)
 		backbuffer += 2 * startPos, width -= startPos;
+#endif
 
 	while (width)
 	{
@@ -725,6 +779,7 @@ void tom_render_24bpp_scanline(uint32 * backbuffer)
 		width--;
 	}
 }
+
 
 //Seems to me that this is NOT a valid mode--the JTRM seems to imply that you would need
 //extra hardware outside of the Jaguar console to support this!
@@ -744,6 +799,7 @@ void tom_render_16bpp_direct_scanline(uint32 * backbuffer)
 		width--;
 	}
 }
+
 
 //
 // 16 BPP RGB mode rendering
@@ -765,8 +821,20 @@ void tom_render_16bpp_rgb_scanline(uint32 * backbuffer)
 	if (startPos < 0)
 		current_line_buffer += 2 * -startPos;
 	else
+#ifdef LEFT_BG_FIX
+	{
+		uint8 g = tomRam8[BORD1], r = tomRam8[BORD1 + 1], b = tomRam8[BORD2 + 1];
+		uint32 pixel = 0x000000FF | (r << 24) | (g << 16) | (b << 8);
+
+		for(int16 i=0; i<startPos; i++)
+			*backbuffer++ = pixel;
+
+		width -= startPos;
+	}
+#else
 //This should likely be 4 instead of 2 (?--not sure)
 		backbuffer += 2 * startPos, width -= startPos;
+#endif
 
 	while (width)
 	{
@@ -777,11 +845,6 @@ void tom_render_16bpp_rgb_scanline(uint32 * backbuffer)
 	}
 }
 
-
-/*void TOMResetBackbuffer(uint32 * backbuffer)
-{
-	TOMBackbuffer = backbuffer;
-}*/
 
 //
 // Process a single scanline
@@ -1000,6 +1063,7 @@ void tom_render_24bpp_scanline(uint32 * backbuffer)
 	}
 }
 
+
 //
 // TOM initialization
 //
@@ -1010,6 +1074,7 @@ void TOMInit(void)
 	BlitterInit();
 	TOMReset();
 }
+
 
 void TOMDone(void)
 {
@@ -1025,6 +1090,7 @@ void TOMDone(void)
 //	memory_free(tomRam8);
 //	memory_free(tom_cry_rgb_mix_lut);
 }
+
 
 uint32 TOMGetVideoModeWidth(void)
 {
@@ -1084,6 +1150,7 @@ uint32 TOMGetVideoModeWidth(void)
 // That's basically what we're doing now...!
 }
 
+
 // *** SPECULATION ***
 // It might work better to virtualize the height settings, i.e., set the vertical
 // height at 240 lines and clip using the VDB and VDE/VP registers...
@@ -1118,6 +1185,7 @@ uint32 TOMGetVideoModeHeight(void)
 //	return 240;										// Set virtual screen height to 240 lines...
 	return (vjs.hardwareTypeNTSC ? 240 : 256);
 }
+
 
 //
 // TOM reset code
@@ -1222,6 +1290,7 @@ void TOMReset(void)
 	tomTimerCounter = 0;
 }
 
+
 //
 // TOM byte access (read)
 //
@@ -1256,6 +1325,7 @@ uint8 TOMReadByte(uint32 offset, uint32 who/*=UNKNOWN*/)
 
 	return tomRam8[offset & 0x3FFF];
 }
+
 
 //
 // TOM word access (read)
@@ -1313,6 +1383,7 @@ if (offset >= 0xF02000 && offset <= 0xF020FF)
 	offset &= 0x3FFF;
 	return (TOMReadByte(offset, who) << 8) | TOMReadByte(offset + 1, who);
 }
+
 
 #define TOM_STRICT_MEMORY_ACCESS
 //
@@ -1396,6 +1467,7 @@ void TOMWriteByte(uint32 offset, uint8 data, uint32 who/*=UNKNOWN*/)
 
 	tomRam8[offset & 0x3FFF] = data;
 }
+
 
 //
 // TOM word access (write)
@@ -1596,6 +1668,7 @@ if (offset == HEQ)
 #endif
 }
 
+
 int TOMIRQEnabled(int irq)
 {
 	// This is the correct byte in big endian... D'oh!
@@ -1603,12 +1676,14 @@ int TOMIRQEnabled(int irq)
 	return tomRam8[INT1 + 1/*0xE1*/] & (1 << irq);
 }
 
+
 // NEW:
 // TOM Programmable Interrupt Timer handler
 // NOTE: TOM's PIT is only enabled if the prescaler is != 0
 //       The PIT only generates an interrupt when it counts down to zero, not when loaded!
 
 void TOMPITCallback(void);
+
 
 void TOMResetPIT(void)
 {
@@ -1631,6 +1706,7 @@ void TOMResetPIT(void)
 	}
 #endif
 }
+
 
 //
 // TOM Programmable Interrupt Timer handler
@@ -1657,6 +1733,7 @@ void TOMExecPIT(uint32 cycles)
 	}
 }
 
+
 void TOMPITCallback(void)
 {
 //	INT1_RREG |= 0x08;							// Set TOM PIT interrupt pending
@@ -1669,3 +1746,4 @@ void TOMPITCallback(void)
 
 	TOMResetPIT();
 }
+
