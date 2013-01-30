@@ -23,7 +23,7 @@
 ControllerTab::ControllerTab(QWidget * parent/*= 0*/): QWidget(parent)
 {
 	controllerWidget = new ControllerWidget(this);
-	redefineAll = new QPushButton(tr("Define All Keys"));
+	redefineAll = new QPushButton(tr("Define All Inputs"));
 
 	QVBoxLayout * layout = new QVBoxLayout;
 	layout->addWidget(controllerWidget);

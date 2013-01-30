@@ -21,6 +21,7 @@ int CurrentInstrCycles;
 
 struct regstruct regs;
 
+
 //
 // Make displacement effective address for 68000
 //
@@ -51,6 +52,7 @@ uint32_t get_disp_ea_000(uint32_t base, uint32_t dp)
 #endif
 }
 
+
 //
 // Create the Status Register from the flags
 //
@@ -59,6 +61,7 @@ void MakeSR(void)
 	regs.sr = ((regs.s << 13) | (regs.intmask << 8) | (GET_XFLG << 4)
 		| (GET_NFLG << 3) | (GET_ZFLG << 2) | (GET_VFLG << 1) | GET_CFLG);
 }
+
 
 //
 // Set up the flags from Status Register
@@ -94,6 +97,7 @@ void MakeFromSR(void)
 //	set_special(SPCFLAG_DOINT);
 }
 
+
 //
 // Rudimentary exception handling. This is really stripped down from what
 // was in Hatari.
@@ -108,6 +112,10 @@ NB: Seems that when an address exception occurs, it doesn't get handled properly
 //
 void Exception(int nr, uint32_t oldpc, int ExceptionSource)
 {
+	uint32_t currpc = m68k_getpc(), newpc;
+
+// Need to figure out how to report this stuff without using printf on stdout :-/
+#if 0
 char excNames[33][64] = {
 	"???", "???", "Bus Error", "Address Error",
 	"Illegal Instruction", "Zero Divide", "CHK", "TrapV",
@@ -123,7 +131,6 @@ char excNames[33][64] = {
 printf("Exception #%i occurred! (%s)\n", nr, (nr < 32 ? excNames[nr] : (nr < 48 ? "Trap #" : "????")));
 printf("Vector @ #%i = %08X\n", nr, m68k_read_memory_32(nr * 4));
 //abort();
-	uint32_t currpc = m68k_getpc(), newpc;
 printf("PC = $%08X\n", currpc);
 printf("A0 = $%08X A1 = $%08X A2 = $%08X A3 = $%08X\n", m68k_areg(regs, 0), m68k_areg(regs, 1), m68k_areg(regs, 2), m68k_areg(regs, 3));
 printf("A4 = $%08X A5 = $%08X A6 = $%08X A7 = $%08X\n", m68k_areg(regs, 4), m68k_areg(regs, 5), m68k_areg(regs, 6), m68k_areg(regs, 7));
@@ -141,6 +148,7 @@ do
 	printf("%s%08X: %s\n", (oldpc == currpc ? ">" : " "), oldpc, buffer);
 }
 while (disPC < (currpc + 10));
+#endif
 
 /*if( nr>=2 && nr<10 )  fprintf(stderr,"Exception (-> %i bombs)!\n",nr);*/
 
@@ -317,6 +325,7 @@ while (disPC < (currpc + 10));
 #endif
 }
 
+
 /*
  The routines below take dividend and divisor as parameters.
  They return 0 if division by zero, or exact number of cycles otherwise.
@@ -394,6 +403,7 @@ STATIC_INLINE int getDivu68kCycles_2 (uint32_t dividend, uint16_t divisor)
 	return mcycles * 2;
 }
 
+
 // This is called by cpuemu.c
 int getDivu68kCycles(uint32_t dividend, uint16_t divisor)
 {
@@ -402,11 +412,11 @@ int getDivu68kCycles(uint32_t dividend, uint16_t divisor)
 	return v;
 }
 
+
 //
 // DIVS
 // Signed division
 //
-
 STATIC_INLINE int getDivs68kCycles_2(int32_t dividend, int16_t divisor)
 {
 	int mcycles;
@@ -451,6 +461,7 @@ STATIC_INLINE int getDivs68kCycles_2(int32_t dividend, int16_t divisor)
 	return mcycles * 2;
 }
 
+
 // This is called by cpuemu.c
 int getDivs68kCycles(int32_t dividend, int16_t divisor)
 {
@@ -458,3 +469,4 @@ int getDivs68kCycles(int32_t dividend, int16_t divisor)
 //	write_log ("S%d ", v);
 	return v;
 }
+

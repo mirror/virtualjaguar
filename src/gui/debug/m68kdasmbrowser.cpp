@@ -25,9 +25,17 @@ M68KDasmBrowserWindow::M68KDasmBrowserWindow(QWidget * parent/*= 0*/): QWidget(p
 //	layout(new QVBoxLayout), text(new QTextBrowser),
 	layout(new QVBoxLayout), text(new QLabel),
 	refresh(new QPushButton(tr("Refresh"))),
+	address(new QLineEdit),
+	go(new QPushButton(tr("Go"))),
 	memBase(0x4000)
 {
 	setWindowTitle(tr("M68K Disassembly Browser"));
+
+	address->setInputMask("hhhhhh");
+	QHBoxLayout * hbox1 = new QHBoxLayout;
+	hbox1->addWidget(refresh);
+	hbox1->addWidget(address);
+	hbox1->addWidget(go);
 
 	// Need to set the size as well...
 //	resize(560, 480);
@@ -38,9 +46,11 @@ M68KDasmBrowserWindow::M68KDasmBrowserWindow(QWidget * parent/*= 0*/): QWidget(p
 	setLayout(layout);
 
 	layout->addWidget(text);
-	layout->addWidget(refresh);
+//	layout->addWidget(refresh);
+	layout->addLayout(hbox1);
 
 	connect(refresh, SIGNAL(clicked()), this, SLOT(RefreshContents()));
+	connect(go, SIGNAL(clicked()), this, SLOT(GoToAddress()));
 }
 
 
@@ -125,3 +135,13 @@ void M68KDasmBrowserWindow::keyPressEvent(QKeyEvent * e)
 	}
 #endif
 }
+
+
+void M68KDasmBrowserWindow::GoToAddress(void)
+{
+	bool ok;
+	QString newAddress = address->text();
+	memBase = newAddress.toUInt(&ok, 16);
+	RefreshContents();
+}
+

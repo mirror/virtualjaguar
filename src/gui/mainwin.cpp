@@ -175,7 +175,7 @@ MainWin::MainWin(bool autoRun): running(true), powerButtonOn(false),
 	palAct->setCheckable(true);
 	connect(palAct, SIGNAL(triggered()), this, SLOT(SetPAL()));
 
-	blurAct = new QAction(QIcon(":/res/generic.png"), tr("Blur"), this);
+	blurAct = new QAction(QIcon(":/res/blur.png"), tr("Blur"), this);
 	blurAct->setStatusTip(tr("Sets OpenGL rendering to GL_NEAREST"));
 	blurAct->setCheckable(true);
 	connect(blurAct, SIGNAL(triggered()), this, SLOT(ToggleBlur()));
@@ -208,32 +208,33 @@ MainWin::MainWin(bool autoRun): running(true), powerButtonOn(false),
 	frameAdvanceAct->setShortcut(QKeySequence(tr("F7")));
 	connect(frameAdvanceAct, SIGNAL(triggered()), this, SLOT(FrameAdvance()));
 
-	fullScreenAct = new QAction(QIcon(":/res/generic.png"), tr("F&ull Screen"), this);
+	fullScreenAct = new QAction(QIcon(":/res/fullscreen.png"), tr("F&ull Screen"), this);
 	fullScreenAct->setShortcut(QKeySequence(tr("F9")));
+	fullScreenAct->setCheckable(true);
 	connect(fullScreenAct, SIGNAL(triggered()), this, SLOT(ToggleFullScreen()));
 
 	// Debugger Actions
-	memBrowseAct = new QAction(QIcon(":/res/generic.png"), tr("Memory Browser"), this);
+	memBrowseAct = new QAction(QIcon(":/res/tool-memory.png"), tr("Memory Browser"), this);
 	memBrowseAct->setStatusTip(tr("Shows the Jaguar memory browser window"));
 //	memBrowseAct->setCheckable(true);
 	connect(memBrowseAct, SIGNAL(triggered()), this, SLOT(ShowMemoryBrowserWin()));
 
-	cpuBrowseAct = new QAction(QIcon(":/res/generic.png"), tr("CPU Browser"), this);
+	cpuBrowseAct = new QAction(QIcon(":/res/tool-cpu.png"), tr("CPU Browser"), this);
 	cpuBrowseAct->setStatusTip(tr("Shows the Jaguar CPU browser window"));
 //	memBrowseAct->setCheckable(true);
 	connect(cpuBrowseAct, SIGNAL(triggered()), this, SLOT(ShowCPUBrowserWin()));
 
-	opBrowseAct = new QAction(QIcon(":/res/generic.png"), tr("OP Browser"), this);
+	opBrowseAct = new QAction(QIcon(":/res/tool-op.png"), tr("OP Browser"), this);
 	opBrowseAct->setStatusTip(tr("Shows the Jaguar OP browser window"));
 //	memBrowseAct->setCheckable(true);
 	connect(opBrowseAct, SIGNAL(triggered()), this, SLOT(ShowOPBrowserWin()));
 
-	m68kDasmBrowseAct = new QAction(QIcon(":/res/generic.png"), tr("68K Listing Browser"), this);
+	m68kDasmBrowseAct = new QAction(QIcon(":/res/tool-68k-dis.png"), tr("68K Listing Browser"), this);
 	m68kDasmBrowseAct->setStatusTip(tr("Shows the 68K disassembly browser window"));
 //	memBrowseAct->setCheckable(true);
 	connect(m68kDasmBrowseAct, SIGNAL(triggered()), this, SLOT(ShowM68KDasmBrowserWin()));
 
-	riscDasmBrowseAct = new QAction(QIcon(":/res/generic.png"), tr("RISC Listing Browser"), this);
+	riscDasmBrowseAct = new QAction(QIcon(":/res/tool-risc-dis.png"), tr("RISC Listing Browser"), this);
 	riscDasmBrowseAct->setStatusTip(tr("Shows the RISC disassembly browser window"));
 //	memBrowseAct->setCheckable(true);
 	connect(riscDasmBrowseAct, SIGNAL(triggered()), this, SLOT(ShowRISCDasmBrowserWin()));

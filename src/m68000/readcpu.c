@@ -153,7 +153,9 @@ const struct mnemolookup lookuptab[] = {
 	{ i_ILLG, "" },
 };
 
-struct instr *table68k;
+
+struct instr * table68k;
+
 
 STATIC_INLINE amodes mode_from_str(const char * str)
 {
@@ -173,6 +175,7 @@ STATIC_INLINE amodes mode_from_str(const char * str)
 	abort();
 	return 0;
 }
+
 
 STATIC_INLINE amodes mode_from_mr(int mode, int reg)
 {
@@ -202,6 +205,7 @@ STATIC_INLINE amodes mode_from_mr(int mode, int reg)
 	abort();
 	return 0;
 }
+
 
 static void build_insn(int insn)
 {
@@ -948,7 +952,9 @@ void read_table68k(void)
 		build_insn(i);
 }
 
+
 static int mismatch;
+
 
 static void handle_merges (long int opcode)
 {
@@ -1087,6 +1093,7 @@ if (opcode == 0x31C3 || code == 0x31C3)
 	}
 }
 
+
 // What this really does is expand the # of handlers, which is why the
 // opcode has to be passed into the opcode handler...
 // E.g., $F620 maps into $F621-F627 as well; this code does this expansion.
@@ -1108,7 +1115,9 @@ void do_merges(void)
 	nr_cpuop_funcs = nr;
 }
 
+
 int get_no_mismatches(void)
 {
 	return mismatch;
 }
+

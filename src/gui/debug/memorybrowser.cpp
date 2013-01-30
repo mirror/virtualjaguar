@@ -22,9 +22,17 @@ MemoryBrowserWindow::MemoryBrowserWindow(QWidget * parent/*= 0*/): QWidget(paren
 //	layout(new QVBoxLayout), text(new QTextBrowser),
 	layout(new QVBoxLayout), text(new QLabel),
 	refresh(new QPushButton(tr("Refresh"))),
+	address(new QLineEdit),
+	go(new QPushButton(tr("Go"))),
 	memBase(0)
 {
 	setWindowTitle(tr("Memory Browser"));
+
+	address->setInputMask("hhhhhh");
+	QHBoxLayout * hbox1 = new QHBoxLayout;
+	hbox1->addWidget(refresh);
+	hbox1->addWidget(address);
+	hbox1->addWidget(go);
 
 	// Need to set the size as well...
 //	resize(560, 480);
@@ -35,9 +43,11 @@ MemoryBrowserWindow::MemoryBrowserWindow(QWidget * parent/*= 0*/): QWidget(paren
 	setLayout(layout);
 
 	layout->addWidget(text);
-	layout->addWidget(refresh);
+//	layout->addWidget(refresh);
+	layout->addLayout(hbox1);
 
 	connect(refresh, SIGNAL(clicked()), this, SLOT(RefreshContents()));
+	connect(go, SIGNAL(clicked()), this, SLOT(GoToAddress()));
 }
 
 
@@ -83,7 +93,7 @@ void MemoryBrowserWindow::RefreshContents(void)
 
 void MemoryBrowserWindow::keyPressEvent(QKeyEvent * e)
 {
-	if (e->key() == Qt::Key_Escape || e->key() == Qt::Key_Return)
+	if (e->key() == Qt::Key_Escape)
 		hide();
 	else if (e->key() == Qt::Key_PageUp)
 	{
@@ -122,3 +132,13 @@ void MemoryBrowserWindow::keyPressEvent(QKeyEvent * e)
 		RefreshContents();
 	}
 }
+
+
+void MemoryBrowserWindow::GoToAddress(void)
+{
+	bool ok;
+	QString newAddress = address->text();
+	memBase = newAddress.toUInt(&ok, 16);
+	RefreshContents();
+}
+

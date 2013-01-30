@@ -21,10 +21,8 @@
 
 
 OPBrowserWindow::OPBrowserWindow(QWidget * parent/*= 0*/): QWidget(parent, Qt::Dialog),
-//	layout(new QVBoxLayout), text(new QTextBrowser),
 	layout(new QVBoxLayout), text(new QLabel),
-	refresh(new QPushButton(tr("Refresh")))//,
-//	memBase(0)
+	refresh(new QPushButton(tr("Refresh")))
 {
 	setWindowTitle(tr("OP Browser"));
 
@@ -36,7 +34,10 @@ OPBrowserWindow::OPBrowserWindow(QWidget * parent/*= 0*/): QWidget(parent, Qt::D
 ////	layout->setSizeConstraint(QLayout::SetFixedSize);
 	setLayout(layout);
 
-	layout->addWidget(text);
+	QScrollArea * scrollArea = new QScrollArea;
+	scrollArea->setWidgetResizable(true);
+	scrollArea->setWidget(text);
+	layout->addWidget(scrollArea);
 	layout->addWidget(refresh);
 
 	connect(refresh, SIGNAL(clicked()), this, SLOT(RefreshContents()));
@@ -48,39 +49,8 @@ void OPBrowserWindow::RefreshContents(void)
 	char string[1024];//, buf[64];
 	QString opDump;
 
-#if 0
-	for(uint32_t i=0; i<480; i+=16)
-	{
-		sprintf(string, "%s%06X: ", (i != 0 ? "<br>" : ""), memBase + i);
-
-		for(uint32_t j=0; j<16; j++)
-		{
-			sprintf(buf, "%02X ", jaguarMainRAM[memBase + i + j]);
-			strcat(string, buf);
-		}
-
-		sprintf(buf, "| ");
-		strcat(string, buf);
-
-		for(uint32_t j=0; j<16; j++)
-		{
-			uint8_t c = jaguarMainRAM[memBase + i + j];
-			sprintf(buf, "&#%i;", c);
-
-			if (c == 0x20)
-				sprintf(buf, "&nbsp;");
-
-			if ((c < 0x20) || ((c > 0x7F) && (c < 0xA0)))
-				sprintf(buf, ".");
-
-			strcat(string, buf);
-		}
-
-		memDump += QString(string);
-	}
-#endif
 	uint32_t olp = OPGetListPointer();
-	sprintf(string, "OLP = $%08X<br><br>", olp);
+	sprintf(string, "OLP = $%X<br>", olp);
 	opDump += QString(string);
 
 	numberOfObjects = 0;
@@ -94,46 +64,10 @@ void OPBrowserWindow::RefreshContents(void)
 
 void OPBrowserWindow::keyPressEvent(QKeyEvent * e)
 {
-	if (e->key() == Qt::Key_Escape || e->key() == Qt::Key_Return)
+	if (e->key() == Qt::Key_Escape)
 		hide();
-#if 0
-	else if (e->key() == Qt::Key_PageUp)
-	{
-		memBase -= 480;
-
-		if (memBase < 0)
-			memBase = 0;
-
+	else if (e->key() == Qt::Key_Enter)
 		RefreshContents();
-	}
-	else if (e->key() == Qt::Key_PageDown)
-	{
-		memBase += 480;
-
-		if (memBase > (0x200000 - 480))
-			memBase = 0x200000 - 480;
-
-		RefreshContents();
-	}
-	else if (e->key() == Qt::Key_Up || e->key() == Qt::Key_Minus)
-	{
-		memBase -= 16;
-
-		if (memBase < 0)
-			memBase = 0;
-
-		RefreshContents();
-	}
-	else if (e->key() == Qt::Key_Down || e->key() == Qt::Key_Equal)
-	{
-		memBase += 16;
-
-		if (memBase > (0x200000 - 480))
-			memBase = 0x200000 - 480;
-
-		RefreshContents();
-	}
-#endif
 }
 
 
@@ -204,7 +138,7 @@ void OPBrowserWindow::DumpObjectList(QString & list)
 		uint8_t objectType = lo & 0x07;
 		uint32_t link = ((hi << 11) | (lo >> 21)) & 0x3FFFF8;
 //		WriteLog("%08X: %08X %08X %s", address, hi, lo, opType[objectType]);
-		sprintf(buf, "%08X: %08X %08X %s -> %08X", address, hi, lo, opType[objectType], link);
+		sprintf(buf, "<br>%06X: %08X %08X %s -> %06X", address, hi, lo, opType[objectType], link);
 		list += QString(buf);
 
 		if (objectType == 3)
@@ -231,7 +165,7 @@ void OPBrowserWindow::DumpObjectList(QString & list)
 		{
 			// Runaway recursive link is bad!
 //			WriteLog("***** SELF REFERENTIAL LINK *****\n\n");
-			sprintf(buf, "***** SELF REFERENTIAL LINK *****<br><br>");
+			sprintf(buf, "***** SELF REFERENTIAL LINK *****<br>");
 			list += QString(buf);
 		}
 	}
@@ -246,17 +180,17 @@ void OPBrowserWindow::DumpScaledObject(QString & list, uint64_t p0, uint64_t p1,
 	char buf[512];
 
 //	WriteLog("          %08X %08X\n", (uint32)(p1>>32), (uint32)(p1&0xFFFFFFFF));
-	sprintf(buf, "_________ %08X %08X<br>", (uint32)(p1>>32), (uint32)(p1&0xFFFFFFFF));
+	sprintf(buf, "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;%08X %08X<br>", (uint32)(p1>>32), (uint32)(p1&0xFFFFFFFF));
 	list += QString(buf);
 //	WriteLog("          %08X %08X\n", (uint32)(p2>>32), (uint32)(p2&0xFFFFFFFF));
-	sprintf(buf, "_________ %08X %08X<br>", (uint32)(p2>>32), (uint32)(p2&0xFFFFFFFF));
+	sprintf(buf, "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;%08X %08X<br>", (uint32)(p2>>32), (uint32)(p2&0xFFFFFFFF));
 	list += QString(buf);
 	DumpBitmapCore(list, p0, p1);
 	uint32 hscale = p2 & 0xFF;
 	uint32 vscale = (p2 >> 8) & 0xFF;
 	uint32 remainder = (p2 >> 16) & 0xFF;
 //	WriteLog("    [hsc: %02X, vsc: %02X, rem: %02X]\n", hscale, vscale, remainder);
-	sprintf(buf, "[hsc: %02X, vsc: %02X, rem: %02X]<br>", hscale, vscale, remainder);
+	sprintf(buf, "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[hsc: %02X, vsc: %02X, rem: %02X]<br>", hscale, vscale, remainder);
 	list += QString(buf);
 }
 
@@ -266,7 +200,7 @@ void OPBrowserWindow::DumpFixedObject(QString & list, uint64_t p0, uint64_t p1)
 	char buf[512];
 
 //	WriteLog("          %08X %08X\n", (uint32)(p1>>32), (uint32)(p1&0xFFFFFFFF));
-	sprintf(buf, "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;%08X %08X<br>", (uint32)(p1>>32), (uint32)(p1&0xFFFFFFFF));
+	sprintf(buf, "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;%08X %08X<br>", (uint32)(p1>>32), (uint32)(p1&0xFFFFFFFF));
 	list += QString(buf);
 	DumpBitmapCore(list, p0, p1);
 }
@@ -298,7 +232,7 @@ void OPBrowserWindow::DumpBitmapCore(QString & list, uint64_t p0, uint64_t p1)
 //		ptr, firstPix, (flags&OPFLAG_REFLECT ? "REFLECT " : ""),
 //		(flags&OPFLAG_RMW ? "RMW " : ""), (flags&OPFLAG_TRANS ? "TRANS " : ""),
 //		(flags&OPFLAG_RELEASE ? "RELEASE" : ""), idx, pitch);
-	sprintf(buf, "    [%u x %u @ (%i, %u) (iw:%u, dw:%u) (%u bpp), p:%08X fp:%02X, fl:%s%s%s%s, idx:%02X, pt:%02X]<br>",
+	sprintf(buf, "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[%u x %u @ (%i, %u) (iw:%u, dw:%u) (%u bpp), p:%06X fp:%02X, fl:%s%s%s%s, idx:%02X, pt:%02X]<br>",
 		iwidth * bdMultiplier[bitdepth],
 		height, xpos, ypos, iwidth, dwidth, op_bitmap_bit_depth[bitdepth],
 		ptr, firstPix, (flags&OPFLAG_REFLECT ? "REFLECT " : ""),
@@ -306,3 +240,4 @@ void OPBrowserWindow::DumpBitmapCore(QString & list, uint64_t p0, uint64_t p1)
 		(flags&OPFLAG_RELEASE ? "RELEASE" : ""), idx, pitch);
 	list += QString(buf);
 }
+

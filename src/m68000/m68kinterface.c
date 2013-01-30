@@ -77,6 +77,8 @@ cpuop_func * cpuFunctionTable[65536];
 #endif
 
 #define CPU_DEBUG
+
+
 void Dasm(uint32_t offset, uint32_t qt)
 {
 #ifdef CPU_DEBUG
@@ -102,6 +104,7 @@ void Dasm(uint32_t offset, uint32_t qt)
 #endif
 }
 
+
 #ifdef CPU_DEBUG
 void DumpRegisters(void)
 {
@@ -121,6 +124,7 @@ void DumpRegisters(void)
 void m68k_set_cpu_type(unsigned int type)
 {
 }
+
 
 // Pulse the RESET line on the CPU
 void m68k_pulse_reset(void)
@@ -189,6 +193,7 @@ void m68k_pulse_reset(void)
 	refill_prefetch(m68k_getpc(), 0);
 #endif
 }
+
 
 int m68k_execute(int num_cycles)
 {
@@ -342,6 +347,7 @@ if (inRoutine)
 #endif
 }
 
+
 /* ASG: rewrote so that the int_level is a mask of the IPL0/IPL1/IPL2 bits */
 void m68k_set_irq(unsigned int intLevel)
 {
@@ -368,6 +374,7 @@ void m68k_set_irq(unsigned int intLevel)
 #endif
 }
 
+
 // Check for interrupts
 STATIC_INLINE void m68ki_check_interrupts(void)
 {
@@ -379,6 +386,7 @@ STATIC_INLINE void m68ki_check_interrupts(void)
 		m68ki_exception_interrupt(regs.intLevel);
 #endif
 }
+
 
 // Service an interrupt request and start exception processing
 void m68ki_exception_interrupt(uint32_t intLevel)
@@ -495,6 +503,7 @@ void m68ki_exception_interrupt(uint32_t intLevel)
 #endif
 }
 
+
 // Initiate exception processing
 STATIC_INLINE uint32_t m68ki_init_exception(void)
 {
@@ -518,6 +527,7 @@ STATIC_INLINE uint32_t m68ki_init_exception(void)
 #endif
 }
 
+
 // 3 word stack frame (68000 only)
 STATIC_INLINE void m68ki_stack_frame_3word(uint32_t pc, uint32_t sr)
 {
@@ -533,6 +543,7 @@ STATIC_INLINE void m68ki_stack_frame_3word(uint32_t pc, uint32_t sr)
 	m68k_write_memory_16(m68k_areg(regs, 7), sr);
 #endif
 }
+
 
 unsigned int m68k_get_reg(void * context, m68k_register_t reg)
 {
@@ -551,6 +562,7 @@ unsigned int m68k_get_reg(void * context, m68k_register_t reg)
 	return 0;
 }
 
+
 void m68k_set_reg(m68k_register_t reg, unsigned int value)
 {
 	if (reg <= M68K_REG_A7)
@@ -566,6 +578,7 @@ void m68k_set_reg(m68k_register_t reg, unsigned int value)
 		regs.regs[15] = value;
 }
 
+
 //
 // Check if the instruction is a valid one
 //
@@ -578,6 +591,7 @@ unsigned int m68k_is_valid_instruction(unsigned int instruction, unsigned int cp
 
 	return 1;
 }
+
 
 // Dummy functions, for now, until we prove the concept here. :-)
 
@@ -593,6 +607,7 @@ int m68k_cycles_run(void) {}              /* Number of cycles run so far */
 int m68k_cycles_remaining(void) {}        /* Number of cycles left */
 void m68k_modify_timeslice(int cycles) {} /* Modify cycles left */
 //void m68k_end_timeslice(void) {}          /* End timeslice now */
+
 
 void m68k_end_timeslice(void)
 {

@@ -45,6 +45,10 @@ QMAKE_CXXFLAGS += `$(CROSS)sdl-config --cflags`
 
 # Need to add libcdio stuffola (checking/including)...
 
+# Translations. None yet. :-(
+#TRANSLATIONS = virtualjaguar_fr.ts \
+#	virtualjaguar_gr.ts
+
 INCLUDEPATH += \
 	src \
 	src/gui

@@ -39,7 +39,6 @@ RISCDasmBrowserWindow::RISCDasmBrowserWindow(QWidget * parent/*= 0*/): QWidget(p
 	hbox1->addWidget(address);
 	hbox1->addWidget(go);
 
-
 	// Need to set the size as well...
 //	resize(560, 480);
 

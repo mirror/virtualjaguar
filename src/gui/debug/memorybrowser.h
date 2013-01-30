@@ -22,6 +22,7 @@ class MemoryBrowserWindow: public QWidget
 	public slots:
 //		void DefineAllKeys(void);
 		void RefreshContents(void);
+		void GoToAddress(void);
 
 	protected:
 		void keyPressEvent(QKeyEvent *);
@@ -31,6 +32,8 @@ class MemoryBrowserWindow: public QWidget
 //		QTextBrowser * text;
 		QLabel * text;
 		QPushButton * refresh;
+		QLineEdit * address;
+		QPushButton * go;
 
 		int32_t memBase;
 };

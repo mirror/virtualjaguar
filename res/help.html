@@ -101,6 +101,7 @@
 <ul>
 <li>Power</li>
 <li>Pause</li>
+<li>Frame Advance</li>
 <li>Insert Cartridge...</li>
 <li>Use CD Unit</li>
 <li>Configure</li>
@@ -110,6 +111,8 @@
 <p><b>Power</b> does the same as the toolbar button; see the &ldquo;Power&rdquo; toolbar button description for details.</p>
 
 <p><b>Pause</b> does the same as the toolbar button; see the &ldquo;Pause&rdquo; toolbar button description for details.</p>
+
+<p><b>Frame Advance</b> causes <i>Virtual Jaguar</i> to run for one frame (1/60th of a second for NTSC, 1/50th for PAL), and update the screen. This option only works when <i>Virtual Jaguar</i> is paused.</p>
 
 <p><b>Insert Cartridge...</b> does the same as the toolbar button; see the &ldquo;Insert Cartridge&rdquo; toolbar button description for details.</p>
 
@@ -186,11 +189,13 @@
 <p>Under the Controller tab, there are the following options:</p>
 
 <ul>
-<li>A picture of a Jaguar controller showing which keys are defined</li>
-<li>A button labeled &ldquo;Define All Keys&rdquo;</li>
+<li>A picture of a Jaguar controller showing which inputs are defined</li>
+<li>A button labeled &ldquo;Define All Inputs&rdquo;</li>
 </ul>
 
-<p>Hovering over a letter on the picture of the Jaguar controller will highlight it; clicking on the letter will let you redefine that key. If you prefer, you can define all the keys at once by clicking on the &ldquo;Define All Keys&rdquo; button. It will then step through each button on the controller, one at a time, and wait for you to press the key that you wish to set it to. You can exit the key redefinition process at any time by pressing the <b>Esc</b> key on your keyboard.</p>
+<p>Hovering over a letter on the picture of the Jaguar controller will highlight it; clicking on the letter will let you redefine that input by pressing a key on the keyboard or button on a connected gamepad. If you prefer, you can define all inputs at once by clicking on the &ldquo;Define All Inputs&rdquo; button. It will then step through each input on the controller, one at a time, and wait for you to press the key/button that you wish to set it to. You can exit the key redefinition process at any time by pressing the <b>Esc</b> key on your keyboard.</p>
+
+<p>NOTE: For gamepads to be detected, they must be connected to the computer before starting <i>Virtual Jaguar</i>.</p>
 
 <h2>EEPROMs</h2>
 
@@ -222,6 +227,36 @@
 <p><b>ROM to load</b> is the path to a Jaguar executable file that will be loaded into the Jaguar&rsquo;s cartridge memory space at $800000 (Alpine ROM images will load at $802000). As a convenience to coders, this file can be of any length, as long as it fits into the cartridge memory space (a file of this type is treated as an Alpine ROM and is loaded at $802000). The file thus loaded into memory will not be executed.</p>
 
 <p><b>ABS to load</b> is the path to a Jaguar executable file that will be loaded in the Jaguar&rsquo;s main RAM. This file must have valid headers, otherwise <i>Virtual Jaguar</i> won&rsquo;t be able to load it. Assuming the file exists and has the correct headers in it, it will be loaded and run when <i>Virtual Jaguar</i> is first run.</p>
+
+<p>Also, when in Alpine mode, extra toolbar buttons are defined (also found under the extra &ldquo;Debug&rdquo; menu):</p>
+
+<ul>
+<li>Memory Browser</li>
+<li>CPU Browser</li>
+<li>OP Browser</li>
+<li>M68K Disassembly Browser</li>
+<li>RISC Disassembly Browser</li>
+</ul>
+
+<h3>Memory Browser</h3>
+
+<p>This window lets you inspect <i>Virtual Jaguar</i>&rsquo;s emulated memory space. The <b>PgDn</b> key will advance the top of the window&rsquo;s memory location by 480 bytes, and <b>PgUp</b> will go back by the same amount. The <b>Plus (+)</b> key will advance the top of the window&rsquo;s memory location by 16 bytes, and <b>Minus (-)</b> will go back by the same amount. Entering a memory location, in hexadecimal, in the edit field and pressing the <b>Go</b> button will display memory from that location. It can be dismissed by clicking on the &ldquo;X&rdquo; in the upper corner of the dialog, or by pressing the <b>Esc</b> key on your keyboard.</p>
+
+<h3>CPU Browser</h3>
+
+<p>This window shows the state of the various CPUs in the emulated Jaguar. It can be dismissed by clicking on the &ldquo;X&rdquo; in the upper corner of the dialog, or by pressing the <b>Esc</b> key on your keyboard.</p>
+
+<h3>OP Browser</h3>
+
+<p>This window shows the current state of object list that the Object Processor is pointing to. Note that most of the time, this will likely show an object list that has had its objects processed. It can be dismissed by clicking on the &ldquo;X&rdquo; in the upper corner of the dialog, or by pressing the <b>Esc</b> key on your keyboard.</p>
+
+<h3>M68K Disassembly Browser</h3>
+
+<p>This window provides a disassembly of 68000 opcodes. It can be dismissed by clicking on the &ldquo;X&rdquo; in the upper corner of the dialog, or by pressing the <b>Esc</b> key on your keyboard.</p>
+
+<h3>RISC Disassembly Browser</h3>
+
+<p>This window provides a disassembly of RISC opcodes. It can be dismissed by clicking on the &ldquo;X&rdquo; in the upper corner of the dialog, or by pressing the <b>Esc</b> key on your keyboard.</p>
 
 <p>The aforementioned options will only work when <i>Virtual Jaguar</i> is run in Alpine mode, that is, when the --alpine flag is passed in. If you do not pass in the --alpine flag, <i>Virtual Jaguar</i> will run as it normally does, i.e., as a stock Jaguar, and nothing will be loaded by default.</p>
 

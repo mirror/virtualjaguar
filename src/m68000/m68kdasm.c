@@ -369,6 +369,7 @@ unsigned int m68k_disasm(char * output, uint32_t addr, uint32_t * nextpc, int cn
 	return numberOfBytes;
 }
 
+
 //
 // Disasemble one instruction at pc and store in str_buff
 //
@@ -376,3 +377,4 @@ unsigned int m68k_disassemble(char * str_buff, unsigned int pc, unsigned int cpu
 {
 	return m68k_disasm(str_buff, pc, 0, 1);
 }
+

@@ -10,6 +10,13 @@
 	<file>../../res/zoom100.png</file>
 	<file>../../res/zoom200.png</file>
 	<file>../../res/zoom300.png</file>
+	<file>../../res/blur.png</file>
+	<file>../../res/fullscreen.png</file>
+	<file>../../res/tool-memory.png</file>
+	<file>../../res/tool-cpu.png</file>
+	<file>../../res/tool-op.png</file>
+	<file>../../res/tool-68k-dis.png</file>
+	<file>../../res/tool-risc-dis.png</file>
 	<file>../../res/generic.png</file>
 	<file>../../res/cart-blank.png</file>
 	<file>../../res/label-blank.png</file>

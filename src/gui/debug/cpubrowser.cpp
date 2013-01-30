@@ -98,7 +98,7 @@ void CPUBrowserWindow::RefreshContents(void)
 
 void CPUBrowserWindow::keyPressEvent(QKeyEvent * e)
 {
-	if (e->key() == Qt::Key_Escape || e->key() == Qt::Key_Return)
+	if (e->key() == Qt::Key_Escape)
 		hide();
 	else if (e->key() == Qt::Key_PageUp)
 	{
