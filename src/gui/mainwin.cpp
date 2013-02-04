@@ -874,12 +874,19 @@ void MainWin::SetFullScreen(bool state/*= true*/)
 		// NOTE: Really should check here to see which dimension constrains the other.
 		//       Right now, we assume that height is the constraint.
 		int newWidth = (int)(aspectRatio * (double)r.height());
+		videoWidget->offset = (r.width() - newWidth) / 2;
+		videoWidget->fullscreen = true;
+		videoWidget->outputWidth = newWidth;
 
-		videoWidget->setFixedSize(newWidth, r.height());
+//		videoWidget->setFixedSize(newWidth, r.height());
+		videoWidget->setFixedSize(r.width(), r.height());
 		showFullScreen();
 	}
 	else
 	{
+		// Reset the video widget to windowed mode
+		videoWidget->offset = 0;
+		videoWidget->fullscreen = false;
 		menuBar()->show();
 		statusBar()->show();
 		showNormal();

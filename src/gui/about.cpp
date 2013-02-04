@@ -20,6 +20,7 @@
 #include "about.h"
 #include "version.h"
 
+
 AboutWindow::AboutWindow(QWidget * parent/*= 0*/): QWidget(parent, Qt::Dialog)
 {
 	setWindowTitle(tr("About Virtual Jaguar..."));
@@ -37,7 +38,7 @@ AboutWindow::AboutWindow(QWidget * parent/*= 0*/): QWidget(parent, Qt::Dialog)
 		"</td></tr>"
 		"<tr><td align='right'><b>Coders: </b></td><td>James Hammons (shamus)<br>Niels Wagenaar (nwagenaar)<br>Carwin Jones (Caz)<br>Adam Green</td></tr>"
 		"<tr><td align='right'><b>Testers: </b></td><td>Cyrano Jones, LinkoVitch, neo-rg, Robert R,<br>TheUMan, Dissection, overridex, geormetal</td></tr>"
-		"<tr><td align='right'><b>Build Team: </b></td><td>ggn (win32)<br>LinkoVitch, goldenegg (MacOS)</td></tr>"
+		"<tr><td align='right'><b>Build Team: </b></td><td>shamus (win32)<br>goldenegg (MacOS)</td></tr>"
 		"<tr><td align='right'><b>Homepage: </b></td><td>http://icculus.org/virtualjaguar/</td></tr>"
 		"</table>"
 		"<br><br>"
@@ -57,6 +58,7 @@ AboutWindow::AboutWindow(QWidget * parent/*= 0*/): QWidget(parent, Qt::Dialog)
 	text = new QLabel(s);
 	layout->addWidget(text);
 }
+
 
 void AboutWindow::keyPressEvent(QKeyEvent * e)
 {

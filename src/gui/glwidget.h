@@ -38,6 +38,9 @@ class GLWidget: public QGLWidget
 
 		bool synchronize;
 		unsigned filter;
+		int offset;
+		bool fullscreen;
+		int outputWidth;
 };
 
 #endif	// __GLWIDGET_H__

@@ -8,4 +8,6 @@ src/*~
 src/m68000/*~
 eeproms/*.eep
 software/
+build/
+regression-test/
 *~

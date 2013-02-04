@@ -99,7 +99,7 @@ void M68KDasmBrowserWindow::keyPressEvent(QKeyEvent * e)
 #if 1
 	else if (e->key() == Qt::Key_PageUp)
 	{
-		memBase -= 480;
+		memBase -= 64;
 
 		if (memBase < 0)
 			memBase = 0;
@@ -108,10 +108,10 @@ void M68KDasmBrowserWindow::keyPressEvent(QKeyEvent * e)
 	}
 	else if (e->key() == Qt::Key_PageDown)
 	{
-		memBase += 480;
+		memBase += 64;
 
-		if (memBase > (0x200000 - 480))
-			memBase = 0x200000 - 480;
+		if (memBase > (0xF00000 - 64))
+			memBase = 0xF00000 - 64;
 
 		RefreshContents();
 	}
@@ -128,8 +128,8 @@ void M68KDasmBrowserWindow::keyPressEvent(QKeyEvent * e)
 	{
 		memBase += 16;
 
-		if (memBase > (0x200000 - 480))
-			memBase = 0x200000 - 480;
+		if (memBase > (0xF00000 - 64))
+			memBase = 0xF00000 - 64;
 
 		RefreshContents();
 	}
