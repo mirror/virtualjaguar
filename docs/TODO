@@ -16,7 +16,6 @@ Stuff to add/fix for the next release of Virtual Jaguar
 - Blitter needs fixing. [Shamus]
 - In emulator screenshots. [Shamus]
 - Audio/video dumping. [Shamus]
-- Controller handling. [Shamus]
 - Need to emulate bus contention. [Shamus]
 - Need to fix timing in the OP. As it is now, it gives a false impression of
   how much it's capable of. [Shamus]
@@ -27,6 +26,7 @@ Stuff to add/fix for the next release of Virtual Jaguar
 Stuff that was added/fixed
 --------------------------
 
+- Controller handling. [Shamus] [DONE--Shamus]
 - Full screen option. [Shamus] [DONE--Shamus]
 - Command line switches for frontends. [Shamus] [DONE-Shamus]
 - Fix DSP code so that it doesn't hang in a spinlock waiting for the sound

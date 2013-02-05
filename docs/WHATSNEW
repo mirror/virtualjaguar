@@ -1,6 +1,7 @@
 Virtual Jaguar v2.1.0 GCC/Qt
 ----------------------------
 
+* Added gamepad support. [Shamus]
 * Added fullscreen option. [Shamus]
 * Added some more developer goodies to Alpine mode. [Shamus]
 * Re-added command line switches. [Shamus]

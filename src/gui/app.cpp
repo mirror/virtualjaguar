@@ -12,6 +12,7 @@
 // JLH  01/21/2011  Added SDL initialization
 // JLH  06/26/2011  Added fix to keep SDL from hijacking main() on win32
 // JLH  05/24/2012  Added option switches
+// JLH  03/05/2013  Fixed console redireciton on win32 platform  :-P
 //
 
 #include "app.h"
@@ -29,6 +30,7 @@
 // Apparently on win32, SDL is hijacking main from Qt. So let's do this:
 #ifdef __GCCWIN32__
 #undef main
+#include <windows.h>	// Ick, but needed for console redirection on win32 :-O
 #endif
 
 // Function prototypes...
@@ -38,9 +40,10 @@ static void ParseOptions(int argc, char * argv[]);
 
 //hm. :-/
 // This is stuff we pass into the mainWindow...
+// Also, these are defaults. :-)
 bool noUntunedTankPlease = false;
 bool loadAndGo = false;
-bool useLogfile = true;
+bool useLogfile = false;
 QString filename;
 
 // Here's the main application loop--short and simple...
@@ -48,13 +51,24 @@ int main(int argc, char * argv[])
 {
 	// Win32 console redirection, because MS and their band of super geniuses decided
 	// that nobody would ever launch an app from the command line. :-P
-	// And, of course, this doesn't work, but causes weird problems. Yay Microsoft. :-/
 #ifdef __GCCWIN32__
-#if 0
-	FILE * ctt = fopen("CON", "w");
-	freopen("CON", "w", stdout);
-	freopen("CON", "w", stderr);
-#endif
+	BOOL (WINAPI * AttachConsole)(DWORD dwProcessId);
+
+	AttachConsole = (BOOL (WINAPI *)(DWORD))
+		GetProcAddress(LoadLibraryA("kernel32.dll"), "AttachConsole");
+
+	if (AttachConsole != NULL && AttachConsole(((DWORD)-1)))
+	{
+		if (_fileno(stdout) == -1)
+			freopen("CONOUT$","wb",stdout);
+		if (_fileno(stderr) == -1)
+			freopen("CONOUT$","wb",stderr);
+		if (_fileno(stdin) == -1)
+			freopen("CONIN$","rb",stdin);
+
+		// Fix C++
+		std::ios::sync_with_stdio();
+	}
 #endif
 
 	// Normally, this would be read in from the settings module... :-P
@@ -65,11 +79,6 @@ int main(int argc, char * argv[])
 	// Check for options that must be in place be constructing the App object
 	if (!ParseCommandLine(argc, argv))
 	{
-#ifdef __GCCWIN32__
-#if 0
-		fclose(ctt);
-#endif
-#endif
 		return 0;
 	}
 
@@ -174,6 +183,8 @@ bool ParseCommandLine(int argc, char * argv[])
 				"   --log         -l  Create and use log file\n"
 				"   --no-log          Do not use log file\n"
 				"   --help        -h  Show this message\n"
+				"   --please-dont-kill-my-computer\n"
+				"                 -z  Run Virtual Jaguar without \"snow\"\n"
 				"\n"
 				"Invoking Virtual Jagaur with no filename will cause it to boot up\n"
 				"with the VJ GUI.\n"

@@ -27,6 +27,7 @@ interest.
 This software is released under the GPL v3 or later. For more information, read
 the GPLv3 file.
 
+
 ----------------------------------------------------------------
 - IMPORTANT NOTE ABOUT JAGUAR FILE FORMATS--READ THIS OR ELSE! -
 ----------------------------------------------------------------
@@ -74,6 +75,7 @@ There is a fifth type of file that is supported by Virtual Jaguar, the .j64
 file, which is simply a 1, 2, or 4 Meg dump of a Jaguar cartridge ROM which
 loads at $800000 in the Jaguar memory space.
 
+
 ----------------------------------
 - What is Virtual Jaguar GCC/Qt? -
 ----------------------------------
@@ -100,6 +102,7 @@ are particularly welcome! :)
 More information about the incredible SDL libraries can be found at
 http://www.libsdl.org. Thanks Sam--you rock! :)
 
+
 -------------------------------
 - Using Virtual Jaguar GCC/Qt -
 -------------------------------
@@ -108,39 +111,6 @@ Simply double click on the Virtual Jaguar icon or type ./virtualjaguar -h from
 the command line. See the built in help (under Help|Contents) for more
 information on how to use it. :-)
 
-People on Windows platforms are unable to read the from the command line at
-the moment. So here's what it says:
-
-"Virtual Jaguar GIT 20120914 (2.1.0 Prerelease)
-Based upon Virtual Jaguar core v1.0.0 by David Raingeard.
-Written by James Hammons (Linux/WIN32), Niels Wagenaar (Linux/WIN32),
-Carwin Jones (BeOS), and Adam Green (MacOS)
-Contact: http://sdlemu.ngemu.com/ | sdlemu@ngemu.com
-
-Usage:
-   virtualjaguar [<filename>] [switches]
-
-   Option            Description
-   ----------------  -----------------------------------
-   <filename>        Name of file to autoload
-   --alpine      -a  Put Virtual Jaguar into Alpine mode
-   --pal         -p  PAL mode
-   --ntsc        -n  NTSC mode
-   --bios        -b  Boot using Jagaur BIOS
-   --no-bios         Do not use Jaguar BIOS
-   --gpu         -g  Enable GPU
-   --no-gpu          Disable GPU
-   --dsp         -d  Enable DSP
-   --no-dsp          Disable DSP
-   --fullscreen  -f  Start in full screen mode
-   --blur        -B  Enable GL bilinear filter
-   --no-blur         Disable GL bilinear filtering
-   --log         -l  Create and use log file
-   --no-log          Do not use log file
-   --help        -h  Show this message
-
-Invoking Virtual Jagaur with no filename will cause it to boot up
-with the VJ GUI."
 
 -----------
 - Finally -
