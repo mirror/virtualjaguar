@@ -223,6 +223,11 @@ WriteLog("FILE: Cartridge run address is reported as $%X...\n", jaguarRunAddress
 			memcpy(jagMemSpace + loadAddress, buffer + 0x2E, jaguarROMSize - 0x2E);
 			delete[] buffer;
 			jaguarRunAddress = runAddress;
+
+// Hmm. Is this kludge necessary?
+SET32(jaguarMainRAM, 0x10, 0x00001000);		// Set Exception #4 (Illegal Instruction)
+SET16(jaguarMainRAM, 0x1000, 0x60FE);		// Here: bra Here
+
 			return true;
 //		}
 //		else // Special WTFOMGBBQ type here...

@@ -12,11 +12,11 @@
 //
 
 #include "m68kinterface.h"
+//#include <pthread.h>
 #include "cpudefs.h"
 #include "inlines.h"
 #include "cpuextra.h"
 #include "readcpu.h"
-
 
 // Exception Vectors handled by emulation
 #define EXCEPTION_BUS_ERROR                2 /* This one is not emulated! */
@@ -54,11 +54,17 @@ STATIC_INLINE uint32_t m68ki_init_exception(void);
 STATIC_INLINE void m68ki_stack_frame_3word(uint32_t pc, uint32_t sr);
 unsigned long IllegalOpcode(uint32_t opcode);
 void BuildCPUFunctionTable(void);
+void m68k_set_irq2(unsigned int intLevel);
 
 // Local "Global" vars
 static int32_t initialCycles;
 cpuop_func * cpuFunctionTable[65536];
 
+// By virtue of the fact that m68k_set_irq() can be called asychronously by
+// another thread, we need something along the lines of this:
+static int checkForIRQToHandle = 0;
+//static pthread_mutex_t executionLock = PTHREAD_MUTEX_INITIALIZER;
+static int IRQLevelToHandle = 0;
 
 #if 0
 #define ADD_CYCLES(A)    m68ki_remaining_cycles += (A)
@@ -312,6 +318,16 @@ if (inRoutine)
 //94C2: 2452                     MOVEA.L	(A2), A2			; <--- HERE
 //94C4: 4283                     CLR.L	D3
 #endif
+//		pthread_mutex_lock(&executionLock);
+		if (checkForIRQToHandle)
+		{
+			checkForIRQToHandle = 0;
+			m68k_set_irq2(IRQLevelToHandle);
+		}
+
+#ifdef M68K_HOOK_FUNCTION
+		M68KInstructionHook();
+#endif
 		uint32_t opcode = get_iword(0);
 //if ((opcode & 0xFFF8) == 0x31C0)
 //{
@@ -319,14 +335,12 @@ if (inRoutine)
 //}
 		int32_t cycles = (int32_t)(*cpuFunctionTable[opcode])(opcode);
 		regs.remainingCycles -= cycles;
+//		pthread_mutex_unlock(&executionLock);
+
 //printf("Executed opcode $%04X (%i cycles)...\n", opcode, cycles);
 #endif
 	}
-#if 0
-	while (GET_CYCLES() > 0);
-#else
 	while (regs.remainingCycles > 0);
-#endif
 
 #if 0
 	/* set previous PC to current PC for the next entry into the loop */
@@ -348,20 +362,21 @@ if (inRoutine)
 }
 
 
-/* ASG: rewrote so that the int_level is a mask of the IPL0/IPL1/IPL2 bits */
 void m68k_set_irq(unsigned int intLevel)
 {
-#if 0
-	uint old_level = CPU_INT_LEVEL;
-	CPU_INT_LEVEL = int_level << 8;
+	// Since this can be called asynchronously, we need to fix it so that it
+	// doesn't fuck up the main execution loop.
+	IRQLevelToHandle = intLevel;
+	checkForIRQToHandle = 1;
+}
 
-	/* A transition from < 7 to 7 always interrupts (NMI) */
-	/* Note: Level 7 can also level trigger like a normal IRQ */
-	if(old_level != 0x0700 && CPU_INT_LEVEL == 0x0700)
-		m68ki_exception_interrupt(7); /* Edge triggered level 7 (NMI) */
-	else
-		m68ki_check_interrupts(); /* Level triggered (IRQ) */
-#else
+
+/* ASG: rewrote so that the int_level is a mask of the IPL0/IPL1/IPL2 bits */
+void m68k_set_irq2(unsigned int intLevel)
+{
+//	pthread_mutex_lock(&executionLock);
+//		printf("m68k_set_irq: Could not get the lock!!!\n");
+
 	int oldLevel = regs.intLevel;
 	regs.intLevel = intLevel;
 
@@ -371,7 +386,8 @@ void m68k_set_irq(unsigned int intLevel)
 		m68ki_exception_interrupt(7);		// Edge triggered level 7 (NMI)
 	else
 		m68ki_check_interrupts();			// Level triggered (IRQ)
-#endif
+
+//	pthread_mutex_unlock(&executionLock);
 }
 
 
@@ -485,8 +501,23 @@ void m68ki_exception_interrupt(uint32_t intLevel)
 	// Set the interrupt mask to the level of the one being serviced
 	regs.intmask = intLevel;
 
+#if 0
+extern int startM68KTracing;
+if (startM68KTracing)
+{
+	printf("IRQ: old PC=%06X, ", regs.pc);
+}
+#endif
+
 	// Get the new PC
 	uint32_t newPC = m68k_read_memory_32(vector << 2);
+
+#if 0
+if (startM68KTracing)
+{
+	printf("new PC=%06X, vector=%u, ", newPC, vector);
+}
+#endif
 
 	// If vector is uninitialized, call the uninitialized interrupt vector
 	if (newPC == 0)
@@ -496,6 +527,12 @@ void m68ki_exception_interrupt(uint32_t intLevel)
 	m68ki_stack_frame_3word(regs.pc, sr);
 
 	m68k_setpc(newPC);
+#if 0
+if (startM68KTracing)
+{
+	printf("(PC=%06X)\n", regs.pc);
+}
+#endif
 
 	// Defer cycle counting until later
 	regs.interruptCycles += 56;	// NOT ACCURATE-- !!! FIX !!!
@@ -605,8 +642,14 @@ unsigned int m68k_disassemble(char * str_buff, unsigned int pc, unsigned int cpu
 
 int m68k_cycles_run(void) {}              /* Number of cycles run so far */
 int m68k_cycles_remaining(void) {}        /* Number of cycles left */
-void m68k_modify_timeslice(int cycles) {} /* Modify cycles left */
+//void m68k_modify_timeslice(int cycles) {} /* Modify cycles left */
 //void m68k_end_timeslice(void) {}          /* End timeslice now */
+
+
+void m68k_modify_timeslice(int cycles)
+{
+	regs.remainingCycles = cycles;
+}
 
 
 void m68k_end_timeslice(void)

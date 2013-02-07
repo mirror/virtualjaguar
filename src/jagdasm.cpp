@@ -114,7 +114,7 @@ unsigned dasmjag(int dsp_type, char * bufferOut, unsigned pc)
 		case 21:	sprintf(buffer, "DIV     R%02d,R%02d", reg1, reg2);				break;
 		case 22:	sprintf(buffer, "ABS     R%02d", reg2);							break;
 		case 23:	sprintf(buffer, "SH      R%02d,R%02d", reg1, reg2);				break;
-		case 24:	sprintf(buffer, "SHLQ    $%X,R%02d", 32 - convert_zero[reg1], reg2);	break;
+		case 24:	sprintf(buffer, "SHLQ    $%X,R%02d", 32 - reg1, reg2);	break;
 		case 25:	sprintf(buffer, "SHRQ    $%X,R%02d", convert_zero[reg1], reg2);	break;
 		case 26:	sprintf(buffer, "SHA     R%02d,R%02d", reg1, reg2);				break;
 		case 27:	sprintf(buffer, "SHARQ   $%X,R%02d", convert_zero[reg1], reg2);	break;
@@ -171,7 +171,7 @@ unsigned dasmjag(int dsp_type, char * bufferOut, unsigned pc)
 		case 62:	if (dsp_type == JAGUAR_GPU)
 						sprintf(buffer, "SAT24   R%02d", reg2);
 					else
-						sprintf(buffer, "illegal");
+						sprintf(buffer, "illegal [%d,%d]", reg1, reg2);
 					break;
 		case 63:	if (dsp_type == JAGUAR_GPU)
 						sprintf(buffer, (reg1 ? "UNPACK  R%02d" : "PACK    R%02d"), reg2);

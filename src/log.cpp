@@ -22,7 +22,8 @@
 #include <stdarg.h>
 #include "types.h"
 
-#define MAX_LOG_SIZE		10000000				// Maximum size of log file (10 MB)
+//#define MAX_LOG_SIZE		10000000				// Maximum size of log file (10 MB)
+#define MAX_LOG_SIZE		100000000				// Maximum size of log file (100 MB)
 
 static FILE * log_stream = NULL;
 static uint32 logSize = 0;

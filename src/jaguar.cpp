@@ -38,10 +38,11 @@
 //Do this in makefile??? Yes! Could, but it's easier to define here...
 //#define LOG_UNMAPPED_MEMORY_ACCESSES
 //#define ABORT_ON_UNMAPPED_MEMORY_ACCESS
-#define ABORT_ON_ILLEGAL_INSTRUCTIONS
+//#define ABORT_ON_ILLEGAL_INSTRUCTIONS
 //#define ABORT_ON_OFFICIAL_ILLEGAL_INSTRUCTION
 #define CPU_DEBUG_MEMORY
 //#define LOG_CD_BIOS_CALLS
+#define CPU_DEBUG_TRACING
 
 // Private function prototypes
 
@@ -78,6 +79,7 @@ uint32 returnAddr[4000], raPtr = 0xFFFFFFFF;
 
 uint32 pcQueue[0x400];
 uint32 pcQPtr = 0;
+bool startM68KTracing = false;
 
 //
 // Callback function to detect illegal instructions
@@ -119,6 +121,17 @@ else if (m68kPC == 0x803422)
 
 if (inRoutine)
 	instSeen++;
+#endif
+
+// For code tracing...
+#ifdef CPU_DEBUG_TRACING
+	if (startM68KTracing)
+	{
+		static char buffer[2048];
+
+		m68k_disassemble(buffer, m68kPC, 0);
+		WriteLog("%06X: %s\n", m68kPC, buffer);
+	}
 #endif
 
 // For tracebacks...
@@ -270,7 +283,7 @@ if (m68kPC == 0x802058) start = true;
 			m68k_get_reg(NULL, M68K_REG_A0), m68k_get_reg(NULL, M68K_REG_A1),
 			m68k_get_reg(NULL, M68K_REG_D0), m68k_get_reg(NULL, M68K_REG_D1), m68k_get_reg(NULL, M68K_REG_D2));
 	}//*/
-	if (m68kPC == 0x82E1A)
+/*	if (m68kPC == 0x82E1A)
 	{
 		static char buffer[2048];
 		m68k_disassemble(buffer, m68kPC, 0);//M68K_CPU_TYPE_68000);
@@ -279,7 +292,7 @@ if (m68kPC == 0x802058) start = true;
 			m68k_get_reg(NULL, M68K_REG_A0), m68k_get_reg(NULL, M68K_REG_A1),
 			m68k_get_reg(NULL, M68K_REG_D0), m68k_get_reg(NULL, M68K_REG_D1), m68k_get_reg(NULL, M68K_REG_D2));
 	}//*/
-	if (m68kPC == 0x82E58)
+/*	if (m68kPC == 0x82E58)
 		WriteLog("--> [Routine end]\n");
 	if (m68kPC == 0x80004)
 	{
@@ -929,6 +942,13 @@ handler:
 #endif
 int irq_ack_handler(int level)
 {
+#ifdef CPU_DEBUG_TRACING
+	if (startM68KTracing)
+	{
+		WriteLog("irq_ack_handler: M68K PC=%06X\n", m68k_get_reg(NULL, M68K_REG_PC));
+	}
+#endif
+
 	// Tracing the IPL lines on the Jaguar schematic yields the following:
 	// IPL1 is connected to INTL on TOM (OUT to 68K)
 	// IPL0-2 are also tied to Vcc via 4.7K resistors!

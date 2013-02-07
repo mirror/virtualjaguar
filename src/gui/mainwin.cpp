@@ -403,12 +403,22 @@ void MainWin::closeEvent(QCloseEvent * event)
 
 void MainWin::keyPressEvent(QKeyEvent * e)
 {
+	// From jaguar.cpp
+	extern bool startM68KTracing;
+
 	// We ignore the Alt key for now, since it causes problems with the GUI
 	if (e->key() == Qt::Key_Alt)
 	{
 		e->accept();
 		return;
 	}
+	else if (e->key() == Qt::Key_F11)
+	{
+		startM68KTracing = true;
+		e->accept();
+		return;
+	}
+
 /*
 	if (e->key() == Qt::Key_F9)
 	{

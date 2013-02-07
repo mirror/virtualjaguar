@@ -99,6 +99,9 @@
 bool doDSPDis = false;
 //bool doDSPDis = true;
 #endif
+bool doDSPDis = false;
+//#define DSP_DIS_JR
+//#define DSP_DIS_JUMP
 
 /*
 No dis yet:
@@ -306,6 +309,7 @@ static void dsp_opcode_subc(void);
 static void dsp_opcode_subq(void);
 static void dsp_opcode_subqmod(void);
 static void dsp_opcode_subqt(void);
+static void dsp_opcode_illegal(void);
 
 uint8 dsp_opcode_cycles[64] =
 {
@@ -351,7 +355,7 @@ void (* dsp_opcode[64])() =
 	dsp_opcode_mirror,				dsp_opcode_store_r14_indexed,	dsp_opcode_store_r15_indexed,	dsp_opcode_move_pc,
 	dsp_opcode_jump,				dsp_opcode_jr,					dsp_opcode_mmult,				dsp_opcode_mtoi,
 	dsp_opcode_normi,				dsp_opcode_nop,					dsp_opcode_load_r14_ri,			dsp_opcode_load_r15_ri,
-	dsp_opcode_store_r14_ri,		dsp_opcode_store_r15_ri,		dsp_opcode_nop,					dsp_opcode_addqmod,
+	dsp_opcode_store_r14_ri,		dsp_opcode_store_r15_ri,		dsp_opcode_illegal,				dsp_opcode_addqmod,
 };
 
 uint32 dsp_opcode_use[65];
@@ -389,7 +393,7 @@ uint32 dsp_control;
 static uint32 dsp_div_control;
 static uint8 dsp_flag_z, dsp_flag_n, dsp_flag_c;
 static uint32 * dsp_reg = NULL, * dsp_alternate_reg = NULL;
-static uint32 dsp_reg_bank_0[32], dsp_reg_bank_1[32];
+uint32 dsp_reg_bank_0[32], dsp_reg_bank_1[32];
 
 static uint32 dsp_opcode_first_parameter;
 static uint32 dsp_opcode_second_parameter;
@@ -418,6 +422,7 @@ uint32 dsp_convert_zero[32] = {
 	32, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,
 	17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31
 };
+
 uint8 dsp_branch_condition_table[32 * 8];
 static uint16 mirror_table[65536];
 static uint8 dsp_ram_8[0x2000];
@@ -537,48 +542,6 @@ uint16 DSPReadWord(uint32 offset, uint32 who/*=UNKNOWN*/)
 		WriteLog("DSP: ReadWord--Attempt to read from DSP register file by %s!\n", whoName[who]);
 	//???
 	offset &= 0xFFFFFFFE;
-	// jaguar cd bios
-/*	if (jaguar_mainRom_crc32==0xa74a97cd)
-	{
-		if (offset==0xF1A114) return(0x0000);
-		if (offset==0xF1A116) return(0x0000);
-		if (offset==0xF1B000) return(0x1234);
-		if (offset==0xF1B002) return(0x5678);
-	}*/
-/*
-	if (jaguar_mainRom_crc32==0x7ae20823)
-	{
-		if (offset==0xF1B9D8) return(0x0000);
-		if (offset==0xF1B9Da) return(0x0000);
-		if (offset==0xF1B2C0) return(0x0000);
-		if (offset==0xF1B2C2) return(0x0000);
-	}
-*/
-	// pour permettre � wolfenstein 3d de tourner sans le dsp
-/*	if ((offset==0xF1B0D0)||(offset==0xF1B0D2))
-		return(0);
-*/
-
-		// pour permettre � nba jam de tourner sans le dsp
-/*	if (jaguar_mainRom_crc32==0x4faddb18)
-	{
-		if (offset==0xf1b2c0) return(0);
-		if (offset==0xf1b2c2) return(0);
-		if (offset==0xf1b240) return(0);
-		if (offset==0xf1b242) return(0);
-		if (offset==0xF1B340) return(0);
-		if (offset==0xF1B342) return(0);
-		if (offset==0xF1BAD8) return(0);
-		if (offset==0xF1BADA) return(0);
-		if (offset==0xF1B040) return(0);
-		if (offset==0xF1B042) return(0);
-		if (offset==0xF1B0C0) return(0);
-		if (offset==0xF1B0C2) return(0);
-		if (offset==0xF1B140) return(0);
-		if (offset==0xF1B142) return(0);
-		if (offset==0xF1B1C0) return(0);
-		if (offset==0xF1B1C2) return(0);
-	}*/
 
 	if (offset >= DSP_WORK_RAM_BASE && offset <= DSP_WORK_RAM_BASE+0x1FFF)
 	{
@@ -979,6 +942,7 @@ WriteLog("\n");
 			break;
 		}
 		case 0x18:
+WriteLog("DSP: Modulo data %08X written by %s.\n", data, whoName[who]);
 			dsp_modulo = data;
 			break;
 		case 0x1C:
@@ -1012,6 +976,10 @@ void DSPUpdateRegisterBanks(void)
 		dsp_reg = dsp_reg_bank_1, dsp_alternate_reg = dsp_reg_bank_0;
 	else
 		dsp_reg = dsp_reg_bank_0, dsp_alternate_reg = dsp_reg_bank_1;
+
+#ifdef DSP_DEBUG_IRQ
+	WriteLog("DSP: Register bank #%s active.\n", (bank ? "1" : "0"));
+#endif
 }
 
 //
@@ -1033,6 +1001,7 @@ void DSPHandleIRQs(void)
 		return;
 
 	int which = 0;									// Determine which interrupt
+
 	if (bits & 0x01)
 		which = 0;
 	if (bits & 0x02)
@@ -1212,18 +1181,24 @@ DSPUpdateRegisterBanks();
 	if (bits & 0x20)
 		which = 5;
 
-#ifdef DSP_DEBUG_IRQ
-	WriteLog("DSP: Generating interrupt #%i...", which);
-#endif
-
-	dsp_flags |= IMASK;
+	dsp_flags |= IMASK;		// Force Bank #0
 //CC only!
 #ifdef DSP_DEBUG_CC
 ctrl1[4] = dsp_flags;
 #endif
 //!!!!!!!!
+#ifdef DSP_DEBUG_IRQ
+	WriteLog("DSP: Bank 0: R30=%08X, R31=%08X\n", dsp_reg_bank_0[30], dsp_reg_bank_0[31]);
+	WriteLog("DSP: Bank 1: R30=%08X, R31=%08X\n", dsp_reg_bank_1[30], dsp_reg_bank_1[31]);
+#endif
 	DSPUpdateRegisterBanks();
 #ifdef DSP_DEBUG_IRQ
+	WriteLog("DSP: Bank 0: R30=%08X, R31=%08X\n", dsp_reg_bank_0[30], dsp_reg_bank_0[31]);
+	WriteLog("DSP: Bank 1: R30=%08X, R31=%08X\n", dsp_reg_bank_1[30], dsp_reg_bank_1[31]);
+#endif
+
+#ifdef DSP_DEBUG_IRQ
+	WriteLog("DSP: Generating interrupt #%i...", which);
 	WriteLog(" [PC will return to %08X, R31 = %08X]\n", dsp_pc, dsp_reg[31]);
 #endif
 
@@ -1231,12 +1206,15 @@ ctrl1[4] = dsp_flags;
 	// move   pc,r30		; address of interrupted code
 	// store  r30,(r31)     ; store return address
 	dsp_reg[31] -= 4;
+	dsp_reg[30] = dsp_pc - 2; // -2 because we've executed the instruction already
+
 //CC only!
 #ifdef DSP_DEBUG_CC
 regs1[31] -= 4;
 #endif
 //!!!!!!!!
-	DSPWriteLong(dsp_reg[31], dsp_pc - 2, DSP);
+//	DSPWriteLong(dsp_reg[31], dsp_pc - 2, DSP);
+	DSPWriteLong(dsp_reg[31], dsp_reg[30], DSP);
 //CC only!
 #ifdef DSP_DEBUG_CC
 SET32(ram1, regs1[31] - 0xF1B000, dsp_pc - 2);
@@ -1271,7 +1249,9 @@ ctrl1[8] = ctrl2[8] = dsp_control;
 	if (state)
 	{
 		dsp_control |= mask;						// Set the latch bit
-		DSPHandleIRQs();
+#warning !!! No checking done to see if we're using pipelined DSP or not !!!
+//		DSPHandleIRQs();
+		DSPHandleIRQsNP();
 //CC only!
 #ifdef DSP_DEBUG_CC
 ctrl1[8] = ctrl2[8] = dsp_control;
@@ -1358,10 +1338,10 @@ void DSPDumpRegisters(void)
 	for(int j=0; j<8; j++)
 	{
 		WriteLog("\tR%02i = %08X R%02i = %08X R%02i = %08X R%02i = %08X\n",
-						  (j << 2) + 0, dsp_reg_bank_0[(j << 2) + 0],
-						  (j << 2) + 1, dsp_reg_bank_0[(j << 2) + 1],
-						  (j << 2) + 2, dsp_reg_bank_0[(j << 2) + 2],
-						  (j << 2) + 3, dsp_reg_bank_0[(j << 2) + 3]);
+			(j << 2) + 0, dsp_reg_bank_0[(j << 2) + 0],
+			(j << 2) + 1, dsp_reg_bank_0[(j << 2) + 1],
+			(j << 2) + 2, dsp_reg_bank_0[(j << 2) + 2],
+			(j << 2) + 3, dsp_reg_bank_0[(j << 2) + 3]);
 	}
 
 	WriteLog("Registers bank 1\n");
@@ -1369,10 +1349,10 @@ void DSPDumpRegisters(void)
 	for(int j=0; j<8; j++)
 	{
 		WriteLog("\tR%02i = %08X R%02i = %08X R%02i = %08X R%02i = %08X\n",
-						  (j << 2) + 0, dsp_reg_bank_1[(j << 2) + 0],
-						  (j << 2) + 1, dsp_reg_bank_1[(j << 2) + 1],
-						  (j << 2) + 2, dsp_reg_bank_1[(j << 2) + 2],
-						  (j << 2) + 3, dsp_reg_bank_1[(j << 2) + 3]);
+			(j << 2) + 0, dsp_reg_bank_1[(j << 2) + 0],
+			(j << 2) + 1, dsp_reg_bank_1[(j << 2) + 1],
+			(j << 2) + 2, dsp_reg_bank_1[(j << 2) + 2],
+			(j << 2) + 3, dsp_reg_bank_1[(j << 2) + 3]);
 	}
 }
 
@@ -1432,15 +1412,6 @@ void DSPDone(void)
 		if (dsp_opcode_use[i])
 			WriteLog("\t%s %i\n", dsp_opcode_str[i], dsp_opcode_use[i]);
 	}//*/
-
-//	memory_free(dsp_ram_8);
-//	memory_free(dsp_reg_bank_0);
-//	memory_free(dsp_reg_bank_1);
-//	if (dsp_branch_condition_table)
-//		free(dsp_branch_condition_table);
-
-//	if (mirror_table)
-//		free(mirror_table);
 }
 
 
@@ -1652,9 +1623,6 @@ for(int k=0; k<2; k++)
 //static uint32 pcQueue[32], ptrPCQ = 0;
 void DSPExec(int32 cycles)
 {
-/*HACKS!!! ->	if (cycles != 1 && jaguar_mainRom_crc32 == 0xba74c3ed)
-		dsp_check_if_i2s_interrupt_needed();*/
-
 #ifdef DSP_SINGLE_STEPPING
 	if (dsp_control & 0x18)
 	{
@@ -1687,7 +1655,7 @@ if (dsp_pc == 0xF1B092)
 		if (IMASKCleared)						// If IMASK was cleared,
 		{
 #ifdef DSP_DEBUG_IRQ
-			WriteLog("DSP: Finished interrupt.\n");
+			WriteLog("DSP: Finished interrupt. PC=$%06X\n", dsp_pc);
 #endif
 			DSPHandleIRQsNP();					// See if any other interrupts are pending!
 			IMASKCleared = false;
@@ -2572,6 +2540,7 @@ static void dsp_opcode_shlq(void)
 	if (doDSPDis)
 		WriteLog("%06X: SHLQ   #%u, R%02u [NCZ:%u%u%u, R%02u=%08X] -> ", dsp_pc-2, 32 - IMM_1, IMM_2, dsp_flag_n, dsp_flag_c, dsp_flag_z, IMM_2, RN);
 #endif
+	// NB: This instruction is the *only* one that does (32 - immediate data).
 	int32 r1 = 32 - IMM_1;
 	uint32 res = RN << r1;
 	SET_ZN(res); dsp_flag_c = (RN >> 31) & 1;
@@ -2759,6 +2728,12 @@ void dsp_opcode_sat16s(void)
 	uint32 res = (r2 < -32768) ? -32768 : (r2 > 32767) ? 32767 : r2;
 	RN = res;
 	SET_ZN(res);
+}
+
+void dsp_opcode_illegal(void)
+{
+	// Don't know what it does, but it does *something*...
+	WriteLog("%06X: illegal %u, %u [NCZ:%u%u%u]\n", dsp_pc-2, IMM_1, IMM_2, dsp_flag_n, dsp_flag_c, dsp_flag_z);
 }
 
 //

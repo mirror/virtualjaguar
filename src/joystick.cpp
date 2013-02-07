@@ -283,6 +283,8 @@ void JoystickExec(void)
 		joypad_0_buttons[BUTTON_D] = 0;
 #endif
 
+// This is handled by the GUI layer, as it should
+#if 0
 	// Joystick support [nwagenaar]
 
     if (vjs.useJoystick)
@@ -310,6 +312,7 @@ void JoystickExec(void)
 
 	// Needed to ensure that the events queue is empty [nwagenaar]
     SDL_PumpEvents();
+#endif
 }
 
 void JoystickReset(void)

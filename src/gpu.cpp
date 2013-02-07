@@ -323,8 +323,8 @@ static uint32 gpu_div_control;
 // a bit before writing a result. I.e., if the result of an operation leaves a zero in
 // the carry flag, you don't have to zero gpu_flag_c before you can write that zero!
 static uint8 gpu_flag_z, gpu_flag_n, gpu_flag_c;
-static uint32 gpu_reg_bank_0[32];
-static uint32 gpu_reg_bank_1[32];
+uint32 gpu_reg_bank_0[32];
+uint32 gpu_reg_bank_1[32];
 static uint32 * gpu_reg;
 static uint32 * gpu_alternate_reg;
 

@@ -35,4 +35,8 @@ uint32 GPUReadPC(void);
 
 enum { GPUIRQ_CPU = 0, GPUIRQ_DSP, GPUIRQ_TIMER, GPUIRQ_OBJECT, GPUIRQ_BLITTER };
 
+// Exported vars
+
+extern uint32 gpu_reg_bank_0[], gpu_reg_bank_1[];
+
 #endif	// __GPU_H__
