@@ -876,7 +876,8 @@ void MainWin::SetFullScreen(bool state/*= true*/)
 		menuBar()->hide();
 		statusBar()->hide();
 		showFullScreen();
-		QRect r = QApplication::desktop()->availableGeometry();
+                int screenNum = QApplication::desktop()->screenNumber(videoWidget);
+		QRect r = QApplication::desktop()->availableGeometry(screenNum);
 //		double targetWidth = 320.0, targetHeight = (vjs.hardwareTypeNTSC ? 240.0 : 256.0);
 		double targetWidth = (double)VIRTUAL_SCREEN_WIDTH,
 			targetHeight = (double)(vjs.hardwareTypeNTSC ? VIRTUAL_SCREEN_HEIGHT_NTSC : VIRTUAL_SCREEN_HEIGHT_PAL);
