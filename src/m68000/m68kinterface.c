@@ -203,17 +203,6 @@ void m68k_pulse_reset(void)
 
 int m68k_execute(int num_cycles)
 {
-#if 0
-	/* Make sure we're not stopped */
-	if (CPU_STOPPED)
-	{
-		/* We get here if the CPU is stopped or halted */
-		SET_CYCLES(0);
-		CPU_INT_CYCLES = 0;
-
-		return num_cycles;
-	}
-#else
 	if (regs.stopped)
 	{
 		regs.remainingCycles = 0;	// int32_t
@@ -221,7 +210,6 @@ int m68k_execute(int num_cycles)
 
 		return num_cycles;
 	}
-#endif
 
 #if 0
 	/* Set our pool of clock cycles available */
@@ -364,6 +352,13 @@ if (inRoutine)
 
 void m68k_set_irq(unsigned int intLevel)
 {
+	// We need to check for stopped state as well...
+	if (regs.stopped)
+	{
+		m68k_set_irq2(intLevel);
+		return;
+	}
+
 	// Since this can be called asynchronously, we need to fix it so that it
 	// doesn't fuck up the main execution loop.
 	IRQLevelToHandle = intLevel;
