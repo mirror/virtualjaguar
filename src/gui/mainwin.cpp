@@ -24,7 +24,7 @@
 // - Remove SDL dependencies (sound, mainly) from Jaguar core lib
 // - Fix inconsistency with trailing slashes in paths (eeproms needs one, software doesn't)
 //
-// SFDX CODE: 9XF9TUHFM2359
+// SFDX CODE: S1E9T8H5M23YS
 
 // Uncomment this for debugging...
 //#define DEBUG
@@ -875,8 +875,13 @@ void MainWin::SetFullScreen(bool state/*= true*/)
 //		mainWinSize = size();
 		menuBar()->hide();
 		statusBar()->hide();
+		x1Act->setDisabled(true);
+		x2Act->setDisabled(true);
+		x3Act->setDisabled(true);
 		showFullScreen();
-                int screenNum = QApplication::desktop()->screenNumber(videoWidget);
+		// This is needed because the fullscreen may happen on a different
+		// screen than screen 0:
+		int screenNum = QApplication::desktop()->screenNumber(videoWidget);
 		QRect r = QApplication::desktop()->availableGeometry(screenNum);
 //		double targetWidth = 320.0, targetHeight = (vjs.hardwareTypeNTSC ? 240.0 : 256.0);
 		double targetWidth = (double)VIRTUAL_SCREEN_WIDTH,
@@ -898,6 +903,9 @@ void MainWin::SetFullScreen(bool state/*= true*/)
 		// Reset the video widget to windowed mode
 		videoWidget->offset = 0;
 		videoWidget->fullscreen = false;
+		x1Act->setDisabled(false);
+		x2Act->setDisabled(false);
+		x3Act->setDisabled(false);
 		menuBar()->show();
 		statusBar()->show();
 		showNormal();

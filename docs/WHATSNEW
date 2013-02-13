@@ -1,3 +1,11 @@
+Virtual Jaguar v2.1.1 GCC/Qt
+----------------------------
+
+* Fixed 6MB cartridge space access limitation. 6MB carts should work now.
+  [Shamus]
+* Fixed problem with JERRY interrupts corrupting the M68K core. [Shamus]
+
+
 Virtual Jaguar v2.1.0 GCC/Qt
 ----------------------------
 

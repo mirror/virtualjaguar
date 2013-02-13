@@ -1496,11 +1496,12 @@ void JaguarDasm(uint32 offset, uint32 qt)
 uint8 JaguarReadByte(uint32 offset, uint32 who/*=UNKNOWN*/)
 {
 	uint8 data = 0x00;
-
 	offset &= 0xFFFFFF;
-	if (offset < 0x200000)
-		data = jaguarMainRAM[offset & 0x3FFFFF];
-	else if ((offset >= 0x800000) && (offset < 0xC00000))
+
+	// First 2M is mirrored in the $0 - $7FFFFF range
+	if (offset < 0x800000)
+		data = jaguarMainRAM[offset & 0x1FFFFF];
+	else if ((offset >= 0x800000) && (offset < 0xDFFF00))
 		data = jaguarMainROM[offset - 0x800000];
 	else if ((offset >= 0xDFFF00) && (offset <= 0xDFFFFF))
 		data = CDROMReadByte(offset, who);
@@ -1521,11 +1522,13 @@ uint8 JaguarReadByte(uint32 offset, uint32 who/*=UNKNOWN*/)
 uint16 JaguarReadWord(uint32 offset, uint32 who/*=UNKNOWN*/)
 {
 	offset &= 0xFFFFFF;
-	if (offset <= 0x1FFFFE)
+
+	// First 2M is mirrored in the $0 - $7FFFFF range
+	if (offset < 0x800000)
 	{
 		return (jaguarMainRAM[(offset+0) & 0x1FFFFF] << 8) | jaguarMainRAM[(offset+1) & 0x1FFFFF];
 	}
-	else if ((offset >= 0x800000) && (offset <= 0xBFFFFE))
+	else if ((offset >= 0x800000) && (offset < 0xDFFF00))
 	{
 		offset -= 0x800000;
 		return (jaguarMainROM[offset+0] << 8) | jaguarMainROM[offset+1];
@@ -1555,7 +1558,9 @@ void JaguarWriteByte(uint32 offset, uint8 data, uint32 who/*=UNKNOWN*/)
 		WriteLog("JWB: Byte %02X written at %08X by %s\n", data, offset, whoName[who]);//*/
 
 	offset &= 0xFFFFFF;
-	if (offset < 0x200000)
+
+	// First 2M is mirrored in the $0 - $7FFFFF range
+	if (offset < 0x800000)
 	{
 		jaguarMainRAM[offset & 0x1FFFFF] = data;
 		return;
@@ -1599,7 +1604,8 @@ if (offset == 0x0102)//64*4)
 
 	offset &= 0xFFFFFF;
 
-	if (offset <= 0x1FFFFE)
+	// First 2M is mirrored in the $0 - $7FFFFF range
+	if (offset <= 0x7FFFFE)
 	{
 /*
 GPU Table (CD BIOS)
