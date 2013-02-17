@@ -213,13 +213,9 @@ int32_t ShowEA(int mnemonic, int reg, amodes mode, wordsizes size, char * buf)
 		m68kpc_offset += 2;
 
 		if (mnemonic == i_MVMEL)
-		{
 			HandleMovem(buffer, offset, 0);
-		}
 		else if (mnemonic == i_MVMLE)
-		{
 			HandleMovem(buffer, offset, 1);
-		}
 		else
 			sprintf(buffer,"#$%X", (unsigned int)(offset & 0xFFFF));
 
@@ -248,62 +244,6 @@ int32_t ShowEA(int mnemonic, int reg, amodes mode, wordsizes size, char * buf)
 
 void HandleMovem(char * output, uint16_t data, int direction)
 {
-#if 0
-static void d68000_movem_re_32(void)
-{
-	uint data = read_imm_16();
-	char buffer[40];
-	uint first;
-	uint run_length;
-	uint i;
-
-	buffer[0] = 0;
-
-	for(i=0; i<8; i++)
-	{
-		if (data & (1 << i))	// (15 - i) for pre-decr
-		{
-			first = i;
-			run_length = 0;
-
-			for(i++; i<8; i++)
-				if (data & (1 << i))	// 15 - i
-					run_length++;
-
-			if (buffer[0] != 0)
-				strcat(buffer, "/");
-
-			sprintf(buffer+strlen(buffer), "D%d", first);
-
-			if (run_length > 0)
-				sprintf(buffer+strlen(buffer), "-D%d", first + run_length);
-		}
-	}
-
-	for(i=0; i<8; i++)
-	{
-		if (data & (1 << (i + 8)))	// (7 - i) for pre-decr
-		{
-			first = i;
-			run_length = 0;
-
-			for(i++; i<8; i++)
-				if (data & (1 << (i + 8)))	// 7 - i
-					run_length++;
-
-			if (buffer[0] != 0)
-				strcat(buffer, "/");
-
-			sprintf(buffer+strlen(buffer), "A%d", first);
-
-			if (run_length > 0)
-				sprintf(buffer+strlen(buffer), "-A%d", first + run_length);
-		}
-	}
-
-	sprintf(g_dasm_str, "movem.l %s, %s", buffer, get_ea_mode_str_32(g_cpu_ir));
-}
-#else
 	uint16_t ascending[16] = {
 		0x0001, 0x0002, 0x0004, 0x0008, 0x0010, 0x0020, 0x0040, 0x0080,
 		0x0100, 0x0200, 0x0400, 0x0800, 0x1000, 0x2000, 0x4000, 0x8000 };
@@ -318,18 +258,14 @@ static void d68000_movem_re_32(void)
 	bitMask = (direction ? descending : ascending);
 	output[0] = 0;
 
-//printf("HM: data = $%X\n", data);
-//$42E0
 	// Handle D0-D7...
 	for(i=0; i<8; i++)
 	{
-//printf(" D: i=%d\n", i);
 		if (data & bitMask[i])
 		{
 			first = i;
 			runLength = 0;
 
-//			while ((++i < 8) && (data & bitMask[i]))
 			for(j=i+1; j<8 && (data & bitMask[j]); j++)
 				runLength++;
 
@@ -354,13 +290,11 @@ static void d68000_movem_re_32(void)
 	// Handle A0-A7...
 	for(i=0; i<8; i++)
 	{
-//printf(" A: i=%d\n", i);
 		if (data & bitMask[i + 8])
 		{
 			first = i;
 			runLength = 0;
 
-//			while ((++i < 8) && (data & bitMask[i + 8]))
 			for(j=i+1; j<8 && (data & bitMask[j+8]); j++)
 				runLength++;
 
@@ -381,13 +315,13 @@ static void d68000_movem_re_32(void)
 			}
 		}
 	}
-#endif
 }
 
 
-unsigned int m68k_disasm(char * output, uint32_t addr, uint32_t * nextpc, int cnt)
+unsigned int M68KDisassemble(char * output, uint32_t addr)
 {
 	char f[256], str[256];
+	char src[256], dst[256];
 	static const char * const ccnames[] =
 		{ "RA","RN","HI","LS","CC","CS","NE","EQ",
 		  "VC","VS","PL","MI","GE","LT","GT","LE" };
@@ -398,85 +332,67 @@ unsigned int m68k_disasm(char * output, uint32_t addr, uint32_t * nextpc, int cn
 	m68kpc_offset = addr - m68k_getpc();
 	long int pcOffsetSave = m68kpc_offset;
 	int opwords;
+	char instrname[20];
+	const struct mnemolookup * lookup;
 
-	while (cnt-- > 0)
+	uint32_t opcode = get_iword_1(m68kpc_offset);
+	m68kpc_offset += 2;
+
+	if (cpuFunctionTable[opcode] == IllegalOpcode)
+		opcode = 0x4AFC;
+
+	struct instr * dp = table68k + opcode;
+
+	for(lookup=lookuptab; lookup->mnemo!=dp->mnemo; lookup++)
+		;
+
+	strcpy(instrname, lookup->name);
+	char * ccpt = strstr(instrname, "cc");
+
+	if (ccpt)
+		strncpy(ccpt, ccnames[dp->cc], 2);
+
+	sprintf(f, "%s", instrname);
+	strcat(str, f);
+
+	switch (dp->size)
 	{
-		char instrname[20], * ccpt;
-		uint32_t opcode;
-		const struct mnemolookup * lookup;
-		struct instr * dp;
-
-		opcode = get_iword_1(m68kpc_offset);
-		m68kpc_offset += 2;
-
-		if (cpuFunctionTable[opcode] == IllegalOpcode)
-			opcode = 0x4AFC;
-
-		dp = table68k + opcode;
-
-		for(lookup=lookuptab; lookup->mnemo!=dp->mnemo; lookup++)
-			;
-
-		strcpy(instrname, lookup->name);
-		ccpt = strstr(instrname, "cc");
-
-		if (ccpt)
-			strncpy(ccpt, ccnames[dp->cc], 2);
-
-		sprintf(f, "%s", instrname);
-		strcat(str, f);
-
-		switch (dp->size)
-		{
-			case sz_byte: strcat(str, ".B\t"); break;
-			case sz_word: strcat(str, ".W\t"); break;
-			case sz_long: strcat(str, ".L\t"); break;
-			default: strcat(str, "\t"); break;
-		}
-
-		if (dp->suse)
-		{
-			f[0] = 0;
-			newpc = m68k_getpc() + m68kpc_offset;
-			newpc += ShowEA(dp->mnemo, dp->sreg, dp->smode, dp->size, f);
-
-			// Don't display if branch or BSR or MVMLE, but DO let this go
-			// if it's a DBRcc...
-//This is still not right... !!! FIX !!!
-			if (!(ccpt && dp->mnemo == i_DBcc) && !((opcode & 0xFF00) == 0x6100))
-//				&& (ccpt && dp->mnemo == i_DBcc)
-				strcat(str, f);
-		}
-
-		if (dp->suse && dp->duse)
-			strcat(str, ", ");
-
-		if (dp->duse)
-		{
-			f[0] = 0;
-			newpc = m68k_getpc() + m68kpc_offset;
-			newpc += ShowEA(dp->mnemo, dp->dreg, dp->dmode, dp->size, f);
-
-			if (!ccpt && !((opcode & 0xFF00) == 0x6100))
-				strcat(str, f);
-		}
-
-		if (ccpt)
-		{
-			if (cctrue(dp->cc))
-				sprintf(f, "$%lX (TRUE)", (long)newpc);
-			else
-				sprintf(f, "$%lX (FALSE)", (long)newpc);
-
-			strcat(str, f);
-		}
-		else if ((opcode & 0xFF00) == 0x6100) // BSR
-		{
-			sprintf(f, "$%lX", (long)newpc);
-			strcat(str, f);
-		}
+	case sz_byte: strcat(str, ".B\t"); break;
+	case sz_word: strcat(str, ".W\t"); break;
+	case sz_long: strcat(str, ".L\t"); break;
+	default: strcat(str, "\t"); break;
 	}
 
+	// Get source and destination operands (if any)
+	src[0] = dst[0] = f[0] = 0;
+
+	if (dp->suse)
+		newpc = m68k_getpc() + m68kpc_offset
+			+ ShowEA(dp->mnemo, dp->sreg, dp->smode, dp->size, src);
+
+	if (dp->duse)
+		newpc = m68k_getpc() + m68kpc_offset
+			+ ShowEA(dp->mnemo, dp->dreg, dp->dmode, dp->size, dst);
+
+	// Handle execptions to the standard rules
+	if (dp->mnemo == i_BSR || dp->mnemo == i_Bcc)
+		sprintf(f, "$%lX", (long)newpc);
+	else if (dp->mnemo == i_DBcc)
+		sprintf(f, "%s, $%lX", src, (long)newpc);
+	else if (dp->mnemo == i_MVMEL)
+		sprintf(f, "%s, %s", dst, src);
+	else
+		sprintf(f, "%s%s%s", src, (dp->suse && dp->duse ? ", " : ""), dst);
+
+	strcat(str, f);
+
+	if (ccpt)
+	{
+		sprintf(f, " (%s)", (cctrue(dp->cc) ? "true" : "false"));
+		strcat(str, f);
+	}
+
+	// Add byte(s) display to front of disassembly
 	long int numberOfBytes = m68kpc_offset - pcOffsetSave;
 
 	for(opwords=0; opwords<5; opwords++)
@@ -496,10 +412,10 @@ unsigned int m68k_disasm(char * output, uint32_t addr, uint32_t * nextpc, int cn
 
 
 //
-// Disasemble one instruction at pc and store in str_buff
+// Disassemble one instruction at pc and store in str_buff
 //
 unsigned int m68k_disassemble(char * str_buff, unsigned int pc, unsigned int cpu_type)
 {
-	return m68k_disasm(str_buff, pc, 0, 1);
+	return M68KDisassemble(str_buff, pc);
 }
 

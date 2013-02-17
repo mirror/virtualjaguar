@@ -82,6 +82,7 @@ RomIdentifier romList[] = {
 	{ 0x732FFAB6, "Soccer Kid (World)", FF_ROM | FF_VERIFIED },
 	{ 0x817A2273, "Pitfall - The Mayan Adventure (World)", FF_ROM | FF_VERIFIED },
 	{ 0x83A3FB5D, "Towers II", FF_ROM | FF_VERIFIED },
+	{ 0x85919165, "Superfly DX (v1.1)", FF_ROM | FF_VERIFIED },
 	{ 0x892BC67C, "Flip Out! (World)", FF_ROM | FF_VERIFIED },
 	{ 0x8975F48B, "Zool 2 (World)", FF_ROM | FF_VERIFIED },
 	{ 0x89DA21FF, "Phase Zero", FF_ALPINE | FF_VERIFIED | FF_REQ_DSP },
