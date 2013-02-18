@@ -382,6 +382,7 @@ void MainWin::SyncUI(void)
 	palAct->setChecked(!vjs.hardwareTypeNTSC);
 	powerAct->setIcon(vjs.hardwareTypeNTSC ? powerRed : powerGreen);
 
+	fullScreenAct->setChecked(vjs.fullscreen);
 	fullScreen = vjs.fullscreen;
 	SetFullScreen(fullScreen);
 
