@@ -40,7 +40,9 @@ M68KDasmBrowserWindow::M68KDasmBrowserWindow(QWidget * parent/*= 0*/): QWidget(p
 	// Need to set the size as well...
 //	resize(560, 480);
 
-	QFont fixedFont("Lucida Console", 8, QFont::Normal);
+//	QFont fixedFont("Lucida Console", 8, QFont::Normal);
+	QFont fixedFont("", 8, QFont::Normal);
+	fixedFont.setStyleHint(QFont::TypeWriter);
 	text->setFont(fixedFont);
 ////	layout->setSizeConstraint(QLayout::SetFixedSize);
 	setLayout(layout);
