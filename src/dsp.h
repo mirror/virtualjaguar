@@ -1,11 +1,10 @@
 //
-// DSP.H
+// dsp.h
 //
 
 #ifndef __DSP_H__
 #define __DSP_H__
 
-//#include "types.h"
 #include "memory.h"
 
 #define DSP_CONTROL_RAM_BASE    0x00F1A100
@@ -13,29 +12,29 @@
 
 void DSPInit(void);
 void DSPReset(void);
-void DSPExec(int32);
+void DSPExec(int32_t);
 void DSPDone(void);
 void DSPUpdateRegisterBanks(void);
 void DSPHandleIRQs(void);
 void DSPSetIRQLine(int irqline, int state);
-uint8 DSPReadByte(uint32 offset, uint32 who = UNKNOWN);
-uint16 DSPReadWord(uint32 offset, uint32 who = UNKNOWN);
-uint32 DSPReadLong(uint32 offset, uint32 who = UNKNOWN);
-void DSPWriteByte(uint32 offset, uint8 data, uint32 who = UNKNOWN);
-void DSPWriteWord(uint32 offset, uint16 data, uint32 who = UNKNOWN);
-void DSPWriteLong(uint32 offset, uint32 data, uint32 who = UNKNOWN);
+uint8_t DSPReadByte(uint32_t offset, uint32_t who = UNKNOWN);
+uint16_t DSPReadWord(uint32_t offset, uint32_t who = UNKNOWN);
+uint32_t DSPReadLong(uint32_t offset, uint32_t who = UNKNOWN);
+void DSPWriteByte(uint32_t offset, uint8_t data, uint32_t who = UNKNOWN);
+void DSPWriteWord(uint32_t offset, uint16_t data, uint32_t who = UNKNOWN);
+void DSPWriteLong(uint32_t offset, uint32_t data, uint32_t who = UNKNOWN);
 void DSPReleaseTimeslice(void);
 bool DSPIsRunning(void);
 
-void DSPExecP(int32 cycles);
-void DSPExecP2(int32 cycles);
-//void DSPExecP3(int32 cycles);
-void DSPExecComp(int32 cycles);
+void DSPExecP(int32_t cycles);
+void DSPExecP2(int32_t cycles);
+//void DSPExecP3(int32_t cycles);
+void DSPExecComp(int32_t cycles);
 
 // Exported vars
 
 extern bool doDSPDis;
-extern uint32 dsp_reg_bank_0[], dsp_reg_bank_1[];
+extern uint32_t dsp_reg_bank_0[], dsp_reg_bank_1[];
 
 // DSP interrupt numbers (in $F1A100, bits 4-8 & 16)
 

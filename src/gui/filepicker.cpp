@@ -300,7 +300,7 @@ void FilePickerWindow::UpdateSelection(const QModelIndex & current, const QModel
 	unsigned long fileSize = current.model()->data(current, FLM_FILESIZE).toUInt();
 	bool haveUniversalHeader = current.model()->data(current, FLM_UNIVERSALHDR).toBool();
 	unsigned long fileType = current.model()->data(current, FLM_FILETYPE).toUInt();
-	uint32 crc = (uint32)current.model()->data(current, FLM_CRC).toUInt();
+	uint32_t crc = (uint32_t)current.model()->data(current, FLM_CRC).toUInt();
 //	printf("FPW: %s\n", s.toAscii().data());
 	bool haveUnknown = (i == 0xFFFFFFFF ? true : false);
 #endif

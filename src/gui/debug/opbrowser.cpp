@@ -139,7 +139,6 @@ void OPBrowserWindow::DumpObjectList(QString & list)
 		uint32_t lo = JaguarReadLong(address + 4, OP);
 		uint8_t objectType = lo & 0x07;
 		uint32_t link = ((hi << 11) | (lo >> 21)) & 0x3FFFF8;
-//		WriteLog("%08X: %08X %08X %s", address, hi, lo, opType[objectType]);
 		sprintf(buf, "<br>%06X: %08X %08X %s -> %06X", address, hi, lo, opType[objectType], link);
 		list += QString(buf);
 
@@ -147,13 +146,10 @@ void OPBrowserWindow::DumpObjectList(QString & list)
 		{
 			uint16_t ypos = (lo >> 3) & 0x7FF;
 			uint8_t  cc   = (lo >> 14) & 0x07;	// Proper # of bits == 3
-//			WriteLog(" YPOS=%u, CC=%s, link=$%08X", ypos, ccType[cc], link);
-//			sprintf(buf, " YPOS=%u, CC=%s, link=$%08X", ypos, ccType[cc], link);
 			sprintf(buf, " YPOS %s %u", ccType[cc], ypos);
 			list += QString(buf);
 		}
 
-//		WriteLog("\n");
 		list += "<br>";
 
 		if (objectType == 0)
@@ -166,13 +162,11 @@ void OPBrowserWindow::DumpObjectList(QString & list)
 		if (address == link)	// Ruh roh...
 		{
 			// Runaway recursive link is bad!
-//			WriteLog("***** SELF REFERENTIAL LINK *****\n\n");
 			sprintf(buf, "***** SELF REFERENTIAL LINK *****<br>");
 			list += QString(buf);
 		}
 	}
 
-//	WriteLog("\n");
 	list += "<br>";
 }
 
@@ -181,17 +175,14 @@ void OPBrowserWindow::DumpScaledObject(QString & list, uint64_t p0, uint64_t p1,
 {
 	char buf[512];
 
-//	WriteLog("          %08X %08X\n", (uint32)(p1>>32), (uint32)(p1&0xFFFFFFFF));
-	sprintf(buf, "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;%08X %08X<br>", (uint32)(p1>>32), (uint32)(p1&0xFFFFFFFF));
+	sprintf(buf, "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;%08X %08X<br>", (uint32_t)(p1 >> 32), (uint32_t)(p1 & 0xFFFFFFFF));
 	list += QString(buf);
-//	WriteLog("          %08X %08X\n", (uint32)(p2>>32), (uint32)(p2&0xFFFFFFFF));
-	sprintf(buf, "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;%08X %08X<br>", (uint32)(p2>>32), (uint32)(p2&0xFFFFFFFF));
+	sprintf(buf, "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;%08X %08X<br>", (uint32_t)(p2 >> 32), (uint32_t)(p2 & 0xFFFFFFFF));
 	list += QString(buf);
 	DumpBitmapCore(list, p0, p1);
-	uint32 hscale = p2 & 0xFF;
-	uint32 vscale = (p2 >> 8) & 0xFF;
-	uint32 remainder = (p2 >> 16) & 0xFF;
-//	WriteLog("    [hsc: %02X, vsc: %02X, rem: %02X]\n", hscale, vscale, remainder);
+	uint32_t hscale = p2 & 0xFF;
+	uint32_t vscale = (p2 >> 8) & 0xFF;
+	uint32_t remainder = (p2 >> 16) & 0xFF;
 	sprintf(buf, "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[hsc: %02X, vsc: %02X, rem: %02X]<br>", hscale, vscale, remainder);
 	list += QString(buf);
 }
@@ -201,8 +192,7 @@ void OPBrowserWindow::DumpFixedObject(QString & list, uint64_t p0, uint64_t p1)
 {
 	char buf[512];
 
-//	WriteLog("          %08X %08X\n", (uint32)(p1>>32), (uint32)(p1&0xFFFFFFFF));
-	sprintf(buf, "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;%08X %08X<br>", (uint32)(p1>>32), (uint32)(p1&0xFFFFFFFF));
+	sprintf(buf, "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;%08X %08X<br>", (uint32_t)(p1 >> 32), (uint32_t)(p1 & 0xFFFFFFFF));
 	list += QString(buf);
 	DumpBitmapCore(list, p0, p1);
 }
@@ -228,18 +218,13 @@ void OPBrowserWindow::DumpBitmapCore(QString & list, uint64_t p0, uint64_t p1)
 	uint8_t flags = (p1 >> 45) & 0x0F;
 	uint8_t idx = (p1 >> 38) & 0x7F;
 	uint32_t pitch = (p1 >> 15) & 0x07;
-//	WriteLog("    [%u x %u @ (%i, %u) (iw:%u, dw:%u) (%u bpp), l:%08X, p:%08X fp:%02X, fl:%s%s%s%s, idx:%02X, pt:%02X]\n",
-//		iwidth * bdMultiplier[bitdepth],
-//		height, xpos, ypos, iwidth, dwidth, op_bitmap_bit_depth[bitdepth], link,
-//		ptr, firstPix, (flags&OPFLAG_REFLECT ? "REFLECT " : ""),
-//		(flags&OPFLAG_RMW ? "RMW " : ""), (flags&OPFLAG_TRANS ? "TRANS " : ""),
-//		(flags&OPFLAG_RELEASE ? "RELEASE" : ""), idx, pitch);
+
 	sprintf(buf, "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[%u x %u @ (%i, %u) (iw:%u, dw:%u) (%u bpp), p:%06X fp:%02X, fl:%s%s%s%s, idx:%02X, pt:%02X]<br>",
 		iwidth * bdMultiplier[bitdepth],
 		height, xpos, ypos, iwidth, dwidth, op_bitmap_bit_depth[bitdepth],
-		ptr, firstPix, (flags&OPFLAG_REFLECT ? "REFLECT " : ""),
-		(flags&OPFLAG_RMW ? "RMW " : ""), (flags&OPFLAG_TRANS ? "TRANS " : ""),
-		(flags&OPFLAG_RELEASE ? "RELEASE" : ""), idx, pitch);
+		ptr, firstPix, (flags & OPFLAG_REFLECT ? "REFLECT " : ""),
+		(flags & OPFLAG_RMW ? "RMW " : ""), (flags & OPFLAG_TRANS ? "TRANS " : ""),
+		(flags & OPFLAG_RELEASE ? "RELEASE" : ""), idx, pitch);
 	list += QString(buf);
 }
 

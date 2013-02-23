@@ -172,26 +172,26 @@
 //Note that 44100 Hz requires samples every 22.675737 usec.
 //#define JERRY_DEBUG
 
-/*static*/ uint8 jerry_ram_8[0x10000];
+/*static*/ uint8_t jerry_ram_8[0x10000];
 
 //#define JERRY_CONFIG	0x4002						// ??? What's this ???
 
-uint8 analog_x, analog_y;
+uint8_t analog_x, analog_y;
 
-static uint32 JERRYPIT1Prescaler;
-static uint32 JERRYPIT1Divider;
-static uint32 JERRYPIT2Prescaler;
-static uint32 JERRYPIT2Divider;
-static int32 jerry_timer_1_counter;
-static int32 jerry_timer_2_counter;
+static uint32_t JERRYPIT1Prescaler;
+static uint32_t JERRYPIT1Divider;
+static uint32_t JERRYPIT2Prescaler;
+static uint32_t JERRYPIT2Divider;
+static int32_t jerry_timer_1_counter;
+static int32_t jerry_timer_2_counter;
 
-uint32 JERRYI2SInterruptDivide = 8;
-int32 JERRYI2SInterruptTimer = -1;
-uint32 jerryI2SCycles;
-uint32 jerryIntPending;
+uint32_t JERRYI2SInterruptDivide = 8;
+int32_t JERRYI2SInterruptTimer = -1;
+uint32_t jerryI2SCycles;
+uint32_t jerryIntPending;
 
-static uint16 jerryInterruptMask = 0;
-static uint16 jerryPendingInterrupt = 0;
+static uint16_t jerryInterruptMask = 0;
+static uint16_t jerryPendingInterrupt = 0;
 
 // Private function prototypes
 
@@ -296,7 +296,7 @@ void JERRYI2SCallback(void)
 
 //This should be in this file with an extern reference in the header file so that
 //DAC.CPP can see it... !!! FIX !!!
-	extern uint16 serialMode;						// From DAC.CPP
+	extern uint16_t serialMode;						// From DAC.CPP
 
 	if (serialMode & 0x01)							// INTERNAL flag (JERRY is master)
 	{
@@ -403,7 +403,7 @@ void JERRYSetPendingIRQ(int irq)
 //
 // JERRY byte access (read)
 //
-uint8 JERRYReadByte(uint32 offset, uint32 who/*=UNKNOWN*/)
+uint8_t JERRYReadByte(uint32_t offset, uint32_t who/*=UNKNOWN*/)
 {
 #ifdef JERRY_DEBUG
 	WriteLog("JERRY: Reading byte at %06X\n", offset);
@@ -446,7 +446,7 @@ WriteLog("JERRY: Unhandled timer read (BYTE) at %08X...\n", offset);
 //
 // JERRY word access (read)
 //
-uint16 JERRYReadWord(uint32 offset, uint32 who/*=UNKNOWN*/)
+uint16_t JERRYReadWord(uint32_t offset, uint32_t who/*=UNKNOWN*/)
 {
 #ifdef JERRY_DEBUG
 	WriteLog("JERRY: Reading word at %06X\n", offset);
@@ -486,17 +486,17 @@ WriteLog("JERRY: Unhandled timer read (WORD) at %08X...\n", offset);
 		return EepromReadWord(offset);
 
 /*if (offset >= 0xF1D000)
-	WriteLog("JERRY: Reading word at %08X [%04X]...\n", offset, ((uint16)jerry_ram_8[(offset+0)&0xFFFF] << 8) | jerry_ram_8[(offset+1)&0xFFFF]);//*/
+	WriteLog("JERRY: Reading word at %08X [%04X]...\n", offset, ((uint16_t)jerry_ram_8[(offset+0)&0xFFFF] << 8) | jerry_ram_8[(offset+1)&0xFFFF]);//*/
 
 	offset &= 0xFFFF;				// Prevent crashing...!
-	return ((uint16)jerry_ram_8[offset+0] << 8) | jerry_ram_8[offset+1];
+	return ((uint16_t)jerry_ram_8[offset+0] << 8) | jerry_ram_8[offset+1];
 }
 
 
 //
 // JERRY byte access (write)
 //
-void JERRYWriteByte(uint32 offset, uint8 data, uint32 who/*=UNKNOWN*/)
+void JERRYWriteByte(uint32_t offset, uint8_t data, uint32_t who/*=UNKNOWN*/)
 {
 #ifdef JERRY_DEBUG
 	WriteLog("jerry: writing byte %.2x at 0x%.6x\n",data,offset);
@@ -517,9 +517,9 @@ void JERRYWriteByte(uint32 offset, uint8 data, uint32 who/*=UNKNOWN*/)
 	{
 //		WriteLog("JERRY: Writing %02X to SCLK...\n", data);
 		if ((offset & 0x03) == 2)
-			JERRYI2SInterruptDivide = (JERRYI2SInterruptDivide & 0x00FF) | ((uint32)data << 8);
+			JERRYI2SInterruptDivide = (JERRYI2SInterruptDivide & 0x00FF) | ((uint32_t)data << 8);
 		else
-			JERRYI2SInterruptDivide = (JERRYI2SInterruptDivide & 0xFF00) | (uint32)data;
+			JERRYI2SInterruptDivide = (JERRYI2SInterruptDivide & 0xFF00) | (uint32_t)data;
 
 		JERRYI2SInterruptTimer = -1;
 		RemoveCallback(JERRYI2SCallback);
@@ -583,7 +583,7 @@ WriteLog("JERRY: Unhandled timer write (BYTE) at %08X...\n", offset);
 //
 // JERRY word access (write)
 //
-void JERRYWriteWord(uint32 offset, uint16 data, uint32 who/*=UNKNOWN*/)
+void JERRYWriteWord(uint32_t offset, uint16_t data, uint32_t who/*=UNKNOWN*/)
 {
 #ifdef JERRY_DEBUG
 	WriteLog( "JERRY: Writing word %04X at %06X\n", data, offset);
@@ -629,7 +629,7 @@ else if (offset == 0xF10020)
 	{
 		WriteLog("JERRY: Writing $%X to SCLK (by %s)...\n", data, whoName[who]);
 //This should *only* be enabled when SMODE has its INTERNAL bit set! !!! FIX !!!
-		JERRYI2SInterruptDivide = (uint8)data;
+		JERRYI2SInterruptDivide = (uint8_t)data;
 		JERRYI2SInterruptTimer = -1;
 		RemoveCallback(JERRYI2SCallback);
 		JERRYI2SCallback();

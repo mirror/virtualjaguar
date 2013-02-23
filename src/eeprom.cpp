@@ -23,16 +23,16 @@
 
 #define eeprom_LOG
 
-static uint16 eeprom_ram[64];
+static uint16_t eeprom_ram[64];
 
 //
 // Private function prototypes
 //
 
 static void EEPROMSave(void);
-static void eeprom_set_di(uint32 state);
-static void eeprom_set_cs(uint32 state);
-static uint32 eeprom_get_do(void);
+static void eeprom_set_di(uint32_t state);
+static void eeprom_set_cs(uint32_t state);
+static uint32_t eeprom_get_do(void);
 
 enum { EE_STATE_START = 1, EE_STATE_OP_A, EE_STATE_OP_B, EE_STATE_0, EE_STATE_1,
 	EE_STATE_2, EE_STATE_3, EE_STATE_0_0, EE_READ_ADDRESS, EE_STATE_0_0_0,
@@ -41,15 +41,15 @@ enum { EE_STATE_START = 1, EE_STATE_OP_A, EE_STATE_OP_B, EE_STATE_0, EE_STATE_1,
 
 // Local global variables
 
-static uint16 jerry_ee_state = EE_STATE_START;
-static uint16 jerry_ee_op = 0;
-static uint16 jerry_ee_rstate = 0;
-static uint16 jerry_ee_address_data = 0;
-static uint16 jerry_ee_address_cnt = 6;
-static uint16 jerry_ee_data = 0;
-static uint16 jerry_ee_data_cnt = 16;
-static uint16 jerry_writes_enabled = 0;
-static uint16 jerry_ee_direct_jump = 0;
+static uint16_t jerry_ee_state = EE_STATE_START;
+static uint16_t jerry_ee_op = 0;
+static uint16_t jerry_ee_rstate = 0;
+static uint16_t jerry_ee_address_data = 0;
+static uint16_t jerry_ee_address_cnt = 6;
+static uint16_t jerry_ee_data = 0;
+static uint16_t jerry_ee_data_cnt = 16;
+static uint16_t jerry_writes_enabled = 0;
+static uint16_t jerry_ee_direct_jump = 0;
 static char eeprom_filename[MAX_PATH];
 static bool foundEEPROM = false;
 
@@ -72,7 +72,7 @@ void EepromInit(void)
 void EepromReset(void)
 {
 	if (!foundEEPROM)
-		memset(eeprom_ram, 0xFF, 64 * sizeof(uint16));
+		memset(eeprom_ram, 0xFF, 64 * sizeof(uint16_t));
 }
 
 void EepromDone(void)
@@ -94,7 +94,7 @@ static void EEPROMSave(void)
 	fclose(fp);
 }
 
-uint8 EepromReadByte(uint32 offset)
+uint8_t EepromReadByte(uint32_t offset)
 {
 	switch (offset)
 	{
@@ -111,12 +111,12 @@ uint8 EepromReadByte(uint32 offset)
 	return 0x00;
 }
 
-uint16 EepromReadWord(uint32 offset)
+uint16_t EepromReadWord(uint32_t offset)
 {
-	return ((uint16)EepromReadByte(offset + 0) << 8) | EepromReadByte(offset + 1);
+	return ((uint16_t)EepromReadByte(offset + 0) << 8) | EepromReadByte(offset + 1);
 }
 
-void EepromWriteByte(uint32 offset, uint8 data)
+void EepromWriteByte(uint32_t offset, uint8_t data)
 {
 	switch (offset)
 	{
@@ -132,13 +132,13 @@ void EepromWriteByte(uint32 offset, uint8 data)
 	}
 }
 
-void EepromWriteWord(uint32 offset, uint16 data)
+void EepromWriteWord(uint32_t offset, uint16_t data)
 {
 	EepromWriteByte(offset + 0, (data >> 8) & 0xFF);
 	EepromWriteByte(offset + 1, data & 0xFF);
 }
 
-static void eeprom_set_di(uint32 data)
+static void eeprom_set_di(uint32_t data)
 {
 //	WriteLog("eeprom: di=%i\n",data);
 //	WriteLog("eeprom: state %i\n",jerry_ee_state);
@@ -299,7 +299,7 @@ static void eeprom_set_di(uint32 data)
 	}
 }
 
-static void eeprom_set_cs(uint32 state)
+static void eeprom_set_cs(uint32_t state)
 {
 //	WriteLog("eeprom: cs=%i\n",state);
 	jerry_ee_state = EE_STATE_START;
@@ -312,9 +312,9 @@ static void eeprom_set_cs(uint32 state)
 	jerry_writes_enabled = 1;
 }
 
-static uint32 eeprom_get_do(void)
+static uint32_t eeprom_get_do(void)
 {
-	uint16 data = 1;
+	uint16_t data = 1;
 
 	switch (jerry_ee_state)
 	{

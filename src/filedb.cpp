@@ -17,10 +17,10 @@
 #if 0
 struct RomIdentifier
 {
-	const uint32 crc32;
+	const uint32_t crc32;
 	const char name[128];
-//	const uint8 compatibility;
-	const uint32 flags;
+//	const uint8_t compatibility;
+	const uint32_t flags;
 };
 
 enum FileFlags { FF_ROM=1, FF_ALPINE=2, FF_BIOS=4, FF_REQ_DSP=8, FF_REQ_BIOS=16, FF_NON_WORKING=32, FF_BAD_DUMP=64, FF_VERIFIED=128 };

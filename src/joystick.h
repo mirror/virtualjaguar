@@ -5,7 +5,7 @@
 #ifndef __JOYSTICK_H__
 #define __JOYSTICK_H__
 
-#include "types.h"
+#include <stdint.h>
 
 enum { BUTTON_FIRST = 0, BUTTON_U = 0,
 BUTTON_D = 1,
@@ -34,13 +34,13 @@ BUTTON_PAUSE = 20, BUTTON_LAST = 20 };
 void JoystickInit(void);
 void JoystickReset(void);
 void JoystickDone(void);
-void JoystickWriteByte(uint32, uint8);
-void JoystickWriteWord(uint32, uint16);
-uint8 JoystickReadByte(uint32);
-uint16 JoystickReadWord(uint32);
+void JoystickWriteByte(uint32_t, uint8_t);
+void JoystickWriteWord(uint32_t, uint16_t);
+uint8_t JoystickReadByte(uint32_t);
+uint16_t JoystickReadWord(uint32_t);
 void JoystickExec(void);
 
 extern bool keyBuffer[];
-extern uint8 joypad_0_buttons[];
-extern uint8 joypad_1_buttons[];
+extern uint8_t joypad_0_buttons[];
+extern uint8_t joypad_1_buttons[];
 #endif

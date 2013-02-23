@@ -32,7 +32,7 @@
 
 static int gzfilelength(gzFile gd);
 static bool CheckExtension(const char * filename, const char * ext);
-//static int ParseFileType(uint8 header1, uint8 header2, uint32 size);
+//static int ParseFileType(uint8_t header1, uint8_t header2, uint32_t size);
 
 // Private variables/enums
 
@@ -40,12 +40,12 @@ static bool CheckExtension(const char * filename, const char * ext);
 //
 // Generic ROM loading
 //
-uint32 JaguarLoadROM(uint8 * &rom, char * path)
+uint32_t JaguarLoadROM(uint8_t * &rom, char * path)
 {
 // We really should have some kind of sanity checking for the ROM size here to prevent
 // a buffer overflow... !!! FIX !!!
 #warning "!!! FIX !!! Should have sanity checking for ROM size to prevent buffer overflow!"
-	uint32 romSize = 0;
+	uint32_t romSize = 0;
 
 	WriteLog("JaguarLoadROM: Attempting to load file '%s'...", path);
 	char * ext = strrchr(path, '.');
@@ -93,7 +93,7 @@ uint32 JaguarLoadROM(uint8 * &rom, char * path)
 		}
 
 		romSize = gzfilelength(fp);
-		rom = new uint8[romSize];
+		rom = new uint8_t[romSize];
 		gzseek(fp, 0, SEEK_SET);
 		gzread(fp, rom, romSize);
 		gzclose(fp);
@@ -112,7 +112,7 @@ uint32 JaguarLoadROM(uint8 * &rom, char * path)
 //
 bool JaguarLoadFile(char * path)
 {
-	uint8 * buffer = NULL;
+	uint8_t * buffer = NULL;
 	jaguarROMSize = JaguarLoadROM(buffer, path);
 
 	if (jaguarROMSize == 0)
@@ -159,7 +159,7 @@ WriteLog("FILE: Cartridge run address is reported as $%X...\n", jaguarRunAddress
 	else if (fileType == JST_ABS_TYPE1)
 	{
 		// For ABS type 1, run address == load address
-		uint32 loadAddress = GET32(buffer, 0x16),
+		uint32_t loadAddress = GET32(buffer, 0x16),
 			codeSize = GET32(buffer, 0x02) + GET32(buffer, 0x06);
 		WriteLog("FILE: Setting up homebrew (ABS-1)... Run address: %08X, length: %08X\n", loadAddress, codeSize);
 		memcpy(jagMemSpace + loadAddress, buffer + 0x24, codeSize);
@@ -169,7 +169,7 @@ WriteLog("FILE: Cartridge run address is reported as $%X...\n", jaguarRunAddress
 	}
 	else if (fileType == JST_ABS_TYPE2)
 	{
-		uint32 loadAddress = GET32(buffer, 0x28), runAddress = GET32(buffer, 0x24),
+		uint32_t loadAddress = GET32(buffer, 0x28), runAddress = GET32(buffer, 0x24),
 			codeSize = GET32(buffer, 0x18) + GET32(buffer, 0x1C);
 		WriteLog("FILE: Setting up homebrew (ABS-2)... Run address: %08X, length: %08X\n", runAddress, codeSize);
 		memcpy(jagMemSpace + loadAddress, buffer + 0xA8, codeSize);
@@ -218,7 +218,7 @@ WriteLog("FILE: Cartridge run address is reported as $%X...\n", jaguarRunAddress
 //		{
 			// Still need to do some checking here for type 2 vs. type 3. This assumes 3
 			// Also, JAGR vs. JAGL (word command size vs. long command size)
-			uint32 loadAddress = GET32(buffer, 0x22), runAddress = GET32(buffer, 0x2A);
+			uint32_t loadAddress = GET32(buffer, 0x22), runAddress = GET32(buffer, 0x2A);
 			WriteLog("FILE: Setting up homebrew (Jag Server)... Run address: $%X, length: $%X\n", runAddress, jaguarROMSize - 0x2E);
 			memcpy(jagMemSpace + loadAddress, buffer + 0x2E, jaguarROMSize - 0x2E);
 			delete[] buffer;
@@ -262,7 +262,7 @@ SET16(jaguarMainRAM, 0x1000, 0x60FE);		// Here: bra Here
 //
 bool AlpineLoadFile(char * path)
 {
-	uint8 * buffer = NULL;
+	uint8_t * buffer = NULL;
 	jaguarROMSize = JaguarLoadROM(buffer, path);
 
 	if (jaguarROMSize == 0)
@@ -324,7 +324,7 @@ static int gzfilelength(gzFile gd)
 //
 // Compare extension to passed in filename. If equal, return true; otherwise false.
 //
-static bool CheckExtension(const uint8 * filename, const char * ext)
+static bool CheckExtension(const uint8_t * filename, const char * ext)
 {
 	// Sanity checking...
 	if ((filename == NULL) || (ext == NULL))
@@ -345,7 +345,7 @@ static bool CheckExtension(const uint8 * filename, const char * ext)
 // NOTE: If the thing we're looking for is found, it allocates it in the passed in buffer.
 //       Which means we have to deallocate it later.
 //
-uint32 GetFileFromZIP(const char * zipFile, FileType type, uint8 * &buffer)
+uint32_t GetFileFromZIP(const char * zipFile, FileType type, uint8_t * &buffer)
 {
 // NOTE: We could easily check for this by discarding anything that's larger than the RAM/ROM
 //       size of the Jaguar console.
@@ -400,13 +400,13 @@ uint32 GetFileFromZIP(const char * zipFile, FileType type, uint8 * &buffer)
 			fseek(zip, ze.compressedSize, SEEK_CUR);
 	}
 
-	uint32 fileSize = 0;
+	uint32_t fileSize = 0;
 
 	if (found)
 	{
 		WriteLog("FILE: Uncompressing...");
 // Insert file size sanity check here...
-		buffer = new uint8[ze.uncompressedSize];
+		buffer = new uint8_t[ze.uncompressedSize];
 
 //		if (readuncompresszip(zip, ze.compressedSize, buffer) == 0)
 //		if (UncompressFileFromZIP(zip, ze.compressedSize, buffer) == 0)
@@ -470,7 +470,7 @@ uint32_t GetFileDBIdentityFromZIP(const char * zipFile)
 }
 
 
-bool FindFileInZIPWithCRC32(const char * zipFile, uint32 crc)
+bool FindFileInZIPWithCRC32(const char * zipFile, uint32_t crc)
 {
 	FILE * zip = fopen(zipFile, "rb");
 
@@ -502,7 +502,7 @@ bool FindFileInZIPWithCRC32(const char * zipFile, uint32 crc)
 //
 // Parse the file type based upon file size and/or headers.
 //
-uint32 ParseFileType(uint8_t * buffer, uint32 size)
+uint32_t ParseFileType(uint8_t * buffer, uint32_t size)
 {
 	// Check headers first...
 
@@ -543,7 +543,7 @@ uint32 ParseFileType(uint8_t * buffer, uint32 size)
 //
 // Check for universal header
 //
-bool HasUniversalHeader(uint8 * rom, uint32 romSize)
+bool HasUniversalHeader(uint8_t * rom, uint32_t romSize)
 {
 	// Sanity check
 	if (romSize < 8192)

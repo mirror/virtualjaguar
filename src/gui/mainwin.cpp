@@ -56,6 +56,7 @@
 #include "log.h"
 #include "file.h"
 #include "jagbios.h"
+#include "jagbios2.h"
 #include "jagcdbios.h"
 #include "jagstub2bios.h"
 #include "joystick.h"
@@ -78,11 +79,8 @@
 // We'll make the VJ core modular so that it doesn't matter what GUI is in
 // use, we can drop it in anywhere and use it as-is.
 
-//MainWin::MainWin(QString filenameToRun): running(true), powerButtonOn(false),
 MainWin::MainWin(bool autoRun): running(true), powerButtonOn(false),
 	showUntunedTankCircuit(true), cartridgeLoaded(false), CDActive(false),
-	//, alpineLoadSuccessful(false),
-//	pauseForFileSelector(false), loadAndGo(false), plzDontKillMyComputer(false)
 	pauseForFileSelector(false), loadAndGo(autoRun), plzDontKillMyComputer(false)
 {
 	for(int i=0; i<8; i++)
@@ -319,19 +317,13 @@ MainWin::MainWin(bool autoRun): running(true), powerButtonOn(false),
 	WriteLog("Virtual Jaguar %s (Last full build was on %s %s)\n", VJ_RELEASE_VERSION, __DATE__, __TIME__);
 	WriteLog("VJ: Initializing jaguar subsystem...\n");
 	JaguarInit();
-	memcpy(jagMemSpace + 0xE00000, jaguarBootROM, 0x20000);	// Use the stock BIOS
+//	memcpy(jagMemSpace + 0xE00000, jaguarBootROM, 0x20000);	// Use the stock BIOS
+	memcpy(jagMemSpace + 0xE00000, (vjs.biosType == BT_K_SERIES ? jaguarBootROM : jaguarBootROM2), 0x20000);	// Use the stock BIOS
 
-	// Check for filename passed in on the command line...
-//	if (!filenameToRun.isEmpty())
+	// Prevent the file scanner from running if filename passed
+	// in on the command line...
 	if (autoRun)
-	{
-//		loadAndGo = true;
-		// Attempt to load/run the file the user passed in...
-//		LoadSoftware(filenameToRun);
-////		memcpy(jagMemSpace + 0xE00000, jaguarBootROM, 0x20000);	// Use the stock BIOS
-		// Prevent the file scanner from running...
 		return;
-	}
 
 	// Load up the default ROM if in Alpine mode:
 	if (vjs.hardwareTypeAlpine)
@@ -626,6 +618,8 @@ void MainWin::Timer(void)
 	if (showUntunedTankCircuit)
 	{
 		// Some machines can't handle this, so we give them the option to disable it. :-)
+#warning "!!! Add test pattern here for -z option !!!"
+// Actually, should put test pattern in buffer in function below :-P
 		if (!plzDontKillMyComputer)
 		{
 			// Random hash & trash
@@ -840,22 +834,11 @@ void MainWin::ToggleCDUsage(void)
 {
 	CDActive = !CDActive;
 
-#if 0
-	if (CDActive)
-	{
-		powerAct->setDisabled(false);
-	}
-	else
-	{
-		powerAct->setDisabled(true);
-	}
-#else
 	// Set up the Jaguar CD for execution, otherwise, clear memory
 	if (CDActive)
 		memcpy(jagMemSpace + 0x800000, jaguarCDBootROM, 0x40000);
 	else
 		memset(jagMemSpace + 0x800000, 0xFF, 0x40000);
-#endif
 }
 
 
@@ -1007,15 +990,13 @@ void MainWin::ReadSettings(void)
 	vjs.glFilter         = settings.value("glFilterType", 1).toInt();
 	vjs.renderType       = settings.value("renderType", 0).toInt();
 	vjs.allowWritesToROM = settings.value("writeROM", false).toBool();
-//	strcpy(vjs.jagBootPath, settings.value("JagBootROM", "./bios/[BIOS] Atari Jaguar (USA, Europe).zip").toString().toAscii().data());
-//	strcpy(vjs.CDBootPath, settings.value("CDBootROM", "./bios/jagcd.rom").toString().toAscii().data());
+	vjs.biosType         = settings.value("biosType", BT_M_SERIES).toInt();
 	strcpy(vjs.EEPROMPath, settings.value("EEPROMs", "./eeproms/").toString().toAscii().data());
 	strcpy(vjs.ROMPath, settings.value("ROMs", "./software/").toString().toAscii().data());
 	strcpy(vjs.alpineROMPath, settings.value("DefaultROM", "").toString().toAscii().data());
 	strcpy(vjs.absROMPath, settings.value("DefaultABS", "").toString().toAscii().data());
+
 WriteLog("MainWin: Paths\n");
-//WriteLog("    jagBootPath = \"%s\"\n", vjs.jagBootPath);
-//WriteLog("    CDBootPath  = \"%s\"\n", vjs.CDBootPath);
 WriteLog("   EEPROMPath = \"%s\"\n", vjs.EEPROMPath);
 WriteLog("      ROMPath = \"%s\"\n", vjs.ROMPath);
 WriteLog("AlpineROMPath = \"%s\"\n", vjs.alpineROMPath);
@@ -1093,6 +1074,7 @@ void MainWin::WriteSettings(void)
 	settings.setValue("glFilterType", vjs.glFilter);
 	settings.setValue("renderType", vjs.renderType);
 	settings.setValue("writeROM", vjs.allowWritesToROM);
+	settings.setValue("biosType", vjs.biosType);
 	settings.setValue("JagBootROM", vjs.jagBootPath);
 	settings.setValue("CDBootROM", vjs.CDBootPath);
 	settings.setValue("EEPROMs", vjs.EEPROMPath);

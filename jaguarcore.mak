@@ -77,6 +77,7 @@ OBJS := \
 	obj/filedb.o       \
 	obj/gpu.o          \
 	obj/jagbios.o      \
+	obj/jagbios2.o     \
 	obj/jagcdbios.o    \
 	obj/jagdevcdbios.o \
 	obj/jagstub1bios.o \

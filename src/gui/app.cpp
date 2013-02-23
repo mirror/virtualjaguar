@@ -23,7 +23,6 @@
 #include "log.h"
 #include "mainwin.h"
 #include "settings.h"
-#include "types.h"
 #include "version.h"
 
 

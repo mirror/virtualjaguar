@@ -22,7 +22,7 @@
 
 #define ROPCODE(a) JaguarReadWord(a)
 
-uint8 convert_zero[32] =
+uint8_t convert_zero[32] =
 { 32,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31 };
 
 const char * condition[32] =
@@ -66,7 +66,7 @@ const char * condition[32] =
 
 
 
-char * signed_16bit(int16 val)
+char * signed_16bit(int16_t val)
 {
 	static char temp[10];
 
@@ -121,7 +121,7 @@ unsigned dasmjag(int dsp_type, char * bufferOut, unsigned pc)
 		case 28:	sprintf(buffer, "ROR     R%02d,R%02d", reg1, reg2);				break;
 		case 29:	sprintf(buffer, "RORQ    $%X,R%02d", convert_zero[reg1], reg2);	break;
 		case 30:	sprintf(buffer, "CMP     R%02d,R%02d", reg1, reg2);				break;
-		case 31:	sprintf(buffer, "CMPQ    %s,R%02d", signed_16bit((int16)(reg1 << 11) >> 11), reg2);break;
+		case 31:	sprintf(buffer, "CMPQ    %s,R%02d", signed_16bit((int16_t)(reg1 << 11) >> 11), reg2);break;
 		case 32:	if (dsp_type == JAGUAR_GPU)
 						sprintf(buffer, "SAT8    R%02d", reg2);
 					else
@@ -159,7 +159,7 @@ unsigned dasmjag(int dsp_type, char * bufferOut, unsigned pc)
 		case 50:	sprintf(buffer, "STORE   R%02d,(R15+$%X)", reg2, convert_zero[reg1]*4);break;
 		case 51:	sprintf(buffer, "MOVE    PC,R%02d", reg2);						break;
 		case 52:	sprintf(buffer, "JUMP    %s(R%02d)", condition[reg2], reg1);	break;
-		case 53:	sprintf(buffer, "JR      %s$%X", condition[reg2], pc + ((int8)(reg1 << 3) >> 2)); break;
+		case 53:	sprintf(buffer, "JR      %s$%X", condition[reg2], pc + ((int8_t)(reg1 << 3) >> 2)); break;
 		case 54:	sprintf(buffer, "MMULT   R%02d,R%02d", reg1, reg2);				break;
 		case 55:	sprintf(buffer, "MTOI    R%02d,R%02d", reg1, reg2);				break;
 		case 56:	sprintf(buffer, "NORMI   R%02d,R%02d", reg1, reg2);				break;
@@ -187,7 +187,7 @@ unsigned dasmjag(int dsp_type, char * bufferOut, unsigned pc)
 		sprintf(bufferOut, "%04X            %-24s", op, buffer);
 	else
 	{
-		uint16 word1 = ROPCODE(pc), word2 = ROPCODE(pc + 2);
+		uint16_t word1 = ROPCODE(pc), word2 = ROPCODE(pc + 2);
 		sprintf(bufferOut, "%04X %04X %04X  %-24s", op, word1, word2, buffer);
 	}
 #endif

@@ -34,6 +34,7 @@
 	<file>../../res/skunkboard-file.png</file>
 	<file>../../res/homebrew-file.png</file>
 	<file>../../res/unknown-file.png</file>
+	<file>../../res/test-pattern.jpg</file>
 	<file>../../res/help.html</file>
 </qresource>
 </RCC>

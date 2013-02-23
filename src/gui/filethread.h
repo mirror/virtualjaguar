@@ -6,7 +6,7 @@
 #define __FILETHREAD_H__
 
 #include <QtCore>
-#include "types.h"
+#include <stdint.h>
 
 class FileThread: public QThread
 {
@@ -25,7 +25,7 @@ class FileThread: public QThread
 	protected:
 		void run(void);
 		void HandleFile(QFileInfo);
-		uint32 FindCRCIndexInFileList(uint32);
+		uint32_t FindCRCIndexInFileList(uint32_t);
 
 	private:
 		QMutex mutex;

@@ -19,8 +19,8 @@
 
 #include "event.h"
 
+#include <stdint.h>
 #include "log.h"
-#include "types.h"
 
 
 //#define EVENT_LIST_SIZE       512

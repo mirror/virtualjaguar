@@ -3,7 +3,6 @@
 //
 
 #include <QtGui>
-#include "types.h"
 
 // Forward declarations
 class QListWidget;

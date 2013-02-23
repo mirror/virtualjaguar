@@ -19,10 +19,6 @@
 // work correctly...! Perhaps just need to set up SSI stuff so BUTCH doesn't get
 // confused...
 
-// ALSO: Need to implement some form of proper locking to replace the clusterfuck
-//       that is the current spinlock implementation. Since the DSP is a separate
-//       entity, could we get away with running it in the sound IRQ?
-
 // After testing on a real Jaguar, it seems clear that the I2S interrupt drives
 // the audio subsystem. So while you can drive the audio at a *slower* rate than
 // set by SCLK, you can't drive it any *faster*. Also note, that if the I2S
@@ -75,14 +71,14 @@
 // Global variables
 
 // These are defined in memory.h/cpp
-//uint16 lrxd, rrxd;							// I2S ports (into Jaguar)
+//uint16_t lrxd, rrxd;							// I2S ports (into Jaguar)
 
 // Local variables
 
 static SDL_AudioSpec desired;
 static bool SDLSoundInitialized;
-static uint8 SCLKFrequencyDivider = 19;			// Default is roughly 22 KHz (20774 Hz in NTSC mode)
-/*static*/ uint16 serialMode = 0;
+static uint8_t SCLKFrequencyDivider = 19;			// Default is roughly 22 KHz (20774 Hz in NTSC mode)
+/*static*/ uint16_t serialMode = 0;
 
 // Private function prototypes
 
@@ -265,15 +261,15 @@ int GetCalculatedFrequency(void)
 //
 // LTXD/RTXD/SCLK/SMODE ($F1A148/4C/50/54)
 //
-void DACWriteByte(uint32 offset, uint8 data, uint32 who/*= UNKNOWN*/)
+void DACWriteByte(uint32_t offset, uint8_t data, uint32_t who/*= UNKNOWN*/)
 {
 	WriteLog("DAC: %s writing BYTE %02X at %08X\n", whoName[who], data, offset);
 	if (offset == SCLK + 3)
-		DACWriteWord(offset - 3, (uint16)data);
+		DACWriteWord(offset - 3, (uint16_t)data);
 }
 
 
-void DACWriteWord(uint32 offset, uint16 data, uint32 who/*= UNKNOWN*/)
+void DACWriteWord(uint32_t offset, uint16_t data, uint32_t who/*= UNKNOWN*/)
 {
 	if (offset == LTXD + 2)
 	{
@@ -287,8 +283,8 @@ void DACWriteWord(uint32 offset, uint16 data, uint32 who/*= UNKNOWN*/)
 	{
 		WriteLog("DAC: Writing %u to SCLK...\n", data);
 
-		if ((uint8)data != SCLKFrequencyDivider)
-			SCLKFrequencyDivider = (uint8)data;
+		if ((uint8_t)data != SCLKFrequencyDivider)
+			SCLKFrequencyDivider = (uint8_t)data;
 	}
 	else if (offset == SMODE + 2)
 	{
@@ -305,15 +301,15 @@ void DACWriteWord(uint32 offset, uint16 data, uint32 who/*= UNKNOWN*/)
 //
 // LRXD/RRXD/SSTAT ($F1A148/4C/50)
 //
-uint8 DACReadByte(uint32 offset, uint32 who/*= UNKNOWN*/)
+uint8_t DACReadByte(uint32_t offset, uint32_t who/*= UNKNOWN*/)
 {
 //	WriteLog("DAC: %s reading byte from %08X\n", whoName[who], offset);
 	return 0xFF;
 }
 
 
-//static uint16 fakeWord = 0;
-uint16 DACReadWord(uint32 offset, uint32 who/*= UNKNOWN*/)
+//static uint16_t fakeWord = 0;
+uint16_t DACReadWord(uint32_t offset, uint32_t who/*= UNKNOWN*/)
 {
 //	WriteLog("DAC: %s reading word from %08X\n", whoName[who], offset);
 //	return 0xFFFF;
@@ -332,3 +328,4 @@ uint16 DACReadWord(uint32 offset, uint32 who/*= UNKNOWN*/)
 
 	return 0xFFFF;	// May need SSTAT as well... (but may be a Jaguar II only feature)
 }
+

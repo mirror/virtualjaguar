@@ -19,8 +19,8 @@ enum { EVENT_MAIN, EVENT_JERRY };
 #define HORIZ_PERIOD_IN_USEC_NTSC 63.555555555
 #define HORIZ_PERIOD_IN_USEC_PAL  64.0
 
-#define USEC_TO_RISC_CYCLES(u) (uint32)(((u) / RISC_CYCLE_IN_USEC) + 0.5)
-#define USEC_TO_M68K_CYCLES(u) (uint32)(((u) / M68K_CYCLE_IN_USEC) + 0.5)
+#define USEC_TO_RISC_CYCLES(u) (uint32_t)(((u) / RISC_CYCLE_IN_USEC) + 0.5)
+#define USEC_TO_M68K_CYCLES(u) (uint32_t)(((u) / M68K_CYCLE_IN_USEC) + 0.5)
 
 void InitializeEventList(void);
 void SetCallbackTime(void (* callback)(void), double time, int type = EVENT_MAIN);

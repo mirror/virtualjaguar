@@ -98,7 +98,7 @@ void FileThread::HandleFile(QFileInfo fileInfo)
 	bool haveZIPFile = (fileInfo.suffix().compare("zip", Qt::CaseInsensitive) == 0
 		? true : false);
 	uint32_t fileSize = 0;
-	uint8 * buffer = NULL;
+	uint8_t * buffer = NULL;
 
 	if (haveZIPFile)
 	{
@@ -122,7 +122,7 @@ void FileThread::HandleFile(QFileInfo fileInfo)
 		if (fileSize == 0)
 			return;
 
-		buffer = new uint8[fileSize];
+		buffer = new uint8_t[fileSize];
 		file.read((char *)buffer, fileSize);
 		file.close();
 	}
@@ -132,7 +132,7 @@ void FileThread::HandleFile(QFileInfo fileInfo)
 
 	// Check for Alpine ROM w/Universal Header
 	bool foundUniversalHeader = HasUniversalHeader(buffer, fileSize);
-	uint32 crc;
+	uint32_t crc;
 
 //printf("FileThread: About to calc checksum on file with size %u... (buffer=%08X)\n", size, buffer);
 	if (foundUniversalHeader)
@@ -140,7 +140,7 @@ void FileThread::HandleFile(QFileInfo fileInfo)
 	else
 		crc = crc32_calcCheckSum(buffer, fileSize);
 
-	uint32 index = FindCRCIndexInFileList(crc);
+	uint32_t index = FindCRCIndexInFileList(crc);
 	delete[] buffer;
 
 	// Here we filter out files that are *not* in the DB and of unknown type,
@@ -163,7 +163,7 @@ void FileThread::HandleFile(QFileInfo fileInfo)
 	// See if we can fish out a label. :-)
 	if (haveZIPFile)
 	{
-		uint32 size = GetFileFromZIP(fileInfo.filePath().toAscii(), FT_LABEL, buffer);
+		uint32_t size = GetFileFromZIP(fileInfo.filePath().toAscii(), FT_LABEL, buffer);
 //printf("FT: Label size = %u bytes.\n", size);
 
 		if (size > 0)
@@ -186,7 +186,7 @@ void FileThread::HandleFile(QFileInfo fileInfo)
 // Find a CRC in the ROM list (simple brute force algorithm).
 // If it's there, return the index, otherwise return $FFFFFFFF
 //
-uint32 FileThread::FindCRCIndexInFileList(uint32 crc)
+uint32_t FileThread::FindCRCIndexInFileList(uint32_t crc)
 {
 	// Instead of a simple brute-force search, we should probably do a binary
 	// partition search instead, since the CRCs are sorted numerically.
