@@ -70,7 +70,7 @@ void KeyGrabber::CheckGamepad(void)
 	{
 		button = Gamepad::CheckButtonPressed();
 
-		if  (button == -1)
+		if (button == -1)
 			return;
 
 		buttonDown = true;

@@ -44,6 +44,8 @@ char ControllerWidget::keyName2[64][16] = {
 
 char ControllerWidget::hatName[4][16] = { "Up", "Rt", "Dn", "Lf" };
 
+char ControllerWidget::axisName[2][8] = { "+", "-" };
+
 // This is hard-coded crap. It's crap-tastic!
 // These are the positions to draw the button names at, ordered by the BUTTON_* sequence
 // found in joystick.h.
@@ -146,6 +148,11 @@ void ControllerWidget::paintEvent(QPaintEvent * /*event*/)
 		{
 			DrawBorderedText(painter, buttonPos[i][0], buttonPos[i][1],
 				QString("j%1").arg(hatName[keys[i] & JOY_BUTTON_MASK]));
+		}
+		else if (keys[i] & JOY_AXIS)
+		{
+			DrawBorderedText(painter, buttonPos[i][0], buttonPos[i][1],
+				QString("JA%1%2").arg((keys[i] & JOY_AXISNUM_MASK) >> 1).arg(axisName[keys[i] & JOY_AXISDIR_MASK]));
 		}
 #endif
 		else

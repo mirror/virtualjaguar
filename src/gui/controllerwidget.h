@@ -37,6 +37,7 @@ class ControllerWidget: public QWidget
 		static char keyName1[96][16];
 		static char keyName2[64][16];
 		static char hatName[4][16];
+		static char axisName[2][8];
 		static int buttonPos[21][2];
 };
 

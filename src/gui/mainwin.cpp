@@ -346,8 +346,6 @@ MainWin::MainWin(bool autoRun): running(true), powerButtonOn(false),
 		// Prevent the scanner from running...
 		return;
 	}
-//	else
-//		memcpy(jagMemSpace + 0xE00000, jaguarBootROM, 0x20000);	// Otherwise, use the stock BIOS
 
 	// Run the scanner if nothing passed in and *not* Alpine mode...
 	// NB: Really need to look into caching the info scanned in here...
@@ -523,10 +521,10 @@ void MainWin::HandleGamepads(void)
 
 	for(int i=BUTTON_FIRST; i<=BUTTON_LAST; i++)
 	{
-		if (vjs.p1KeyBindings[i] & (JOY_BUTTON | JOY_HAT))
+		if (vjs.p1KeyBindings[i] & (JOY_BUTTON | JOY_HAT | JOY_AXIS))
 			joypad_0_buttons[i] = (Gamepad::GetState(0, vjs.p1KeyBindings[i]) ? 0x01 : 0x00);
 
-		if (vjs.p2KeyBindings[i] & (JOY_BUTTON | JOY_HAT))
+		if (vjs.p2KeyBindings[i] & (JOY_BUTTON | JOY_HAT | JOY_AXIS))
 			joypad_1_buttons[i] = (Gamepad::GetState(1, vjs.p2KeyBindings[i]) ? 0x01 : 0x00);
 	}
 }

@@ -20,8 +20,10 @@
 /*static*/ SDL_Joystick * Gamepad::pad[8];
 /*static*/ int Gamepad::numButtons[8];
 /*static*/ int Gamepad::numHats[8];
+/*static*/ int Gamepad::numAxes[8];
 /*static*/ bool Gamepad::button[8][256];
 /*static*/ uint8_t Gamepad::hat[8][32];
+/*static*/ int32_t Gamepad::axis[8][32];
 
 
 Gamepad::Gamepad(void)//: numJoysticks(0)
@@ -54,6 +56,7 @@ void Gamepad::AllocateJoysticks(void)
 		{
 			numButtons[i] = SDL_JoystickNumButtons(pad[i]);
 			numHats[i] = SDL_JoystickNumHats(pad[i]);
+			numAxes[i] = SDL_JoystickNumAxes(pad[i]);
 		}
 	}
 
@@ -85,6 +88,20 @@ bool Gamepad::GetState(int joystickID, int buttonID)
 		uint8_t hatDirection = hatMask[buttonID & JOY_HATBUT_MASK];
 		return (hat[joystickID][hatNumber] & hatDirection ? true : false);
 	}
+	else if (buttonID & JOY_AXIS)
+	{
+		int axisNum = (buttonID & JOY_AXISNUM_MASK) >> 1;
+		int direction = (buttonID & JOY_AXISDIR_MASK);
+
+		if (axis[joystickID][axisNum] != 0)
+		{
+			if (axis[joystickID][axisNum] > 0 && (direction == 0))
+				return true;
+
+			if (axis[joystickID][axisNum] < 0 && (direction == 1))
+				return true;
+		}
+	}
 
 	// Default == failure
 	return false;
@@ -110,6 +127,18 @@ int Gamepad::CheckButtonPressed(void)
 		{
 			if (hat[i][j])
 				return (JOY_HAT | hatNum[hat[i][j]]);
+		}
+
+		for(int j=0; j<numAxes[i]; j++)
+		{
+			// We encode these as axis # (in bits 1-15), up or down in bit 0.
+//			if (axis[i][j] > 0)
+			if (axis[i][j] > 32000)
+				return (JOY_AXIS | (j << 1) | 0);
+
+//			if (axis[i][j] < 0)
+			if (axis[i][j] < -32000)
+				return (JOY_AXIS | (j << 1) | 1);
 		}
 	}
 
@@ -143,6 +172,9 @@ void Gamepad::Update(void)
 
 		for(int j=0; j<numHats[i]; j++)
 			hat[i][j] = SDL_JoystickGetHat(pad[i], j);
+
+		for(int j=0; j<numAxes[i]; j++)
+			axis[i][j] = SDL_JoystickGetAxis(pad[i], j);
 	}
 }
 

@@ -58,11 +58,6 @@ enum { RT_NORMAL = 0, RT_TV = 1 };
 
 enum { BT_K_SERIES, BT_M_SERIES, BT_STUBULATOR_1, BT_STUBULATOR_2 };
 
-// Exported functions
-
-//void LoadVJSettings(void);
-//void SaveVJSettings(void);
-
 // Exported variables
 
 extern VJSettings vjs;
