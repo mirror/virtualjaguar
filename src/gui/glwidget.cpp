@@ -25,7 +25,7 @@
 
 
 GLWidget::GLWidget(QWidget * parent/*= 0*/): QGLWidget(parent), texture(0),
-	textureWidth(0), textureHeight(0), buffer(0), rasterWidth(340), rasterHeight(240),
+	textureWidth(0), textureHeight(0), buffer(0), rasterWidth(326), rasterHeight(240),
 	offset(0)
 {
 	// Screen pitch has to be the texture width (in 32-bit pixels)...
@@ -53,13 +53,15 @@ void GLWidget::initializeGL()
 	glEnable(GL_DITHER);
 	glEnable(GL_TEXTURE_2D);
 	glClearColor(0.0, 0.0, 0.0, 0.0);
+
+	CreateTextures();
 }
 
 
 void GLWidget::paintGL()
 {
-//kludge
-rasterHeight = (vjs.hardwareTypeNTSC ? VIRTUAL_SCREEN_HEIGHT_NTSC : VIRTUAL_SCREEN_HEIGHT_PAL);
+//kludge [NO MORE!]
+//rasterHeight = (vjs.hardwareTypeNTSC ? VIRTUAL_SCREEN_HEIGHT_NTSC : VIRTUAL_SCREEN_HEIGHT_PAL);
 
 	// If we're in fullscreen mode, we take the value of the screen width as
 	// set by MainWin, since it may be wider than what our aspect ratio allows.
@@ -113,34 +115,31 @@ rasterHeight = (vjs.hardwareTypeNTSC ? VIRTUAL_SCREEN_HEIGHT_NTSC : VIRTUAL_SCRE
 
 void GLWidget::resizeGL(int width, int height)
 {
-	if (width > textureWidth || height > textureHeight)
-	{
-		// Seems that power of 2 sizes are still mandatory...
-		textureWidth  = 1024;
-		textureHeight = 512;
-#if 0
-printf("Resizing: new texture width/height = %i x %i\n", textureWidth, textureHeight);
-printf("Resizing: new raster width/height = %i x %i\n", rasterWidth, rasterHeight);
-#endif
+//kludge [No, this is where it belongs!]
+	rasterHeight = (vjs.hardwareTypeNTSC ? VIRTUAL_SCREEN_HEIGHT_NTSC : VIRTUAL_SCREEN_HEIGHT_PAL);
 
-		if (buffer)
-		{
-			delete[] buffer;
-			glDeleteTextures(1, &texture);
-		}
+	return;
+}
 
-		buffer = new uint32_t[textureWidth * textureHeight];
-		JaguarSetScreenBuffer(buffer);
 
-//???
-memset(buffer, 0xFF, textureWidth * textureHeight * sizeof(uint32_t));
-		glGenTextures(1, &texture);
-		glBindTexture(GL_TEXTURE_2D, texture);
-		glPixelStorei(GL_UNPACK_ROW_LENGTH, textureWidth);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, textureWidth, textureHeight, 0, GL_RGBA, GL_UNSIGNED_INT_8_8_8_8, NULL);
-	}
+// At some point, we'll have to create more than one texture to handle
+// cases like Doom. Or have another go at TV type rendering; it will
+// require a 2048x512 texture though. (Note that 512 is the correct height for
+// interlaced screens; we won't have to change much here to support it.)
+void GLWidget::CreateTextures(void)
+{
+	// Seems that power of 2 sizes are still mandatory...
+	textureWidth  = 1024;
+	textureHeight = 512;
+	buffer = new uint32_t[textureWidth * textureHeight];
+	JaguarSetScreenBuffer(buffer);
+
+	glGenTextures(1, &texture);
+	glBindTexture(GL_TEXTURE_2D, texture);
+	glPixelStorei(GL_UNPACK_ROW_LENGTH, textureWidth);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, textureWidth, textureHeight, 0, GL_RGBA, GL_UNSIGNED_INT_8_8_8_8, NULL);
 }
 
 

@@ -24,11 +24,13 @@ class GLWidget: public QGLWidget
 //		void clicked();
 
 	protected:
-		void initializeGL();
-		void paintGL();
+		void initializeGL(void);
+		void paintGL(void);
 		void resizeGL(int width, int height);
 
-//	private:
+	private:
+		void CreateTextures(void);
+
 	public:
 		GLuint texture;
 		int textureWidth, textureHeight;

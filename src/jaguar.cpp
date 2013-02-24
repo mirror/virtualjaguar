@@ -16,6 +16,7 @@
 
 #include "jaguar.h"
 
+#include <time.h>
 #include <SDL.h>
 #include "SDL_opengl.h"
 #include "blitter.h"
@@ -1758,12 +1759,19 @@ void JaguarSetScreenPitch(uint32_t pitch)
 //
 void JaguarInit(void)
 {
+	// For randomizing RAM
+	srand(time(NULL));
+
+	// Contents of local RAM are quasi-stable; we simulate this by randomizing RAM contents
+	for(uint32_t i=0; i<0x200000; i+=4)
+		*((uint32_t *)(&jaguarMainRAM[i])) = rand();
+
 #ifdef CPU_DEBUG_MEMORY
 	memset(readMem, 0x00, 0x400000);
 	memset(writeMemMin, 0xFF, 0x400000);
 	memset(writeMemMax, 0x00, 0x400000);
 #endif
-	memset(jaguarMainRAM, 0x00, 0x200000);
+//	memset(jaguarMainRAM, 0x00, 0x200000);
 //	memset(jaguar_mainRom, 0xFF, 0x200000);	// & set it to all Fs...
 //	memset(jaguar_mainRom, 0x00, 0x200000);	// & set it to all 0s...
 //NOTE: This *doesn't* fix FlipOut...
@@ -1784,11 +1792,16 @@ memset(jaguarMainRAM + 0x804, 0xFF, 4);
 	CDROMInit();
 }
 
+
 //New timer based code stuffola...
 void HalflineCallback(void);
 void RenderCallback(void);
 void JaguarReset(void)
 {
+	// Contents of local RAM are quasi-stable; we simulate this by randomizing RAM contents
+	for(uint32_t i=0; i<0x200000; i+=4)
+		*((uint32_t *)(&jaguarMainRAM[i])) = rand();
+
 	// New timer base code stuffola...
 	InitializeEventList();
 //Need to change this so it uses the single RAM space and load the BIOS
@@ -1815,6 +1828,7 @@ void JaguarReset(void)
 //	SetCallbackTime(ScanlineCallback, 31.77775);
 	SetCallbackTime(HalflineCallback, (vjs.hardwareTypeNTSC ? 31.777777777 : 32.0));
 }
+
 
 void JaguarDone(void)
 {

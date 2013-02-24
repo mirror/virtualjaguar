@@ -52,7 +52,6 @@
 
 #include "dac.h"
 #include "jaguar.h"
-#include "tom.h"
 #include "log.h"
 #include "file.h"
 #include "jagbios.h"
@@ -204,6 +203,7 @@ MainWin::MainWin(bool autoRun): running(true), powerButtonOn(false),
 
 	frameAdvanceAct = new QAction(QIcon(":/res/frame-advance.png"), tr("&Frame Advance"), this);
 	frameAdvanceAct->setShortcut(QKeySequence(tr("F7")));
+	frameAdvanceAct->setDisabled(true);
 	connect(frameAdvanceAct, SIGNAL(triggered()), this, SLOT(FrameAdvance()));
 
 	fullScreenAct = new QAction(QIcon(":/res/fullscreen.png"), tr("F&ull Screen"), this);
@@ -246,7 +246,7 @@ MainWin::MainWin(bool autoRun): running(true), powerButtonOn(false),
 	fileMenu = menuBar()->addMenu(tr("&Jaguar"));
 	fileMenu->addAction(powerAct);
 	fileMenu->addAction(pauseAct);
-	fileMenu->addAction(frameAdvanceAct);
+//	fileMenu->addAction(frameAdvanceAct);
 	fileMenu->addAction(filePickAct);
 	fileMenu->addAction(useCDAct);
 	fileMenu->addAction(configAct);
@@ -269,6 +269,7 @@ MainWin::MainWin(bool autoRun): running(true), powerButtonOn(false),
 	toolbar = addToolBar(tr("Stuff"));
 	toolbar->addAction(powerAct);
 	toolbar->addAction(pauseAct);
+	toolbar->addAction(frameAdvanceAct);
 	toolbar->addAction(filePickAct);
 	toolbar->addAction(useCDAct);
 	toolbar->addSeparator();
@@ -299,6 +300,21 @@ MainWin::MainWin(bool autoRun): running(true), powerButtonOn(false),
 
 	// Do this in case original size isn't correct (mostly for the first-run case)
 	ResizeMainWindow();
+
+	// Create our test pattern bitmap
+	QImage tempImg(":/res/test-pattern.jpg");
+	QImage tempImgScaled = tempImg.scaled(VIRTUAL_SCREEN_WIDTH, VIRTUAL_SCREEN_HEIGHT_PAL, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
+
+	for(uint32_t y=0; y<VIRTUAL_SCREEN_HEIGHT_PAL; y++)
+	{
+		const QRgb * scanline = (QRgb *)tempImgScaled.constScanLine(y);
+
+		for(uint32_t x=0; x<VIRTUAL_SCREEN_WIDTH; x++)
+		{
+			uint32_t pixel = (qRed(scanline[x]) << 24) | (qGreen(scanline[x]) << 16) | (qBlue(scanline[x]) << 8) | 0xFF;
+			testPattern[(y * VIRTUAL_SCREEN_WIDTH) + x] = pixel;
+		}
+	}
 
 	// Set up timer based loop for animation...
 	timer = new QTimer(this);
@@ -616,8 +632,6 @@ void MainWin::Timer(void)
 	if (showUntunedTankCircuit)
 	{
 		// Some machines can't handle this, so we give them the option to disable it. :-)
-#warning "!!! Add test pattern here for -z option !!!"
-// Actually, should put test pattern in buffer in function below :-P
 		if (!plzDontKillMyComputer)
 		{
 			// Random hash & trash
@@ -657,10 +671,20 @@ void MainWin::TogglePowerState(void)
 		pauseAct->setChecked(false);
 		pauseAct->setDisabled(true);
 		showUntunedTankCircuit = true;
+		DACPauseAudioThread();
 		// This is just in case the ROM we were playing was in a narrow or wide field mode,
 		// so the untuned tank sim doesn't look wrong. :-)
-		DACPauseAudioThread();
 		TOMReset();
+
+		if (plzDontKillMyComputer)
+		{
+			// We have to do it line by line, because the texture pitch is not the
+			// same as the picture buffer's pitch.
+			for(uint32_t y=0; y<videoWidget->rasterHeight; y++)
+			{
+				memcpy(videoWidget->buffer + (y * videoWidget->textureWidth), testPattern + (y * VIRTUAL_SCREEN_WIDTH), VIRTUAL_SCREEN_WIDTH * sizeof(uint32_t));
+			}
+		}
 	}
 	else
 	{
@@ -696,6 +720,8 @@ void MainWin::ToggleRunState(void)
 
 	if (!running)
 	{
+		frameAdvanceAct->setDisabled(false);
+
 		for(uint32_t i=0; i<(uint32_t)(videoWidget->textureWidth * 256); i++)
 		{
 			uint32_t pixel = videoWidget->buffer[i];
@@ -706,6 +732,8 @@ void MainWin::ToggleRunState(void)
 
 		videoWidget->updateGL();
 	}
+	else
+		frameAdvanceAct->setDisabled(true);
 
 	// Pause/unpause any running/non-running threads...
 	DACPauseAudioThread(!running);
@@ -846,6 +874,8 @@ void MainWin::FrameAdvance(void)
 	// Execute 1 frame, then exit (only useful in Pause mode)
 	JaguarExecuteNew();
 	videoWidget->updateGL();
+	// Need to execute 1 frames' worth of DSP thread as well :-/
+#warning "!!! Need to execute the DSP thread for 1 frame too !!!"
 }
 
 
@@ -854,7 +884,6 @@ void MainWin::SetFullScreen(bool state/*= true*/)
 	if (state)
 	{
 		mainWinPosition = pos();
-//		mainWinSize = size();
 		menuBar()->hide();
 		statusBar()->hide();
 		x1Act->setDisabled(true);
@@ -865,18 +894,15 @@ void MainWin::SetFullScreen(bool state/*= true*/)
 		// screen than screen 0:
 		int screenNum = QApplication::desktop()->screenNumber(videoWidget);
 		QRect r = QApplication::desktop()->availableGeometry(screenNum);
-//		double targetWidth = 320.0, targetHeight = (vjs.hardwareTypeNTSC ? 240.0 : 256.0);
 		double targetWidth = (double)VIRTUAL_SCREEN_WIDTH,
 			targetHeight = (double)(vjs.hardwareTypeNTSC ? VIRTUAL_SCREEN_HEIGHT_NTSC : VIRTUAL_SCREEN_HEIGHT_PAL);
 		double aspectRatio = targetWidth / targetHeight;
-		// NOTE: Really should check here to see which dimension constrains the other.
-		//       Right now, we assume that height is the constraint.
+		// NOTE: Really should check here to see which dimension constrains the
+		//       other. Right now, we assume that height is the constraint.
 		int newWidth = (int)(aspectRatio * (double)r.height());
 		videoWidget->offset = (r.width() - newWidth) / 2;
 		videoWidget->fullscreen = true;
 		videoWidget->outputWidth = newWidth;
-
-//		videoWidget->setFixedSize(newWidth, r.height());
 		videoWidget->setFixedSize(r.width(), r.height());
 		showFullScreen();
 	}
@@ -897,6 +923,8 @@ void MainWin::SetFullScreen(bool state/*= true*/)
 
 	// For some reason, this doesn't work: If the emu is paused, toggling from
 	// fullscreen to windowed (& vice versa) shows a white screen.
+	// (It was the ResizeGL() function in GLWidget: it was being called too
+	// much, causing the buffer to be deleted, remade & cleared.)
 //	videoWidget->updateGL();
 }
 
@@ -945,9 +973,18 @@ void MainWin::ShowRISCDasmBrowserWin(void)
 
 void MainWin::ResizeMainWindow(void)
 {
-//	videoWidget->setFixedSize(zoomLevel * 320, zoomLevel * (vjs.hardwareTypeNTSC ? 240 : 256));
 	videoWidget->setFixedSize(zoomLevel * VIRTUAL_SCREEN_WIDTH,
 		zoomLevel * (vjs.hardwareTypeNTSC ? VIRTUAL_SCREEN_HEIGHT_NTSC : VIRTUAL_SCREEN_HEIGHT_PAL));
+
+	// Show the test pattern if user requested plzDontKillMyComputer mode
+	if (!powerButtonOn && plzDontKillMyComputer)
+	{
+		for(uint32_t y=0; y<videoWidget->rasterHeight; y++)
+		{
+			memcpy(videoWidget->buffer + (y * videoWidget->textureWidth), testPattern + (y * VIRTUAL_SCREEN_WIDTH), VIRTUAL_SCREEN_WIDTH * sizeof(uint32_t));
+		}
+	}
+
 	show();
 
 	for(int i=0; i<2; i++)

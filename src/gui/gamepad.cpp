@@ -95,10 +95,10 @@ bool Gamepad::GetState(int joystickID, int buttonID)
 
 		if (axis[joystickID][axisNum] != 0)
 		{
-			if (axis[joystickID][axisNum] > 0 && (direction == 0))
+			if (axis[joystickID][axisNum] > 16000 && (direction == 0))
 				return true;
 
-			if (axis[joystickID][axisNum] < 0 && (direction == 1))
+			if (axis[joystickID][axisNum] < -16000 && (direction == 1))
 				return true;
 		}
 	}

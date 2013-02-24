@@ -18,7 +18,6 @@
 
 #include <SDL.h>								// Used only for SDL_GetTicks...
 #include <stdlib.h>
-#include <time.h>
 #include "dac.h"
 #include "gpu.h"
 #include "jagdasm.h"
@@ -1279,7 +1278,6 @@ void DSPInit(void)
 
 	dsp_build_branch_condition_table();
 	DSPReset();
-	srand(time(NULL));							// For randomizing local RAM
 }
 
 void DSPReset(void)
@@ -1306,12 +1304,10 @@ void DSPReset(void)
 	IMASKCleared = false;
 	FlushDSPPipeline();
 	dsp_reset_stats();
-//	memset(dsp_ram_8, 0xFF, 0x2000);
+
 	// Contents of local RAM are quasi-stable; we simulate this by randomizing RAM contents
 	for(uint32_t i=0; i<8192; i+=4)
-	{
 		*((uint32_t *)(&dsp_ram_8[i])) = rand();
-	}
 }
 
 void DSPDumpDisassembly(void)
