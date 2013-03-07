@@ -1777,13 +1777,12 @@ void JaguarInit(void)
 //NOTE: This *doesn't* fix FlipOut...
 //Or does it? Hmm...
 //Seems to want $01010101... Dunno why. Investigate!
-	memset(jaguarMainROM, 0x01, 0x600000);	// & set it to all 01s...
+//	memset(jaguarMainROM, 0x01, 0x600000);	// & set it to all 01s...
 //	memset(jaguar_mainRom, 0xFF, 0x600000);	// & set it to all Fs...
 	lowerField = false;							// Reset the lower field flag
 //temp, for crappy crap that sux
 memset(jaguarMainRAM + 0x804, 0xFF, 4);
 
-//	m68k_set_cpu_type(M68K_CPU_TYPE_68000);
 	m68k_pulse_reset();							// Need to do this so UAE disasm doesn't segfault on exit
 	GPUInit();
 	DSPInit();
@@ -1798,8 +1797,9 @@ void HalflineCallback(void);
 void RenderCallback(void);
 void JaguarReset(void)
 {
+	// Only problem with this approach: It wipes out RAM loaded files...!
 	// Contents of local RAM are quasi-stable; we simulate this by randomizing RAM contents
-	for(uint32_t i=0; i<0x200000; i+=4)
+	for(uint32_t i=8; i<0x200000; i+=4)
 		*((uint32_t *)(&jaguarMainRAM[i])) = rand();
 
 	// New timer base code stuffola...
@@ -1927,12 +1927,6 @@ void JaguarDone(void)
 	M68K_show_context();
 //#endif
 
-#if 0	// This is drawn already...
-	WriteLog("Jaguar: 68K AutoVector table:\n", JaguarReadWord(0x3004));
-	for(uint32_t i=0x64; i<=0x7C; i+=4)
-		WriteLog("  #%u: %08X\n", (i-0x64)/4, JaguarReadLong(i));
-#endif
-
 	CDROMDone();
 	GPUDone();
 	DSPDone();
@@ -1991,7 +1985,7 @@ void DumpMainMemory(void)
 	if (fp == NULL)
 		return;
 
-	fwrite(jaguarMainRAM, 1, 0x400000, fp);
+	fwrite(jaguarMainRAM, 1, 0x200000, fp);
 	fclose(fp);
 }
 

@@ -77,8 +77,8 @@
 
 static SDL_AudioSpec desired;
 static bool SDLSoundInitialized;
-static uint8_t SCLKFrequencyDivider = 19;			// Default is roughly 22 KHz (20774 Hz in NTSC mode)
-/*static*/ uint16_t serialMode = 0;
+//static uint8_t SCLKFrequencyDivider = 19;			// Default is roughly 22 KHz (20774 Hz in NTSC mode)
+// /*static*/ uint16_t serialMode = 0;
 
 // Private function prototypes
 
@@ -117,6 +117,7 @@ void DACInit(void)
 	}
 
 	ltxd = lrxd = desired.silence;
+	sclk = 19;									// Default is roughly 22 KHz
 
 	uint32_t riscClockRate = (vjs.hardwareTypeNTSC ? RISC_CLOCK_RATE_NTSC : RISC_CLOCK_RATE_PAL);
 	uint32_t cyclesPerSample = riscClockRate / DAC_AUDIO_RATE;
@@ -194,8 +195,8 @@ void SDLSoundCallback(void * userdata, Uint8 * buffer, int length)
 
 	// The length of time we're dealing with here is 1/48000 s, so we multiply this
 	// by the number of cycles per second to get the number of cycles for one sample.
-	uint32_t riscClockRate = (vjs.hardwareTypeNTSC ? RISC_CLOCK_RATE_NTSC : RISC_CLOCK_RATE_PAL);
-	uint32_t cyclesPerSample = riscClockRate / DAC_AUDIO_RATE;
+//	uint32_t riscClockRate = (vjs.hardwareTypeNTSC ? RISC_CLOCK_RATE_NTSC : RISC_CLOCK_RATE_PAL);
+//	uint32_t cyclesPerSample = riscClockRate / DAC_AUDIO_RATE;
 	// This is the length of time
 //	timePerSample = (1000000.0 / (double)riscClockRate) * ();
 
@@ -203,12 +204,14 @@ void SDLSoundCallback(void * userdata, Uint8 * buffer, int length)
 
 	bufferIndex = 0;
 	sampleBuffer = buffer;
+// If length is the length of the sample buffer in BYTES, then shouldn't the # of
+// samples be / 4? No, because we bump the sample count by 2, so this is OK.
 	numberOfSamples = length / 2;
 	bufferDone = false;
 
 	SetCallbackTime(DSPSampleCallback, 1000000.0 / (double)DAC_AUDIO_RATE, EVENT_JERRY);
 
-	// These timings are tied to NTSC, need to fix that in event.cpp/h!
+	// These timings are tied to NTSC, need to fix that in event.cpp/h! [FIXED]
 	do
 	{
 		double timeToNextEvent = GetTimeToNextEvent(EVENT_JERRY);
@@ -281,14 +284,17 @@ void DACWriteWord(uint32_t offset, uint16_t data, uint32_t who/*= UNKNOWN*/)
 	}
 	else if (offset == SCLK + 2)					// Sample rate
 	{
-		WriteLog("DAC: Writing %u to SCLK...\n", data);
+		WriteLog("DAC: Writing %u to SCLK (by %s)...\n", data, whoName[who]);
 
-		if ((uint8_t)data != SCLKFrequencyDivider)
-			SCLKFrequencyDivider = (uint8_t)data;
+		sclk = data & 0xFF;
+		JERRYI2SInterruptTimer = -1;
+		RemoveCallback(JERRYI2SCallback);
+		JERRYI2SCallback();
 	}
 	else if (offset == SMODE + 2)
 	{
-		serialMode = data;
+//		serialMode = data;
+		smode = data;
 		WriteLog("DAC: %s writing to SMODE. Bits: %s%s%s%s%s%s [68K PC=%08X]\n", whoName[who],
 			(data & 0x01 ? "INTERNAL " : ""), (data & 0x02 ? "MODE " : ""),
 			(data & 0x04 ? "WSEN " : ""), (data & 0x08 ? "RISING " : ""),

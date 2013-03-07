@@ -56,6 +56,21 @@ void CPUBrowserWindow::RefreshContents(void)
 	uint32_t m68kSR = m68k_get_reg(NULL, M68K_REG_SR);
 	sprintf(string, "PC: %06X&nbsp;&nbsp;SR: %04X<br><br>", m68kPC, m68kSR);
 	s += QString(string);
+/*
+SR format:
++--+--+--+--+ +--+--+--+--+ +--+--+--+--+ +--+--+--+--+
+|T1|T0| S| M| |--|I2|I1|I0| |--|--|--| X| | N| Z| V| C|
++--+--+--+--+ +--+--+--+--+ +--+--+--+--+ +--+--+--+--+
+ T - Trace (T1 only in 68K, T0 = 0)
+ S - Supervisor flag
+ M - Master/Interrupt flag (= 0 in 68K)
+ I - Interrupt level mask
+ X - Extend flag
+ N - Negative flag
+ Z - Zero flag
+ V - Overflow flag
+ C - Carry flag
+*/
 
 	uint32_t m68kA0 = m68k_get_reg(NULL, M68K_REG_A0);
 	uint32_t m68kA1 = m68k_get_reg(NULL, M68K_REG_A1);
@@ -86,8 +101,30 @@ void CPUBrowserWindow::RefreshContents(void)
 	s += QString(string);
 
 	// GPU
-	sprintf(string, "GPU PC: %06X&nbsp;&nbsp;FLAGS: %08X<br><br>", GPUReadLong(0xF02010), GPUReadLong(0xF02000));
+	sprintf(string, "GPU PC: %06X&nbsp;&nbsp;FLAGS: %04X&nbsp;&nbsp;SR: %04X<br><br>", GPUReadLong(0xF02110, DEBUG), GPUReadLong(0xF02100, DEBUG), GPUReadLong(0xF02114, DEBUG));
 	s += QString(string);
+/*
+GPU Flags:
+0    - Zero flag
+1    - Carry flag
+2    - Negative flag
+3    - IMASK (writing 0 clears, 1 has no effect)
+4-8  - IRQ enable 0 - 4
+9-13 - IRQ latch clear 0 - 4
+14   - REGPAGE
+15   - DMAEN
+
+GPU Control:
+0     - GPU Go
+1     - CPUINT
+2     - GPUINT0
+3     - Single Step
+4     - Single step go
+5     - Unused
+6-10  - IRQ Latch 0 - 4
+11    - Bus Hog
+12-15 - Version
+*/
 
 	sprintf(string, "Bank 0:<br>"
 		"R00: %08X&nbsp;&nbsp;R01: %08X&nbsp;&nbsp;R02: %08X&nbsp;&nbsp;R03: %08X<br>"
@@ -128,8 +165,33 @@ void CPUBrowserWindow::RefreshContents(void)
 	s += QString(string);
 
 	// DSP
-	sprintf(string, "DSP PC: %06X&nbsp;&nbsp;FLAGS: %08X<br><br>", DSPReadLong(0xF1A110), DSPReadLong(0xF1A100));
+	sprintf(string, "DSP PC: %06X&nbsp;&nbsp;FLAGS: %05X&nbsp;&nbsp;SR: %05X<br><br>", DSPReadLong(0xF1A110, DEBUG), DSPReadLong(0xF1A100, DEBUG), DSPReadLong(0xF1A114, DEBUG));
 	s += QString(string);
+/*
+DSP Flags:
+0    - Zero flag
+1    - Carry flag
+2    - Negative flag
+3    - IMASK (writing 0 clears, 1 has no effect)
+4-8  - IRQ enable 0 - 4
+9-13 - IRQ latch clear 0 - 4
+14   - REGPAGE
+15   - DMAEN
+16   - IRQ enable 5
+17   - IRQ latch clear 5
+
+DSP Control:
+0     - DSP Go
+1     - CPUINT
+2     - DSPINT0
+3     - Single Step
+4     - Single step go
+5     - Unused
+6-10  - IRQ Latch 0 - 4
+11    - Bus Hog
+12-15 - Version
+16    - IRQ Latch 5
+*/
 
 	sprintf(string, "Bank 0:<br>"
 		"R00: %08X&nbsp;&nbsp;R01: %08X&nbsp;&nbsp;R02: %08X&nbsp;&nbsp;R03: %08X<br>"

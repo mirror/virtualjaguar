@@ -310,7 +310,7 @@ static void dsp_opcode_subqmod(void);
 static void dsp_opcode_subqt(void);
 static void dsp_opcode_illegal(void);
 
-uint8_t dsp_opcode_cycles[64] =
+/*uint8_t dsp_opcode_cycles[64] =
 {
 	3,  3,  3,  3,  3,  3,  3,  3,
 	3,  3,  3,  3,  3,  3,  3,  3,
@@ -325,7 +325,10 @@ uint8_t dsp_opcode_cycles[64] =
 //This is wrong, wrong, WRONG, but it seems to work for the time being...
 //(That is, it fixes Flip Out which relies on GPU timing rather than semaphores. Bad developers! Bad!)
 //What's needed here is a way to take pipeline effects into account (including pipeline stalls!)...
-/*uint8_t dsp_opcode_cycles[64] =
+// Yup, without cheating like this, the sound in things like Rayman, FACTS, &
+// Tripper Getem get starved for time and sounds like crap. So we have to figure
+// out how to fix that. :-/
+uint8_t dsp_opcode_cycles[64] =
 {
 	1,  1,  1,  1,  1,  1,  1,  1,
 	1,  1,  1,  1,  1,  1,  1,  1,
@@ -755,80 +758,6 @@ SET32(ram2, offset, data);
 			DSPUpdateRegisterBanks();
 			dsp_control &= ~((dsp_flags & CINT04FLAGS) >> 3);
 			dsp_control &= ~((dsp_flags & CINT5FLAG) >> 1);
-
-// NB: This is just a wild hairy-assed guess as to what the playback frequency is.
-//     It can be timed to anything really, anything that writes to L/RTXD at a regular
-//     interval. Most things seem to use either the I2S interrupt or the TIMER 0
-//     interrupt, so that's what we check for here. Just know that this approach
-//     can be easily fooled!
-//     Note also that if both interrupts are enabled, the I2S freq will win. :-P
-
-// Further Note:
-// The impetus for this "fix" was Cybermorph, which sets the SCLK to 7 which is an
-// audio frequency > 48 KHz. However, it stuffs the L/RTXD registers using TIMER0.
-// So, while this works, it's a by-product of the lame way in which audio is currently
-// handled. Hopefully, once we run the DSP in the host audio IRQ, this problem will
-// go away of its own accord. :-P
-// Or does it? It seems the I2S interrupt isn't on with Cybermorph, so something
-// weird is going on here...
-// Maybe it works like this: It acknowledges the 1st interrupt, but never clears it.
-// So subsequent interrupts come into the chip, but they're never serviced but the
-// I2S subsystem keeps going.
-// After some testing on real hardware, it seems that if you enable TIMER0 and EXTERNAL
-// IRQs on J_INT ($F10020), you don't have to run an I2S interrupt on the DSP. Also,
-// It seems that it's only stable for values of SCLK <= 9.
-
-// All of the preceeding is moot now; we run the DSP in the host audio IRQ. This means
-// that we don't actually need this stuff anymore. :-D
-#if 0
-			if (data & INT_ENA1) // I2S interrupt
-			{
-				int freq = GetCalculatedFrequency();
-//This happens too often to be useful...
-//				WriteLog("DSP: Setting audio freqency to %u Hz...\n", freq);
-				DACSetNewFrequency(freq);
-			}
-			else if (data & INT_ENA2) // TIMER 0 interrupt
-			{
-				int freq = JERRYGetPIT1Frequency();
-//This happens too often to be useful...
-//				WriteLog("DSP: Setting audio freqency to %u Hz...\n", freq);
-				DACSetNewFrequency(freq);
-			}
-#endif
-
-/*			if (IMASKCleared)						// If IMASK was cleared,
-#ifdef DSP_DEBUG_IRQ
-			{
-				WriteLog("DSP: Finished interrupt.\n");
-#endif
-				DSPHandleIRQs();					// see if any other interrupts need servicing!
-#ifdef DSP_DEBUG_IRQ
-			}
-#endif//*/
-#if 0
-			if (/*4-8, 16*/data & 0x101F0)
-				WriteLog("DSP: %s is enabling interrupts %s%s%s%s%s%s\n", whoName[who],
-					(data & 0x010 ? "CPU " : ""), (data & 0x020 ? "I2S " : ""),
-					(data & 0x040 ? "TIMER0 " : ""), (data & 0x080 ? "TIMER1 " : ""),
-					(data & 0x100 ? "EXT0 " : ""), (data & 0x10000 ? "EXT1" : ""));
-/*if (data & 0x00020) // CD BIOS DSP code...
-{
-//001AC1BA: movea.l #$1AC200, A0
-//001AC1C0: move.l  #$1AC68C, D0
-	char buffer[512];
-
-	WriteLog("\n---[DSP code at 00F1B97C]---------------------------\n");
-	uint32_t j = 0xF1B97C;//0x1AC200;
-	while (j <= 0xF1BE08)//0x1AC68C)
-	{
-		uint32_t oldj = j;
-		j += dasmjag(JAGUAR_DSP, buffer, j);
-//		WriteLog("\t%08X: %s\n", oldj+0xD6F77C, buffer);
-		WriteLog("\t%08X: %s\n", oldj, buffer);
-	}
-}//*/
-#endif
 			break;
 		}
 		case 0x04:
@@ -867,10 +796,9 @@ WriteLog("Write to DSP CTRL by %s: %08X (DSP PC=$%08X)\n", whoName[who], data, d
 #ifdef DSP_DEBUG
 				WriteLog("DSP: DSP -> CPU interrupt\n");
 #endif
-// This was WRONG
-// Why do we check for a valid handler at 64? Isn't that the Jag programmer's responsibility? (YES)
+
 #warning "!!! DSP IRQs that go to the 68K have to be routed thru TOM !!! FIX !!!"
-				if (JERRYIRQEnabled(IRQ2_DSP))// && jaguar_interrupt_handler_is_valid(64))
+				if (JERRYIRQEnabled(IRQ2_DSP))
 				{
 					JERRYSetPendingIRQ(IRQ2_DSP);
 					DSPReleaseTimeslice();

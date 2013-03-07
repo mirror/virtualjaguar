@@ -26,10 +26,11 @@
 
 GLWidget::GLWidget(QWidget * parent/*= 0*/): QGLWidget(parent), texture(0),
 	textureWidth(0), textureHeight(0), buffer(0), rasterWidth(326), rasterHeight(240),
-	offset(0)
+	offset(0), hideMouseTimeout(60)
 {
 	// Screen pitch has to be the texture width (in 32-bit pixels)...
 	JaguarSetScreenPitch(1024);
+	setMouseTracking(true);
 }
 
 
@@ -113,7 +114,7 @@ void GLWidget::paintGL()
 }
 
 
-void GLWidget::resizeGL(int width, int height)
+void GLWidget::resizeGL(int /*width*/, int /*height*/)
 {
 //kludge [No, this is where it belongs!]
 	rasterHeight = (vjs.hardwareTypeNTSC ? VIRTUAL_SCREEN_HEIGHT_NTSC : VIRTUAL_SCREEN_HEIGHT_PAL);
@@ -140,6 +141,44 @@ void GLWidget::CreateTextures(void)
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, textureWidth, textureHeight, 0, GL_RGBA, GL_UNSIGNED_INT_8_8_8_8, NULL);
+}
+
+
+//void GLWidget::HideMouseIfTimedOut(void)
+void GLWidget::HandleMouseHiding(void)
+{
+	// Mouse watchdog timer handling. Basically, if the timeout value is
+	// greater than zero, decrement it. Otherwise, check for zero, if so,
+	// then hide the mouse and set the hideMouseTimeout value to -1 to
+	// signal that the mouse has been hidden.
+	if (hideMouseTimeout > 0)
+		hideMouseTimeout--;
+	else if (hideMouseTimeout == 0)
+	{
+		hideMouseTimeout--;
+		qApp->setOverrideCursor(Qt::BlankCursor);
+//printf("timer: hideMouseTimeout = %i, mouse hidden\n", hideMouseTimeout);
+	}
+}
+
+
+// We use this as part of a watchdog system for hiding/unhiding the mouse. This
+// part shows the mouse (if hidden) and resets the watchdog timer.
+void GLWidget::CheckAndRestoreMouseCursor(void)
+{
+	// Has the mouse been hidden? (-1 means mouse was hidden)
+	if (hideMouseTimeout == -1)
+		qApp->restoreOverrideCursor();
+
+	hideMouseTimeout = 60;
+}
+
+
+// We check here for mouse movement; if there is any, show the mouse and reset
+// the watchdog timer.
+void GLWidget::mouseMoveEvent(QMouseEvent * /*event*/)
+{
+	CheckAndRestoreMouseCursor();
 }
 
 

@@ -37,7 +37,7 @@ void JERRYI2SCallback(void);
 
 // External variables
 
-extern uint32_t JERRYI2SInterruptDivide;
+//extern uint32_t JERRYI2SInterruptDivide;
 extern int32_t JERRYI2SInterruptTimer;
 
 #endif

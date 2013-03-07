@@ -49,7 +49,7 @@ AboutWindow::AboutWindow(QWidget * parent/*= 0*/): QWidget(parent, Qt::Dialog)
 		"<b>Bernd Schmidt</b> for his UAE 68K emulator<br>"
 		"<b>Sam Lantinga</b> for his amazing SDL libraries<br>"
 		"<b>Ryan C. Gordon</b> for Virtual Jaguar's web presence<br>"
-		"<b>Curt Vendel</b> for various Jaguar & other goodies (you <i>rock!</i>)<br>"
+		"<b>Curt Vendel</b> for various Jaguar & other goodies<br>"
 		"<b>Reboot</b> for reasons too numerous to mention<br>"
 		"<b>The Free Jaguar Project</b> (you know why) ;-)<br>"
 		"The guys over at <b>Atari Age</b> :-)<br>"

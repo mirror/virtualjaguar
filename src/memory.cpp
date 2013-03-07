@@ -262,6 +262,5 @@ uint32_t & smode     = *((uint32_t *)&jagMemSpace[0xF1A154]);
 
 // Memory debugging identifiers
 
-const char * whoName[9] =
-	{ "Unknown", "Jaguar", "DSP", "GPU", "TOM", "JERRY", "M68K", "Blitter", "OP" };
-
+const char * whoName[10] =
+	{ "Unknown", "Jaguar", "DSP", "GPU", "TOM", "JERRY", "M68K", "Blitter", "OP", "Debugger" };

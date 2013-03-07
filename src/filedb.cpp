@@ -132,5 +132,6 @@ RomIdentifier romList[] = {
 // is this really a BIOS???
 // No, it's really a cart, complete with RSA header. So need to fix so it can load.
 	{ 0xFDF37F47, "Memory Track Cartridge (World)", FF_ROM | FF_VERIFIED },
+	{ 0xF7756A03, "Tripper Getem (World)", FF_ROM | FF_VERIFIED },
 	{ 0xFFFFFFFF, "***END***", 0 }
 };

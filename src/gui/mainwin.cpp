@@ -21,6 +21,7 @@
 //
 // STILL TO BE DONE:
 //
+// - Fix bug in switching between PAL & NTSC in fullscreen mode.
 // - Remove SDL dependencies (sound, mainly) from Jaguar core lib
 // - Fix inconsistency with trailing slashes in paths (eeproms needs one, software doesn't)
 //
@@ -59,6 +60,7 @@
 #include "jagcdbios.h"
 #include "jagstub2bios.h"
 #include "joystick.h"
+#include "m68000/m68kinterface.h"
 
 // According to SebRmv, this header isn't seen on Arch Linux either... :-/
 //#ifdef __GCCWIN32__
@@ -651,6 +653,8 @@ void MainWin::Timer(void)
 		// Otherwise, run the Jaguar simulation
 		HandleGamepads();
 		JaguarExecuteNew();
+//		videoWidget->HideMouseIfTimedOut();
+		videoWidget->HandleMouseHiding();
 	}
 
 	videoWidget->updateGL();
@@ -665,6 +669,8 @@ void MainWin::TogglePowerState(void)
 	// With the power off, we simulate white noise on the screen. :-)
 	if (!powerButtonOn)
 	{
+		// Restore the mouse pointer, if hidden:
+		videoWidget->CheckAndRestoreMouseCursor();
 		useCDAct->setDisabled(false);
 		palAct->setDisabled(false);
 		ntscAct->setDisabled(false);
@@ -720,6 +726,8 @@ void MainWin::ToggleRunState(void)
 
 	if (!running)
 	{
+		// Restore the mouse pointer, if hidden:
+		videoWidget->CheckAndRestoreMouseCursor();
 		frameAdvanceAct->setDisabled(false);
 
 		for(uint32_t i=0; i<(uint32_t)(videoWidget->textureWidth * 256); i++)
@@ -832,8 +840,6 @@ void MainWin::LoadSoftware(QString file)
 {
 	running = false;							// Prevent bad things(TM) from happening...
 	pauseForFileSelector = false;				// Reset the file selector pause flag
-	SET32(jaguarMainRAM, 0, 0x00200000);		// Set top of stack...
-	cartridgeLoaded = JaguarLoadFile(file.toAscii().data());
 
 	char * biosPointer = jaguarBootROM;
 
@@ -846,6 +852,16 @@ void MainWin::LoadSoftware(QString file)
 	powerAct->setChecked(true);
 	powerButtonOn = false;
 	TogglePowerState();
+	// We have to load our software *after* the Jaguar RESET
+	cartridgeLoaded = JaguarLoadFile(file.toAscii().data());
+	SET32(jaguarMainRAM, 0, 0x00200000);		// Set top of stack...
+
+	// This is icky because we've already done it
+// it gets worse :-P
+if (!vjs.useJaguarBIOS)
+	SET32(jaguarMainRAM, 4, jaguarRunAddress);
+
+	m68k_pulse_reset();
 
 	if (!vjs.hardwareTypeAlpine && !loadAndGo)
 	{

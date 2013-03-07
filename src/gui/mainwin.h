@@ -41,7 +41,7 @@ class MainWin: public QMainWindow
 
 	private slots:
 		void Open(void);
- 		void Configure(void);
+		void Configure(void);
 		void Timer(void);
 		void TogglePowerState(void);
 		void ToggleRunState(void);

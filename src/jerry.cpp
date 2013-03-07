@@ -185,7 +185,7 @@ static uint32_t JERRYPIT2Divider;
 static int32_t jerry_timer_1_counter;
 static int32_t jerry_timer_2_counter;
 
-uint32_t JERRYI2SInterruptDivide = 8;
+//uint32_t JERRYI2SInterruptDivide = 8;
 int32_t JERRYI2SInterruptTimer = -1;
 uint32_t jerryI2SCycles;
 uint32_t jerryIntPending;
@@ -208,7 +208,7 @@ void JERRYResetI2S(void)
 {
 	//WriteLog("i2s: reseting\n");
 //This is really SCLK... !!! FIX !!!
-	JERRYI2SInterruptDivide = 8;
+	sclk = 8;
 	JERRYI2SInterruptTimer = -1;
 }
 
@@ -282,30 +282,30 @@ void JERRYPIT2Callback(void)
 
 void JERRYI2SCallback(void)
 {
-	// Why is it called this? Instead of SCLK? Shouldn't this be read from DAC.CPP???
-//Yes, it should. !!! FIX !!!
-#warning "Why is it called this? Instead of SCLK? Shouldn't this be read from DAC.CPP??? Yes, it should. !!! FIX !!!"
-	JERRYI2SInterruptDivide &= 0xFF;
 	// We don't have to divide the RISC clock rate by this--the reason is a bit
 	// convoluted. Will put explanation here later...
 // What's needed here is to find the ratio of the frequency to the number of clock cycles
 // in one second. For example, if the sample rate is 44100, we divide the clock rate by
 // this: 26590906 / 44100 = 602 cycles.
 // Which means, every 602 cycles that go by we have to generate an interrupt.
-	jerryI2SCycles = 32 * (2 * (JERRYI2SInterruptDivide + 1));
+	jerryI2SCycles = 32 * (2 * (sclk + 1));
+//This makes audio faster, but not enough and the pitch is wrong besides
+//	jerryI2SCycles = 32 * (2 * (sclk - 1));
 
-//This should be in this file with an extern reference in the header file so that
-//DAC.CPP can see it... !!! FIX !!!
-	extern uint16_t serialMode;						// From DAC.CPP
-
-	if (serialMode & 0x01)							// INTERNAL flag (JERRY is master)
+	// If INTERNAL flag is set, then JERRY's SCLK is master
+	if (smode & SMODE_INTERNAL)
 	{
-		DSPSetIRQLine(DSPIRQ_SSI, ASSERT_LINE);		// This does the 'IRQ enabled' checking...
-		double usecs = (float)jerryI2SCycles * RISC_CYCLE_IN_USEC;
+		// This does the 'IRQ enabled' checking...
+		DSPSetIRQLine(DSPIRQ_SSI, ASSERT_LINE);
+//		double usecs = (float)jerryI2SCycles * RISC_CYCLE_IN_USEC;
+//this fix is almost enough to fix timings in tripper, but not quite enough...
+		double usecs = (float)jerryI2SCycles * (vjs.hardwareTypeNTSC ? RISC_CYCLE_IN_USEC : RISC_CYCLE_PAL_IN_USEC);
 		SetCallbackTime(JERRYI2SCallback, usecs, EVENT_JERRY);
 	}
-	else											// JERRY is slave to external word clock
+	else
 	{
+		// JERRY is slave to external word clock
+
 //Note that 44100 Hz requires samples every 22.675737 usec.
 //When JERRY is slave to the word clock, we need to do interrupts either at 44.1K
 //sample rate or at a 88.2K sample rate (11.332... usec).
@@ -513,19 +513,25 @@ void JERRYWriteByte(uint32_t offset, uint8_t data, uint32_t who/*=UNKNOWN*/)
 	}
 	// SCLK ($F1A150--8 bits wide)
 //NOTE: This should be taken care of in DAC...
+#if 0
 	else if ((offset >= 0xF1A152) && (offset <= 0xF1A153))
 	{
+#if 0
 //		WriteLog("JERRY: Writing %02X to SCLK...\n", data);
 		if ((offset & 0x03) == 2)
-			JERRYI2SInterruptDivide = (JERRYI2SInterruptDivide & 0x00FF) | ((uint32_t)data << 8);
+			sclk = (sclk & 0x00FF) | ((uint32_t)data << 8);
 		else
-			JERRYI2SInterruptDivide = (JERRYI2SInterruptDivide & 0xFF00) | (uint32_t)data;
-
+			sclk = (sclk & 0xFF00) | (uint32_t)data;
+#else
+		sclk = data;
+#endif
+#warning "!!! SCLK should be handled in dac.cpp !!!"
 		JERRYI2SInterruptTimer = -1;
 		RemoveCallback(JERRYI2SCallback);
 		JERRYI2SCallback();
 //		return;
 	}
+#endif
 	// LTXD/RTXD/SCLK/SMODE $F1A148/4C/50/54 (really 16-bit registers...)
 	else if (offset >= 0xF1A148 && offset <= 0xF1A157)
 	{
@@ -625,11 +631,17 @@ else if (offset == 0xF10020)
 		return;
 	}
 //NOTE: This should be taken care of in DAC...
+#if 0
 	else if (offset == 0xF1A152)					// Bottom half of SCLK ($F1A150)
 	{
+#warning "!!! SCLK should be handled in dac.cpp !!!"
 		WriteLog("JERRY: Writing $%X to SCLK (by %s)...\n", data, whoName[who]);
 //This should *only* be enabled when SMODE has its INTERNAL bit set! !!! FIX !!!
-		JERRYI2SInterruptDivide = (uint8_t)data;
+#if 0
+		sclk = (uint8_t)data;
+#else
+		sclk = data & 0xFF;
+#endif
 		JERRYI2SInterruptTimer = -1;
 		RemoveCallback(JERRYI2SCallback);
 		JERRYI2SCallback();
@@ -637,6 +649,7 @@ else if (offset == 0xF10020)
 		DACWriteWord(offset, data, who);
 		return;
 	}
+#endif
 	// LTXD/RTXD/SCLK/SMODE $F1A148/4C/50/54 (really 16-bit registers...)
 	else if (offset >= 0xF1A148 && offset <= 0xF1A156)
 	{
@@ -707,14 +720,17 @@ else if (offset == 0xF10020)
 	jerry_ram_8[(offset+1) & 0xFFFF] = data & 0xFF;
 }
 
+
 int JERRYGetPIT1Frequency(void)
 {
 	int systemClockFrequency = (vjs.hardwareTypeNTSC ? RISC_CLOCK_RATE_NTSC : RISC_CLOCK_RATE_PAL);
 	return systemClockFrequency / ((JERRYPIT1Prescaler + 1) * (JERRYPIT1Divider + 1));
 }
 
+
 int JERRYGetPIT2Frequency(void)
 {
 	int systemClockFrequency = (vjs.hardwareTypeNTSC ? RISC_CLOCK_RATE_NTSC : RISC_CLOCK_RATE_PAL);
 	return systemClockFrequency / ((JERRYPIT2Prescaler + 1) * (JERRYPIT2Divider + 1));
 }
+

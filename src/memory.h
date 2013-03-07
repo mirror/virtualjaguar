@@ -65,8 +65,8 @@ uint32_t & smode     = *((uint32_t *)&jagMemSpace[0xF1A154]);
 
 // Read/write tracing enumeration
 
-enum { UNKNOWN, JAGUAR, DSP, GPU, TOM, JERRY, M68K, BLITTER, OP };
-extern const char * whoName[9];
+enum { UNKNOWN, JAGUAR, DSP, GPU, TOM, JERRY, M68K, BLITTER, OP, DEBUG };
+extern const char * whoName[10];
 
 // BIOS identification enum
 

@@ -17,6 +17,9 @@ class GLWidget: public QGLWidget
 		GLWidget(QWidget * parent = 0);
 		~GLWidget();
 
+//		void HideMouseIfTimedOut(void);
+		void HandleMouseHiding(void);
+		void CheckAndRestoreMouseCursor(void);
 //		QSize minimumSizeHint() const;
 //		QSize sizeHint() const;
 
@@ -27,6 +30,9 @@ class GLWidget: public QGLWidget
 		void initializeGL(void);
 		void paintGL(void);
 		void resizeGL(int width, int height);
+		void mouseMoveEvent(QMouseEvent *);
+//		void mousePressEvent(QMouseEvent * event);
+//		void mouseReleaseEvent(QMouseEvent * event);
 
 	private:
 		void CreateTextures(void);
@@ -43,6 +49,7 @@ class GLWidget: public QGLWidget
 		int offset;
 		bool fullscreen;
 		int outputWidth;
+		int32_t hideMouseTimeout;
 };
 
 #endif	// __GLWIDGET_H__
