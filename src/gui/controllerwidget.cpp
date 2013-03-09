@@ -65,6 +65,8 @@ ControllerWidget::ControllerWidget(QWidget * parent/*= 0*/): QWidget(parent),
 	widgetSize += QSize(4, 4);
 	// We want to know when the mouse is moving over our widget...
 	setMouseTracking(true);
+//nope
+//setFixedSize(widgetSize);
 }
 
 

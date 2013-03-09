@@ -144,20 +144,18 @@ void GLWidget::CreateTextures(void)
 }
 
 
-//void GLWidget::HideMouseIfTimedOut(void)
 void GLWidget::HandleMouseHiding(void)
 {
 	// Mouse watchdog timer handling. Basically, if the timeout value is
-	// greater than zero, decrement it. Otherwise, check for zero, if so,
-	// then hide the mouse and set the hideMouseTimeout value to -1 to
-	// signal that the mouse has been hidden.
+	// greater than zero, decrement it. Otherwise, check for zero, if so, then
+	// hide the mouse and set the hideMouseTimeout value to -1 to signal that
+	// the mouse has been hidden.
 	if (hideMouseTimeout > 0)
 		hideMouseTimeout--;
 	else if (hideMouseTimeout == 0)
 	{
 		hideMouseTimeout--;
 		qApp->setOverrideCursor(Qt::BlankCursor);
-//printf("timer: hideMouseTimeout = %i, mouse hidden\n", hideMouseTimeout);
 	}
 }
 

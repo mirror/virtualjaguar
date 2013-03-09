@@ -16,27 +16,54 @@
 #include "controllertab.h"
 
 #include "controllerwidget.h"
+#include "gamepad.h"
 #include "joystick.h"
 #include "keygrabber.h"
 
 
-ControllerTab::ControllerTab(QWidget * parent/*= 0*/): QWidget(parent)
+ControllerTab::ControllerTab(QWidget * parent/*= 0*/): QWidget(parent),
+	label(new QLabel(tr("Controller:"))),
+	profile(new QComboBox(this)),
+	redefineAll(new QPushButton(tr("Define All Inputs"))),
+	controllerWidget(new ControllerWidget(this))
 {
-	controllerWidget = new ControllerWidget(this);
-	redefineAll = new QPushButton(tr("Define All Inputs"));
-
 	QVBoxLayout * layout = new QVBoxLayout;
+	QHBoxLayout * top = new QHBoxLayout;
+	layout->addLayout(top);
+	top->addWidget(label);
+	top->addWidget(profile, 0, Qt::AlignLeft);
 	layout->addWidget(controllerWidget);
-	layout->addWidget(redefineAll);
+	layout->addWidget(redefineAll, 0, Qt::AlignHCenter);
+//	layout->setFixedWidth(label->width());
+//	layout->setSizeConstraint(QLayout::SetFixedSize);
+//	top->setSizeConstraint(QLayout::SetFixedSize);
+//printf("cw width = %i, label width = %i (min=%i, sizehint=%i)\n", controllerWidget->width(), label->width(), label->minimumWidth(), label->sizeHint().width());
+	// This is ugly, ugly, ugly. But it works. :-P It's a shame that Qt's
+	// layout system doesn't seem to allow for a nicer way to handle this.
+//	profile->setFixedWidth(controllerWidget->sizeHint().width() - label->sizeHint().width());
 	setLayout(layout);
+	setFixedWidth(sizeHint().width());
 
 	connect(redefineAll, SIGNAL(clicked()), this, SLOT(DefineAllKeys()));
+
+//this is the default. :-/ need to set it somewhere else i guess...
+//	profile->setSizeAdjustPolicy(QComboBox::AdjustToContentsOnFirstShow);
+	profile->addItem(tr("Keyboard"));
+
+	for(int i=0; i<Gamepad::numJoysticks; i++)
+		profile->addItem(Gamepad::GetJoystickName(i));
 }
 
 
 ControllerTab::~ControllerTab()
 {
 }
+
+
+//QSize ControllerTab::sizeHint(void) const
+//{
+//	return 
+//}
 
 
 void ControllerTab::DefineAllKeys(void)

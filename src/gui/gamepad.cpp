@@ -18,6 +18,7 @@
 // Class member initialization
 /*static*/ int Gamepad::numJoysticks = 0;
 /*static*/ SDL_Joystick * Gamepad::pad[8];
+/*static*/ const char * Gamepad::padName[8];
 /*static*/ int Gamepad::numButtons[8];
 /*static*/ int Gamepad::numHats[8];
 /*static*/ int Gamepad::numAxes[8];
@@ -50,6 +51,7 @@ void Gamepad::AllocateJoysticks(void)
 	for(int i=0; i<numJoysticks; i++)
 	{
 		pad[i] = SDL_JoystickOpen(i);
+		padName[i] = SDL_JoystickName(i);
 		numButtons[i] = numHats[i] = 0;
 
 		if (pad[i])
@@ -68,6 +70,16 @@ void Gamepad::DeallocateJoysticks(void)
 {
 	for(int i=0; i<numJoysticks; i++)
 		SDL_JoystickClose(pad[i]);
+}
+
+
+const char * Gamepad::GetJoystickName(int joystickID)
+{
+	// Sanity check
+	if (joystickID >= 8)
+		return NULL;
+
+	return padName[joystickID];
 }
 
 

@@ -84,6 +84,8 @@ MainWin::MainWin(bool autoRun): running(true), powerButtonOn(false),
 	showUntunedTankCircuit(true), cartridgeLoaded(false), CDActive(false),
 	pauseForFileSelector(false), loadAndGo(autoRun), plzDontKillMyComputer(false)
 {
+	debugbar = NULL;
+
 	for(int i=0; i<8; i++)
 		keyHeld[i] = false;
 
@@ -118,6 +120,7 @@ MainWin::MainWin(bool autoRun): running(true), powerButtonOn(false),
 //	quitAppAct->setShortcuts(QKeySequence::Quit);
 //	quitAppAct->setShortcut(QKeySequence(tr("Alt+x")));
 	quitAppAct->setShortcut(QKeySequence(tr("Ctrl+q")));
+	quitAppAct->setShortcutContext(Qt::ApplicationShortcut);
 	quitAppAct->setStatusTip(tr("Quit Virtual Jaguar"));
 	connect(quitAppAct, SIGNAL(triggered()), this, SLOT(close()));
 
@@ -143,6 +146,7 @@ MainWin::MainWin(bool autoRun): running(true), powerButtonOn(false),
 	pauseAct->setCheckable(true);
 	pauseAct->setDisabled(true);
 	pauseAct->setShortcut(QKeySequence(tr("Esc")));
+	pauseAct->setShortcutContext(Qt::ApplicationShortcut);
 	connect(pauseAct, SIGNAL(triggered()), this, SLOT(ToggleRunState()));
 
 	zoomActs = new QActionGroup(this);
@@ -190,11 +194,13 @@ MainWin::MainWin(bool autoRun): running(true), powerButtonOn(false),
 	filePickAct = new QAction(QIcon(":/res/software.png"), tr("&Insert Cartridge..."), this);
 	filePickAct->setStatusTip(tr("Insert a cartridge into Virtual Jaguar"));
 	filePickAct->setShortcut(QKeySequence(tr("Ctrl+i")));
+	filePickAct->setShortcutContext(Qt::ApplicationShortcut);
 	connect(filePickAct, SIGNAL(triggered()), this, SLOT(InsertCart()));
 
 	configAct = new QAction(QIcon(":/res/wrench.png"), tr("&Configure"), this);
 	configAct->setStatusTip(tr("Configure options for Virtual Jaguar"));
 	configAct->setShortcut(QKeySequence(tr("Ctrl+c")));
+	configAct->setShortcutContext(Qt::ApplicationShortcut);
 	connect(configAct, SIGNAL(triggered()), this, SLOT(Configure()));
 
 	useCDAct = new QAction(QIcon(":/res/compact-disc.png"), tr("&Use CD Unit"), this);
@@ -205,11 +211,13 @@ MainWin::MainWin(bool autoRun): running(true), powerButtonOn(false),
 
 	frameAdvanceAct = new QAction(QIcon(":/res/frame-advance.png"), tr("&Frame Advance"), this);
 	frameAdvanceAct->setShortcut(QKeySequence(tr("F7")));
+	frameAdvanceAct->setShortcutContext(Qt::ApplicationShortcut);
 	frameAdvanceAct->setDisabled(true);
 	connect(frameAdvanceAct, SIGNAL(triggered()), this, SLOT(FrameAdvance()));
 
 	fullScreenAct = new QAction(QIcon(":/res/fullscreen.png"), tr("F&ull Screen"), this);
 	fullScreenAct->setShortcut(QKeySequence(tr("F9")));
+	fullScreenAct->setShortcutContext(Qt::ApplicationShortcut);
 	fullScreenAct->setCheckable(true);
 	connect(fullScreenAct, SIGNAL(triggered()), this, SLOT(ToggleFullScreen()));
 
@@ -294,6 +302,15 @@ MainWin::MainWin(bool autoRun): running(true), powerButtonOn(false),
 		debugbar->addAction(m68kDasmBrowseAct);
 		debugbar->addAction(riscDasmBrowseAct);
 	}
+
+	// Add actions to the main window, as hiding widgets with them
+	// disables them :-P
+	addAction(fullScreenAct);
+	addAction(quitAppAct);
+	addAction(configAct);
+	addAction(pauseAct);
+	addAction(filePickAct);
+	addAction(frameAdvanceAct);
 
 	//	Create status bar
 	statusBar()->showMessage(tr("Ready"));
@@ -653,7 +670,6 @@ void MainWin::Timer(void)
 		// Otherwise, run the Jaguar simulation
 		HandleGamepads();
 		JaguarExecuteNew();
-//		videoWidget->HideMouseIfTimedOut();
 		videoWidget->HandleMouseHiding();
 	}
 
@@ -678,14 +694,14 @@ void MainWin::TogglePowerState(void)
 		pauseAct->setDisabled(true);
 		showUntunedTankCircuit = true;
 		DACPauseAudioThread();
-		// This is just in case the ROM we were playing was in a narrow or wide field mode,
-		// so the untuned tank sim doesn't look wrong. :-)
+		// This is just in case the ROM we were playing was in a narrow or wide
+		// field mode, so the untuned tank sim doesn't look wrong. :-)
 		TOMReset();
 
 		if (plzDontKillMyComputer)
 		{
-			// We have to do it line by line, because the texture pitch is not the
-			// same as the picture buffer's pitch.
+			// We have to do it line by line, because the texture pitch is not
+			// the same as the picture buffer's pitch.
 			for(uint32_t y=0; y<videoWidget->rasterHeight; y++)
 			{
 				memcpy(videoWidget->buffer + (y * videoWidget->textureWidth), testPattern + (y * VIRTUAL_SCREEN_WIDTH), VIRTUAL_SCREEN_WIDTH * sizeof(uint32_t));
@@ -705,10 +721,10 @@ void MainWin::TogglePowerState(void)
 		if (CDActive)
 		{
 // Should check for cartridgeLoaded here as well...!
-// We can clear it when toggling CDActive on, so that when we power cycle it does the
-// expected thing. Otherwise, if we use the file picker to insert a cart, we expect
-// to run the cart! Maybe have a RemoveCart function that only works if the CD unit
-// is active?
+// We can clear it when toggling CDActive on, so that when we power cycle it
+// does the expected thing. Otherwise, if we use the file picker to insert a
+// cart, we expect to run the cart! Maybe have a RemoveCart function that only
+// works if the CD unit is active?
 			setWindowTitle(QString("Virtual Jaguar " VJ_RELEASE_VERSION
 				" - Now playing: Jaguar CD"));
 		}
@@ -902,14 +918,17 @@ void MainWin::SetFullScreen(bool state/*= true*/)
 		mainWinPosition = pos();
 		menuBar()->hide();
 		statusBar()->hide();
-		x1Act->setDisabled(true);
-		x2Act->setDisabled(true);
-		x3Act->setDisabled(true);
+		toolbar->hide();
+
+		if (debugbar)
+			debugbar->hide();
+
 		showFullScreen();
 		// This is needed because the fullscreen may happen on a different
 		// screen than screen 0:
 		int screenNum = QApplication::desktop()->screenNumber(videoWidget);
-		QRect r = QApplication::desktop()->availableGeometry(screenNum);
+//		QRect r = QApplication::desktop()->availableGeometry(screenNum);
+		QRect r = QApplication::desktop()->screenGeometry(screenNum);
 		double targetWidth = (double)VIRTUAL_SCREEN_WIDTH,
 			targetHeight = (double)(vjs.hardwareTypeNTSC ? VIRTUAL_SCREEN_HEIGHT_NTSC : VIRTUAL_SCREEN_HEIGHT_PAL);
 		double aspectRatio = targetWidth / targetHeight;
@@ -927,21 +946,17 @@ void MainWin::SetFullScreen(bool state/*= true*/)
 		// Reset the video widget to windowed mode
 		videoWidget->offset = 0;
 		videoWidget->fullscreen = false;
-		x1Act->setDisabled(false);
-		x2Act->setDisabled(false);
-		x3Act->setDisabled(false);
 		menuBar()->show();
 		statusBar()->show();
+		toolbar->show();
+
+		if (debugbar)
+			debugbar->show();
+
 		showNormal();
 		ResizeMainWindow();
 		move(mainWinPosition);
 	}
-
-	// For some reason, this doesn't work: If the emu is paused, toggling from
-	// fullscreen to windowed (& vice versa) shows a white screen.
-	// (It was the ResizeGL() function in GLWidget: it was being called too
-	// much, causing the buffer to be deleted, remade & cleared.)
-//	videoWidget->updateGL();
 }
 
 

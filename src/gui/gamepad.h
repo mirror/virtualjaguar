@@ -38,6 +38,7 @@ class Gamepad
 		// Class methods...
 		static void AllocateJoysticks(void);
 		static void DeallocateJoysticks(void);
+		static const char * GetJoystickName(int joystickID);
 		static bool GetState(int joystickID, int buttonID);
 		static int CheckButtonPressed(void);
 		static int GetButtonID(void);
@@ -47,6 +48,7 @@ class Gamepad
 		// Support up to 8 gamepads
 		static int numJoysticks;
 		static SDL_Joystick * pad[8];
+		static const char * padName[8];
 		static int numButtons[8];
 		static int numAxes[8];
 		static int numHats[8];

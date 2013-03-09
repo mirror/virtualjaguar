@@ -17,7 +17,6 @@ class GLWidget: public QGLWidget
 		GLWidget(QWidget * parent = 0);
 		~GLWidget();
 
-//		void HideMouseIfTimedOut(void);
 		void HandleMouseHiding(void);
 		void CheckAndRestoreMouseCursor(void);
 //		QSize minimumSizeHint() const;

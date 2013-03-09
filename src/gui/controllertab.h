@@ -13,11 +13,14 @@ class ControllerTab: public QWidget
 	public:
 		ControllerTab(QWidget * parent = 0);
 		~ControllerTab();
+//		QSize sizeHint(void) const;
 
 	protected slots:
 		void DefineAllKeys(void);
 
 	private:
+		QLabel * label;
+		QComboBox * profile;
 		QPushButton * redefineAll;
 
 	public:
