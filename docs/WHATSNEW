@@ -1,6 +1,15 @@
 Virtual Jaguar v2.1.1 GCC/Qt
 ----------------------------
 
+* Added controller profiles. What this means is that if you left your gamepad
+  behind and/or have a different one, VJ will let you create a controller
+  config for the new controller without destroying the old one. This also means
+  that if you have *no* controllers, you can still play VJ with the keyboard.
+  [Shamus]
+* Fixed a few problems with the DSP a timing; as a result, the sound in Rayman
+  and the FACTS demo is correct now. [Shamus]
+* Removed toolbar from full screen mode. [Shamus]
+* Added analog inputs to gamepad support. [Shamus]
 * Fixed 6MB cartridge space access limitation. 6MB carts should work now.
   [Shamus]
 * Fixed problem with JERRY interrupts corrupting the M68K core. [Shamus]

@@ -48,8 +48,9 @@ QString filename;
 // Here's the main application loop--short and simple...
 int main(int argc, char * argv[])
 {
-	// Win32 console redirection, because MS and their band of super geniuses decided
-	// that nobody would ever launch an app from the command line. :-P
+	// Win32 console redirection, because MS and their band of super geniuses
+	// decided that nobody would ever launch an app from the command line. :-P
+	// [Unfortunately, this doesn't seem to work on Vista/7. :-(]
 #ifdef __GCCWIN32__
 	BOOL (WINAPI * AttachConsole)(DWORD dwProcessId);
 

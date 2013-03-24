@@ -539,13 +539,13 @@ void MainWin::HandleKeys(QKeyEvent * e, bool state)
 	{
 		if (e->key() == (int)vjs.p1KeyBindings[i])
 //			joypad_0_buttons[i] = (uint8)state;
-			joypad_0_buttons[i] = (state ? 0x01 : 0x00);
+			joypad0Buttons[i] = (state ? 0x01 : 0x00);
 
 // Pad #2 is screwing up pad #1. Prolly a problem in joystick.cpp...
 // So let's try to fix it there. :-P [DONE]
 		if (e->key() == (int)vjs.p2KeyBindings[i])
 //			joypad_1_buttons[i] = (uint8)state;
-			joypad_1_buttons[i] = (state ? 0x01 : 0x00);
+			joypad1Buttons[i] = (state ? 0x01 : 0x00);
 	}
 }
 
@@ -557,10 +557,10 @@ void MainWin::HandleGamepads(void)
 	for(int i=BUTTON_FIRST; i<=BUTTON_LAST; i++)
 	{
 		if (vjs.p1KeyBindings[i] & (JOY_BUTTON | JOY_HAT | JOY_AXIS))
-			joypad_0_buttons[i] = (Gamepad::GetState(0, vjs.p1KeyBindings[i]) ? 0x01 : 0x00);
+			joypad0Buttons[i] = (Gamepad::GetState(0, vjs.p1KeyBindings[i]) ? 0x01 : 0x00);
 
 		if (vjs.p2KeyBindings[i] & (JOY_BUTTON | JOY_HAT | JOY_AXIS))
-			joypad_1_buttons[i] = (Gamepad::GetState(1, vjs.p2KeyBindings[i]) ? 0x01 : 0x00);
+			joypad1Buttons[i] = (Gamepad::GetState(1, vjs.p2KeyBindings[i]) ? 0x01 : 0x00);
 	}
 }
 

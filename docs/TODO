@@ -21,6 +21,10 @@ Stuff to add/fix for the next release of Virtual Jaguar
   how much it's capable of. [Shamus]
 - Fix coming out of fullscreen on Win32. As of now, it doesn't restore the
   window position correctly [CJ]
+- Fix the Tripper Getem ROM so that it works. It has some tight coupling
+  between the M68K and the DSP that causes the DSP to starve itself; fixing
+  this will probably fix a bunch of other timing related issues as well.
+  [Shamus]
 
 
 Stuff that was added/fixed

@@ -435,7 +435,8 @@ WriteLog("JERRY: Unhandled timer read (BYTE) at %08X...\n", offset);
 //	else if (offset >= 0xF17C00 && offset <= 0xF17C01)
 //		return anajoy_byte_read(offset);
 	else if (offset >= 0xF14000 && offset <= 0xF14003)
-		return JoystickReadByte(offset) | EepromReadByte(offset);
+//		return JoystickReadByte(offset) | EepromReadByte(offset);
+		return JoystickReadWord(offset & 0xFE) | EepromReadByte(offset);
 	else if (offset >= 0xF14000 && offset <= 0xF1A0FF)
 		return EepromReadByte(offset);
 
@@ -568,7 +569,8 @@ WriteLog("JERRY: Unhandled timer write (BYTE) at %08X...\n", offset);
 	}*/
 	else if ((offset >= 0xF14000) && (offset <= 0xF14003))
 	{
-		JoystickWriteByte(offset, data);
+//		JoystickWriteByte(offset, data);
+		JoystickWriteWord(offset & 0xFE, (uint16_t)data);
 		EepromWriteByte(offset, data);
 		return;
 	}

@@ -23,7 +23,7 @@
 
 ControllerTab::ControllerTab(QWidget * parent/*= 0*/): QWidget(parent),
 	label(new QLabel(tr("Controller:"))),
-	profile(new QComboBox(this)),
+	profileList(new QComboBox(this)),
 	redefineAll(new QPushButton(tr("Define All Inputs"))),
 	controllerWidget(new ControllerWidget(this))
 {
@@ -31,39 +31,29 @@ ControllerTab::ControllerTab(QWidget * parent/*= 0*/): QWidget(parent),
 	QHBoxLayout * top = new QHBoxLayout;
 	layout->addLayout(top);
 	top->addWidget(label);
-	top->addWidget(profile, 0, Qt::AlignLeft);
+	top->addWidget(profileList, 0, Qt::AlignLeft);
 	layout->addWidget(controllerWidget);
 	layout->addWidget(redefineAll, 0, Qt::AlignHCenter);
-//	layout->setFixedWidth(label->width());
-//	layout->setSizeConstraint(QLayout::SetFixedSize);
-//	top->setSizeConstraint(QLayout::SetFixedSize);
-//printf("cw width = %i, label width = %i (min=%i, sizehint=%i)\n", controllerWidget->width(), label->width(), label->minimumWidth(), label->sizeHint().width());
-	// This is ugly, ugly, ugly. But it works. :-P It's a shame that Qt's
-	// layout system doesn't seem to allow for a nicer way to handle this.
-//	profile->setFixedWidth(controllerWidget->sizeHint().width() - label->sizeHint().width());
 	setLayout(layout);
+	// At least by doing this, it keeps the QComboBox from resizing itself too
+	// large and breaking the layout. :-P
 	setFixedWidth(sizeHint().width());
 
 	connect(redefineAll, SIGNAL(clicked()), this, SLOT(DefineAllKeys()));
+	connect(profileList, SIGNAL(currentIndexChanged(int)), this, SLOT(ChangeProfile(int)));
 
-//this is the default. :-/ need to set it somewhere else i guess...
-//	profile->setSizeAdjustPolicy(QComboBox::AdjustToContentsOnFirstShow);
-	profile->addItem(tr("Keyboard"));
+	// Set up the profile combobox (Keyboard is the default, and always
+	// present)
+	profileList->addItem(tr("Keyboard"));
 
 	for(int i=0; i<Gamepad::numJoysticks; i++)
-		profile->addItem(Gamepad::GetJoystickName(i));
+		profileList->addItem(Gamepad::GetJoystickName(i));
 }
 
 
 ControllerTab::~ControllerTab()
 {
 }
-
-
-//QSize ControllerTab::sizeHint(void) const
-//{
-//	return 
-//}
 
 
 void ControllerTab::DefineAllKeys(void)
@@ -89,4 +79,55 @@ void ControllerTab::DefineAllKeys(void)
 		controllerWidget->update();
 	}
 }
+
+
+void ControllerTab::ChangeProfile(int profile)
+{
+printf("You selected profile: %s\n", (profile == 0 ? "Keyboard" : Gamepad::GetJoystickName(profile - 1)));
+}
+
+#if 0
+The profiles need the following:
+
+ - The name of the controller
+ - A unique human readable ID
+ - The key definitions for that controller (keyboard keys can be mixed in)
+
+So there can be more than one profile for each unique controller; the
+relationship is many-to-one. So basically, how it works it like this: SDL
+reports all connected controllers. If there are none connected, the default
+controller is the keyboard (which can have multiple profiles). The UI only
+presents those profiles which are usuable with the controllers that are plugged
+in, all else is ignored. The user can pick the profile for the controller and
+configure the keys for it; the UI automagically saves everything.
+
+How to handle the case of identical controllers being plugged in? How does the
+UI know which is which? Each controller will have a mapping to a default
+Jaguar controller (#1 or #2). Still doesn't prevent confusion though. Actually,
+it can: The profile can have a field that maps it to a preferred Jaguar
+controller, which can also be both (#1 AND #2--in this case we can set it to
+zero which means no preference). If the UI detects two of the same controller
+and each can be mapped to the same profile, it assigns them in order since it
+doesn't matter, the profiles are identical.
+
+The default profile is always available and is the keyboard (hey, we're PC
+centric here). The default profile is usually #0.
+
+Can there be more than one keyboard profile? Why not? You will need separate
+ones for controller #1 and controller #2.
+
+A profile might look like this:
+
+Field 1: Nostomo N45 Analog
+Field 2: Dad's #1
+Field 3: Jaguar controller #1
+Field 4: The button/stick mapping
+
+Profile # would be implicit in the order that they are stored in the internal
+data structure.
+
+When a new controller is plugged in with no profiles attached, it defaults to
+a set keyboard layout which the user can change. So every new controller will
+always have at least one profile.
+#endif
 

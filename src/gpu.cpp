@@ -99,8 +99,8 @@
 #define GPU_DIS_SUBQT
 #define GPU_DIS_XOR
 
-//bool doGPUDis = false;
-bool doGPUDis = true;
+bool doGPUDis = false;
+//bool doGPUDis = true;
 #endif
 
 /*
@@ -1192,6 +1192,10 @@ if (gpu_ram_8[0x054] == 0x98 && gpu_ram_8[0x055] == 0x0A && gpu_ram_8[0x056] == 
 /*		gpu_flag_c = (gpu_flag_c ? 1 : 0);
 		gpu_flag_z = (gpu_flag_z ? 1 : 0);
 		gpu_flag_n = (gpu_flag_n ? 1 : 0);*/
+#if 0
+if (gpu_pc == 0xF03200)
+	doGPUDis = true;
+#endif
 
 		uint16_t opcode = GPUReadWord(gpu_pc, GPU);
 		uint32_t index = opcode >> 10;
@@ -2188,6 +2192,7 @@ static void gpu_opcode_mult(void)
 		WriteLog("%06X: MULT   R%02u, R%02u [NCZ:%u%u%u, R%02u=%08X, R%02u=%08X] -> ", gpu_pc-2, IMM_1, IMM_2, gpu_flag_n, gpu_flag_c, gpu_flag_z, IMM_1, RM, IMM_2, RN);
 #endif
 	RN = (uint16_t)RM * (uint16_t)RN;
+//	RN = (RM & 0xFFFF) * (RN & 0xFFFF);
 	SET_ZN(RN);
 #ifdef GPU_DIS_MULT
 	if (doGPUDis)
@@ -2347,48 +2352,34 @@ static void gpu_opcode_div(void)	// RN / RM
 //       The original tried to get it right by checking to see if the
 //       remainder was negative, but that's too late...
 // The code there should do it now, but I'm not 100% sure...
+// [Now it should be correct, but not displaying correct behavior of the actual
+//  hardware. A step in the right direction.]
 
 	if (RM)
 	{
 		if (gpu_div_control & 0x01)		// 16.16 division
 		{
-			RN = ((uint64_t)RN << 16) / RM;
 			gpu_remain = ((uint64_t)RN << 16) % RM;
+			RN = ((uint64_t)RN << 16) / RM;
 		}
 		else
 		{
-			RN = RN / RM;
+			// We calculate the remainder first because we destroy RN after
+			// this by assigning it to itself.
 			gpu_remain = RN % RM;
+			RN = RN / RM;
 		}
 
+// What we really should do here is figure out why this condition
+// happens in the real divide unit and emulate *that* behavior.
+#if 0
 		if ((gpu_remain - RM) & 0x80000000)	// If the result would have been negative...
 			gpu_remain -= RM;			// Then make it negative!
+#endif
 	}
 	else
 		RN = 0xFFFFFFFF;
 
-/*	uint32_t _RM=RM;
-	uint32_t _RN=RN;
-
-	if (_RM)
-	{
-		if (gpu_div_control & 1)
-		{
-			gpu_remain = (((uint64_t)_RN) << 16) % _RM;
-			if (gpu_remain&0x80000000)
-				gpu_remain-=_RM;
-			RN = (((uint64_t)_RN) << 16) / _RM;
-		}
-		else
-		{
-			gpu_remain = _RN % _RM;
-			if (gpu_remain&0x80000000)
-				gpu_remain-=_RM;
-			RN/=_RM;
-		}
-	}
-	else
-		RN=0xffffffff;*/
 #ifdef GPU_DIS_DIV
 	if (doGPUDis)
 		WriteLog("[NCZ:%u%u%u, R%02u=%08X, R%02u=%08X] Remainder: %08X\n", gpu_flag_n, gpu_flag_c, gpu_flag_z, IMM_1, RM, IMM_2, RN, gpu_remain);

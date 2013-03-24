@@ -2403,6 +2403,7 @@ static void dsp_opcode_abs(void)
 
 static void dsp_opcode_div(void)
 {
+#if 0
 	uint32_t _Rm=RM;
 	uint32_t _Rn=RN;
 
@@ -2425,6 +2426,32 @@ static void dsp_opcode_div(void)
 	}
 	else
 		RN=0xffffffff;
+#else
+	if (RM)
+	{
+		if (dsp_div_control & 0x01)		// 16.16 division
+		{
+			dsp_remain = ((uint64_t)RN << 16) % RM;
+			RN = ((uint64_t)RN << 16) / RM;
+		}
+		else
+		{
+			// We calculate the remainder first because we destroy RN after
+			// this by assigning it to itself.
+			dsp_remain = RN % RM;
+			RN = RN / RM;
+		}
+
+// What we really should do here is figure out why this condition
+// happens in the real divide unit and emulate *that* behavior.
+#if 0
+		if ((gpu_remain - RM) & 0x80000000)	// If the result would have been negative...
+			gpu_remain -= RM;			// Then make it negative!
+#endif
+	}
+	else
+		RN = 0xFFFFFFFF;
+#endif
 }
 
 static void dsp_opcode_imultn(void)
