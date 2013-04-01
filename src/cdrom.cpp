@@ -37,7 +37,7 @@ SB_TIME   equ  BUTCH+$20	; Subcode time and compare enable (D24)
 FIFO_DATA equ  BUTCH+$24	; i2s FIFO data
 I2SDAT1   equ  BUTCH+$24	; i2s FIFO data
 I2SDAT2   equ  BUTCH+$28	; i2s FIFO data
-2C = ?
+          equ  BUTCH+$2C	; CD EEPROM interface
 
 ;
 ; Butch's hardware registers
@@ -112,20 +112,47 @@ $70nn - Set oversampling mode
 
 Commands send through serial bus:
 
-$100 - ? Acknowledge ?
-$130 - ? (Seems to always prefix the $14n commands)
-$140 - Returns ACK (1) (Write to NVRAM?)
+$100 - ? Acknowledge ? (Erase/Write disable)
+$130 - ? (Seems to always prefix the $14n commands) (Erase/Write enable)
+$140 - Returns ACK (1) (Write to NVRAM?) (Write selected register)
 $141 - Returns ACK (1)
 $142 - Returns ACK (1)
 $143 - Returns ACK (1)
 $144 - Returns ACK (1)
 $145 - Returns ACK (1)
-$180 - Returns 16-bit value (NVRAM?)
+$180 - Returns 16-bit value (NVRAM?) (read from EEPROM)
 $181 - Returns 16-bit value
 $182 - Returns 16-bit value
 $183 - Returns 16-bit value
 $184 - Returns 16-bit value
 $185 - Returns 16-bit value
+
+;  The BUTCH interface for the CD-ROM module is a long-word register,
+;   where only the least signifigant 4 bits are used
+;
+eeprom	equ	$DFFF2c			;interface to CD-eeprom
+;
+;  bit3 - busy if 0 after write cmd, or Data In after read cmd 
+;  bit2 - Data Out
+;  bit1 - clock
+;  bit0 - Chip Select (CS)
+;
+;
+;   Commands specific to the National Semiconductor NM93C14
+;
+;
+;  9-bit commands..
+;			 876543210
+eREAD	equ	%110000000		;read from EEPROM
+eEWEN	equ	%100110000		;Erase/write Enable
+eERASE	equ	%111000000		;Erase selected register
+eWRITE	equ	%101000000		;Write selected register
+eERAL	equ	%100100000		;Erase all registers
+eWRAL	equ	%100010000		;Writes all registers
+eEWDS	equ	%100000000		;Erase/Write disable (default)
+
+So... are there $40 words of memory? 128 bytes?
+
 */
 
 // Private function prototypes

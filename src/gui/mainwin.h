@@ -12,6 +12,8 @@
 #include <QtGui>
 #include "tom.h"
 
+#define RING_BUFFER_SIZE 32
+
 // Forward declarations
 class GLWidget;
 class AboutWindow;
@@ -100,6 +102,9 @@ class MainWin: public QMainWindow
 		bool fullScreen;
 	public:
 		bool plzDontKillMyComputer;
+		uint32_t oldTimestamp;
+		uint32_t ringBufferPointer;
+		uint32_t ringBuffer[RING_BUFFER_SIZE];
 	private:
 		QPoint mainWinPosition;
 //		QSize mainWinSize;
