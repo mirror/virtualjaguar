@@ -21,9 +21,10 @@
 #include "log.h"
 #include "settings.h"
 
-#define eeprom_LOG
+//#define eeprom_LOG
 
 static uint16_t eeprom_ram[64];
+static uint16_t cdromEEPROM[64];
 
 //
 // Private function prototypes
@@ -50,12 +51,18 @@ static uint16_t jerry_ee_data = 0;
 static uint16_t jerry_ee_data_cnt = 16;
 static uint16_t jerry_writes_enabled = 0;
 static uint16_t jerry_ee_direct_jump = 0;
+
 static char eeprom_filename[MAX_PATH];
-static bool foundEEPROM = false;
+static char cdromEEPROMFilename[MAX_PATH];
+static bool haveEEPROM = false;
+static bool haveCDROMEEPROM = false;
+
 
 void EepromInit(void)
 {
+	// Handle regular cartridge EEPROM
 	sprintf(eeprom_filename, "%s%08X.eep", vjs.EEPROMPath, (unsigned int)jaguarMainROMCRC32);
+	sprintf(cdromEEPROMFilename, "%scdrom.eeprom", vjs.EEPROMPath);
 	FILE * fp = fopen(eeprom_filename, "rb");
 
 	if (fp)
@@ -63,36 +70,67 @@ void EepromInit(void)
 		fread(eeprom_ram, 1, 128, fp);
 		fclose(fp);
 		WriteLog("EEPROM: Loaded from %s\n", eeprom_filename);
-		foundEEPROM = true;
+		haveEEPROM = true;
 	}
 	else
 		WriteLog("EEPROM: Could not open file \"%s\"!\n", eeprom_filename);
+
+	// Handle JagCD EEPROM
+	fp = fopen(cdromEEPROMFilename, "rb");
+
+	if (fp)
+	{
+		fread(cdromEEPROM, 1, 128, fp);
+		fclose(fp);
+		WriteLog("EEPROM: Loaded from cdrom.eeprom\n");
+		haveCDROMEEPROM = true;
+	}
+	else
+		WriteLog("EEPROM: Could not open file \"%s\"!\n", cdromEEPROMFilename);
 }
+
 
 void EepromReset(void)
 {
-	if (!foundEEPROM)
+	if (!haveEEPROM)
 		memset(eeprom_ram, 0xFF, 64 * sizeof(uint16_t));
+
+	if (!haveCDROMEEPROM)
+		memset(cdromEEPROM, 0xFF, 64 * sizeof(uint16_t));
 }
+
 
 void EepromDone(void)
 {
 	WriteLog("EEPROM: Done.\n");
 }
 
+
 static void EEPROMSave(void)
 {
+	// Write out regular cartridge EEPROM data
 	FILE * fp = fopen(eeprom_filename, "wb");
 
-	if (fp == NULL)
+	if (fp)
 	{
-		WriteLog("EEPROM: Could not create file \"%s!\"\n", eeprom_filename);
-		return;
+		fwrite(eeprom_ram, 1, 128, fp);
+		fclose(fp);
 	}
+	else
+		WriteLog("EEPROM: Could not create file \"%s!\"\n", eeprom_filename);
 
-	fwrite(eeprom_ram, 1, 128, fp);
-	fclose(fp);
+	// Write out JagCD EEPROM data
+	fp = fopen(cdromEEPROMFilename, "wb");
+
+	if (fp)
+	{
+		fwrite(cdromEEPROM, 1, 128, fp);
+		fclose(fp);
+	}
+	else
+		WriteLog("EEPROM: Could not create file \"%s!\"\n", cdromEEPROMFilename);
 }
+
 
 uint8_t EepromReadByte(uint32_t offset)
 {
@@ -111,10 +149,12 @@ uint8_t EepromReadByte(uint32_t offset)
 	return 0x00;
 }
 
+
 uint16_t EepromReadWord(uint32_t offset)
 {
 	return ((uint16_t)EepromReadByte(offset + 0) << 8) | EepromReadByte(offset + 1);
 }
+
 
 void EepromWriteByte(uint32_t offset, uint8_t data)
 {
@@ -132,11 +172,30 @@ void EepromWriteByte(uint32_t offset, uint8_t data)
 	}
 }
 
+
 void EepromWriteWord(uint32_t offset, uint16_t data)
 {
 	EepromWriteByte(offset + 0, (data >> 8) & 0xFF);
 	EepromWriteByte(offset + 1, data & 0xFF);
 }
+
+
+/*
+;
+;   Commands specific to the National Semiconductor NM93C14
+;
+;
+;  9-bit commands..
+;			 876543210
+eEWDS	equ	%100000000		;Erase/Write disable (default)
+eWRAL	equ	%100010000		;Writes all registers
+eERAL	equ	%100100000		;Erase all registers
+eEWEN	equ	%100110000		;Erase/write Enable
+eWRITE	equ	%101000000		;Write selected register
+eREAD	equ	%110000000		;read from EEPROM
+eERASE	equ	%111000000		;Erase selected register
+*/
+
 
 static void eeprom_set_di(uint32_t data)
 {
@@ -155,13 +214,19 @@ static void eeprom_set_di(uint32_t data)
 		jerry_ee_op |= data;
 		jerry_ee_direct_jump = 0;
 //		WriteLog("eeprom: opcode %i\n",jerry_ee_op);
+
 		switch (jerry_ee_op)
 		{
+		// Opcode 00: eEWEN, eERAL, eWRAL, eEWNDS
 		case 0: jerry_ee_state = EE_STATE_0; break;
+		// Opcode 01: eWRITE (Write selected register)
 		case 1: jerry_ee_state = EE_STATE_1; break;
+		// Opcode 10: eREAD (Read from EEPROM)
 		case 2: jerry_ee_state = EE_STATE_2; break;
+		// Opcode 11: eERASE (Erase selected register)
 		case 3: jerry_ee_state = EE_STATE_3; break;
 		}
+
 		eeprom_set_di(data);
 		break;
 	case EE_STATE_0:
@@ -174,11 +239,16 @@ static void eeprom_set_di(uint32_t data)
 	case EE_STATE_0_0:
 		switch ((jerry_ee_address_data >> 4) & 0x03)
 		{
+		// Opcode 00 00: eEWDS (Erase/Write disable)
 		case 0: jerry_ee_state=EE_STATE_0_0_0; break;
+		// Opcode 00 01: eWRAL (Write all registers)
 		case 1: jerry_ee_state=EE_STATE_0_0_1; break;
+		// Opcode 00 10: eERAL (Erase all registers)
 		case 2: jerry_ee_state=EE_STATE_0_0_2; break;
+		// Opcode 00 11: eEWEN (Erase/Write enable)
 		case 3: jerry_ee_state=EE_STATE_0_0_3; break;
 		}
+
 		eeprom_set_di(data);
 		break;
 	case EE_STATE_0_0_0:
@@ -198,10 +268,13 @@ static void eeprom_set_di(uint32_t data)
 	case EE_STATE_0_0_1_0:
 		// WriteLog("eeprom: filling eeprom with 0x%.4x\n",data);
 		if (jerry_writes_enabled)
+		{
 			for(int i=0; i<64; i++)
 				eeprom_ram[i] = jerry_ee_data;
 
-		EEPROMSave();								// Save it NOW!
+			EEPROMSave();						// Save it NOW!
+		}
+
 		//else
 		//	WriteLog("eeprom: not writing because read only\n");
 		jerry_ee_state = EE_STATE_BUSY;
@@ -238,9 +311,11 @@ static void eeprom_set_di(uint32_t data)
 	case EE_STATE_1_1:
 		//WriteLog("eeprom: writing 0x%.4x at 0x%.2x\n",jerry_ee_data,jerry_ee_address_data);
 		if (jerry_writes_enabled)
+		{
 			eeprom_ram[jerry_ee_address_data] = jerry_ee_data;
+			EEPROMSave();						// Save it NOW!
+		}
 
-		EEPROMSave();								// Save it NOW!
 		jerry_ee_state = EE_STATE_BUSY;
 		break;
 	case EE_STATE_2:
@@ -278,6 +353,7 @@ static void eeprom_set_di(uint32_t data)
 			if (jerry_ee_direct_jump)
 				eeprom_set_di(data);
 		}
+
 		break;
 	case EE_READ_ADDRESS:
 		jerry_ee_address_data <<= 1;
@@ -293,13 +369,15 @@ static void eeprom_set_di(uint32_t data)
 			if (jerry_ee_direct_jump)
 				eeprom_set_di(data);
 		}
+
 		break;
 	default:
 		jerry_ee_state = EE_STATE_OP_A;
 	}
 }
 
-static void eeprom_set_cs(uint32_t state)
+
+static void eeprom_set_cs(uint32_t /*state*/)
 {
 //	WriteLog("eeprom: cs=%i\n",state);
 	jerry_ee_state = EE_STATE_START;
@@ -311,6 +389,7 @@ static void eeprom_set_cs(uint32_t state)
 	jerry_ee_data_cnt = 16;
 	jerry_writes_enabled = 1;
 }
+
 
 static uint32_t eeprom_get_do(void)
 {
@@ -327,7 +406,11 @@ static uint32_t eeprom_get_do(void)
 		break;
 	case EE_STATE_2_0:
 		jerry_ee_data_cnt--;
+#if 0
 		data = (eeprom_ram[jerry_ee_address_data] & (1 << jerry_ee_data_cnt)) >> jerry_ee_data_cnt;
+#else
+		data = (eeprom_ram[jerry_ee_address_data] >> jerry_ee_data_cnt) & 0x01;
+#endif
 
 		if (!jerry_ee_data_cnt)
 		{
@@ -340,3 +423,4 @@ static uint32_t eeprom_get_do(void)
 //	WriteLog("eeprom: do=%i\n",data);
 	return data;
 }
+

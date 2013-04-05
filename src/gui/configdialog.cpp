@@ -56,9 +56,11 @@ ConfigDialog::ConfigDialog(QWidget * parent/*= 0*/): QDialog(parent)
 //	controllerTab2->UpdateLabel();				// Now it's safe to do this... ;-)
 }
 
+
 ConfigDialog::~ConfigDialog()
 {
 }
+
 
 void ConfigDialog::LoadDialogFromSettings(void)
 {
@@ -86,6 +88,7 @@ void ConfigDialog::LoadDialogFromSettings(void)
 		controllerTab2->controllerWidget->keys[i] = vjs.p2KeyBindings[i];
 	}
 }
+
 
 void ConfigDialog::UpdateVJSettings(void)
 {
@@ -115,6 +118,7 @@ void ConfigDialog::UpdateVJSettings(void)
 		vjs.p2KeyBindings[i] = controllerTab2->controllerWidget->keys[i];
 	}
 }
+
 
 QString ConfigDialog::CheckForTrailingSlash(QString s)
 {

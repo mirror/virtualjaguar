@@ -681,13 +681,14 @@ void MainWin::Timer(void)
 
 	videoWidget->updateGL();
 
-#if 1
 	// FPS handling
-	// Approach: We use a ring buffer to store timestamps over a given amount
-	// of frames, then sum them to figure out the FPS.
+	// Approach: We use a ring buffer to store times (in ms) over a given
+	// amount of frames, then sum them to figure out the FPS.
 	uint32_t timestamp = SDL_GetTicks();
 	// This assumes the ring buffer size is a power of 2
-	ringBufferPointer = (ringBufferPointer + 1) & (RING_BUFFER_SIZE - 1);
+//	ringBufferPointer = (ringBufferPointer + 1) & (RING_BUFFER_SIZE - 1);
+	// Doing it this way is better. Ring buffer size can be arbitrary then.
+	ringBufferPointer = (ringBufferPointer + 1) % RING_BUFFER_SIZE;
 	ringBuffer[ringBufferPointer] = timestamp - oldTimestamp;
 	uint32_t elapsedTime = 0;
 
@@ -698,18 +699,14 @@ void MainWin::Timer(void)
 	if (elapsedTime == 0)
 		elapsedTime = 1;
 
-#if 0
-	float framesPerSecond = ((float)RING_BUFFER_SIZE / (float)elapsedTime) * 1000.0;
-	statusBar()->showMessage(QString("%1 FPS").arg(framesPerSecond));
-#else
 	// This is in frames per 10 seconds, so we can have 1 decimal
 	uint32_t framesPerSecond = (uint32_t)(((float)RING_BUFFER_SIZE / (float)elapsedTime) * 10000.0);
 	uint32_t fpsIntegerPart = framesPerSecond / 10;
 	uint32_t fpsDecimalPart = framesPerSecond % 10;
+	// If this is updated too frequently to be useful, we can throttle it down
+	// so that it only updates every 10th frame or so
 	statusBar()->showMessage(QString("%1.%2 FPS").arg(fpsIntegerPart).arg(fpsDecimalPart));
-#endif
 	oldTimestamp = timestamp;
-#endif
 }
 
 

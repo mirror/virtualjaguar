@@ -37,4 +37,10 @@
 	<file>../../res/test-pattern.jpg</file>
 	<file>../../res/help.html</file>
 </qresource>
+<qresource lang="fr">
+	<file alias="/res/help.html">../../res/help_fr.html</file>
+</qresource>
+<qresource lang="gr">
+	<file alias="/res/help.html">../../res/help_gr.html</file>
+</qresource>
 </RCC>
