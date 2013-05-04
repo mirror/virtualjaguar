@@ -38,11 +38,13 @@
 #include "app.h"
 #include "about.h"
 #include "configdialog.h"
+#include "controllertab.h"
 #include "filepicker.h"
 #include "gamepad.h"
 #include "generaltab.h"
 #include "glwidget.h"
 #include "help.h"
+#include "profile.h"
 #include "settings.h"
 #include "version.h"
 #include "debug/cpubrowser.h"
@@ -564,7 +566,10 @@ void MainWin::HandleGamepads(void)
 	{
 		if (vjs.p1KeyBindings[i] & (JOY_BUTTON | JOY_HAT | JOY_AXIS))
 			joypad0Buttons[i] = (Gamepad::GetState(0, vjs.p1KeyBindings[i]) ? 0x01 : 0x00);
-
+/*{
+if (vjs.p1KeyBindings[i] & JOY_AXIS)
+	printf("Axis state (HandleGamepads): %i\n", joypad0Buttons[i]);
+}*/
 		if (vjs.p2KeyBindings[i] & (JOY_BUTTON | JOY_HAT | JOY_AXIS))
 			joypad1Buttons[i] = (Gamepad::GetState(1, vjs.p2KeyBindings[i]) ? 0x01 : 0x00);
 	}
@@ -582,6 +587,8 @@ void MainWin::Configure(void)
 	ConfigDialog dlg(this);
 	//ick.
 	dlg.generalTab->useUnknownSoftware->setChecked(allowUnknownSoftware);
+	dlg.controllerTab1->profileNum = lastEditedProfile;
+	dlg.controllerTab1->SetupLastUsedProfile();
 
 	if (dlg.exec() == false)
 		return;
@@ -601,6 +608,7 @@ void MainWin::Configure(void)
 	bool allowOld = allowUnknownSoftware;
 	//ick.
 	allowUnknownSoftware = dlg.generalTab->useUnknownSoftware->isChecked();
+	lastEditedProfile = dlg.controllerTab1->profileNum;
 
 	// We rescan the "software" folder if the user either changed the path or
 	// checked/unchecked the "Allow unknown files" option in the config dialog.
@@ -1074,6 +1082,7 @@ void MainWin::ReadSettings(void)
 
 	zoomLevel = settings.value("zoom", 2).toInt();
 	allowUnknownSoftware = settings.value("showUnknownSoftware", false).toBool();
+	lastEditedProfile = settings.value("lastEditedProfile", 0).toInt();
 
 	vjs.useJoystick      = settings.value("useJoystick", false).toBool();
 	vjs.joyport          = settings.value("joyport", 0).toInt();
@@ -1146,6 +1155,8 @@ WriteLog("Pipelined DSP = %s\n", (vjs.usePipelinedDSP ? "ON" : "off"));
 	vjs.p2KeyBindings[BUTTON_9] = settings.value("p2k_9", Qt::Key_9).toInt();
 	vjs.p2KeyBindings[BUTTON_d] = settings.value("p2k_pound", Qt::Key_Slash).toInt();
 	vjs.p2KeyBindings[BUTTON_s] = settings.value("p2k_star", Qt::Key_Asterisk).toInt();
+
+	ReadProfiles(&settings);
 }
 
 
@@ -1158,6 +1169,7 @@ void MainWin::WriteSettings(void)
 
 	settings.setValue("zoom", zoomLevel);
 	settings.setValue("showUnknownSoftware", allowUnknownSoftware);
+	settings.setValue("lastEditedProfile", lastEditedProfile);
 
 	settings.setValue("useJoystick", vjs.useJoystick);
 	settings.setValue("joyport", vjs.joyport);
@@ -1224,6 +1236,8 @@ void MainWin::WriteSettings(void)
 	settings.setValue("p2k_9", vjs.p2KeyBindings[BUTTON_9]);
 	settings.setValue("p2k_pound", vjs.p2KeyBindings[BUTTON_d]);
 	settings.setValue("p2k_star", vjs.p2KeyBindings[BUTTON_s]);
+
+	WriteProfiles(&settings);
 }
 
 
@@ -1236,3 +1250,4 @@ void MainWin::WriteUISettings(void)
 
 	settings.setValue("zoom", zoomLevel);
 }
+

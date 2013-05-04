@@ -19,19 +19,46 @@
 #include "gamepad.h"
 #include "joystick.h"
 #include "keygrabber.h"
+#include "profile.h"
 
 
 ControllerTab::ControllerTab(QWidget * parent/*= 0*/): QWidget(parent),
-	label(new QLabel(tr("Controller:"))),
-	profileList(new QComboBox(this)),
+	label1(new QLabel(tr("Host Device:"))),
+	label2(new QLabel(tr("Map Name:"))),
+	label3(new QLabel(tr("Maps to:"))),
+	deviceList(new QComboBox(this)),
+	mapNameList(new QComboBox(this)),
+	controller1(new QCheckBox(tr("Jaguar Controller #1"))),
+	controller2(new QCheckBox(tr("Jaguar Controller #2"))),
+	addMapName(new QPushButton(tr("+"))),
+	deleteMapName(new QPushButton(tr("-"))),
 	redefineAll(new QPushButton(tr("Define All Inputs"))),
 	controllerWidget(new ControllerWidget(this))
 {
+//	mapNameList->setEditable(true);
+
 	QVBoxLayout * layout = new QVBoxLayout;
 	QHBoxLayout * top = new QHBoxLayout;
+	QVBoxLayout * left = new QVBoxLayout;
+	QVBoxLayout * right = new QVBoxLayout;
+	QHBoxLayout * middle = new QHBoxLayout;
+	top->addLayout(left, 0);
+	top->addLayout(right, 1);
 	layout->addLayout(top);
-	top->addWidget(label);
-	top->addWidget(profileList, 0, Qt::AlignLeft);
+	left->addWidget(label1, 0, Qt::AlignRight);
+	left->addWidget(label2, 0, Qt::AlignRight);
+	left->addWidget(label3, 0, Qt::AlignRight);
+	left->addWidget(new QLabel);
+	right->addWidget(deviceList);
+
+	right->addLayout(middle);
+	middle->addWidget(mapNameList, 1);
+	middle->addWidget(addMapName, 0);
+	middle->addWidget(deleteMapName, 0);
+//	right->addWidget(mapNameList);
+
+	right->addWidget(controller1);
+	right->addWidget(controller2);
 	layout->addWidget(controllerWidget);
 	layout->addWidget(redefineAll, 0, Qt::AlignHCenter);
 	setLayout(layout);
@@ -40,19 +67,75 @@ ControllerTab::ControllerTab(QWidget * parent/*= 0*/): QWidget(parent),
 	setFixedWidth(sizeHint().width());
 
 	connect(redefineAll, SIGNAL(clicked()), this, SLOT(DefineAllKeys()));
-	connect(profileList, SIGNAL(currentIndexChanged(int)), this, SLOT(ChangeProfile(int)));
+	connect(deviceList, SIGNAL(currentIndexChanged(int)), this, SLOT(ChangeDevice(int)));
+	connect(mapNameList, SIGNAL(currentIndexChanged(int)), this, SLOT(ChangeMapName(int)));
+	connect(addMapName, SIGNAL(clicked()), this, SLOT(AddMapName()));
+	connect(deleteMapName, SIGNAL(clicked()), this, SLOT(DeleteMapName()));
+	connect(controllerWidget, SIGNAL(KeyDefined(int, uint32_t)), this, SLOT(UpdateProfileKeys(int, uint32_t)));
+	connect(controller1, SIGNAL(clicked()), this, SLOT(UpdateProfileConnections()));
+	connect(controller2, SIGNAL(clicked()), this, SLOT(UpdateProfileConnections()));
 
-	// Set up the profile combobox (Keyboard is the default, and always
+	// Set up the device combobox (Keyboard is the default, and always
 	// present)
-	profileList->addItem(tr("Keyboard"));
+	deviceList->addItem(tr("Keyboard"), 0);
+	// Set up map name combobox (Default is default, and always present)
+//	mapNameList->addItem(tr("Default"));
 
 	for(int i=0; i<Gamepad::numJoysticks; i++)
-		profileList->addItem(Gamepad::GetJoystickName(i));
+	{
+		int deviceNum = FindDeviceNumberForName(Gamepad::GetJoystickName(i));
+		deviceList->addItem(Gamepad::GetJoystickName(i), deviceNum);
+	}
 }
+/*
+So now we come to implementation. When changing devices, could have a helper function
+in profile.cpp that fills the mapNameList combobox with the appropriate names/profile
+numbers.
+
+There needs to be some way of getting data from the ControllerWidget and the current
+profile.
+
+Gamepad will have to have some way of knowing which profile is mapped to which
+Jaguar controllers and filtering out everything else.
+
+Will have to have some intelligent handling of profiles when first run, to see first
+what is connected and second, to assign profiles to Jaguar controllers. In this
+case, keyboard is the lowest priority--if a controller is plugged in and assigned to
+the same Jaguar controller as a keyboard, the controller is used. Not sure what to
+do in the case of multiple controllers plugged in and assigned to the same Jaguar
+controller.
+
+Also, need a way to load/save profiles.
+
+Meaning of checkboxes: None checked == profile not used.
+1 checked == prefer connection to Jaguar controller X.
+2 checked == no preference, use any available.
+
+Single mapping cannot be deleted ("-" will be disabled). Can always add, up to the max
+limit of profiles (MAX_PROFILES).
+
+------------------------------
+
+Now the main window passes in/removes the last edited profile #. From here, when starting
+up, we need to pull that number from the profile store and populate all our boxes.
+*/
 
 
 ControllerTab::~ControllerTab()
 {
+}
+
+
+void ControllerTab::SetupLastUsedProfile(void)
+{
+	int deviceNum = deviceList->findData(profile[profileNum].device);
+	int mapNum = mapNameList->findText(profile[profileNum].mapName);
+
+	if (deviceNum == -1 || mapNum == -1)
+		return;
+
+	ChangeDevice(deviceNum);
+	ChangeMapName(mapNum);
 }
 
 
@@ -66,7 +149,6 @@ void ControllerTab::DefineAllKeys(void)
 
 	for(int i=BUTTON_FIRST; i<=BUTTON_LAST; i++)
 	{
-//		keyGrab.SetText(jagButtonName[orderToDefine[i]]);
 		keyGrab.SetKeyText(orderToDefine[i]);
 		keyGrab.exec();
 		int key = keyGrab.key;
@@ -77,16 +159,60 @@ void ControllerTab::DefineAllKeys(void)
 		// Otherwise, populate the appropriate spot in the settings & update screen...
 		controllerWidget->keys[orderToDefine[i]] = key;
 		controllerWidget->update();
+		profile[profileNum].map[orderToDefine[i]] = key;
 	}
 }
 
 
-void ControllerTab::ChangeProfile(int profile)
+void ControllerTab::UpdateProfileKeys(int mapPosition, uint32_t key)
 {
-printf("You selected profile: %s\n", (profile == 0 ? "Keyboard" : Gamepad::GetJoystickName(profile - 1)));
+	profile[profileNum].map[mapPosition] = key;
 }
 
-#if 0
+
+void ControllerTab::UpdateProfileConnections(void)
+{
+	profile[profileNum].preferredController = (controller1->isChecked() ? CONTROLLER1 : 0) | (controller2->isChecked() ? CONTROLLER2 : 0);
+}
+
+
+void ControllerTab::ChangeDevice(int selection)
+{
+	int deviceNum = deviceList->itemData(selection).toInt();
+	mapNameList->clear();
+	int numberOfMappings = FindMappingsForDevice(deviceNum, mapNameList);
+	deleteMapName->setDisabled(numberOfMappings == 1 ? true : false);
+//printf("Found %i mappings for device #%u...\n", numberOfMappings, deviceNum);
+}
+
+
+void ControllerTab::ChangeMapName(int selection)
+{
+	profileNum = mapNameList->itemData(selection).toInt();
+//printf("You selected mapping: %s (profile #%u)\n", (mapNameList->itemText(selection)).toAscii().data(), profileNum);
+
+	for(int i=BUTTON_FIRST; i<=BUTTON_LAST; i++)
+		controllerWidget->keys[i] = profile[profileNum].map[i];
+
+	controllerWidget->update();
+	controller1->setChecked(profile[profileNum].preferredController & CONTROLLER1);
+	controller2->setChecked(profile[profileNum].preferredController & CONTROLLER2);
+}
+
+
+void ControllerTab::AddMapName(void)
+{
+printf("Add new mapping (TODO)...\n");
+}
+
+
+void ControllerTab::DeleteMapName(void)
+{
+printf("Delete current mapping (TODO)...\n");
+}
+
+
+/*
 The profiles need the following:
 
  - The name of the controller
@@ -129,5 +255,32 @@ data structure.
 When a new controller is plugged in with no profiles attached, it defaults to
 a set keyboard layout which the user can change. So every new controller will
 always have at least one profile.
-#endif
+
+Data structures:
+The Gamepad class has the name of the controller (except for Keyboard)
+The profile list is just a list
+The controller name index + profile index makes a unique key
+Probably the best way to deal with it is to stuff the name/profile indices
+into the key definition structure.
+
+#define CONTROLLER1 0x01
+#define CONTROLLER2 0x02
+
+struct Profile
+{
+	int device;					// Host device number
+	char mapName[32];			// Human readable map name
+	int preferredController;	// CONTROLLER1 and/or CONTROLLER2
+	int map[21];				// Keys/buttons/axes
+};
+
+NOTE that device is an int, and the list is maintained elsewhere. It is
+*not* the same as what you see in GetJoystickName(); the device names have
+to be able to persist even when not available.
+
+Where to store the master profile list? It has to be accessible to this class.
+vjs.profile[x] would be good, but it's not really a concern for the Jaguar core.
+So it shouldn't go there. There should be a separate global setting place for
+GUI stuff...
+*/
 

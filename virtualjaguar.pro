@@ -78,6 +78,7 @@ HEADERS = \
 	src/gui/imagedelegate.h \
 	src/gui/keygrabber.h \
 	src/gui/mainwin.h \
+	src/gui/profile.h \
 	src/gui/debug/cpubrowser.h \
 	src/gui/debug/m68kdasmbrowser.h \
 	src/gui/debug/memorybrowser.h \
@@ -102,6 +103,7 @@ SOURCES = \
 	src/gui/imagedelegate.cpp \
 	src/gui/keygrabber.cpp \
 	src/gui/mainwin.cpp \
+	src/gui/profile.cpp \
 	src/gui/debug/cpubrowser.cpp \
 	src/gui/debug/m68kdasmbrowser.cpp \
 	src/gui/debug/memorybrowser.cpp \

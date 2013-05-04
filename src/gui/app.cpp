@@ -22,6 +22,7 @@
 #include "gamepad.h"
 #include "log.h"
 #include "mainwin.h"
+#include "profile.h"
 #include "settings.h"
 #include "version.h"
 
@@ -108,6 +109,7 @@ int main(int argc, char * argv[])
 		WriteLog("VJ: SDL (joystick, audio) successfully initialized.\n");
 		App app(argc, argv);					// Declare an instance of the application
 		Gamepad::AllocateJoysticks();
+		AutoConnectProfiles();
 		retVal = app.exec();					// And run it!
 		Gamepad::DeallocateJoysticks();
 

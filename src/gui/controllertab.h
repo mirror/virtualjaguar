@@ -14,19 +14,32 @@ class ControllerTab: public QWidget
 		ControllerTab(QWidget * parent = 0);
 		~ControllerTab();
 
+		void SetupLastUsedProfile(void);
+
 	protected slots:
 		void DefineAllKeys(void);
-		void ChangeProfile(int);
+		void UpdateProfileKeys(int, uint32_t);
+		void UpdateProfileConnections(void);
+		void ChangeDevice(int);
+		void ChangeMapName(int);
+		void AddMapName(void);
+		void DeleteMapName(void);
 
 	private:
-		QLabel * label;
-		QComboBox * controllerList;
-		QComboBox * profileList;
+		QLabel * label1;
+		QLabel * label2;
+		QLabel * label3;
+		QComboBox * deviceList;
+		QComboBox * mapNameList;
+		QCheckBox * controller1;
+		QCheckBox * controller2;
+		QPushButton * addMapName;
+		QPushButton * deleteMapName;
 		QPushButton * redefineAll;
 
 	public:
 		ControllerWidget * controllerWidget;
-		int profile;
+		int profileNum;
 };
 
 #endif	// __CONTROLLERTAB_H__

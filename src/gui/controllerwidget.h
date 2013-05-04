@@ -24,6 +24,9 @@ class ControllerWidget: public QWidget
 	private:
 		void DrawBorderedText(QPainter &, int, int, QString);
 
+	signals:
+		void KeyDefined(int, uint32_t);
+
 	public:
 		uint32_t keys[21];
 

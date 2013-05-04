@@ -108,6 +108,7 @@ class MainWin: public QMainWindow
 	private:
 		QPoint mainWinPosition;
 //		QSize mainWinSize;
+		int lastEditedProfile;
 		QMenu * fileMenu;
 		QMenu * helpMenu;
 		QMenu * debugMenu;

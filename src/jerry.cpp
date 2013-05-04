@@ -436,7 +436,17 @@ WriteLog("JERRY: Unhandled timer read (BYTE) at %08X...\n", offset);
 //		return anajoy_byte_read(offset);
 	else if (offset >= 0xF14000 && offset <= 0xF14003)
 //		return JoystickReadByte(offset) | EepromReadByte(offset);
-		return JoystickReadWord(offset & 0xFE) | EepromReadByte(offset);
+	{
+		uint16_t value = JoystickReadWord(offset & 0xFE);
+
+		if (offset & 0x01)
+			value &= 0xFF;
+		else
+			value >>= 8;
+
+		// This is wrong, should only have the lowest bit from $F14001
+		return value | EepromReadByte(offset);
+	}
 	else if (offset >= 0xF14000 && offset <= 0xF1A0FF)
 		return EepromReadByte(offset);
 
@@ -569,8 +579,10 @@ WriteLog("JERRY: Unhandled timer write (BYTE) at %08X...\n", offset);
 	}*/
 	else if ((offset >= 0xF14000) && (offset <= 0xF14003))
 	{
+WriteLog("JERRYWriteByte: Unhandled byte write to JOYSTICK by %s.\n", whoName[who]);
 //		JoystickWriteByte(offset, data);
 		JoystickWriteWord(offset & 0xFE, (uint16_t)data);
+// This is wrong, EEPROM is never written here
 		EepromWriteByte(offset, data);
 		return;
 	}

@@ -52,7 +52,7 @@ void Gamepad::AllocateJoysticks(void)
 	{
 		pad[i] = SDL_JoystickOpen(i);
 		padName[i] = SDL_JoystickName(i);
-		numButtons[i] = numHats[i] = 0;
+		numButtons[i] = numHats[i] = numAxes[i] = 0;
 
 		if (pad[i])
 		{
@@ -104,14 +104,21 @@ bool Gamepad::GetState(int joystickID, int buttonID)
 	{
 		int axisNum = (buttonID & JOY_AXISNUM_MASK) >> 1;
 		int direction = (buttonID & JOY_AXISDIR_MASK);
+//printf("Checking pad #%u axis %u: axis = %i, direction = %u\n", joystickID, axisNum, axis[joystickID][axisNum], direction);
 
 		if (axis[joystickID][axisNum] != 0)
 		{
-			if (axis[joystickID][axisNum] > 16000 && (direction == 0))
+			if ((axis[joystickID][axisNum] > 32000) && (direction == 0))
+//{
+//printf("Axis + hit!\n");
 				return true;
+//}
 
-			if (axis[joystickID][axisNum] < -16000 && (direction == 1))
+			if ((axis[joystickID][axisNum] < -32000) && (direction == 1))
+//{
+//printf("Axis - hit!\n");
 				return true;
+//}
 		}
 	}
 

@@ -182,7 +182,10 @@ void ControllerWidget::mouseReleaseEvent(QMouseEvent * /*event*/)
 	int key = keyGrab.key;
 
 	if (key != Qt::Key_Escape)
+	{
 		keys[keyToHighlightSave] = key;
+		emit(KeyDefined(keyToHighlightSave, key));
+	}
 
 	keyToHighlight = keyToHighlightSave;
 	update();
