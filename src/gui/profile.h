@@ -23,8 +23,11 @@ struct Profile
 // Function prototypes
 void ReadProfiles(QSettings *);
 void WriteProfiles(QSettings *);
+int GetFreeProfile(void);
+void DeleteProfile(int);
 int FindDeviceNumberForName(const char *);
 int FindMappingsForDevice(int, QComboBox *);
+int FindUsableProfiles(QComboBox *);
 bool ConnectProfileToController(int, int);
 void AutoConnectProfiles(void);
 

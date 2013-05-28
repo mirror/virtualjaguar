@@ -19,7 +19,7 @@ class ControllerTab: public QWidget
 	protected slots:
 		void DefineAllKeys(void);
 		void UpdateProfileKeys(int, uint32_t);
-		void UpdateProfileConnections(void);
+		void UpdateProfileConnections(int);
 		void ChangeDevice(int);
 		void ChangeMapName(int);
 		void AddMapName(void);
@@ -31,6 +31,7 @@ class ControllerTab: public QWidget
 		QLabel * label3;
 		QComboBox * deviceList;
 		QComboBox * mapNameList;
+		QComboBox * mapToList;
 		QCheckBox * controller1;
 		QCheckBox * controller2;
 		QPushButton * addMapName;

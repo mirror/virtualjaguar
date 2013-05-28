@@ -77,7 +77,6 @@ void JoystickDone(void)
 }
 
 
-//uint8_t JoystickReadByte(uint32_t offset)
 uint16_t JoystickReadWord(uint32_t offset)
 {
 	// E, D, B, 7
@@ -93,48 +92,6 @@ uint16_t JoystickReadWord(uint32_t offset)
 
 	if (offset == 0)
 	{
-#if 0
-		uint8_t data = 0x00;
-		int pad0Index = joystick_ram[1] & 0x0F;
-		int pad1Index = (joystick_ram[1] >> 4) & 0x0F;
-
-// This is bad--we're assuming that a bit is set in the last case. Might not be so!
-// NOTE: values $7, B, D, & E are only legal ones for pad 0, (rows 3 to 0, in both cases)
-//              $E, D, B, & 7 are only legal ones for pad 1
-//       So the following code is WRONG! (now fixed! ;-)
-// Also: we should explicitly check for those bit patterns, as other patterns
-// are legal and yield other controllers... !!! FIX !!!
-#warning "!!! Need to explicitly check for the proper bit combinations! !!!"
-
-		if (!(pad0Index & 0x01))
-			pad0Index = 0;
-		else if (!(pad0Index & 0x02))
-			pad0Index = 1;
-		else if (!(pad0Index & 0x04))
-			pad0Index = 2;
-		else if (!(pad0Index & 0x08))
-			pad0Index = 3;
-
-		if (!(pad1Index & 0x01))
-			pad1Index = 3;
-		else if (!(pad1Index & 0x02))
-			pad1Index = 2;
-		else if (!(pad1Index & 0x04))
-			pad1Index = 1;
-		else if (!(pad1Index & 0x08))
-			pad1Index = 0;
-
-		if (joypad0Buttons[(pad0Index << 2) + 0]) data |= 0x01;
-		if (joypad0Buttons[(pad0Index << 2) + 1]) data |= 0x02;
-		if (joypad0Buttons[(pad0Index << 2) + 2]) data |= 0x04;
-		if (joypad0Buttons[(pad0Index << 2) + 3]) data |= 0x08;
-		if (joypad1Buttons[(pad1Index << 2) + 0]) data |= 0x10;
-		if (joypad1Buttons[(pad1Index << 2) + 1]) data |= 0x20;
-		if (joypad1Buttons[(pad1Index << 2) + 2]) data |= 0x40;
-		if (joypad1Buttons[(pad1Index << 2) + 3]) data |= 0x80;
-
-		return ~data;
-#else
 		if (!joysticksEnabled)
 			return 0xFFFF;
 
@@ -147,7 +104,7 @@ uint16_t JoystickReadWord(uint32_t offset)
 		if (offset0 != 0xFF)
 		{
 			uint16_t mask[4] = { 0xFEFF, 0xFDFF, 0xFBFF, 0xF7FF };
-//			uint16_t mask[4] = { 0xFFFE, 0xFFFD, 0xFFFB, 0xFFF7 };
+//No!			uint16_t mask[4] = { 0xFFFE, 0xFFFD, 0xFFFB, 0xFFF7 };
 
 			for(uint8_t i=0; i<4; i++)
 				data &= (joypad0Buttons[offset0 + i] ? mask[i] : 0xFFFF);
@@ -156,16 +113,14 @@ uint16_t JoystickReadWord(uint32_t offset)
 		if (offset1 != 0xFF)
 		{
 			uint16_t mask[4] = { 0xEFFF, 0xDFFF, 0xBFFF, 0x7FFF };
-//			uint16_t mask[4] = { 0xFFEF, 0xFFDF, 0xFFBF, 0xFF7F };
+//No!			uint16_t mask[4] = { 0xFFEF, 0xFFDF, 0xFFBF, 0xFF7F };
 
 			for(uint8_t i=0; i<4; i++)
 				data &= (joypad1Buttons[offset1 + i] ? mask[i] : 0xFFFF);
 		}
 
 		return data;
-#endif
 	}
-//	else if (offset == 3)
 	else if (offset == 2)
 	{
 		// Hardware ID returns NTSC/PAL identification bit here
@@ -173,59 +128,7 @@ uint16_t JoystickReadWord(uint32_t offset)
 
 		if (!joysticksEnabled)
 			return data;
-#if 0
-		int pad0Index = joystick_ram[1] & 0x0F;
-		int pad1Index = (joystick_ram[1] >> 4) & 0x0F;
 
-//This is more stuff to add to the button reading, as the preceeding only
-//yields 16 buttons...
-#warning "!!! This reports TeamTap incorrectly when PAUSE pressed on controller #1 or #2 !!!"
-		if (!(pad0Index & 0x01))
-		{
-			if (joypad0Buttons[BUTTON_PAUSE])
-				data ^= 0x01;
-			if (joypad0Buttons[BUTTON_A])
-				data ^= 0x02;
-		}
-		else if (!(pad0Index & 0x02))
-		{
-			if (joypad0Buttons[BUTTON_B])
-				data ^= 0x02;
-		}
-		else if (!(pad0Index & 0x04))
-		{
-			if (joypad0Buttons[BUTTON_C])
-				data ^= 0x02;
-		}
-		else if (!(pad0Index & 0x08))
-		{
-			if (joypad0Buttons[BUTTON_OPTION])
-				data ^= 0x02;
-		}
-
-		if (!(pad1Index & 0x08))
-		{
-			if (joypad1Buttons[BUTTON_PAUSE])
-				data ^= 0x04;
-			if (joypad1Buttons[BUTTON_A])
-				data ^= 0x08;
-		}
-		else if (!(pad1Index & 0x04))
-		{
-			if (joypad1Buttons[BUTTON_B])
-				data ^= 0x08;
-		}
-		else if (!(pad1Index & 0x02))
-		{
-			if (joypad1Buttons[BUTTON_C])
-				data ^= 0x08;
-		}
-		else if (!(pad1Index & 0x01))
-		{
-			if (joypad1Buttons[BUTTON_OPTION])
-				data ^= 0x08;
-		}
-#else
 		// Joystick data returns active low for buttons pressed, high for non-
 		// pressed.
 		uint8_t offset0 = joypad0Offset[joystick_ram[1] & 0x0F] / 4;
@@ -248,30 +151,12 @@ uint16_t JoystickReadWord(uint32_t offset)
 			if (mask[offset1][1] != -1)
 				data &= (joypad1Buttons[mask[offset1][1]] ? 0xFFFB : 0xFFFF);
 		}
-#endif
 
 		return data;
 	}
 
-//	return joystick_ram[offset];
 	return 0xFFFF;
 }
-
-
-#if 0
-uint16_t JoystickReadWord(uint32_t offset)
-{
-	return ((uint16_t)JoystickReadByte((offset + 0) & 0x03) << 8) | JoystickReadByte((offset + 1) & 0x03);
-}
-#endif
-
-
-#if 0
-void JoystickWriteByte(uint32_t offset, uint8_t data)
-{
-	joystick_ram[offset & 0x03] = data;
-}
-#endif
 
 
 void JoystickWriteWord(uint32_t offset, uint16_t data)

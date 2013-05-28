@@ -28,15 +28,12 @@ ControllerTab::ControllerTab(QWidget * parent/*= 0*/): QWidget(parent),
 	label3(new QLabel(tr("Maps to:"))),
 	deviceList(new QComboBox(this)),
 	mapNameList(new QComboBox(this)),
-	controller1(new QCheckBox(tr("Jaguar Controller #1"))),
-	controller2(new QCheckBox(tr("Jaguar Controller #2"))),
+	mapToList(new QComboBox(this)),
 	addMapName(new QPushButton(tr("+"))),
 	deleteMapName(new QPushButton(tr("-"))),
 	redefineAll(new QPushButton(tr("Define All Inputs"))),
 	controllerWidget(new ControllerWidget(this))
 {
-//	mapNameList->setEditable(true);
-
 	QVBoxLayout * layout = new QVBoxLayout;
 	QHBoxLayout * top = new QHBoxLayout;
 	QVBoxLayout * left = new QVBoxLayout;
@@ -48,17 +45,14 @@ ControllerTab::ControllerTab(QWidget * parent/*= 0*/): QWidget(parent),
 	left->addWidget(label1, 0, Qt::AlignRight);
 	left->addWidget(label2, 0, Qt::AlignRight);
 	left->addWidget(label3, 0, Qt::AlignRight);
-	left->addWidget(new QLabel);
 	right->addWidget(deviceList);
 
 	right->addLayout(middle);
 	middle->addWidget(mapNameList, 1);
 	middle->addWidget(addMapName, 0);
 	middle->addWidget(deleteMapName, 0);
-//	right->addWidget(mapNameList);
 
-	right->addWidget(controller1);
-	right->addWidget(controller2);
+	right->addWidget(mapToList);
 	layout->addWidget(controllerWidget);
 	layout->addWidget(redefineAll, 0, Qt::AlignHCenter);
 	setLayout(layout);
@@ -67,25 +61,28 @@ ControllerTab::ControllerTab(QWidget * parent/*= 0*/): QWidget(parent),
 	setFixedWidth(sizeHint().width());
 
 	connect(redefineAll, SIGNAL(clicked()), this, SLOT(DefineAllKeys()));
-	connect(deviceList, SIGNAL(currentIndexChanged(int)), this, SLOT(ChangeDevice(int)));
-	connect(mapNameList, SIGNAL(currentIndexChanged(int)), this, SLOT(ChangeMapName(int)));
+	connect(deviceList, SIGNAL(activaed(int)), this, SLOT(ChangeDevice(int)));
+	connect(mapNameList, SIGNAL(activated(int)), this, SLOT(ChangeMapName(int)));
 	connect(addMapName, SIGNAL(clicked()), this, SLOT(AddMapName()));
 	connect(deleteMapName, SIGNAL(clicked()), this, SLOT(DeleteMapName()));
 	connect(controllerWidget, SIGNAL(KeyDefined(int, uint32_t)), this, SLOT(UpdateProfileKeys(int, uint32_t)));
-	connect(controller1, SIGNAL(clicked()), this, SLOT(UpdateProfileConnections()));
-	connect(controller2, SIGNAL(clicked()), this, SLOT(UpdateProfileConnections()));
+	connect(mapToList, SIGNAL(activated(int)), this, SLOT(UpdateProfileConnections(int)));
 
 	// Set up the device combobox (Keyboard is the default, and always
 	// present)
 	deviceList->addItem(tr("Keyboard"), 0);
-	// Set up map name combobox (Default is default, and always present)
-//	mapNameList->addItem(tr("Default"));
 
 	for(int i=0; i<Gamepad::numJoysticks; i++)
 	{
 		int deviceNum = FindDeviceNumberForName(Gamepad::GetJoystickName(i));
 		deviceList->addItem(Gamepad::GetJoystickName(i), deviceNum);
 	}
+
+	// Set up "Map To" combobox
+	mapToList->addItem(tr("None"), 0);
+	mapToList->addItem(tr("Controller #1"), CONTROLLER1);
+	mapToList->addItem(tr("Controller #2"), CONTROLLER2);
+	mapToList->addItem(tr("Either one that's free"), CONTROLLER1 | CONTROLLER2);
 }
 /*
 So now we come to implementation. When changing devices, could have a helper function
@@ -118,6 +115,10 @@ limit of profiles (MAX_PROFILES).
 
 Now the main window passes in/removes the last edited profile #. From here, when starting
 up, we need to pull that number from the profile store and populate all our boxes.
+
+-------------------------------
+
+Need to do AutoConnectProfiles from here, and detect any conflicts
 */
 
 
@@ -128,14 +129,31 @@ ControllerTab::~ControllerTab()
 
 void ControllerTab::SetupLastUsedProfile(void)
 {
-	int deviceNum = deviceList->findData(profile[profileNum].device);
-	int mapNum = mapNameList->findText(profile[profileNum].mapName);
+	int deviceNumIndex = deviceList->findData(profile[profileNum].device);
+	int mapNumIndex = mapNameList->findText(profile[profileNum].mapName);
 
-	if (deviceNum == -1 || mapNum == -1)
-		return;
+	if (deviceNumIndex == -1 || mapNumIndex == -1)
+	{
+		// We're doing the default, so set it up...
+//		mapToList->setCurrentIndex(mapToList->findData(profile[0].preferredController));
+//printf("ControllerTab::SetupLastUsedProfile: [FAILED] profileNum=%i, controllerIndex=%i, preferredController=%i\n", profileNum, controllerIndex, profile[0].preferredController);
+//		return;
+		deviceNumIndex = 0;
+		mapNumIndex = 0;
+		profileNum = 0;
+	}
 
-	ChangeDevice(deviceNum);
-	ChangeMapName(mapNum);
+	deviceList->setCurrentIndex(deviceNumIndex);
+	mapNameList->setCurrentIndex(mapNumIndex);
+//no more: #warning "!!! bug in here where it doesn't save your preferred controller !!!"
+
+	int controllerIndex = mapToList->findData(profile[profileNum].preferredController);
+	mapToList->setCurrentIndex(controllerIndex);
+//printf("ControllerTab::SetupLastUsedProfile: profileNum=%i, controllerIndex=%i, preferredController=%i\n", profileNum, controllerIndex, profile[profileNum].preferredController);
+
+	// We have to do this manually, since it's no longer done automagically...
+	ChangeDevice(deviceNumIndex);
+	ChangeMapName(mapNumIndex);
 }
 
 
@@ -170,14 +188,17 @@ void ControllerTab::UpdateProfileKeys(int mapPosition, uint32_t key)
 }
 
 
-void ControllerTab::UpdateProfileConnections(void)
+void ControllerTab::UpdateProfileConnections(int selection)
 {
-	profile[profileNum].preferredController = (controller1->isChecked() ? CONTROLLER1 : 0) | (controller2->isChecked() ? CONTROLLER2 : 0);
+//	profile[profileNum].preferredController = (controller1->isChecked() ? CONTROLLER1 : 0) | (controller2->isChecked() ? CONTROLLER2 : 0);
+	profile[profileNum].preferredController = mapToList->itemData(selection).toInt();
+//printf("Setting profile #%i 'Maps To' to %i...\n", profileNum, mapToList->itemData(selection).toInt());
 }
 
 
 void ControllerTab::ChangeDevice(int selection)
 {
+//printf("ControllerTab::ChangeDevice\n");
 	int deviceNum = deviceList->itemData(selection).toInt();
 	mapNameList->clear();
 	int numberOfMappings = FindMappingsForDevice(deviceNum, mapNameList);
@@ -188,6 +209,7 @@ void ControllerTab::ChangeDevice(int selection)
 
 void ControllerTab::ChangeMapName(int selection)
 {
+//printf("ControllerTab::ChangeMapName\n");
 	profileNum = mapNameList->itemData(selection).toInt();
 //printf("You selected mapping: %s (profile #%u)\n", (mapNameList->itemText(selection)).toAscii().data(), profileNum);
 
@@ -195,20 +217,69 @@ void ControllerTab::ChangeMapName(int selection)
 		controllerWidget->keys[i] = profile[profileNum].map[i];
 
 	controllerWidget->update();
-	controller1->setChecked(profile[profileNum].preferredController & CONTROLLER1);
-	controller2->setChecked(profile[profileNum].preferredController & CONTROLLER2);
+//	controller1->setChecked(profile[profileNum].preferredController & CONTROLLER1);
+//	controller2->setChecked(profile[profileNum].preferredController & CONTROLLER2);
+	mapToList->setCurrentIndex(mapToList->findData(profile[profileNum].preferredController));
 }
 
 
 void ControllerTab::AddMapName(void)
 {
-printf("Add new mapping (TODO)...\n");
+	int freeProfile = GetFreeProfile();
+
+	if (freeProfile == -1)
+	{
+		// Oh crap, we're out of room! Alert the media!
+		// (Really, tho, we should pop this up *before* asking for user input.
+		// Which we now do!)
+#if 0
+		QMessageBox msg;
+		msg.setText(QString(tr("Can't create any more profiles!")));
+		msg.setIcon(QMessageBox::Warning);
+		msg.exec();
+#else
+		QMessageBox::warning(this, tr("Houston, we have a problem..."), tr("Can't create any more profiles!"));
+#endif
+
+		return;
+	}
+
+	QString text = QInputDialog::getText(this, tr("Add Map Name"), tr("Map name:"), QLineEdit::Normal);
+
+	if (text.isEmpty())
+		return;
+
+	// Add mapping...
+	profileNum = freeProfile;
+	profile[profileNum].device = deviceList->itemData(deviceList->currentIndex()).toInt();
+	strncpy(profile[profileNum].mapName, text.toAscii().data(), 31);
+	profile[profileNum].mapName[31] = 0;
+	profile[profileNum].preferredController = CONTROLLER1;
+
+	for(int i=BUTTON_FIRST; i<BUTTON_LAST; i++)
+		profile[profileNum].map[i] = '*';
+
+	mapNameList->addItem(text, profileNum);
+	mapNameList->setCurrentIndex(mapNameList->count() - 1);
 }
 
 
 void ControllerTab::DeleteMapName(void)
 {
-printf("Delete current mapping (TODO)...\n");
+//printf("Delete current mapping (TODO)...\n");
+
+	// hmm, don't need to check this... Because presumably, it's already been checked for.
+//	if (mapNameList->count() == 1) ;
+
+	QMessageBox::StandardButton retVal = QMessageBox::question(this, tr("Remove Mapping"), tr("Are you sure you want to remove this mapping?"), QMessageBox::No | QMessageBox::Yes, QMessageBox::No);
+
+	if (retVal == QMessageBox::No)
+		return;
+
+	int index = mapNameList->currentIndex();
+	int profileToRemove = profileNum;
+	mapNameList->removeItem(index);
+	DeleteProfile(profileToRemove);
 }
 
 
