@@ -439,6 +439,11 @@ void MainWin::keyPressEvent(QKeyEvent * e)
 {
 	// From jaguar.cpp
 	extern bool startM68KTracing;
+	// From joystick.cpp
+	extern int blit_start_log;
+	// From blitter.cpp
+	extern bool startConciseBlitLogging;
+
 
 	// We ignore the Alt key for now, since it causes problems with the GUI
 	if (e->key() == Qt::Key_Alt)
@@ -452,8 +457,21 @@ void MainWin::keyPressEvent(QKeyEvent * e)
 		e->accept();
 		return;
 	}
+	else if (e->key() == Qt::Key_F12)
+	{
+		blit_start_log = true;
+		e->accept();
+		return;
+	}
+	else if (e->key() == Qt::Key_F10)
+	{
+		startConciseBlitLogging = true;
+		e->accept();
+		return;
+	}
 
 /*
+This is done now by a QAction...
 	if (e->key() == Qt::Key_F9)
 	{
 		ToggleFullScreen();
