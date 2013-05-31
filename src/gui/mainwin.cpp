@@ -1133,6 +1133,7 @@ void MainWin::ReadSettings(void)
 	vjs.renderType       = settings.value("renderType", 0).toInt();
 	vjs.allowWritesToROM = settings.value("writeROM", false).toBool();
 	vjs.biosType         = settings.value("biosType", BT_M_SERIES).toInt();
+	vjs.useFastBlitter   = settings.value("useFastBlitter", false).toBool();
 	strcpy(vjs.EEPROMPath, settings.value("EEPROMs", "./eeproms/").toString().toAscii().data());
 	strcpy(vjs.ROMPath, settings.value("ROMs", "./software/").toString().toAscii().data());
 	strcpy(vjs.alpineROMPath, settings.value("DefaultROM", "").toString().toAscii().data());
@@ -1220,6 +1221,7 @@ void MainWin::WriteSettings(void)
 	settings.setValue("renderType", vjs.renderType);
 	settings.setValue("writeROM", vjs.allowWritesToROM);
 	settings.setValue("biosType", vjs.biosType);
+	settings.setValue("useFastBlitter", vjs.useFastBlitter);
 	settings.setValue("JagBootROM", vjs.jagBootPath);
 	settings.setValue("CDBootROM", vjs.CDBootPath);
 	settings.setValue("EEPROMs", vjs.EEPROMPath);

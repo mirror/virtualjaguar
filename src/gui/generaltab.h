@@ -23,6 +23,7 @@ class GeneralTab: public QWidget
 //		QCheckBox * useHostAudio;
 		QCheckBox * useFullScreen;
 		QCheckBox * useUnknownSoftware;
+		QCheckBox * useFastBlitter;
 };
 
 #endif	// __GENERALTAB_H__

@@ -28,14 +28,22 @@
 #include "jaguar.h"
 #include "log.h"
 //#include "memory.h"
+#include "settings.h"
 
 // Various conditional compilation goodies...
 
 //#define LOG_BLITS
 
-//#define USE_ORIGINAL_BLITTER
+#define USE_ORIGINAL_BLITTER
 //#define USE_MIDSUMMER_BLITTER
 #define USE_MIDSUMMER_BLITTER_MKII
+
+#ifdef USE_ORIGINAL_BLITTER
+#ifdef USE_MIDSUMMER_BLITTER_MKII
+#define USE_BOTH_BLITTERS
+#endif
+#endif
+
 
 // External global variables
 
@@ -1725,6 +1733,7 @@ if (blit_start_log)
 	WriteLog("BLIT: Blitter started by %s...\n", whoName[who]);
 	doGPUDis = true;
 }//*/
+#ifndef USE_BOTH_BLITTERS
 #ifdef USE_ORIGINAL_BLITTER
 		blitter_blit(GET32(blitter_ram, 0x38));
 #endif
@@ -1733,6 +1742,14 @@ if (blit_start_log)
 #endif
 #ifdef USE_MIDSUMMER_BLITTER_MKII
 		BlitterMidsummer2();
+#endif
+#else
+	{
+		if (vjs.useFastBlitter)
+			blitter_blit(GET32(blitter_ram, 0x38));
+		else
+			BlitterMidsummer2();
+	}
 #endif
 }
 //F02278,9,A,B

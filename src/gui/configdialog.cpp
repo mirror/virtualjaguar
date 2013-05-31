@@ -77,6 +77,7 @@ void ConfigDialog::LoadDialogFromSettings(void)
 	generalTab->useDSP->setChecked(vjs.DSPEnabled);
 	generalTab->useFullScreen->setChecked(vjs.fullscreen);
 //	generalTab->useHostAudio->setChecked(vjs.audioEnabled);
+	generalTab->useFastBlitter->setChecked(vjs.useFastBlitter);
 
 	if (vjs.hardwareTypeAlpine)
 	{
@@ -106,11 +107,12 @@ void ConfigDialog::UpdateVJSettings(void)
 	strcpy(vjs.ROMPath,     CheckForTrailingSlash(
 		generalTab->edit4->text()).toAscii().data());
 
-	vjs.useJaguarBIOS = generalTab->useBIOS->isChecked();
-	vjs.GPUEnabled    = generalTab->useGPU->isChecked();
-	vjs.DSPEnabled    = generalTab->useDSP->isChecked();
-	vjs.fullscreen    = generalTab->useFullScreen->isChecked();
-//	vjs.audioEnabled  = generalTab->useHostAudio->isChecked();
+	vjs.useJaguarBIOS  = generalTab->useBIOS->isChecked();
+	vjs.GPUEnabled     = generalTab->useGPU->isChecked();
+	vjs.DSPEnabled     = generalTab->useDSP->isChecked();
+	vjs.fullscreen     = generalTab->useFullScreen->isChecked();
+//	vjs.audioEnabled   = generalTab->useHostAudio->isChecked();
+	vjs.useFastBlitter = generalTab->useFastBlitter->isChecked();
 
 	if (vjs.hardwareTypeAlpine)
 	{

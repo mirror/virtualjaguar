@@ -59,6 +59,7 @@ GeneralTab::GeneralTab(QWidget * parent/*= 0*/): QWidget(parent)
 	useFullScreen      = new QCheckBox(tr("Start Virtual Jaguar in full screen"));
 //	useHostAudio       = new QCheckBox(tr("Enable audio playback (requires DSP)"));
 	useUnknownSoftware = new QCheckBox(tr("Show all files in file chooser"));
+	useFastBlitter     = new QCheckBox(tr("Use fast blitter"));
 
 	layout4->addWidget(useBIOS);
 	layout4->addWidget(useGPU);
@@ -66,6 +67,7 @@ GeneralTab::GeneralTab(QWidget * parent/*= 0*/): QWidget(parent)
 	layout4->addWidget(useFullScreen);
 //	layout4->addWidget(useHostAudio);
 	layout4->addWidget(useUnknownSoftware);
+	layout4->addWidget(useFastBlitter);
 
 	setLayout(layout4);
 }

@@ -34,6 +34,7 @@ struct VJSettings
 	uint32_t renderType;
 	bool allowWritesToROM;
 	uint32_t biosType;
+	bool useFastBlitter;
 
 	// Keybindings in order of U, D, L, R, C, B, A, Op, Pa, 0-9, #, *
 
