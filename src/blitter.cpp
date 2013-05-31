@@ -45,6 +45,8 @@ extern int jaguar_active_memory_dumps;
 
 int start_logging = 0;
 uint8_t blitter_working = 0;
+bool startConciseBlitLogging = false;
+bool logBlit = false;
 
 // Blitter register RAM (most of it is hidden from the user)
 
@@ -1469,9 +1471,9 @@ Blit! (00110000 <- 0010B2A8) count: 12 x 12, A1/2_FLAGS: 000042E2/00000020 [cmd:
 //extern int op_start_log;
 if (blit_start_log)
 {
-	char * ctrlStr[4] = { "XADDPHR\0", "XADDPIX\0", "XADD0\0", "XADDINC\0" };
-	char * bppStr[8] = { "1bpp\0", "2bpp\0", "4bpp\0", "8bpp\0", "16bpp\0", "32bpp\0", "???\0", "!!!\0" };
-	char * opStr[16] = { "LFU_CLEAR", "LFU_NSAND", "LFU_NSAD", "LFU_NOTS", "LFU_SAND", "LFU_NOTD", "LFU_N_SXORD", "LFU_NSORND",
+	const char * ctrlStr[4] = { "XADDPHR\0", "XADDPIX\0", "XADD0\0", "XADDINC\0" };
+	const char * bppStr[8] = { "1bpp\0", "2bpp\0", "4bpp\0", "8bpp\0", "16bpp\0", "32bpp\0", "???\0", "!!!\0" };
+	const char * opStr[16] = { "LFU_CLEAR", "LFU_NSAND", "LFU_NSAD", "LFU_NOTS", "LFU_SAND", "LFU_NOTD", "LFU_N_SXORD", "LFU_NSORND",
 		"LFU_SAD", "LFU_XOR", "LFU_D", "LFU_NSORD", "LFU_REPLACE", "LFU_SORND", "LFU_SORD", "LFU_ONE" };
 	uint32_t /*src = cmd & 0x07, dst = (cmd >> 3) & 0x07, misc = (cmd >> 6) & 0x03,
 		a1ctl = (cmd >> 8) & 0x07,*/ mode = (cmd >> 11) & 0x07/*, ity = (cmd >> 14) & 0x0F,
@@ -2690,8 +2692,6 @@ void COMP_CTRL(uint8_t &dbinh, bool &nowrite,
 	bool bcompen, bool big_pix, bool bkgwren, uint8_t dcomp, bool dcompen, uint8_t icount,
 	uint8_t pixsize, bool phrase_mode, uint8_t srcd, uint8_t zcomp);
 #define VERBOSE_BLITTER_LOGGING
-bool logBlit = false;
-bool startConciseBlitLogging = false;
 
 void BlitterMidsummer2(void)
 {

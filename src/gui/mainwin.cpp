@@ -469,6 +469,22 @@ void MainWin::keyPressEvent(QKeyEvent * e)
 		e->accept();
 		return;
 	}
+	else if (e->key() == Qt::Key_F8)
+	{
+		// ggn: For extra NYAN pleasure...
+		// ggn: There you go James :P
+		// Shamus: Thanks for the patch! :-D
+		WriteLog("    o  +           +        +\n");
+		WriteLog("+        o     o       +        o\n");
+		WriteLog("-_-_-_-_-_-_-_,------,      o \n");
+		WriteLog("_-_-_-_-_-_-_-|   /\\_/\\  \n");
+		WriteLog("-_-_-_-_-_-_-~|__( ^ .^)  +     +  \n");
+		WriteLog("_-_-_-_-_-_-_-\"\"  \"\"      \n");
+		WriteLog("+      o         o   +       o\n");
+		WriteLog("    +         +\n");
+		e->accept();
+		return;
+	}
 
 /*
 This is done now by a QAction...
