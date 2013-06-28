@@ -61,7 +61,7 @@ ControllerTab::ControllerTab(QWidget * parent/*= 0*/): QWidget(parent),
 	setFixedWidth(sizeHint().width());
 
 	connect(redefineAll, SIGNAL(clicked()), this, SLOT(DefineAllKeys()));
-	connect(deviceList, SIGNAL(activaed(int)), this, SLOT(ChangeDevice(int)));
+	connect(deviceList, SIGNAL(activated(int)), this, SLOT(ChangeDevice(int)));
 	connect(mapNameList, SIGNAL(activated(int)), this, SLOT(ChangeMapName(int)));
 	connect(addMapName, SIGNAL(clicked()), this, SLOT(AddMapName()));
 	connect(deleteMapName, SIGNAL(clicked()), this, SLOT(DeleteMapName()));
