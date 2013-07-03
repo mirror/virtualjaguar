@@ -35,3 +35,39 @@ That's it! You can now start the emulator with ./virtualjaguar. See the built
 in help (Help|Contents) for more info.
 
 For even more info, go to http://icculus.org/virtualjaguar.
+
+
+NOTES FOR COMPILING UNDER MAC OSX:
+----------------------------------
+
+All is not well in Appleland, but we can help. To compile the bare minimum app
+under OSX requires libsdl and Qt; however, these must be made statically and
+installed "the unix way". What that means is you have to download and unpack
+the source directories, then make and install them from the terminal. For
+libsdl, this is as simple as doing:
+
+./configure
+make
+sudo make install
+
+libsdl makes both static *and* shared libs and installs both. Making Qt takes a
+bit longer (timewise), but requires not much user intervention to get things
+going. Basically, you do:
+
+./configure -static -no-webkit -no-qt3support -no-framework -no-exceptions -nomake examples -nomake demos
+make
+sudo make install
+
+Be forewarned that it will use around 20 GB of disk space to build, and another
+20 GB for the install! Once libsdl and Qt have been made and installed, you can
+now go into the folder where the Virtual Jaguar source is and do:
+
+make
+
+Assuming all went well, you should now have a nice shiny new virtualjaguar.app
+in that folder. Depending on how old your copy of OSX is, you might have to
+copy a qt_menu.nib into the app bundle like so:
+
+cp -r ~/location-where-you-built-qt/src/gui/mac/qt_menu.nib virtualjaguar.app/Contents/Resources/
+
+Have fun!
