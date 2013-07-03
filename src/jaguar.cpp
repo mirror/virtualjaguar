@@ -79,6 +79,8 @@ uint32_t returnAddr[4000], raPtr = 0xFFFFFFFF;
 #endif
 
 uint32_t pcQueue[0x400];
+uint32_t a2Queue[0x400];
+uint32_t d0Queue[0x400];
 uint32_t pcQPtr = 0;
 bool startM68KTracing = false;
 
@@ -137,7 +139,10 @@ if (inRoutine)
 
 // For tracebacks...
 // Ideally, we'd save all the registers as well...
-	pcQueue[pcQPtr++] = m68kPC;
+	pcQueue[pcQPtr] = m68kPC;
+	a2Queue[pcQPtr] = m68k_get_reg(NULL, M68K_REG_A2);
+	d0Queue[pcQPtr] = m68k_get_reg(NULL, M68K_REG_D0);
+	pcQPtr++;
 	pcQPtr &= 0x3FF;
 
 	if (m68kPC & 0x01)		// Oops! We're fetching an odd address!
@@ -147,6 +152,7 @@ if (inRoutine)
 		static char buffer[2048];
 		for(int i=0; i<0x400; i++)
 		{
+			WriteLog("[A2=%08X, D0=%08X]\n", a2Queue[(pcQPtr + i) & 0x3FF], d0Queue[(pcQPtr + i) & 0x3FF]);
 			m68k_disassemble(buffer, pcQueue[(pcQPtr + i) & 0x3FF], 0);//M68K_CPU_TYPE_68000);
 			WriteLog("\t%08X: %s\n", pcQueue[(pcQPtr + i) & 0x3FF], buffer);
 		}

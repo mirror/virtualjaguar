@@ -1124,7 +1124,7 @@ void MainWin::ReadSettings(void)
 	vjs.frameSkip        = settings.value("frameSkip", 0).toInt();
 	vjs.useJaguarBIOS    = settings.value("useJaguarBIOS", false).toBool();
 	vjs.GPUEnabled       = settings.value("GPUEnabled", true).toBool();
-	vjs.DSPEnabled       = settings.value("DSPEnabled", false).toBool();
+	vjs.DSPEnabled       = settings.value("DSPEnabled", true).toBool();
 	vjs.audioEnabled     = settings.value("audioEnabled", true).toBool();
 	vjs.usePipelinedDSP  = settings.value("usePipelinedDSP", false).toBool();
 	vjs.fullscreen       = settings.value("fullscreen", false).toBool();
