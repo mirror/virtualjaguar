@@ -251,14 +251,16 @@ SET16(jaguarMainRAM, 0x1000, 0x60FE);		// Here: bra Here
 	}
 
 	// We can assume we have JST_NONE at this point. :-P
+	WriteLog("FILE: Failed to load headerless file.\n");
 	return false;
 }
 
 
 //
 // "Alpine" file loading
-// Since the developers were coming after us with torches and pitchforks, we decided to
-// allow this kind of thing. ;-) But ONLY FOR THE DEVS, DAMMIT! >:-U O_O
+// Since the developers were coming after us with torches and pitchforks, we
+// decided to allow this kind of thing. ;-) But ONLY FOR THE DEVS, DAMMIT! >:-U
+// O_O
 //
 bool AlpineLoadFile(char * path)
 {

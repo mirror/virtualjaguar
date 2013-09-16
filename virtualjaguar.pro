@@ -36,7 +36,7 @@ else { LIBS += `$(CROSS)sdl-config --libs` }
 
 # Icon on Win32, Mac
 win32 { LIBS += res/vj-ico.o }
-macx  { ICON = vj-icon.icns }
+macx  { ICON = res/vj-icon.icns }
 
 # C/C++ flags...
 # NOTE: May have to put -Wall back in, but only on non-release cycles. It can

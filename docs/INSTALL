@@ -40,11 +40,13 @@ For even more info, go to http://icculus.org/virtualjaguar.
 NOTES FOR COMPILING UNDER MAC OSX:
 ----------------------------------
 
-All is not well in Appleland, but we can help. To compile the bare minimum app
-under OSX requires libsdl and Qt; however, these must be made statically and
-installed "the unix way". What that means is you have to download and unpack
-the source directories, then make and install them from the terminal. For
-libsdl, this is as simple as doing:
+All is not well in Appleland, but we can help. Apple, in their infinite wisdom,
+has decided not to ship a compiler and tools to build software. So first of all
+you need to download and install 'Command Line Tools for XCode'. Then, to
+compile the bare minimum app under OSX requires libsdl and Qt; however, these
+must be made statically and installed "the unix way". What that means is you
+have to download and unpack the source directories, then make and install them
+from the terminal. For libsdl, this is as simple as doing:
 
 ./configure
 make
