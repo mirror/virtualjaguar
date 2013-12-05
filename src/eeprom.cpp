@@ -34,6 +34,9 @@ static void EEPROMSave(void);
 static void eeprom_set_di(uint32_t state);
 static void eeprom_set_cs(uint32_t state);
 static uint32_t eeprom_get_do(void);
+void ReadEEPROMFromFile(FILE * file, uint16_t * ram);
+void WriteEEPROMToFile(FILE * file, uint16_t * ram);
+
 
 enum { EE_STATE_START = 1, EE_STATE_OP_A, EE_STATE_OP_B, EE_STATE_0, EE_STATE_1,
 	EE_STATE_2, EE_STATE_3, EE_STATE_0_0, EE_READ_ADDRESS, EE_STATE_0_0_0,
@@ -61,13 +64,13 @@ static bool haveCDROMEEPROM = false;
 void EepromInit(void)
 {
 	// Handle regular cartridge EEPROM
-	sprintf(eeprom_filename, "%s%08X.eep", vjs.EEPROMPath, (unsigned int)jaguarMainROMCRC32);
+	sprintf(eeprom_filename, "%s%08X.eeprom", vjs.EEPROMPath, (unsigned int)jaguarMainROMCRC32);
 	sprintf(cdromEEPROMFilename, "%scdrom.eeprom", vjs.EEPROMPath);
 	FILE * fp = fopen(eeprom_filename, "rb");
 
 	if (fp)
 	{
-		fread(eeprom_ram, 1, 128, fp);
+		ReadEEPROMFromFile(fp, eeprom_ram);
 		fclose(fp);
 		WriteLog("EEPROM: Loaded from %s\n", eeprom_filename);
 		haveEEPROM = true;
@@ -80,7 +83,7 @@ void EepromInit(void)
 
 	if (fp)
 	{
-		fread(cdromEEPROM, 1, 128, fp);
+		ReadEEPROMFromFile(fp, cdromEEPROM);
 		fclose(fp);
 		WriteLog("EEPROM: Loaded from cdrom.eeprom\n");
 		haveCDROMEEPROM = true;
@@ -113,7 +116,7 @@ static void EEPROMSave(void)
 
 	if (fp)
 	{
-		fwrite(eeprom_ram, 1, 128, fp);
+		WriteEEPROMToFile(fp, eeprom_ram);
 		fclose(fp);
 	}
 	else
@@ -124,11 +127,38 @@ static void EEPROMSave(void)
 
 	if (fp)
 	{
-		fwrite(cdromEEPROM, 1, 128, fp);
+		WriteEEPROMToFile(fp, cdromEEPROM);
 		fclose(fp);
 	}
 	else
 		WriteLog("EEPROM: Could not create file \"%s!\"\n", cdromEEPROMFilename);
+}
+
+
+//
+// Read/write EEPROM files to disk in an endian safe manner
+//
+void ReadEEPROMFromFile(FILE * file, uint16_t * ram)
+{
+	uint8_t buffer[128];
+	fread(buffer, 1, 128, file);
+
+	for(int i=0; i<64; i++)
+		ram[i] = (buffer[(i * 2) + 0] << 8) | buffer[(i * 2) + 1];
+}
+
+
+void WriteEEPROMToFile(FILE * file, uint16_t * ram)
+{
+	uint8_t buffer[128];
+
+	for(int i=0; i<64; i++)
+	{
+		buffer[(i * 2) + 0] = ram[i] >> 8;
+		buffer[(i * 2) + 1] = ram[i] & 0xFF;
+	}
+
+	fwrite(buffer, 1, 128, file);
 }
 
 
@@ -406,11 +436,7 @@ static uint32_t eeprom_get_do(void)
 		break;
 	case EE_STATE_2_0:
 		jerry_ee_data_cnt--;
-#if 0
-		data = (eeprom_ram[jerry_ee_address_data] & (1 << jerry_ee_data_cnt)) >> jerry_ee_data_cnt;
-#else
 		data = (eeprom_ram[jerry_ee_address_data] >> jerry_ee_data_cnt) & 0x01;
-#endif
 
 		if (!jerry_ee_data_cnt)
 		{

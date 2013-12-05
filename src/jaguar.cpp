@@ -25,6 +25,7 @@
 #include "dsp.h"
 #include "eeprom.h"
 #include "event.h"
+#include "foooked.h"
 #include "gpu.h"
 #include "jerry.h"
 #include "joystick.h"
@@ -79,8 +80,22 @@ uint32_t returnAddr[4000], raPtr = 0xFFFFFFFF;
 #endif
 
 uint32_t pcQueue[0x400];
+uint32_t a0Queue[0x400];
+uint32_t a1Queue[0x400];
 uint32_t a2Queue[0x400];
+uint32_t a3Queue[0x400];
+uint32_t a4Queue[0x400];
+uint32_t a5Queue[0x400];
+uint32_t a6Queue[0x400];
+uint32_t a7Queue[0x400];
 uint32_t d0Queue[0x400];
+uint32_t d1Queue[0x400];
+uint32_t d2Queue[0x400];
+uint32_t d3Queue[0x400];
+uint32_t d4Queue[0x400];
+uint32_t d5Queue[0x400];
+uint32_t d6Queue[0x400];
+uint32_t d7Queue[0x400];
 uint32_t pcQPtr = 0;
 bool startM68KTracing = false;
 
@@ -140,8 +155,22 @@ if (inRoutine)
 // For tracebacks...
 // Ideally, we'd save all the registers as well...
 	pcQueue[pcQPtr] = m68kPC;
+	a0Queue[pcQPtr] = m68k_get_reg(NULL, M68K_REG_A0);
+	a1Queue[pcQPtr] = m68k_get_reg(NULL, M68K_REG_A1);
 	a2Queue[pcQPtr] = m68k_get_reg(NULL, M68K_REG_A2);
+	a3Queue[pcQPtr] = m68k_get_reg(NULL, M68K_REG_A3);
+	a4Queue[pcQPtr] = m68k_get_reg(NULL, M68K_REG_A4);
+	a5Queue[pcQPtr] = m68k_get_reg(NULL, M68K_REG_A5);
+	a6Queue[pcQPtr] = m68k_get_reg(NULL, M68K_REG_A6);
+	a7Queue[pcQPtr] = m68k_get_reg(NULL, M68K_REG_A7);
 	d0Queue[pcQPtr] = m68k_get_reg(NULL, M68K_REG_D0);
+	d1Queue[pcQPtr] = m68k_get_reg(NULL, M68K_REG_D1);
+	d2Queue[pcQPtr] = m68k_get_reg(NULL, M68K_REG_D2);
+	d3Queue[pcQPtr] = m68k_get_reg(NULL, M68K_REG_D3);
+	d4Queue[pcQPtr] = m68k_get_reg(NULL, M68K_REG_D4);
+	d5Queue[pcQPtr] = m68k_get_reg(NULL, M68K_REG_D5);
+	d6Queue[pcQPtr] = m68k_get_reg(NULL, M68K_REG_D6);
+	d7Queue[pcQPtr] = m68k_get_reg(NULL, M68K_REG_D7);
 	pcQPtr++;
 	pcQPtr &= 0x3FF;
 
@@ -152,7 +181,8 @@ if (inRoutine)
 		static char buffer[2048];
 		for(int i=0; i<0x400; i++)
 		{
-			WriteLog("[A2=%08X, D0=%08X]\n", a2Queue[(pcQPtr + i) & 0x3FF], d0Queue[(pcQPtr + i) & 0x3FF]);
+//			WriteLog("[A2=%08X, D0=%08X]\n", a2Queue[(pcQPtr + i) & 0x3FF], d0Queue[(pcQPtr + i) & 0x3FF]);
+			WriteLog("[A0=%08X, A1=%08X, A2=%08X, A3=%08X, A4=%08X, A5=%08X, A6=%08X, A7=%08X, D0=%08X, D1=%08X, D2=%08X, D3=%08X, D4=%08X, D5=%08X, D6=%08X, D7=%08X]\n", a0Queue[(pcQPtr + i) & 0x3FF], a1Queue[(pcQPtr + i) & 0x3FF], a2Queue[(pcQPtr + i) & 0x3FF], a3Queue[(pcQPtr + i) & 0x3FF], a4Queue[(pcQPtr + i) & 0x3FF], a5Queue[(pcQPtr + i) & 0x3FF], a6Queue[(pcQPtr + i) & 0x3FF], a7Queue[(pcQPtr + i) & 0x3FF], d0Queue[(pcQPtr + i) & 0x3FF], d1Queue[(pcQPtr + i) & 0x3FF], d2Queue[(pcQPtr + i) & 0x3FF], d3Queue[(pcQPtr + i) & 0x3FF], d4Queue[(pcQPtr + i) & 0x3FF], d5Queue[(pcQPtr + i) & 0x3FF], d6Queue[(pcQPtr + i) & 0x3FF], d7Queue[(pcQPtr + i) & 0x3FF]);
 			m68k_disassemble(buffer, pcQueue[(pcQPtr + i) & 0x3FF], 0);//M68K_CPU_TYPE_68000);
 			WriteLog("\t%08X: %s\n", pcQueue[(pcQPtr + i) & 0x3FF], buffer);
 		}
