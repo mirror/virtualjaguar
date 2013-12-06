@@ -127,6 +127,18 @@ void DumpRegisters(void)
 #endif
 
 
+void M68KSetHalt(void)
+{
+	regs.stopped = 1;
+}
+
+
+void M68KClearHalt(void)
+{
+	regs.stopped = 0;
+}
+
+
 void m68k_set_cpu_type(unsigned int type)
 {
 }
@@ -327,6 +339,16 @@ if (inRoutine)
 
 //printf("Executed opcode $%04X (%i cycles)...\n", opcode, cycles);
 #endif
+		// This is so our debugging code can break in on a dime.
+		// Otherwise, this is just extra slow down :-P
+		if (regs.stopped)
+		{
+			num_cycles = initialCycles - regs.remainingCycles;
+			regs.remainingCycles = 0;	// int32_t
+			regs.interruptCycles = 0;	// uint32_t
+
+			return num_cycles;
+		}
 	}
 	while (regs.remainingCycles > 0);
 
@@ -466,11 +488,14 @@ void m68ki_exception_interrupt(uint32_t intLevel)
 #endif /* M68K_EMULATE_INT_ACK */
 #else
 	// Turn off the stopped state
-	regs.stopped = 0;
+// Needed?
+//	regs.stopped = 0;
 
 //JLH: need to add halt state?
+// prolly, for debugging/alpine mode... :-/
+// but then again, this should be handled already by the main execution loop :-P
 	// If we are halted, don't do anything
-//	if (CPU_STOPPED)
+//	if (regs.stopped)
 //		return;
 
 	// Acknowledge the interrupt (NOTE: This is a user supplied function!)

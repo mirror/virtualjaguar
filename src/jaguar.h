@@ -28,6 +28,8 @@ extern int32_t jaguarCPUInExec;
 extern uint32_t jaguarMainROMCRC32, jaguarROMSize, jaguarRunAddress;
 extern char * jaguarEepromsPath;
 extern bool jaguarCartInserted;
+extern bool bpmActive;
+extern uint32_t bpmAddress1;
 
 // Various clock rates
 

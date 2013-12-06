@@ -22,6 +22,8 @@ class CPUBrowserWindow: public QWidget
 	public slots:
 //		void DefineAllKeys(void);
 		void RefreshContents(void);
+		void HandleBPM(bool);
+		void HandleBPMAddress(const QString &);
 
 	protected:
 		void keyPressEvent(QKeyEvent *);
@@ -31,8 +33,10 @@ class CPUBrowserWindow: public QWidget
 //		QTextBrowser * text;
 		QLabel * text;
 		QPushButton * refresh;
+		QCheckBox * bpm;
+		QLineEdit * bpmAddress;
 
-		int32_t memBase;
+//		int32_t memBase;
 };
 
 #endif	// __CPUBROWSER_H__

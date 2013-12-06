@@ -19,18 +19,24 @@
 #include "m68000/m68kinterface.h"
 #include "dsp.h"
 #include "gpu.h"
+#include "jaguar.h"
 
 
 CPUBrowserWindow::CPUBrowserWindow(QWidget * parent/*= 0*/): QWidget(parent, Qt::Dialog),
-//	layout(new QVBoxLayout), text(new QTextBrowser),
 	layout(new QVBoxLayout), text(new QLabel),
 	refresh(new QPushButton(tr("Refresh"))),
-	memBase(0)
+	bpm(new QCheckBox(tr("BPM"))), bpmAddress(new QLineEdit)
 {
 	setWindowTitle(tr("CPU Browser"));
 
 	// Need to set the size as well...
 //	resize(560, 480);
+
+	// Limit input to 6 hex digits
+	bpmAddress->setInputMask("hhhhhh");
+	QHBoxLayout * hbox1 = new QHBoxLayout;
+	hbox1->addWidget(bpm);
+	hbox1->addWidget(bpmAddress);
 
 //	QFont fixedFont("Lucida Console", 8, QFont::Normal);
 	QFont fixedFont("", 8, QFont::Normal);
@@ -40,9 +46,12 @@ CPUBrowserWindow::CPUBrowserWindow(QWidget * parent/*= 0*/): QWidget(parent, Qt:
 	setLayout(layout);
 
 	layout->addWidget(text);
+	layout->addLayout(hbox1);
 	layout->addWidget(refresh);
 
 	connect(refresh, SIGNAL(clicked()), this, SLOT(RefreshContents()));
+	connect(bpm, SIGNAL(clicked(bool)), this, SLOT(HandleBPM(bool)));
+	connect(bpmAddress, SIGNAL(textChanged(const QString &)), this, SLOT(HandleBPMAddress(const QString &)));
 }
 
 
@@ -236,10 +245,26 @@ DSP Control:
 }
 
 
+void CPUBrowserWindow::HandleBPM(bool state)
+{
+	bpmActive = state;
+if (bpmActive)
+	printf("BPM Set: $%06X\n", bpmAddress1);
+}
+
+
+void CPUBrowserWindow::HandleBPMAddress(const QString & newText)
+{
+	bool ok;
+	bpmAddress1 = newText.toUInt(&ok, 16);
+}
+
+
 void CPUBrowserWindow::keyPressEvent(QKeyEvent * e)
 {
 	if (e->key() == Qt::Key_Escape)
 		hide();
+#if 0
 	else if (e->key() == Qt::Key_PageUp)
 	{
 		memBase -= 480;
@@ -276,4 +301,5 @@ void CPUBrowserWindow::keyPressEvent(QKeyEvent * e)
 
 		RefreshContents();
 	}
+#endif
 }
