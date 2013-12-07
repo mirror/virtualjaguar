@@ -1026,7 +1026,7 @@ unsigned int m68k_read_memory_8(unsigned int address)
 #ifdef ALPINE_FUNCTIONS
 	// Check if breakpoint on memory is active, and deal with it
 	if (bpmActive && address == bpmAddress1)
-		M68KSetHalt();
+		M68KDebugHalt();
 #endif
 
 	// Musashi does this automagically for you, UAE core does not :-P
@@ -1085,7 +1085,7 @@ unsigned int m68k_read_memory_16(unsigned int address)
 #ifdef ALPINE_FUNCTIONS
 	// Check if breakpoint on memory is active, and deal with it
 	if (bpmActive && address == bpmAddress1)
-		M68KSetHalt();
+		M68KDebugHalt();
 #endif
 
 	// Musashi does this automagically for you, UAE core does not :-P
@@ -1193,7 +1193,7 @@ unsigned int m68k_read_memory_32(unsigned int address)
 #ifdef ALPINE_FUNCTIONS
 	// Check if breakpoint on memory is active, and deal with it
 	if (bpmActive && address == bpmAddress1)
-		M68KSetHalt();
+		M68KDebugHalt();
 #endif
 
 	// Musashi does this automagically for you, UAE core does not :-P
@@ -1216,7 +1216,7 @@ void m68k_write_memory_8(unsigned int address, unsigned int value)
 #ifdef ALPINE_FUNCTIONS
 	// Check if breakpoint on memory is active, and deal with it
 	if (bpmActive && address == bpmAddress1)
-		M68KSetHalt();
+		M68KDebugHalt();
 #endif
 
 	// Musashi does this automagically for you, UAE core does not :-P
@@ -1273,7 +1273,7 @@ void m68k_write_memory_16(unsigned int address, unsigned int value)
 #ifdef ALPINE_FUNCTIONS
 	// Check if breakpoint on memory is active, and deal with it
 	if (bpmActive && address == bpmAddress1)
-		M68KSetHalt();
+		M68KDebugHalt();
 #endif
 
 	// Musashi does this automagically for you, UAE core does not :-P
@@ -1368,7 +1368,7 @@ void m68k_write_memory_32(unsigned int address, unsigned int value)
 #ifdef ALPINE_FUNCTIONS
 	// Check if breakpoint on memory is active, and deal with it
 	if (bpmActive && address == bpmAddress1)
-		M68KSetHalt();
+		M68KDebugHalt();
 #endif
 
 	// Musashi does this automagically for you, UAE core does not :-P

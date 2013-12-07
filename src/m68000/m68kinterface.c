@@ -127,15 +127,15 @@ void DumpRegisters(void)
 #endif
 
 
-void M68KSetHalt(void)
+void M68KDebugHalt(void)
 {
-	regs.stopped = 1;
+	regs.spcflags |= SPCFLAG_DEBUGGER;
 }
 
 
-void M68KClearHalt(void)
+void M68KDebugResume(void)
 {
-	regs.stopped = 0;
+	regs.spcflags &= ~SPCFLAG_DEBUGGER;
 }
 
 
@@ -199,6 +199,7 @@ void m68k_pulse_reset(void)
 	REG_PC = m68ki_read_imm_32();
 	m68ki_jump(REG_PC);
 #else
+	regs.spcflags = 0;
 	regs.stopped = 0;
 	regs.remainingCycles = 0;
 	
@@ -245,6 +246,17 @@ int m68k_execute(int num_cycles)
 	/* Main loop.  Keep going until we run out of clock cycles */
 	do
 	{
+		// This is so our debugging code can break in on a dime.
+		// Otherwise, this is just extra slow down :-P
+		if (regs.spcflags & SPCFLAG_DEBUGGER)
+		{
+			// Not sure this is correct... :-P
+			num_cycles = initialCycles - regs.remainingCycles;
+			regs.remainingCycles = 0;	// int32_t
+			regs.interruptCycles = 0;	// uint32_t
+
+			return num_cycles;
+		}
 #if 0
 		/* Set tracing accodring to T1. (T0 is done inside instruction) */
 		m68ki_trace_t1(); /* auto-disable (see m68kcpu.h) */
@@ -339,16 +351,6 @@ if (inRoutine)
 
 //printf("Executed opcode $%04X (%i cycles)...\n", opcode, cycles);
 #endif
-		// This is so our debugging code can break in on a dime.
-		// Otherwise, this is just extra slow down :-P
-		if (regs.stopped)
-		{
-			num_cycles = initialCycles - regs.remainingCycles;
-			regs.remainingCycles = 0;	// int32_t
-			regs.interruptCycles = 0;	// uint32_t
-
-			return num_cycles;
-		}
 	}
 	while (regs.remainingCycles > 0);
 
@@ -487,9 +489,8 @@ void m68ki_exception_interrupt(uint32_t intLevel)
 	CPU_INT_LEVEL = 0;
 #endif /* M68K_EMULATE_INT_ACK */
 #else
-	// Turn off the stopped state
-// Needed?
-//	regs.stopped = 0;
+	// Turn off the stopped state (N.B.: normal 68K behavior!)
+	regs.stopped = 0;
 
 //JLH: need to add halt state?
 // prolly, for debugging/alpine mode... :-/
