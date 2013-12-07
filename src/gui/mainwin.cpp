@@ -84,7 +84,7 @@
 
 MainWin::MainWin(bool autoRun): running(true), powerButtonOn(false),
 	showUntunedTankCircuit(true), cartridgeLoaded(false), CDActive(false),
-	pauseForFileSelector(false), loadAndGo(autoRun), plzDontKillMyComputer(false)
+	pauseForFileSelector(false), loadAndGo(autoRun), scannedSoftwareFolder(false), plzDontKillMyComputer(false)
 {
 	debugbar = NULL;
 
@@ -393,6 +393,7 @@ MainWin::MainWin(bool autoRun): running(true), powerButtonOn(false),
 	// Run the scanner if nothing passed in and *not* Alpine mode...
 	// NB: Really need to look into caching the info scanned in here...
 	filePickWin->ScanSoftwareFolder(allowUnknownSoftware);
+	scannedSoftwareFolder = true;
 }
 
 
@@ -515,40 +516,9 @@ void MainWin::HandleKeys(QKeyEvent * e, bool state)
 {
 	enum { P1LEFT = 0, P1RIGHT, P1UP, P1DOWN, P2LEFT, P2RIGHT, P2UP, P2DOWN };
 	// We kill bad key combos here, before they can get to the emulator...
-	// This also kills the illegal instruction problem that cropped up in Rayman!
-	// May want to do this by killing the old one instead of ignoring the new one...
-	// Seems to work better that way...
+	// This also kills the illegal instruction problem that cropped up in
+	// Rayman!
 
-// The problem with this approach is that it causes bad results because it doesn't do
-// any checking of previous states. Need to come up with something better because this
-// causes problems where the keyboard acts as if it were unresponsive. :-P
-#if 0
-	if ((e->key() == vjs.p1KeyBindings[BUTTON_L] && joypad_0_buttons[BUTTON_R])
-		|| (e->key() == vjs.p1KeyBindings[BUTTON_R] && joypad_0_buttons[BUTTON_L])
-		|| (e->key() == vjs.p1KeyBindings[BUTTON_U] && joypad_0_buttons[BUTTON_D])
-		|| (e->key() == vjs.p1KeyBindings[BUTTON_D] && joypad_0_buttons[BUTTON_U]))
-		return;
-#else
-#if 0
-	if (e->key() == (int)vjs.p1KeyBindings[BUTTON_L] && joypad_0_buttons[BUTTON_R])
-		joypad_0_buttons[BUTTON_R] = 0;
-	if (e->key() == (int)vjs.p1KeyBindings[BUTTON_R] && joypad_0_buttons[BUTTON_L])
-		joypad_0_buttons[BUTTON_L] = 0;
-	if (e->key() == (int)vjs.p1KeyBindings[BUTTON_U] && joypad_0_buttons[BUTTON_D])
-		joypad_0_buttons[BUTTON_D] = 0;
-	if (e->key() == (int)vjs.p1KeyBindings[BUTTON_D] && joypad_0_buttons[BUTTON_U])
-		joypad_0_buttons[BUTTON_U] = 0;
-
-	if (e->key() == (int)vjs.p2KeyBindings[BUTTON_L] && joypad_1_buttons[BUTTON_R])
-		joypad_1_buttons[BUTTON_R] = 0;
-	if (e->key() == (int)vjs.p2KeyBindings[BUTTON_R] && joypad_1_buttons[BUTTON_L])
-		joypad_1_buttons[BUTTON_L] = 0;
-	if (e->key() == (int)vjs.p2KeyBindings[BUTTON_U] && joypad_1_buttons[BUTTON_D])
-		joypad_1_buttons[BUTTON_D] = 0;
-	if (e->key() == (int)vjs.p2KeyBindings[BUTTON_D] && joypad_1_buttons[BUTTON_U])
-		joypad_1_buttons[BUTTON_U] = 0;
-#else
-//hrm, this still has sticky state problems... Ugh!
 	// First, settle key states...
 	if (e->key() == (int)vjs.p1KeyBindings[BUTTON_L])
 		keyHeld[P1LEFT] = state;
@@ -567,14 +537,6 @@ void MainWin::HandleKeys(QKeyEvent * e, bool state)
 	else if (e->key() == (int)vjs.p2KeyBindings[BUTTON_D])
 		keyHeld[P2DOWN] = state;
 
-#if 0
-	// Next, check for conflicts and bail out if there are any...
-	if ((keyHeld[P1LEFT] && keyHeld[P1RIGHT])
-		|| (keyHeld[P1UP] && keyHeld[P1DOWN])
-		|| (keyHeld[P2LEFT] && keyHeld[P2RIGHT])
-		|| (keyHeld[P2UP] && keyHeld[P2DOWN]))
-		return;
-#else
 	// Next, check for conflicts and kill 'em if there are any...
 	if (keyHeld[P1LEFT] && keyHeld[P1RIGHT])
 		keyHeld[P1LEFT] = keyHeld[P1RIGHT] = false;
@@ -587,21 +549,14 @@ void MainWin::HandleKeys(QKeyEvent * e, bool state)
 
 	if (keyHeld[P2UP] && keyHeld[P2DOWN])
 		keyHeld[P2UP] = keyHeld[P2DOWN] = false;
-#endif
-#endif
-#endif
 
-	// No bad combos exist, let's stuff the emulator key buffers...!
+	// No bad combos exist now, let's stuff the emulator key buffers...!
 	for(int i=BUTTON_FIRST; i<=BUTTON_LAST; i++)
 	{
 		if (e->key() == (int)vjs.p1KeyBindings[i])
-//			joypad_0_buttons[i] = (uint8)state;
 			joypad0Buttons[i] = (state ? 0x01 : 0x00);
 
-// Pad #2 is screwing up pad #1. Prolly a problem in joystick.cpp...
-// So let's try to fix it there. :-P [DONE]
 		if (e->key() == (int)vjs.p2KeyBindings[i])
-//			joypad_1_buttons[i] = (uint8)state;
 			joypad1Buttons[i] = (state ? 0x01 : 0x00);
 	}
 }
@@ -916,6 +871,14 @@ void MainWin::ShowHelpWin(void)
 
 void MainWin::InsertCart(void)
 {
+	// Check to see if we did autorun, 'cause we didn't load anything in that
+	// case
+	if (!scannedSoftwareFolder)
+	{
+		filePickWin->ScanSoftwareFolder(allowUnknownSoftware);
+		scannedSoftwareFolder = true;
+	}
+
 	// If the emulator is running, we pause it here and unpause it later
 	// if we dismiss the file selector without choosing anything
 	if (running && powerButtonOn)

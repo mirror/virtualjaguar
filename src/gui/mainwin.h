@@ -100,6 +100,7 @@ class MainWin: public QMainWindow
 		bool loadAndGo;
 		bool keyHeld[8];
 		bool fullScreen;
+		bool scannedSoftwareFolder;
 	public:
 		bool plzDontKillMyComputer;
 		uint32_t oldTimestamp;

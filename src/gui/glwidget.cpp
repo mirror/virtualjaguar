@@ -155,7 +155,7 @@ void GLWidget::HandleMouseHiding(void)
 	else if (hideMouseTimeout == 0)
 	{
 		hideMouseTimeout--;
-		qApp->setOverrideCursor(Qt::BlankCursor);
+		setCursor(Qt::BlankCursor);
 	}
 }
 
@@ -166,7 +166,7 @@ void GLWidget::CheckAndRestoreMouseCursor(void)
 {
 	// Has the mouse been hidden? (-1 means mouse was hidden)
 	if (hideMouseTimeout == -1)
-		qApp->restoreOverrideCursor();
+		setCursor(Qt::ArrowCursor);
 
 	hideMouseTimeout = 60;
 }
