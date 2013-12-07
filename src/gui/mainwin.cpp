@@ -567,12 +567,27 @@ void MainWin::HandleKeys(QKeyEvent * e, bool state)
 	else if (e->key() == (int)vjs.p2KeyBindings[BUTTON_D])
 		keyHeld[P2DOWN] = state;
 
+#if 0
 	// Next, check for conflicts and bail out if there are any...
 	if ((keyHeld[P1LEFT] && keyHeld[P1RIGHT])
 		|| (keyHeld[P1UP] && keyHeld[P1DOWN])
 		|| (keyHeld[P2LEFT] && keyHeld[P2RIGHT])
 		|| (keyHeld[P2UP] && keyHeld[P2DOWN]))
 		return;
+#else
+	// Next, check for conflicts and kill 'em if there are any...
+	if (keyHeld[P1LEFT] && keyHeld[P1RIGHT])
+		keyHeld[P1LEFT] = keyHeld[P1RIGHT] = false;
+
+	if (keyHeld[P1UP] && keyHeld[P1DOWN])
+		keyHeld[P1UP] = keyHeld[P1DOWN] = false;
+
+	if (keyHeld[P2LEFT] && keyHeld[P2RIGHT])
+		keyHeld[P2LEFT] = keyHeld[P2RIGHT] = false;
+
+	if (keyHeld[P2UP] && keyHeld[P2DOWN])
+		keyHeld[P2UP] = keyHeld[P2DOWN] = false;
+#endif
 #endif
 #endif
 
