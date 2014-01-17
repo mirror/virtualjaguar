@@ -189,7 +189,7 @@ bool ParseCommandLine(int argc, char * argv[])
 				"                 -z  Run Virtual Jaguar without \"snow\"\n"
 				"\n"
 				"Invoking Virtual Jagaur with no filename will cause it to boot up\n"
-				"with the VJ GUI.\n"
+				"with the VJ GUI. Using Alpine mode will enable log file.\n"
 				"\n");
 			return false;
 		}
@@ -206,6 +206,8 @@ bool ParseCommandLine(int argc, char * argv[])
 		{
 			printf("Alpine Mode enabled.\n");
 			vjs.hardwareTypeAlpine = true;
+			// We also enable logging as well :-)
+			useLogfile = true;
 		}
 
 		if ((strcmp(argv[i], "--please-dont-kill-my-computer") == 0) || (strcmp(argv[i], "-z") == 0))

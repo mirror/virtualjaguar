@@ -663,6 +663,16 @@ void MainWin::Configure(void)
 //
 void MainWin::Timer(void)
 {
+#if 0
+static uint32_t ntscTickCount;
+	if (vjs.hardwareTypeNTSC)
+	{
+		ntscTickCount++;
+		ntscTickCount %= 3;
+		timer->start(16 + (ntscTickCount == 0 ? 1 : 0));
+	}
+#endif
+
 	if (!running)
 		return;
 
