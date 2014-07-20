@@ -2390,13 +2390,7 @@ static void gpu_opcode_div(void)	// RN / RM
 	if (doGPUDis)
 		WriteLog("%06X: DIV    R%02u, R%02u (%s) [NCZ:%u%u%u, R%02u=%08X, R%02u=%08X] -> ", gpu_pc-2, IMM_1, IMM_2, (gpu_div_control & 0x01 ? "16.16" : "32"), gpu_flag_n, gpu_flag_c, gpu_flag_z, IMM_1, RM, IMM_2, RN);
 #endif
-// NOTE: remainder is NOT calculated correctly here!
-//       The original tried to get it right by checking to see if the
-//       remainder was negative, but that's too late...
-// The code there should do it now, but I'm not 100% sure...
-// [Now it should be correct, but not displaying correct behavior of the actual
-//  hardware. A step in the right direction.]
-
+#if 0
 	if (RM)
 	{
 		if (gpu_div_control & 0x01)		// 16.16 division
@@ -2411,16 +2405,35 @@ static void gpu_opcode_div(void)	// RN / RM
 			gpu_remain = RN % RM;
 			RN = RN / RM;
 		}
-
-// What we really should do here is figure out why this condition
-// happens in the real divide unit and emulate *that* behavior.
-#if 0
-		if ((gpu_remain - RM) & 0x80000000)	// If the result would have been negative...
-			gpu_remain -= RM;			// Then make it negative!
-#endif
 	}
 	else
+	{
+		// This is what happens according to SCPCD. NYAN!
 		RN = 0xFFFFFFFF;
+		gpu_remain = 0;
+	}
+#else
+	// Real algorithm, courtesy of SCPCD: NYAN!
+	uint32_t q = RN;
+	uint32_t r = 0;
+
+	// If 16.16 division, stuff top 16 bits of RN into remainder and put the
+	// bottom 16 of RN in top 16 of quotient
+	if (gpu_div_control & 0x01)
+		q <<= 16, r = RN >> 16;
+
+	for(int i=0; i<32; i++)
+	{
+//		uint32_t sign = (r >> 31) & 0x01;
+		uint32_t sign = r & 0x80000000;
+		r = (r << 1) | ((q >> 31) & 0x01);
+		r += (sign ? RM : -RM);
+		q = (q << 1) | (((~r) >> 31) & 0x01);
+	}
+
+	RN = q;
+	gpu_remain = r;
+#endif
 
 #ifdef GPU_DIS_DIV
 	if (doGPUDis)

@@ -2455,29 +2455,6 @@ static void dsp_opcode_abs(void)
 static void dsp_opcode_div(void)
 {
 #if 0
-	uint32_t _Rm=RM;
-	uint32_t _Rn=RN;
-
-	if (_Rm)
-	{
-		if (dsp_div_control & 1)
-		{
-			dsp_remain = (((uint64_t)_Rn) << 16) % _Rm;
-			if (dsp_remain&0x80000000)
-				dsp_remain-=_Rm;
-			RN = (((uint64_t)_Rn) << 16) / _Rm;
-		}
-		else
-		{
-			dsp_remain = _Rn % _Rm;
-			if (dsp_remain&0x80000000)
-				dsp_remain-=_Rm;
-			RN/=_Rm;
-		}
-	}
-	else
-		RN=0xffffffff;
-#else
 	if (RM)
 	{
 		if (dsp_div_control & 0x01)		// 16.16 division
@@ -2493,15 +2470,34 @@ static void dsp_opcode_div(void)
 			RN = RN / RM;
 		}
 
-// What we really should do here is figure out why this condition
-// happens in the real divide unit and emulate *that* behavior.
-#if 0
-		if ((gpu_remain - RM) & 0x80000000)	// If the result would have been negative...
-			gpu_remain -= RM;			// Then make it negative!
-#endif
 	}
 	else
+	{
+		// This is what happens according to SCPCD. NYAN!
 		RN = 0xFFFFFFFF;
+		dsp_remain = 0;
+	}
+#else
+	// Real algorithm, courtesy of SCPCD: NYAN!
+	uint32_t q = RN;
+	uint32_t r = 0;
+
+	// If 16.16 division, stuff top 16 bits of RN into remainder and put the
+	// bottom 16 of RN in top 16 of quotient
+	if (dsp_div_control & 0x01)
+		q <<= 16, r = RN >> 16;
+
+	for(int i=0; i<32; i++)
+	{
+//		uint32_t sign = (r >> 31) & 0x01;
+		uint32_t sign = r & 0x80000000;
+		r = (r << 1) | ((q >> 31) & 0x01);
+		r += (sign ? RM : -RM);
+		q = (q << 1) | (((~r) >> 31) & 0x01);
+	}
+
+	RN = q;
+	dsp_remain = r;
 #endif
 }
 
