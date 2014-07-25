@@ -1122,8 +1122,8 @@ void MainWin::ReadSettings(void)
 	vjs.allowWritesToROM = settings.value("writeROM", false).toBool();
 	vjs.biosType         = settings.value("biosType", BT_M_SERIES).toInt();
 	vjs.useFastBlitter   = settings.value("useFastBlitter", false).toBool();
-	strcpy(vjs.EEPROMPath, settings.value("EEPROMs", "./eeproms/").toString().toAscii().data());
-	strcpy(vjs.ROMPath, settings.value("ROMs", "./software/").toString().toAscii().data());
+	strcpy(vjs.EEPROMPath, settings.value("EEPROMs", QDesktopServices::storageLocation(QDesktopServices::DataLocation).append("/eeproms/")).toString().toAscii().data());
+	strcpy(vjs.ROMPath, settings.value("ROMs", QDesktopServices::storageLocation(QDesktopServices::DataLocation).append("/software/")).toString().toAscii().data());
 	strcpy(vjs.alpineROMPath, settings.value("DefaultROM", "").toString().toAscii().data());
 	strcpy(vjs.absROMPath, settings.value("DefaultABS", "").toString().toAscii().data());
 

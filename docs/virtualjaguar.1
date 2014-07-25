@@ -131,13 +131,13 @@ Keypad #
 Virtualjaguar log file. If the file cannot be opened, the log it sent
 to standard output instead. The log file is overwritten on startup.
 .TP
-.B ~/virtualjaguar/eeproms/
+.B ${XDG_DATA_HOME}/virtualjaguar/eeproms/ (typically ~/.local/share/data/virtualjaguar/eeproms/)
 Some Atari Jaguar cartridges feature a small writable EEPROM, used for
 saving game state and score lists. If this directory exists,
 virtualjaguar will emulate the EEPROM by saving the state in file in
 this directory.
 .TP
-.B ~/virtualjaguar/software/
+.B ${XDG_DATA_HOME}/virtualjaguar/software/ (typically ~/.local/share/data/virtualjaguar/software/)
 The virtualjaguar GUI for loading software scans this directory, and
 shows the loadable files, along with information about the program,
 and a label image if one is included in a zip archive of the software.
