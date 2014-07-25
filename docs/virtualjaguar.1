@@ -127,9 +127,11 @@ Keypad #
 
 .SH FILES
 .TP
-.B ~/virtualjaguar/virtualjaguar.log
-Virtualjaguar log file. If the file cannot be opened, the log it sent
-to standard output instead. The log file is overwritten on startup.
+.B virtualjaguar.log
+Virtualjaguar log file. Only written if the log option (\-l or
+\-\-log) is given. If the file cannot be opened, the log it sent to
+standard output instead. The log file is overwritten on startup. Note
+that the file is written to the current directory.
 .TP
 .B ${XDG_DATA_HOME}/virtualjaguar/eeproms/ (typically ~/.local/share/data/virtualjaguar/eeproms/)
 Some Atari Jaguar cartridges feature a small writable EEPROM, used for
@@ -141,10 +143,6 @@ this directory.
 The virtualjaguar GUI for loading software scans this directory, and
 shows the loadable files, along with information about the program,
 and a label image if one is included in a zip archive of the software.
-.TP
-.B ~/virtualjaguar/bios/
-If a Jaguar BIOS is used (see \-b, \-\-bios), the bios is loaded from
-this directory.
 
 .SH AUTHOR
 This manual page was written by Teemu Hukkanen <tjhukkan@iki.fi>.
