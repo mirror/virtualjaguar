@@ -33,6 +33,11 @@ else ifeq "$(findstring Linux,$(OSTYPE))" "Linux"
 SYSTYPE    := __GCCUNIX__
 SDLLIBTYPE := --libs
 
+else ifeq "$(findstring kFreeBSD,$(OSTYPE))" "kFreeBSD"
+
+SYSTYPE    := __GCCUNIX__
+SDLLIBTYPE := --libs
+
 # ??? Throw error, unknown OS
 else
 
