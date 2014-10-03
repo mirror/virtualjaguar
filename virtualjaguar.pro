@@ -38,7 +38,9 @@ else { LIBS += `$(CROSS)sdl-config --libs` }
 
 # Icon on Win32, Mac
 #win32 { LIBS += res/vj-ico.o }
-win32 { ICON = res/vj.ico }
+#win32 { ICON = res/vj.ico }
+#win32 { LIBS += res/vj.o; $(CROSS)windres -i res/vj.rc -o vj.o --include-dir=./res }
+win32 { RC_FILE = res/vj.rc }
 macx  { ICON = res/vj-icon.icns }
 
 # C/C++ flags...
