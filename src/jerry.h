@@ -11,6 +11,7 @@
 void JERRYInit(void);
 void JERRYReset(void);
 void JERRYDone(void);
+void JERRYDumpIORegistersToLog(void);
 
 uint8_t JERRYReadByte(uint32_t offset, uint32_t who = UNKNOWN);
 uint16_t JERRYReadWord(uint32_t offset, uint32_t who = UNKNOWN);

@@ -6,20 +6,22 @@
 #
 # See the README and GPLv3 files for licensing and warranty information
 #
-# NOTE: M68000 core is built and linked in as a library, so there should be no more
-#       problems with using the qmake build system as-is. :-)
-#       Other than on the Mac, where it stupidly defaults to making XCode binaries. >:-(
-#       Well, we fixed it in the Makefile, by doing platfrom detection there. :-/
+# NOTE: M68000 core is built and linked in as a library, so there should be no
+#       more problems with using the qmake build system as-is. :-)
+#       Other than on the Mac, where it stupidly defaults to making XCode
+#       binaries. >:-( Well, we fixed it in the Makefile, by doing platform
+#       detection there. :-/
 #
 
 TARGET     = virtualjaguar
 CONFIG    += qt warn_on release
 # debug
 RESOURCES += virtualjaguar.qrc
-LIBS      += -Lobj -ljaguarcore -lz -lm68k
+LIBS      += -Lobj -Lsrc/m68000/obj -ljaguarcore -lz -lm68k
 QT        += opengl
 
-# We stuff all the intermediate crap into obj/ so it won't confuse us mere mortals ;-)
+# We stuff all the intermediate crap into obj/ so it won't confuse us mere
+# mortals ;-)
 OBJECTS_DIR = obj
 MOC_DIR     = obj
 RCC_DIR     = obj
@@ -35,19 +37,23 @@ macx { LIBS += `sdl-config --static-libs` }
 else { LIBS += `$(CROSS)sdl-config --libs` }
 
 # Icon on Win32, Mac
-win32 { LIBS += res/vj-ico.o }
+#win32 { LIBS += res/vj-ico.o }
+win32 { ICON = res/vj.ico }
 macx  { ICON = res/vj-icon.icns }
 
 # C/C++ flags...
 # NOTE: May have to put -Wall back in, but only on non-release cycles. It can
-#       cause problems if you're not careful. (Can do this via command line in qmake)
+#       cause problems if you're not careful. (Can do this via command line in
+#       qmake)
 QMAKE_CFLAGS += `$(CROSS)sdl-config --cflags`
 QMAKE_CXXFLAGS += `$(CROSS)sdl-config --cflags`
 
 # Need to add libcdio stuffola (checking/including)...
 
-# Translations. NB: Nobody has stepped up to do any :-P so these are dummy translations
-TRANSLATIONS = virtualjaguar_fr.ts \
+# Translations. NB: Nobody has stepped up to do any :-P so these are dummy
+# translations
+TRANSLATIONS = \
+	virtualjaguar_fr.ts \
 	virtualjaguar_gr.ts
 
 INCLUDEPATH += \
@@ -84,8 +90,7 @@ HEADERS = \
 	src/gui/debug/m68kdasmbrowser.h \
 	src/gui/debug/memorybrowser.h \
 	src/gui/debug/opbrowser.h \
-	src/gui/debug/riscdasmbrowser.h \
-#	src/gui/sdljoystick.h
+	src/gui/debug/riscdasmbrowser.h
 
 SOURCES = \
 	src/gui/about.cpp \
@@ -109,5 +114,5 @@ SOURCES = \
 	src/gui/debug/m68kdasmbrowser.cpp \
 	src/gui/debug/memorybrowser.cpp \
 	src/gui/debug/opbrowser.cpp \
-	src/gui/debug/riscdasmbrowser.cpp \
-#	src/gui/sdljoystick.cpp
+	src/gui/debug/riscdasmbrowser.cpp
+

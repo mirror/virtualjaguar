@@ -10,7 +10,11 @@
 #include <limits.h>
 #define MAX_PATH		_POSIX_PATH_MAX
 #else
-#include <stdlib.h>								// for MAX_PATH on MinGW/Darwin
+#include <stdlib.h>				// for MAX_PATH on MinGW/Darwin
+// Kludge for Win64
+#ifndef MAX_PATH
+#define MAX_PATH _MAX_PATH		// Urgh.
+#endif
 #endif
 #include <stdint.h>
 
@@ -19,8 +23,8 @@
 struct VJSettings
 {
 	bool useJoystick;
-	int32_t joyport;								// Joystick port
-	bool hardwareTypeNTSC;						// Set to false for PAL
+	int32_t joyport;			// Joystick port
+	bool hardwareTypeNTSC;		// Set to false for PAL
 	bool useJaguarBIOS;
 	bool GPUEnabled;
 	bool DSPEnabled;

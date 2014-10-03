@@ -457,11 +457,13 @@ void dsp_reset_stats(void)
 		dsp_opcode_use[i] = 0;
 }
 
+
 void DSPReleaseTimeslice(void)
 {
 //This does absolutely nothing!!! !!! FIX !!!
 	dsp_releaseTimeSlice_flag = 1;
 }
+
 
 void dsp_build_branch_condition_table(void)
 {
@@ -502,6 +504,7 @@ void dsp_build_branch_condition_table(void)
 	}
 }
 
+
 uint8_t DSPReadByte(uint32_t offset, uint32_t who/*=UNKNOWN*/)
 {
 	if (offset >= 0xF1A000 && offset <= 0xF1A0FF)
@@ -522,21 +525,19 @@ uint8_t DSPReadByte(uint32_t offset, uint32_t who/*=UNKNOWN*/)
 	{
 		uint32_t data = DSPReadLong(offset & 0xFFFFFFFC, who);
 
-		if ((offset&0x03)==0)
-			return(data>>24);
-		else
-		if ((offset&0x03)==1)
-			return((data>>16)&0xff);
-		else
-		if ((offset&0x03)==2)
-			return((data>>8)&0xff);
-		else
-		if ((offset&0x03)==3)
-			return(data&0xff);
+		if ((offset & 0x03) == 0)
+			return (data >> 24);
+		else if ((offset & 0x03) == 1)
+			return ((data >> 16) & 0xFF);
+		else if ((offset & 0x03) == 2)
+			return ((data >> 8) & 0xFF);
+		else if ((offset & 0x03) == 3)
+			return (data & 0xFF);
 	}
 
 	return JaguarReadByte(offset, who);
 }
+
 
 uint16_t DSPReadWord(uint32_t offset, uint32_t who/*=UNKNOWN*/)
 {
@@ -564,6 +565,7 @@ uint16_t DSPReadWord(uint32_t offset, uint32_t who/*=UNKNOWN*/)
 
 	return JaguarReadWord(offset, who);
 }
+
 
 uint32_t DSPReadLong(uint32_t offset, uint32_t who/*=UNKNOWN*/)
 {
@@ -609,12 +611,13 @@ uint32_t DSPReadLong(uint32_t offset, uint32_t who/*=UNKNOWN*/)
 	return JaguarReadLong(offset, who);
 }
 
+
 void DSPWriteByte(uint32_t offset, uint8_t data, uint32_t who/*=UNKNOWN*/)
 {
 	if (offset >= 0xF1A000 && offset <= 0xF1A0FF)
 		WriteLog("DSP: WriteByte--Attempt to write to DSP register file by %s!\n", whoName[who]);
 
-	if ((offset >= DSP_WORK_RAM_BASE) && (offset < DSP_WORK_RAM_BASE+0x2000))
+	if ((offset >= DSP_WORK_RAM_BASE) && (offset < DSP_WORK_RAM_BASE + 0x2000))
 	{
 		offset -= DSP_WORK_RAM_BASE;
 		dsp_ram_8[offset] = data;
@@ -626,7 +629,7 @@ void DSPWriteByte(uint32_t offset, uint8_t data, uint32_t who/*=UNKNOWN*/)
 		}*/
 		return;
 	}
-	if ((offset >= DSP_CONTROL_RAM_BASE) && (offset < DSP_CONTROL_RAM_BASE+0x20))
+	if ((offset >= DSP_CONTROL_RAM_BASE) && (offset < DSP_CONTROL_RAM_BASE + 0x20))
 	{
 		uint32_t reg = offset & 0x1C;
 		int bytenum = offset & 0x03;
@@ -645,8 +648,10 @@ void DSPWriteByte(uint32_t offset, uint8_t data, uint32_t who/*=UNKNOWN*/)
 	}
 //	WriteLog("dsp: writing %.2x at 0x%.8x\n",data,offset);
 //Should this *ever* happen??? Shouldn't we be saying "unknown" here???
+// Well, yes, it can. There are 3 MMU users after all: 68K, GPU & DSP...!
 	JaguarWriteByte(offset, data, who);
 }
+
 
 void DSPWriteWord(uint32_t offset, uint16_t data, uint32_t who/*=UNKNOWN*/)
 {
@@ -708,6 +713,7 @@ SET16(ram2, offset, data);
 
 	JaguarWriteWord(offset, data, who);
 }
+
 
 //bool badWrite = false;
 void DSPWriteLong(uint32_t offset, uint32_t data, uint32_t who/*=UNKNOWN*/)
@@ -889,6 +895,7 @@ WriteLog("DSP: Modulo data %08X written by %s.\n", data, whoName[who]);
 	JaguarWriteLong(offset, data, who);
 }
 
+
 //
 // Update the DSP register file pointers depending on REGPAGE bit
 //
@@ -908,6 +915,7 @@ void DSPUpdateRegisterBanks(void)
 	WriteLog("DSP: Register bank #%s active.\n", (bank ? "1" : "0"));
 #endif
 }
+
 
 //
 // Check for and handle any asserted DSP IRQs
@@ -1054,6 +1062,7 @@ ctrl2[0] = regs2[30] = dsp_pc;
 	FlushDSPPipeline();
 }
 
+
 //
 // Non-pipelined version...
 //
@@ -1159,6 +1168,7 @@ ctrl1[0] = regs1[30] = dsp_pc;
 //!!!!!!!!
 }
 
+
 //
 // Set the specified DSP IRQ line to a given state
 //
@@ -1193,10 +1203,12 @@ DSPHandleIRQsNP();
 //	GPUSetIRQLine(GPUIRQ_DSP, ASSERT_LINE);
 }
 
+
 bool DSPIsRunning(void)
 {
 	return (DSP_RUNNING ? true : false);
 }
+
 
 void DSPInit(void)
 {
@@ -1207,6 +1219,7 @@ void DSPInit(void)
 	dsp_build_branch_condition_table();
 	DSPReset();
 }
+
 
 void DSPReset(void)
 {
@@ -1238,6 +1251,7 @@ void DSPReset(void)
 		*((uint32_t *)(&dsp_ram_8[i])) = rand();
 }
 
+
 void DSPDumpDisassembly(void)
 {
 	char buffer[512];
@@ -1252,6 +1266,7 @@ void DSPDumpDisassembly(void)
 		WriteLog("\t%08X: %s\n", oldj, buffer);
 	}
 }
+
 
 void DSPDumpRegisters(void)
 {
@@ -1279,6 +1294,7 @@ void DSPDumpRegisters(void)
 			(j << 2) + 3, dsp_reg_bank_1[(j << 2) + 3]);
 	}
 }
+
 
 void DSPDone(void)
 {

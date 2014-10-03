@@ -307,6 +307,7 @@
 #define HEQ			0x54		// Horizontal equalization end
 #define BG			0x58		// Background color
 #define INT1		0xE0
+#define INT2		0xE2
 
 //NOTE: These arbitrary cutoffs are NOT taken into account for PAL jaguar screens. !!! FIX !!! [DONE]
 
@@ -1083,6 +1084,7 @@ void TOMInit(void)
 
 void TOMDone(void)
 {
+	TOMDumpIORegistersToLog();
 	OPDone();
 	BlitterDone();
 	WriteLog("TOM: Resolution %i x %i %s\n", TOMGetVideoModeWidth(), TOMGetVideoModeHeight(),
@@ -1090,10 +1092,6 @@ void TOMDone(void)
 //	WriteLog("\ntom: object processor:\n");
 //	WriteLog("tom: pointer to object list: 0x%.8x\n",op_get_list_pointer());
 //	WriteLog("tom: INT1=0x%.2x%.2x\n",TOMReadByte(0xf000e0),TOMReadByte(0xf000e1));
-//	gpu_done();
-//	dsp_done();
-//	memory_free(tomRam8);
-//	memory_free(tom_cry_rgb_mix_lut);
 }
 
 
@@ -1249,6 +1247,7 @@ void TOMReset(void)
 	if (vjs.hardwareTypeNTSC)
 	{
 		SET16(tomRam8, MEMCON1, 0x1861);
+//		SET16(tomRam8, MEMCON1, 0x1865);//Bunch of BS
 		SET16(tomRam8, MEMCON2, 0x35CC);
 		SET16(tomRam8, HP, 844);			// Horizontal Period (1-based; HP=845)
 		SET16(tomRam8, HBB, 1713);			// Horizontal Blank Begin
@@ -1293,6 +1292,50 @@ void TOMReset(void)
 	tomTimerPrescaler = 0;					// TOM PIT is disabled
 	tomTimerDivider = 0;
 	tomTimerCounter = 0;
+}
+
+
+//
+// Dump all TOM register values to the log
+//
+void TOMDumpIORegistersToLog(void)
+{
+	WriteLog("\n\n---------------------------------------------------------------------\n");
+	WriteLog("TOM I/O Registers\n");
+	WriteLog("---------------------------------------------------------------------\n");
+	WriteLog("F000%02X (MEMCON1): $%04X\n", MEMCON1, GET16(tomRam8, MEMCON1));
+	WriteLog("F000%02X (MEMCON2): $%04X\n", MEMCON2, GET16(tomRam8, MEMCON2));
+	WriteLog("F000%02X      (HC): $%04X\n", HC,      GET16(tomRam8, HC));
+	WriteLog("F000%02X      (VC): $%04X\n", VC,      GET16(tomRam8, VC));
+	WriteLog("F000%02X     (OLP): $%08X\n", OLP,     GET32(tomRam8, OLP));
+	WriteLog("F000%02X     (OBF): $%04X\n", OBF,     GET16(tomRam8, OBF));
+	WriteLog("F000%02X   (VMODE): $%04X\n", VMODE,   GET16(tomRam8, VMODE));
+	WriteLog("F000%02X   (BORD1): $%04X\n", BORD1,   GET16(tomRam8, BORD1));
+	WriteLog("F000%02X   (BORD2): $%04X\n", BORD2,   GET16(tomRam8, BORD2));
+	WriteLog("F000%02X      (HP): $%04X\n", HP,      GET16(tomRam8, HP));
+	WriteLog("F000%02X     (HBB): $%04X\n", HBB,     GET16(tomRam8, HBB));
+	WriteLog("F000%02X     (HBE): $%04X\n", HBE,     GET16(tomRam8, HBE));
+	WriteLog("F000%02X      (HS): $%04X\n", HS,      GET16(tomRam8, HS));
+	WriteLog("F000%02X     (HVS): $%04X\n", HVS,     GET16(tomRam8, HVS));
+	WriteLog("F000%02X    (HDB1): $%04X\n", HDB1,    GET16(tomRam8, HDB1));
+	WriteLog("F000%02X    (HDB2): $%04X\n", HDB2,    GET16(tomRam8, HDB2));
+	WriteLog("F000%02X     (HDE): $%04X\n", HDE,     GET16(tomRam8, HDE));
+	WriteLog("F000%02X      (VP): $%04X\n", VP,      GET16(tomRam8, VP));
+	WriteLog("F000%02X     (VBB): $%04X\n", VBB,     GET16(tomRam8, VBB));
+	WriteLog("F000%02X     (VBE): $%04X\n", VBE,     GET16(tomRam8, VBE));
+	WriteLog("F000%02X      (VS): $%04X\n", VS,      GET16(tomRam8, VS));
+	WriteLog("F000%02X     (VDB): $%04X\n", VDB,     GET16(tomRam8, VDB));
+	WriteLog("F000%02X     (VDE): $%04X\n", VDE,     GET16(tomRam8, VDE));
+	WriteLog("F000%02X     (VEB): $%04X\n", VEB,     GET16(tomRam8, VEB));
+	WriteLog("F000%02X     (VEE): $%04X\n", VEE,     GET16(tomRam8, VEE));
+	WriteLog("F000%02X      (VI): $%04X\n", VI,      GET16(tomRam8, VI));
+	WriteLog("F000%02X    (PIT0): $%04X\n", PIT0,    GET16(tomRam8, PIT0));
+	WriteLog("F000%02X    (PIT1): $%04X\n", PIT1,    GET16(tomRam8, PIT1));
+	WriteLog("F000%02X     (HEQ): $%04X\n", HEQ,     GET16(tomRam8, HEQ));
+	WriteLog("F000%02X      (BG): $%04X\n", BG,      GET16(tomRam8, BG));
+	WriteLog("F000%02X    (INT1): $%04X\n", INT1,    GET16(tomRam8, INT1));
+	WriteLog("F000%02X    (INT2): $%04X\n", INT2,    GET16(tomRam8, INT2));
+	WriteLog("---------------------------------------------------------------------\n\n\n");
 }
 
 
@@ -1396,6 +1439,9 @@ if (offset >= 0xF02000 && offset <= 0xF020FF)
 //
 void TOMWriteByte(uint32_t offset, uint8_t data, uint32_t who/*=UNKNOWN*/)
 {
+	// Moved here tentatively, so we can see everything written to TOM.
+	tomRam8[offset & 0x3FFF] = data;
+
 #ifdef TOM_DEBUG
 	WriteLog("TOM: Writing byte %02X at %06X", data, offset);
 #endif
@@ -1470,7 +1516,7 @@ void TOMWriteByte(uint32_t offset, uint8_t data, uint32_t who/*=UNKNOWN*/)
 		tomRam8[offset] = data, tomRam8[offset + 0x200] = data;
 	}
 
-	tomRam8[offset & 0x3FFF] = data;
+//	tomRam8[offset & 0x3FFF] = data;
 }
 
 
@@ -1479,6 +1525,10 @@ void TOMWriteByte(uint32_t offset, uint8_t data, uint32_t who/*=UNKNOWN*/)
 //
 void TOMWriteWord(uint32_t offset, uint16_t data, uint32_t who/*=UNKNOWN*/)
 {
+	// Moved here tentatively, so we can see everything written to TOM.
+	tomRam8[(offset + 0) & 0x3FFF] = data >> 8;
+	tomRam8[(offset + 1) & 0x3FFF] = data & 0xFF;
+
 #ifdef TOM_DEBUG
 	WriteLog("TOM: Writing byte %04X at %06X", data, offset);
 #endif
@@ -1584,8 +1634,8 @@ if (offset >= 0xF02000 && offset <= 0xF020FF)
 		data &= 0x03FF;			// These are all 10-bit registers
 
 // Fix a lockup bug... :-P
-	TOMWriteByte(0xF00000 | offset, data >> 8, who);
-	TOMWriteByte(0xF00000 | (offset+1), data & 0xFF, who);
+//	TOMWriteByte(0xF00000 | offset, data >> 8, who);
+//	TOMWriteByte(0xF00000 | (offset+1), data & 0xFF, who);
 
 if (offset == MEMCON1)
 	WriteLog("TOM: Memory Config 1 written by %s: $%04X\n", whoName[who], data);
@@ -1654,6 +1704,7 @@ if (offset == HEQ)
 // TOM Shouldn't be mucking around with this, it's up to the host system to properly
 // handle this kind of crap.
 // NOTE: This is needed somehow, need to get rid of the dependency on this crap.
+//       N.B.: It's used in the rendering functions... So...
 #warning "!!! Need to get rid of this dependency !!!"
 #if 1
 	if ((offset >= 0x28) && (offset <= 0x4F))

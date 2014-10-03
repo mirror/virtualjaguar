@@ -176,6 +176,22 @@
 
 //#define JERRY_CONFIG	0x4002						// ??? What's this ???
 
+// JERRY Registers (write, offset from $F10000)
+#define JPIT1		0x00
+#define JPIT2		0x02
+#define JPIT3		0x04
+#define JPIT4		0x08
+#define CLK1		0x10
+#define CLK2		0x12
+#define CLK3		0x14
+#define JINTCTRL	0x20
+#define ASIDATA		0x30
+#define ASICTRL		0x32
+#define ASICLK		0x34
+#define SCLK		0xA150
+#define SMODE		0xA154
+
+
 uint8_t analog_x, analog_y;
 
 static uint32_t JERRYPIT1Prescaler;
@@ -377,6 +393,7 @@ void JERRYReset(void)
 
 void JERRYDone(void)
 {
+	JERRYDumpIORegistersToLog();
 	WriteLog("JERRY: M68K Interrupt control ($F10020) = %04X\n", GET16(jerry_ram_8, 0x20));
 	JoystickDone();
 	DACDone();
@@ -397,6 +414,30 @@ void JERRYSetPendingIRQ(int irq)
 	// This is the shadow of INT (it's a split RO/WO register)
 //	jerryIntPending |= (1 << irq);
 	jerryPendingInterrupt |= irq;
+}
+
+//
+// Dump all JERRY register values to the log
+//
+void JERRYDumpIORegistersToLog(void)
+{
+	WriteLog("\n\n---------------------------------------------------------------------\n");
+	WriteLog("JERRY I/O Registers\n");
+	WriteLog("---------------------------------------------------------------------\n");
+	WriteLog("F1%04X    (JPIT1): $%04X\n", JPIT1,    GET16(jerry_ram_8, JPIT1));
+	WriteLog("F1%04X    (JPIT2): $%04X\n", JPIT2,    GET16(jerry_ram_8, JPIT2));
+	WriteLog("F1%04X    (JPIT3): $%04X\n", JPIT3,    GET16(jerry_ram_8, JPIT3));
+	WriteLog("F1%04X    (JPIT4): $%04X\n", JPIT4,    GET16(jerry_ram_8, JPIT4));
+	WriteLog("F1%04X     (CLK1): $%04X\n", CLK1,     GET16(jerry_ram_8, CLK1));
+	WriteLog("F1%04X     (CLK2): $%04X\n", CLK2,     GET16(jerry_ram_8, CLK2));
+	WriteLog("F1%04X     (CLK3): $%04X\n", CLK3,     GET16(jerry_ram_8, CLK3));
+	WriteLog("F1%04X (JINTCTRL): $%04X\n", JINTCTRL, GET16(jerry_ram_8, JINTCTRL));
+	WriteLog("F1%04X  (ASIDATA): $%04X\n", ASIDATA,  GET16(jerry_ram_8, ASIDATA));
+	WriteLog("F1%04X  (ASICTRL): $%04X\n", ASICTRL,  GET16(jerry_ram_8, ASICTRL));
+	WriteLog("F1%04X   (ASICLK): $%04X\n", ASICLK,   GET16(jerry_ram_8, ASICLK));
+	WriteLog("F1%04X     (SCLK): $%04X\n", SCLK,     GET16(jerry_ram_8, SCLK));
+	WriteLog("F1%04X    (SMODE): $%04X\n", SMODE,    GET16(jerry_ram_8, SMODE));
+	WriteLog("---------------------------------------------------------------------\n\n\n");
 }
 
 
@@ -509,15 +550,18 @@ WriteLog("JERRY: Unhandled timer read (WORD) at %08X...\n", offset);
 //
 void JERRYWriteByte(uint32_t offset, uint8_t data, uint32_t who/*=UNKNOWN*/)
 {
+	// Moved here tentatively, so we can see everything written to JERRY.
+	jerry_ram_8[offset & 0xFFFF] = data;
+
 #ifdef JERRY_DEBUG
 	WriteLog("jerry: writing byte %.2x at 0x%.6x\n",data,offset);
 #endif
-	if ((offset >= DSP_CONTROL_RAM_BASE) && (offset < DSP_CONTROL_RAM_BASE+0x20))
+	if ((offset >= DSP_CONTROL_RAM_BASE) && (offset < DSP_CONTROL_RAM_BASE + 0x20))
 	{
 		DSPWriteByte(offset, data, who);
 		return;
 	}
-	else if ((offset >= DSP_WORK_RAM_BASE) && (offset < DSP_WORK_RAM_BASE+0x2000))
+	else if ((offset >= DSP_WORK_RAM_BASE) && (offset < DSP_WORK_RAM_BASE + 0x2000))
 	{
 		DSPWriteByte(offset, data, who);
 		return;
@@ -596,7 +640,7 @@ WriteLog("JERRYWriteByte: Unhandled byte write to JOYSTICK by %s.\n", whoName[wh
 	if (offset >= 0xF1D000 && offset <= 0xF1DFFF)
 		return;
 
-	jerry_ram_8[offset & 0xFFFF] = data;
+//	jerry_ram_8[offset & 0xFFFF] = data;
 }
 
 
@@ -605,6 +649,10 @@ WriteLog("JERRYWriteByte: Unhandled byte write to JOYSTICK by %s.\n", whoName[wh
 //
 void JERRYWriteWord(uint32_t offset, uint16_t data, uint32_t who/*=UNKNOWN*/)
 {
+	// Moved here tentatively, so we can see everything written to JERRY.
+	jerry_ram_8[(offset+0) & 0xFFFF] = (data >> 8) & 0xFF;
+	jerry_ram_8[(offset+1) & 0xFFFF] = data & 0xFF;
+
 #ifdef JERRY_DEBUG
 	WriteLog( "JERRY: Writing word %04X at %06X\n", data, offset);
 #endif
@@ -634,12 +682,12 @@ else if (offset == 0xF10020)
 		(data & 0x10 ? "ASI " : ""), (data & 0x20 ? "I2S " : ""));
 #endif
 
-	if ((offset >= DSP_CONTROL_RAM_BASE) && (offset < DSP_CONTROL_RAM_BASE+0x20))
+	if ((offset >= DSP_CONTROL_RAM_BASE) && (offset < DSP_CONTROL_RAM_BASE + 0x20))
 	{
 		DSPWriteWord(offset, data, who);
 		return;
 	}
-	else if ((offset >= DSP_WORK_RAM_BASE) && (offset < DSP_WORK_RAM_BASE+0x2000))
+	else if ((offset >= DSP_WORK_RAM_BASE) && (offset < DSP_WORK_RAM_BASE + 0x2000))
 	{
 		DSPWriteWord(offset, data, who);
 		return;
@@ -694,11 +742,6 @@ else if (offset == 0xF10020)
 
 		return;
 	}
-/*	else if (offset >= 0xF10010 && offset < 0xF10016)
-	{
-		clock_word_write(offset, data);
-		return;
-	}//*/
 	// JERRY -> 68K interrupt enables/latches (need to be handled!)
 	else if (offset >= 0xF10020 && offset <= 0xF10022)
 	{
@@ -708,12 +751,6 @@ else if (offset == 0xF10020)
 //WriteLog("JERRY: (Previous is partially handled... IRQMask=$%04X)\n", jerryInterruptMask);
 		return;
 	}
-/*	else if (offset >= 0xF17C00 && offset < 0xF17C02)
-	{
-//I think this was removed from the Jaguar. If so, then we don't need this...!
-		anajoy_word_write(offset, data);
-		return;
-	}*/
 	else if (offset >= 0xF14000 && offset < 0xF14003)
 	{
 		JoystickWriteWord(offset, data);
@@ -730,8 +767,8 @@ else if (offset == 0xF10020)
 	if (offset >= 0xF1D000 && offset <= 0xF1DFFF)
 		return;
 
-	jerry_ram_8[(offset+0) & 0xFFFF] = (data >> 8) & 0xFF;
-	jerry_ram_8[(offset+1) & 0xFFFF] = data & 0xFF;
+//	jerry_ram_8[(offset+0) & 0xFFFF] = (data >> 8) & 0xFF;
+//	jerry_ram_8[(offset+1) & 0xFFFF] = data & 0xFF;
 }
 
 

@@ -8,9 +8,10 @@
 // JLH = James Hammons <jlhamm@acm.org>
 //
 // Who  When        What
-// ---  ----------  -------------------------------------------------------------
+// ---  ----------  ------------------------------------------------------------
 // JLH  01/16/2010  Created this log ;-)
-// JLH  02/28/2010  Added functions to look inside .ZIP files and handle contents
+// JLH  02/28/2010  Added functions to look inside .ZIP files and handle
+//                  contents
 // JLH  06/01/2012  Added function to check ZIP file CRCs against file DB
 //
 
@@ -107,8 +108,9 @@ uint32_t JaguarLoadROM(uint8_t * &rom, char * path)
 
 //
 // Jaguar file loading
-// We do a more intelligent file analysis here instead of relying on (possible false)
-// file extensions which people don't seem to give two shits about anyway. :-(
+// We do a more intelligent file analysis here instead of relying on (possible
+// false) file extensions which people don't seem to give two shits about
+// anyway. :-(
 //
 bool JaguarLoadFile(char * path)
 {
@@ -287,7 +289,8 @@ bool AlpineLoadFile(char * path)
 	delete[] buffer;
 
 // Maybe instead of this, we could try requiring the STUBULATOR ROM? Just a thought...
-	// Try setting the vector to say, $1000 and putting an instruction there that loops forever:
+	// Try setting the vector to say, $1000 and putting an instruction there
+	// that loops forever:
 	// This kludge works! Yeah!
 	SET32(jaguarMainRAM, 0x10, 0x00001000);		// Set Exception #4 (Illegal Instruction)
 	SET16(jaguarMainRAM, 0x1000, 0x60FE);		// Here: bra Here

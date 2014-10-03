@@ -30,7 +30,7 @@
 class Gamepad
 {
 // really should make all methods and members be static so that we can
-// call this stuff without instantiating one. :-)
+// call this stuff without instantiating one. :-) [DONE]
 	public:
 		Gamepad();
 		~Gamepad();
@@ -48,7 +48,7 @@ class Gamepad
 		// Support up to 8 gamepads
 		static int numJoysticks;
 		static SDL_Joystick * pad[8];
-		static const char * padName[8];
+		static char padName[8][128];
 		static int numButtons[8];
 		static int numAxes[8];
 		static int numHats[8];

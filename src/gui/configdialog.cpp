@@ -7,7 +7,7 @@
 // JLH = James Hammons <jlhamm@acm.org>
 //
 // Who  When        What
-// ---  ----------  -------------------------------------------------------------
+// ---  ----------  ------------------------------------------------------------
 // JLH  01/29/2010  Created this file
 // JLH  06/23/2011  Added initial implementation
 // JLH  10/14/2011  Fixed possibly missing final slash in paths
@@ -87,6 +87,7 @@ void ConfigDialog::LoadDialogFromSettings(void)
 	}
 
 #warning "!!! Need to load settings from controller profile !!!"
+// We do this now, but not here. Need to fix this...
 #if 0
 	for(int i=0; i<21; i++)
 	{
@@ -122,12 +123,15 @@ void ConfigDialog::UpdateVJSettings(void)
 	}
 
 #warning "!!! Need to save settings to controller profile !!!"
+// We do this now, but not here. Need to fix this...
+#if 0
 	for(int i=0; i<21; i++)
 	{
 // We need to find the right profile and load it up here...
 		vjs.p1KeyBindings[i] = controllerTab1->controllerWidget->keys[i];
 //		vjs.p2KeyBindings[i] = controllerTab2->controllerWidget->keys[i];
 	}
+#endif
 }
 
 

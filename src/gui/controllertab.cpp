@@ -11,7 +11,30 @@
 // ---  ----------  ------------------------------------------------------------
 // JLH  06/23/2011  Created this file
 // JLH  07/20/2011  Fixed a bunch of stuff
+// JLH  10/02/2014  Fixed even more stuff, related to the profile system
 //
+
+/*
+To really fix this shit, we have to straighten out some stuff. So here goes:
+
+We have a database of profiles consisting of a device list (devices that have
+been seen already) and map list (consisting of a key into the device list, a
+human readable name, a preferred slot #, and a key/button mapping). This is a
+list that can hold up to 64 different profiles.
+
+We have a a list of attached gamepads in Gamepad::. There can be 8 at most
+attached any one time.
+
+There are two game port slots that a controller can be hooked into.
+
+So, what we need to do when configuring and/or using this system is this.
+
+ - Populate the device combobox with the list of attached devices from the
+   profile database.
+ - Populate the map to combobox with the profiles associated with that profile
+   device number.
+ - Save stuff when the user changes stuff (this happens already)
+*/
 
 #include "controllertab.h"
 
@@ -84,42 +107,6 @@ ControllerTab::ControllerTab(QWidget * parent/*= 0*/): QWidget(parent),
 	mapToList->addItem(tr("Controller #2"), CONTROLLER2);
 	mapToList->addItem(tr("Either one that's free"), CONTROLLER1 | CONTROLLER2);
 }
-/*
-So now we come to implementation. When changing devices, could have a helper function
-in profile.cpp that fills the mapNameList combobox with the appropriate names/profile
-numbers.
-
-There needs to be some way of getting data from the ControllerWidget and the current
-profile.
-
-Gamepad will have to have some way of knowing which profile is mapped to which
-Jaguar controllers and filtering out everything else.
-
-Will have to have some intelligent handling of profiles when first run, to see first
-what is connected and second, to assign profiles to Jaguar controllers. In this
-case, keyboard is the lowest priority--if a controller is plugged in and assigned to
-the same Jaguar controller as a keyboard, the controller is used. Not sure what to
-do in the case of multiple controllers plugged in and assigned to the same Jaguar
-controller.
-
-Also, need a way to load/save profiles.
-
-Meaning of checkboxes: None checked == profile not used.
-1 checked == prefer connection to Jaguar controller X.
-2 checked == no preference, use any available.
-
-Single mapping cannot be deleted ("-" will be disabled). Can always add, up to the max
-limit of profiles (MAX_PROFILES).
-
-------------------------------
-
-Now the main window passes in/removes the last edited profile #. From here, when starting
-up, we need to pull that number from the profile store and populate all our boxes.
-
--------------------------------
-
-Need to do AutoConnectProfiles from here, and detect any conflicts
-*/
 
 
 ControllerTab::~ControllerTab()
@@ -135,9 +122,6 @@ void ControllerTab::SetupLastUsedProfile(void)
 	if (deviceNumIndex == -1 || mapNumIndex == -1)
 	{
 		// We're doing the default, so set it up...
-//		mapToList->setCurrentIndex(mapToList->findData(profile[0].preferredController));
-//printf("ControllerTab::SetupLastUsedProfile: [FAILED] profileNum=%i, controllerIndex=%i, preferredController=%i\n", profileNum, controllerIndex, profile[0].preferredController);
-//		return;
 		deviceNumIndex = 0;
 		mapNumIndex = 0;
 		profileNum = 0;
@@ -145,11 +129,9 @@ void ControllerTab::SetupLastUsedProfile(void)
 
 	deviceList->setCurrentIndex(deviceNumIndex);
 	mapNameList->setCurrentIndex(mapNumIndex);
-//no more: #warning "!!! bug in here where it doesn't save your preferred controller !!!"
 
-	int controllerIndex = mapToList->findData(profile[profileNum].preferredController);
+	int controllerIndex = mapToList->findData(profile[profileNum].preferredSlot);
 	mapToList->setCurrentIndex(controllerIndex);
-//printf("ControllerTab::SetupLastUsedProfile: profileNum=%i, controllerIndex=%i, preferredController=%i\n", profileNum, controllerIndex, profile[profileNum].preferredController);
 
 	// We have to do this manually, since it's no longer done automagically...
 	ChangeDevice(deviceNumIndex);
@@ -190,36 +172,32 @@ void ControllerTab::UpdateProfileKeys(int mapPosition, uint32_t key)
 
 void ControllerTab::UpdateProfileConnections(int selection)
 {
-//	profile[profileNum].preferredController = (controller1->isChecked() ? CONTROLLER1 : 0) | (controller2->isChecked() ? CONTROLLER2 : 0);
-	profile[profileNum].preferredController = mapToList->itemData(selection).toInt();
-//printf("Setting profile #%i 'Maps To' to %i...\n", profileNum, mapToList->itemData(selection).toInt());
+	profile[profileNum].preferredSlot = mapToList->itemData(selection).toInt();
 }
 
 
 void ControllerTab::ChangeDevice(int selection)
 {
-//printf("ControllerTab::ChangeDevice\n");
 	int deviceNum = deviceList->itemData(selection).toInt();
 	mapNameList->clear();
 	int numberOfMappings = FindMappingsForDevice(deviceNum, mapNameList);
+	// Make sure to disable the "-" button is there's only one mapping for this
+	// device...
 	deleteMapName->setDisabled(numberOfMappings == 1 ? true : false);
-//printf("Found %i mappings for device #%u...\n", numberOfMappings, deviceNum);
+	// Set up new profile #...
+	ChangeMapName(0);
 }
 
 
 void ControllerTab::ChangeMapName(int selection)
 {
-//printf("ControllerTab::ChangeMapName\n");
 	profileNum = mapNameList->itemData(selection).toInt();
-//printf("You selected mapping: %s (profile #%u)\n", (mapNameList->itemText(selection)).toAscii().data(), profileNum);
 
 	for(int i=BUTTON_FIRST; i<=BUTTON_LAST; i++)
 		controllerWidget->keys[i] = profile[profileNum].map[i];
 
 	controllerWidget->update();
-//	controller1->setChecked(profile[profileNum].preferredController & CONTROLLER1);
-//	controller2->setChecked(profile[profileNum].preferredController & CONTROLLER2);
-	mapToList->setCurrentIndex(mapToList->findData(profile[profileNum].preferredController));
+	mapToList->setCurrentIndex(mapToList->findData(profile[profileNum].preferredSlot));
 }
 
 
@@ -230,16 +208,7 @@ void ControllerTab::AddMapName(void)
 	if (freeProfile == -1)
 	{
 		// Oh crap, we're out of room! Alert the media!
-		// (Really, tho, we should pop this up *before* asking for user input.
-		// Which we now do!)
-#if 0
-		QMessageBox msg;
-		msg.setText(QString(tr("Can't create any more profiles!")));
-		msg.setIcon(QMessageBox::Warning);
-		msg.exec();
-#else
 		QMessageBox::warning(this, tr("Houston, we have a problem..."), tr("Can't create any more profiles!"));
-#endif
 
 		return;
 	}
@@ -254,7 +223,7 @@ void ControllerTab::AddMapName(void)
 	profile[profileNum].device = deviceList->itemData(deviceList->currentIndex()).toInt();
 	strncpy(profile[profileNum].mapName, text.toAscii().data(), 31);
 	profile[profileNum].mapName[31] = 0;
-	profile[profileNum].preferredController = CONTROLLER1;
+	profile[profileNum].preferredSlot = CONTROLLER1;
 
 	for(int i=BUTTON_FIRST; i<BUTTON_LAST; i++)
 		profile[profileNum].map[i] = '*';
@@ -266,11 +235,6 @@ void ControllerTab::AddMapName(void)
 
 void ControllerTab::DeleteMapName(void)
 {
-//printf("Delete current mapping (TODO)...\n");
-
-	// hmm, don't need to check this... Because presumably, it's already been checked for.
-//	if (mapNameList->count() == 1) ;
-
 	QMessageBox::StandardButton retVal = QMessageBox::question(this, tr("Remove Mapping"), tr("Are you sure you want to remove this mapping?"), QMessageBox::No | QMessageBox::Yes, QMessageBox::No);
 
 	if (retVal == QMessageBox::No)
@@ -281,77 +245,4 @@ void ControllerTab::DeleteMapName(void)
 	mapNameList->removeItem(index);
 	DeleteProfile(profileToRemove);
 }
-
-
-/*
-The profiles need the following:
-
- - The name of the controller
- - A unique human readable ID
- - The key definitions for that controller (keyboard keys can be mixed in)
-
-So there can be more than one profile for each unique controller; the
-relationship is many-to-one. So basically, how it works it like this: SDL
-reports all connected controllers. If there are none connected, the default
-controller is the keyboard (which can have multiple profiles). The UI only
-presents those profiles which are usuable with the controllers that are plugged
-in, all else is ignored. The user can pick the profile for the controller and
-configure the keys for it; the UI automagically saves everything.
-
-How to handle the case of identical controllers being plugged in? How does the
-UI know which is which? Each controller will have a mapping to a default
-Jaguar controller (#1 or #2). Still doesn't prevent confusion though. Actually,
-it can: The profile can have a field that maps it to a preferred Jaguar
-controller, which can also be both (#1 AND #2--in this case we can set it to
-zero which means no preference). If the UI detects two of the same controller
-and each can be mapped to the same profile, it assigns them in order since it
-doesn't matter, the profiles are identical.
-
-The default profile is always available and is the keyboard (hey, we're PC
-centric here). The default profile is usually #0.
-
-Can there be more than one keyboard profile? Why not? You will need separate
-ones for controller #1 and controller #2.
-
-A profile might look like this:
-
-Field 1: Nostomo N45 Analog
-Field 2: Dad's #1
-Field 3: Jaguar controller #1
-Field 4: The button/stick mapping
-
-Profile # would be implicit in the order that they are stored in the internal
-data structure.
-
-When a new controller is plugged in with no profiles attached, it defaults to
-a set keyboard layout which the user can change. So every new controller will
-always have at least one profile.
-
-Data structures:
-The Gamepad class has the name of the controller (except for Keyboard)
-The profile list is just a list
-The controller name index + profile index makes a unique key
-Probably the best way to deal with it is to stuff the name/profile indices
-into the key definition structure.
-
-#define CONTROLLER1 0x01
-#define CONTROLLER2 0x02
-
-struct Profile
-{
-	int device;					// Host device number
-	char mapName[32];			// Human readable map name
-	int preferredController;	// CONTROLLER1 and/or CONTROLLER2
-	int map[21];				// Keys/buttons/axes
-};
-
-NOTE that device is an int, and the list is maintained elsewhere. It is
-*not* the same as what you see in GetJoystickName(); the device names have
-to be able to persist even when not available.
-
-Where to store the master profile list? It has to be accessible to this class.
-vjs.profile[x] would be good, but it's not really a concern for the Jaguar core.
-So it shouldn't go there. There should be a separate global setting place for
-GUI stuff...
-*/
 

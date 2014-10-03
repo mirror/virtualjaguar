@@ -19,8 +19,8 @@
 #include "keygrabber.h"
 
 
-// These tables are used to convert Qt keycodes into human readable form. Note that
-// a lot of these are just filler.
+// These tables are used to convert Qt keycodes into human readable form. Note
+// that a lot of these are just filler.
 char ControllerWidget::keyName1[96][16] = {
 	"Space",
 	"!", "\"", "#", "$", "%", "&", "'", "(", ")", "*", "+", ",", "-", ".", "/",

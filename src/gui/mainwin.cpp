@@ -6,7 +6,7 @@
 // JLH = James Hammons <jlhamm@acm.org>
 //
 // Who  When        What
-// ---  ----------  -------------------------------------------------------------
+// ---  ----------  ------------------------------------------------------------
 // JLH  12/23/2009  Created this file
 // JLH  12/20/2010  Added settings, menus & toolbars
 // JLH  07/05/2011  Added CD BIOS functionality to GUI
@@ -16,14 +16,16 @@
 //
 // - Add dbl click/enter to select in cart list, ESC to dimiss [DONE]
 // - Autoscan/autoload all available BIOS from 'software' folder [DONE]
-// - Add 1 key jumping in cartridge list (press 'R', jumps to carts starting with 'R', etc) [DONE]
+// - Add 1 key jumping in cartridge list (press 'R', jumps to carts starting
+//   with 'R', etc) [DONE]
 // - Controller configuration [DONE]
 //
 // STILL TO BE DONE:
 //
 // - Fix bug in switching between PAL & NTSC in fullscreen mode.
 // - Remove SDL dependencies (sound, mainly) from Jaguar core lib
-// - Fix inconsistency with trailing slashes in paths (eeproms needs one, software doesn't)
+// - Fix inconsistency with trailing slashes in paths (eeproms needs one,
+//   software doesn't)
 //
 // SFDX CODE: S1E9T8H5M23YS
 
@@ -562,6 +564,9 @@ void MainWin::HandleKeys(QKeyEvent * e, bool state)
 }
 
 
+//
+// N.B.: The profile system AutoConnect functionality sets the gamepad IDs here.
+//
 void MainWin::HandleGamepads(void)
 {
 	Gamepad::Update();
@@ -569,13 +574,10 @@ void MainWin::HandleGamepads(void)
 	for(int i=BUTTON_FIRST; i<=BUTTON_LAST; i++)
 	{
 		if (vjs.p1KeyBindings[i] & (JOY_BUTTON | JOY_HAT | JOY_AXIS))
-			joypad0Buttons[i] = (Gamepad::GetState(0, vjs.p1KeyBindings[i]) ? 0x01 : 0x00);
-/*{
-if (vjs.p1KeyBindings[i] & JOY_AXIS)
-	printf("Axis state (HandleGamepads): %i\n", joypad0Buttons[i]);
-}*/
+			joypad0Buttons[i] = (Gamepad::GetState(gamepadIDSlot1, vjs.p1KeyBindings[i]) ? 0x01 : 0x00);
+
 		if (vjs.p2KeyBindings[i] & (JOY_BUTTON | JOY_HAT | JOY_AXIS))
-			joypad1Buttons[i] = (Gamepad::GetState(1, vjs.p2KeyBindings[i]) ? 0x01 : 0x00);
+			joypad1Buttons[i] = (Gamepad::GetState(gamepadIDSlot2, vjs.p2KeyBindings[i]) ? 0x01 : 0x00);
 	}
 }
 
@@ -593,9 +595,15 @@ void MainWin::Configure(void)
 	dlg.generalTab->useUnknownSoftware->setChecked(allowUnknownSoftware);
 	dlg.controllerTab1->profileNum = lastEditedProfile;
 	dlg.controllerTab1->SetupLastUsedProfile();
+// maybe instead of this, we tell the controller tab to work on a copy that gets
+// written if the user hits 'OK'.
+	SaveProfiles();		// Just in case user cancels
 
 	if (dlg.exec() == false)
+	{
+		RestoreProfiles();
 		return;
+	}
 
 	QString before = vjs.ROMPath;
 	QString alpineBefore = vjs.alpineROMPath;
@@ -613,6 +621,7 @@ void MainWin::Configure(void)
 	//ick.
 	allowUnknownSoftware = dlg.generalTab->useUnknownSoftware->isChecked();
 	lastEditedProfile = dlg.controllerTab1->profileNum;
+	AutoConnectProfiles();
 
 	// We rescan the "software" folder if the user either changed the path or
 	// checked/unchecked the "Allow unknown files" option in the config dialog.

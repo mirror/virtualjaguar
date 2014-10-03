@@ -7,7 +7,7 @@
 // JLH = James Hammons <jlhamm@acm.org>
 //
 // Who  When        What
-// ---  ----------  -------------------------------------------------------------
+// ---  ----------  ------------------------------------------------------------
 // JLH  01/05/2013  Created this file
 //
 
@@ -18,7 +18,7 @@
 // Class member initialization
 /*static*/ int Gamepad::numJoysticks = 0;
 /*static*/ SDL_Joystick * Gamepad::pad[8];
-/*static*/ const char * Gamepad::padName[8];
+/*static*/ char Gamepad::padName[8][128];
 /*static*/ int Gamepad::numButtons[8];
 /*static*/ int Gamepad::numHats[8];
 /*static*/ int Gamepad::numAxes[8];
@@ -51,18 +51,27 @@ void Gamepad::AllocateJoysticks(void)
 	for(int i=0; i<numJoysticks; i++)
 	{
 		pad[i] = SDL_JoystickOpen(i);
-		padName[i] = SDL_JoystickName(i);
 		numButtons[i] = numHats[i] = numAxes[i] = 0;
+		// We need to copy the contents of this pointer, as SDL will change it
+		// willy nilly to suit itself
+//		padName[i] = SDL_JoystickName(i);
+		strncpy(padName[i], SDL_JoystickName(i), 127);
+		padName[i][127] = 0;	// Just in case name's length > 127
 
 		if (pad[i])
 		{
 			numButtons[i] = SDL_JoystickNumButtons(pad[i]);
 			numHats[i] = SDL_JoystickNumHats(pad[i]);
 			numAxes[i] = SDL_JoystickNumAxes(pad[i]);
+			WriteLog("Gamepad: Joystick #%i: %s\n", i, padName[i]);
 		}
 	}
 
 	WriteLog("Gamepad: Found %u joystick%s.\n", numJoysticks, (numJoysticks == 1 ? "" : "s"));
+#if 0
+for(int i=0; i<numJoysticks; i++)
+	printf("GAMEPAD::AllocateJoysticks: stick #%i = %s\n", i, padName[i]);
+#endif
 }
 
 
@@ -79,6 +88,7 @@ const char * Gamepad::GetJoystickName(int joystickID)
 	if (joystickID >= 8)
 		return NULL;
 
+//printf("GAMEPAD: Getting name (%s) for joystick #%i...\n", padName[joystickID], joystickID);
 	return padName[joystickID];
 }
 
@@ -127,6 +137,7 @@ bool Gamepad::GetState(int joystickID, int buttonID)
 }
 
 
+//UNUSED
 int Gamepad::CheckButtonPressed(void)
 {
 	// This translates the hat direction to a mask index.
@@ -165,6 +176,7 @@ int Gamepad::CheckButtonPressed(void)
 }
 
 
+// UNUSED
 int Gamepad::GetButtonID(void)
 {
 	// Return single button ID being pressed (if any)
@@ -172,6 +184,7 @@ int Gamepad::GetButtonID(void)
 }
 
 
+// UNUSED
 int Gamepad::GetJoystickID(void)
 {
 	// Return joystick ID of button being pressed (if any)
@@ -198,6 +211,7 @@ void Gamepad::Update(void)
 }
 
 
+// However, SDL 2 *does* support hot-plugging! :-D
 #if 0
 // Need to test this. It may be that the only time joysticks are detected is
 // when the program is first run. That would suck.

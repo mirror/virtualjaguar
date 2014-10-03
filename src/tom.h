@@ -41,6 +41,8 @@ uint8_t TOMGetVideoMode(void);
 uint8_t * TOMGetRamPointer(void);
 uint16_t TOMGetHDB(void);
 uint16_t TOMGetVDB(void);
+void TOMDumpIORegistersToLog(void);
+
 
 int TOMIRQEnabled(int irq);
 uint16_t TOMIRQControlReg(void);

@@ -197,7 +197,10 @@ struct MemDesc {
 
 
 MemDesc memoryMap[] = {
-	{ 0x000000, 0x3FFFFF, MM_RAM,  jaguarMainRAM },
+	{ 0x000000, 0x1FFFFF, MM_RAM,  jaguarMainRAM },
+	{ 0x200000, 0x3FFFFF, MM_RAM,  jaguarMainRAM }, // Mirror of 1st 2 megs
+	{ 0x400000, 0x5FFFFF, MM_RAM,  jaguarMainRAM }, // "         "
+	{ 0x600000, 0x7FFFFF, MM_RAM,  jaguarMainRAM }, // "         "
 	{ 0x800000, 0xDFFEFF, MM_ROM,  jaguarMainROM },
 
 	{ 0xDFFF00, 0xDFFF03, MM_IO,   &butch }, // base of Butch == interrupt control register, R/W

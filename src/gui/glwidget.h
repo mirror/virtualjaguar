@@ -8,6 +8,7 @@
 
 #include <QtGui>
 #include <QGLWidget>
+#include <stdint.h>
 
 class GLWidget: public QGLWidget
 {

@@ -23,6 +23,8 @@ the I/O function would take care of any weird stuff...
 Actually: writes would tuck in the value, but reads would have to be handled
 correctly since some registers do not fall on the same address as far as reading
 goes... Still completely doable though. :-)
+
+N.B.: Jaguar RAM is only 2 megs. ROM is 6 megs max, IO is 128K
 */
 
 #include "memory.h"

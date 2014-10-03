@@ -7,10 +7,27 @@
 // JLH = James Hammons <jlhamm@acm.org>
 //
 // Who  When        What
-// ---  ----------  -------------------------------------------------------------
+// ---  ----------  ------------------------------------------------------------
 // JLH  05/01/2013  Created this file
+// JLH  10/02/2014  Finally fixed stuff so it works the way it should
 //
-
+// This is a profile database with two parts: One, a list of devices, and two,
+// a list of profiles each containing a pointer to the device list, and map
+// name, a preferred slot #, and a key/button map. All the heavy lifting (incl.
+// autoconnection of devices to profiles to slots) is done here.
+//
+// Basically, how this works is that we connect the device the user plugs into
+// the computer to a profile in the database to a slot in the virtual Jaguar.
+// Hopefully the configuration that the user gives us is sane enough for us to
+// figure out how to do the right thing! By default, there is always a keyboard
+// device plugged in; any other device that gets plugged in and wants to be in
+// slot #0 can override it. This is so there is always a sane configuration if
+// nothing is plugged in.
+//
+// Devices go into the database when the user plugs them in and runs VJ, and
+// subsequently does anything to alter any of the existing profiles. Once a
+// device has been seen, it can't be unseen!
+//
 
 #include "profile.h"
 #include <QtGui>
@@ -19,14 +36,16 @@
 #include "settings.h"
 
 
+//#define DEBUG_PROFILES
 #define MAX_DEVICES  64
 
 
 Profile profile[MAX_PROFILES];
+Profile profileBackup[MAX_PROFILES];
 int controller1Profile;
 int controller2Profile;
-int gamepad1Slot;
-int gamepad2Slot;
+int gamepadIDSlot1;
+int gamepadIDSlot2;
 int numberOfProfiles;
 int numberOfDevices;
 char deviceNames[MAX_DEVICES][128];
@@ -37,9 +56,26 @@ uint32_t defaultMap[21] = {
 	'3', 'L', 'K', 'J', 'O', 'P'
 };
 
+
 // Function Prototypes
-int ConnectProfileToDevice(int deviceNum);
+int ConnectProfileToDevice(int deviceNum, int gamepadID = -1);
 int FindProfileForDevice(int deviceNum, int preferred, int * found);
+
+
+//
+// These two functions are mainly to support the controller configuration GUI.
+// Could just as easily go there as well (and be better placed there).
+//
+void SaveProfiles(void)
+{
+	memcpy(&profileBackup, &profile, sizeof(Profile) * MAX_PROFILES);
+}
+
+
+void RestoreProfiles(void)
+{
+	memcpy(&profile, &profileBackup, sizeof(Profile) * MAX_PROFILES);
+}
 
 
 void ReadProfiles(QSettings * set)
@@ -59,39 +95,49 @@ void ReadProfiles(QSettings * set)
 	{
 		set->setArrayIndex(i - 1);
 		strcpy(deviceNames[i], set->value("deviceName").toString().toAscii().data());
-//printf("Read device name: %s\n", deviceNames[i]);
+#ifdef DEBUG_PROFILES
+printf("Read device name: %s\n", deviceNames[i]);
+#endif
 	}
 
 	set->endArray();
 	numberOfProfiles = set->beginReadArray("profiles");
-//printf("Number of profiles: %u\n", numberOfProfiles);
+#ifdef DEBUG_PROFILES
+printf("Number of profiles: %u\n", numberOfProfiles);
+#endif
 
 	for(int i=0; i<numberOfProfiles; i++)
 	{
 		set->setArrayIndex(i);
 		profile[i].device = set->value("deviceNum").toInt();
 		strcpy(profile[i].mapName, set->value("mapName").toString().toAscii().data());
-		profile[i].preferredController = set->value("preferredController").toInt();
+		profile[i].preferredSlot = set->value("preferredSlot").toInt();
 
 		for(int j=0; j<21; j++)
 		{
 			QString string = QString("map%1").arg(j);
 			profile[i].map[j] = set->value(string).toInt();
 		}
-//printf("Profile #%u: device=%u (%s)\n", i, profile[i].device, deviceNames[profile[i].device]);
+#ifdef DEBUG_PROFILES
+printf("Profile #%u: device=%u (%s)\n", i, profile[i].device, deviceNames[profile[i].device]);
+#endif
 	}
 
 	set->endArray();
 
-//printf("Number of profiles found: %u\n", numberOfProfiles);
+#ifdef DEBUG_PROFILES
+printf("Number of profiles found: %u\n", numberOfProfiles);
+#endif
 	// Set up a reasonable default if no profiles were found
 	if (numberOfProfiles == 0)
 	{
-//printf("Setting up default profile...\n");
+#ifdef DEBUG_PROFILES
+printf("Setting up default profile...\n");
+#endif
 		numberOfProfiles++;
 		profile[0].device = 0;	// Keyboard is always device #0
 		strcpy(profile[0].mapName, "Default");
-		profile[0].preferredController = CONTROLLER1;
+		profile[0].preferredSlot = CONTROLLER1;
 
 		for(int i=0; i<21; i++)
 			profile[0].map[i] = defaultMap[i];
@@ -123,7 +169,7 @@ void WriteProfiles(QSettings * set)
 		set->setArrayIndex(i);
 		set->setValue("deviceNum", profile[i].device);
 		set->setValue("mapName", profile[i].mapName);
-		set->setValue("preferredController", profile[i].preferredController);
+		set->setValue("preferredSlot", profile[i].preferredSlot);
 
 		for(int j=0; j<21; j++)
 		{
@@ -172,12 +218,22 @@ int FindDeviceNumberForName(const char * name)
 	for(int i=0; i<numberOfDevices; i++)
 	{
 		if (strcmp(deviceNames[i], name) == 0)
+#ifdef DEBUG_PROFILES
+{
+printf("PROFILE: Found device #%i for name (%s)...\n", i, name);
+#endif
 			return i;
+#ifdef DEBUG_PROFILES
+}
+#endif
 	}
 
 	if (numberOfDevices == MAX_DEVICES)
 		return -1;
 
+#ifdef DEBUG_PROFILES
+printf("Device '%s' not found, creating device...\n", name);
+#endif
 	// If the device wasn't found, it must be new; so add it to the list.
 	int deviceNum = numberOfDevices;
 	deviceNames[deviceNum][127] = 0;
@@ -210,7 +266,7 @@ int FindMappingsForDevice(int deviceNum, QComboBox * combo)
 	{
 		profile[numberOfProfiles].device = deviceNum;
 		strcpy(profile[numberOfProfiles].mapName, "Default");
-		profile[numberOfProfiles].preferredController = CONTROLLER1;
+		profile[numberOfProfiles].preferredSlot = CONTROLLER1;
 
 		for(int i=0; i<21; i++)
 			profile[numberOfProfiles].map[i] = defaultMap[i];
@@ -224,6 +280,7 @@ int FindMappingsForDevice(int deviceNum, QComboBox * combo)
 }
 
 
+// N.B.: Unused
 int FindUsableProfiles(QComboBox * combo)
 {
 	int found = 0;
@@ -232,7 +289,7 @@ int FindUsableProfiles(QComboBox * combo)
 	for(int j=0; j<numberOfProfiles; j++)
 	{
 		// Check for device *and* usable configuration
-		if ((profile[j].device == 0) && (profile[j].preferredController))
+		if ((profile[j].device == 0) && (profile[j].preferredSlot))
 		{
 			combo->addItem(QString("Keyboard::%1").arg(profile[j].mapName), j);
 			found++;
@@ -246,7 +303,7 @@ int FindUsableProfiles(QComboBox * combo)
 
 		for(int j=0; j<numberOfProfiles; j++)
 		{
-			if ((profile[j].device == deviceNum) && (profile[j].preferredController))
+			if ((profile[j].device == deviceNum) && (profile[j].preferredSlot))
 			{
 				combo->addItem(QString("%1::%2").arg(Gamepad::GetJoystickName(i)).arg(profile[j].mapName), j);
 				found++;
@@ -260,6 +317,10 @@ int FindUsableProfiles(QComboBox * combo)
 
 bool ConnectProfileToController(int profileNum, int controllerNum)
 {
+	// Sanity checks...
+	if (profileNum < 0)
+		return false;
+
 	if (profile[profileNum].device == -1)
 		return false;
 
@@ -276,141 +337,113 @@ bool ConnectProfileToController(int profileNum, int controllerNum)
 }
 
 
-//
-// This is a pretty crappy way of doing autodetection. What it does is scan for
-// keyboard profiles first, then look for plugged in gamepads next. If more
-// than one plugged in gamepad matches a preferred controller slot, the last
-// one found is chosen.
-//
-// There has to be a better way to do this, I just can't think of what it
-// should be ATM... :-P
-//
 /*
-Here's the rules: If preferred Jaguar controller is not checked, the profile is
-skipped. If one or the other is checked, it's put into that slot. If *both* are
-checked, it will take over any slot that isn't claimed by another gamepad. If
-there are ties, present it to the user *once* and ask them which gamepad should
-be #1; don't ask again unless a), they change the profiles and b), the
-situation warrants it.
+One more stab at this...
 
-Also, there is a problem with this approach and having multiple devices
-that are the same. Currently, if two of the same device are plugged in
-and the profile is set to both controllers, it will broadcast buttons
-pressed from either gamepad, no matter who is pressing them. This is
-BAD(tm). [Not true, but there's a different problem described under 'How to
-solve?', so GOOD(tm).]
-
-Also, the gamepad logic doesn't distinguish inputs by controller, it just
-grabs them all regardless. This is also BAD(tm). [Actually, it doesn't. It
-properly segregates the inputs. So this is GOOD(tm).]
-
-How to solve?
-
-Seems there's yet ANOTHER dimension to all this: The physical gamepads
-plugged into their ports. Now the device # can map these fine if they're
-different, but we still run into problems with the handling in the MainWin
-because it's hardwired to take pad 0 in slot 0 and pad 1 in slot 1. If you have
-them configured other than this, you won't get anything. So we need to also
-map the physical devices to their respective slots.
-
-
-Steps:
-
-1) Make a list of all devices attached to the system.
-
-2) Make a list of all profiles belonging to those devices, as long as they have
-   one or more Jaguar controllers that are "mapped to".
-
-3) See if there are any conflicts. If there are, see if the user has already
-   been asked to resolve and chosen a resolution; otherwise, ask the user to
-   resolve.
-
-   a) Loop through all found profiles. If they are set to a single controller,
-      set it in the appropriate list (one list for controller 1, another for
-      controller 2).
-
-   b) Loop through all found profiles. If they are set to both controllers,
-      ... (first stab at it:)
-      Check for list #1. If nothing there, assign it to list #1.
-      Else, check for List #2. If nothing there, assign to list #2.
-      [But the wording of it implies that it will assign it to both.
-       Does that mean we should make another combobox will all the possible
-       combinations laid out? Probably. Not many people will understand that
-       checking both means "assign to either one that's free".]
-
-4) Connect profiles to controllers, and set gamepad slots (for the MainWin
-   handler).
-
+ -  Connect keyboard to slot #0.
+ -  Loop thru all connected devices. For each device:
+    -  Grab all profiles for the device. For each profile:
+       -  Check to see what its preferred device is.
+       -  If PD is slot #0, see if slot is already taken (gamepadIDSlot1 != -1).
+          If not taken, take it; otherwise put in list to tell user to solve the
+          conflict for us.
+          -  If the slot is already taken and *it's the same device* as the one
+             we're looking at, set it in slot #1.
+       -  If PD is slot #1, see if slot is already taken. If not, take it;
+          otherwise, put in list to tell user to solve conflict for us.
+       -  If PD is slot #0 & #1, see if either is already taken. Try #0 first,
+          then try #1. If both are already taken, skip it. Do this *after* we've
+          connected devices with preferred slots.
 */
 void AutoConnectProfiles(void)
 {
 	int foundProfiles[MAX_PROFILES];
-	int controller1Profile = -1;
-	int controller2Profile = -1;
+	controller1Profile = -1;
+	controller2Profile = -1;
+	gamepadIDSlot1 = -1;
+	gamepadIDSlot2 = -1;
 
-	// Check for Keyboard device profiles first, if anything else is plugged in
-	// it will default to it instead.
-#if 0
-	for(int i=0; i<numberOfProfiles; i++)
-	{
-		// Skip profile if it's not Keyboard device
-		if (profile[i].device != 0)
-			continue;
-
-		if (profile[i].preferredController & CONTROLLER1)
-			controller1Profile = i;
-
-		if (profile[i].preferredController & CONTROLLER2)
-			controller2Profile = i;
-	}
-#else
-	// Connect keyboard devices first...
+	// Connect keyboard devices first... (N.B.: this leaves gampadIDSlot1 at -1,
+	// so it can be overridden by plugged-in gamepads.)
 	ConnectProfileToDevice(0);
-#endif
 
-	// Next, check for the "don't care" condition of both jaguar controllers
-	// checked for connected host devices
+	// Connect the profiles that prefer a slot, if any.
+	// N.B.: Conflicts are detected, but ignored. 1st controller to grab a
+	//       preferred slot gets it. :-P
 	for(int i=0; i<Gamepad::numJoysticks; i++)
 	{
 		int deviceNum = FindDeviceNumberForName(Gamepad::GetJoystickName(i));
-		int numberProfilesFound = FindProfileForDevice(deviceNum, CONTROLLER1 | CONTROLLER2, foundProfiles);
+//		bool p1Overwriteable = 
 
-		// We need to grab pairs here, host device # paired up with profiles
-		// so we can then determine if there are any conflicts that can't be
-		// resolved...
-	}
-
-	for(int i=0; i<Gamepad::numJoysticks; i++)
-	{
-		int deviceNum = FindDeviceNumberForName(Gamepad::GetJoystickName(i));
-
-#if 0
 		for(int j=0; j<numberOfProfiles; j++)
 		{
-			// Skip profile if it's not discovered device
-			if (profile[j].device != deviceNum)
+			if (deviceNum != profile[j].device)
 				continue;
 
-			if (profile[j].preferredController & CONTROLLER1)
-				controller1Profile = j;
+			int slot = profile[j].preferredSlot;
 
-			if (profile[j].preferredController & CONTROLLER2)
-				controller2Profile = j;
+			if (slot == CONTROLLER1)
+			{
+				if (gamepadIDSlot1 == -1)
+					controller1Profile = j, gamepadIDSlot1 = i;
+				else
+				{
+					// Autoresolve simple conflict: two controllers sharing one
+					// profile mapped to slot #0.
+					if ((deviceNum == profile[controller1Profile].device) && (controller2Profile == -1))
+						controller2Profile = j, gamepadIDSlot2 = i;
+					else
+						; // Alert user to conflict and ask to resolve
+				}
+			}
+			else if (slot == CONTROLLER2)
+			{
+				if (gamepadIDSlot2 == -1)
+					controller2Profile = j, gamepadIDSlot2 = i;
+				else
+				{
+					// Autoresolve simple conflict: two controllers sharing one
+					// profile mapped to slot #1.
+					if ((deviceNum == profile[controller2Profile].device) && (controller1Profile == -1))
+						controller1Profile = j, gamepadIDSlot1 = i;
+					else
+						; // Alert user to conflict and ask to resolve
+				}
+			}
 		}
-#else
-		ConnectProfileToDevice(deviceNum);
-#endif
 	}
 
-	if (controller1Profile != -1)
-		ConnectProfileToController(controller1Profile, 0);
+	// Connect the "don't care" states, if any. We don't roll it into the above,
+	// because it can override the profiles that have a definite preference.
+	// These should be lowest priority.
+	for(int i=0; i<Gamepad::numJoysticks; i++)
+	{
+		int deviceNum = FindDeviceNumberForName(Gamepad::GetJoystickName(i));
 
-	if (controller2Profile != -1)
-		ConnectProfileToController(controller2Profile, 1);
+		for(int j=0; j<numberOfProfiles; j++)
+		{
+			if (deviceNum != profile[j].device)
+				continue;
+
+			int slot = profile[j].preferredSlot;
+
+			if (slot == (CONTROLLER1 | CONTROLLER2))
+			{
+				if (gamepadIDSlot1 == -1)
+					controller1Profile = j, gamepadIDSlot1 = i;
+				else if (gamepadIDSlot2 == -1)
+					controller2Profile = j, gamepadIDSlot2 = i;
+			}
+		}
+	}
+
+	// Finally, attempt to connect profiles to controllers
+	ConnectProfileToController(controller1Profile, 0);
+	ConnectProfileToController(controller2Profile, 1);
 }
 
 
-int ConnectProfileToDevice(int deviceNum)
+int ConnectProfileToDevice(int deviceNum, int gamepadID/*= -1*/)
 {
 //	bool found1 = false;
 //	bool found2 = false;
@@ -423,16 +456,18 @@ int ConnectProfileToDevice(int deviceNum)
 		if (profile[i].device != deviceNum)
 			continue;
 
-		if (profile[i].preferredController & CONTROLLER1)
+		if (profile[i].preferredSlot & CONTROLLER1)
 		{
 			controller1Profile = i;
+			gamepadIDSlot1 = gamepadID;
 //			found1 = true;
 			numberFoundForController1++;
 		}
 
-		if (profile[i].preferredController & CONTROLLER2)
+		if (profile[i].preferredSlot & CONTROLLER2)
 		{
 			controller2Profile = i;
+			gamepadIDSlot2 = gamepadID;
 //			found2 = true;
 			numberFoundForController2++;
 		}
@@ -442,22 +477,8 @@ int ConnectProfileToDevice(int deviceNum)
 	return numberFoundForController1 + numberFoundForController2;
 }
 
-/*
-int FindProfileForDevice(int deviceNum)
-{
-	for(int i=0; i<numberOfProfiles; i++)
-	{
-		// Skip profile if it's not our device
-		if (profile[i].device != deviceNum)
-			continue;
 
-		return i;
-	}
-
-	return -1;
-}
-*/
-
+// N.B.: Unused
 int FindProfileForDevice(int deviceNum, int preferred, int * found)
 {
 	int numFound = 0;
@@ -465,11 +486,42 @@ int FindProfileForDevice(int deviceNum, int preferred, int * found)
 	for(int i=0; i<numberOfProfiles; i++)
 	{
 		// Return the profile only if it matches the passed in device and
-		// matches the passed in prefence...
-		if ((profile[i].device == deviceNum) && (profile[i].preferredController == preferred))
+		// matches the passed in preference...
+		if ((profile[i].device == deviceNum) && (profile[i].preferredSlot == preferred))
 			found[numFound++] = i;
 	}
 
 	return numFound;
 }
 
+
+//
+// Also note that we have the intersection of three things here: One the one
+// hand, we have the detected joysticks with their IDs (typically in the range
+// of 0-7), we have our gamepad profiles and their IDs (typically can have up to
+// 64 of them), and we have our gamepad slots that the detected joysticks can be
+// connected to.
+//
+// So, when the user plugs in a gamepad, it gets a joystick ID, then the profile
+// manager checks to see if a profile (or profiles) for it exists. If so, then
+// it assigns that joystick ID to a gamepad slot, based upon what the user
+// requested for that profile.
+//
+// A problem (perhaps) arises when you have more than one profile for a certain
+// device, how do you know which one to use? Perhaps you have a field in the
+// profile saying that you use this profile 1st, that one 2nd, and so on...
+//
+// Some use cases, and how to resolve them:
+//
+// - User has two of the same device, and plugs them both in. There is only one
+//   profile. In this case, the sane thing to do is ignore the "preferred slot"
+//   of the dialog and use the same profile for both controllers, and plug them
+//   both into slot #0 and #1.
+// - User has one device, and plugs it in. There are two profiles. In this case,
+//   the profile chosen should be based upon the "preferred slot", with slot #0
+//   being the winner. If both profiles are set for slot #0, ask the user which
+//   profile to use, and set a flag in the profile to say that it is a preferred
+//   profile for that device.
+// - In any case where there are conflicts, the user must be consulted and sane
+//   defaults used.
+//
