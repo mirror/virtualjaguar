@@ -9,6 +9,12 @@
 
 FIND = find
 
+ifeq ("$(V)","1")
+Q :=
+else
+Q := @
+endif
+
 # Gah
 OSTYPE := $(shell uname -a)
 
@@ -54,23 +60,23 @@ prepare: obj
 
 virtualjaguar: sources libs makefile-qt
 	@echo -e "\033[01;33m***\033[00;32m Making Virtual Jaguar GUI...\033[00m"
-	@$(MAKE) -f makefile-qt CROSS=$(CROSS)
+	$(Q)$(MAKE) -f makefile-qt CROSS=$(CROSS) V="$(V)"
 
 makefile-qt: virtualjaguar.pro
 	@echo -e "\033[01;33m***\033[00;32m Creating Qt makefile...\033[00m"
-	@$(CROSS)qmake $(QMAKE_EXTRA) virtualjaguar.pro -o makefile-qt
+	$(Q)$(CROSS)qmake $(QMAKE_EXTRA) virtualjaguar.pro -o makefile-qt
 
 libs: obj/libm68k.a obj/libjaguarcore.a
 	@echo -e "\033[01;33m***\033[00;32m Libraries successfully made.\033[00m"
 
 obj/libm68k.a: src/m68000/Makefile sources
 	@echo -e "\033[01;33m***\033[00;32m Making Customized UAE 68K Core...\033[00m"
-	@$(MAKE) -C src/m68000 CROSS=$(CROSS) CFLAGS="$(CFLAGS)"
-	@cp src/m68000/obj/libm68k.a obj/
+	$(Q)$(MAKE) -C src/m68000 CROSS=$(CROSS) CFLAGS="$(CFLAGS)" V="$(V)"
+	$(Q)cp src/m68000/obj/libm68k.a obj/
 
 obj/libjaguarcore.a: jaguarcore.mak sources
 	@echo -e "\033[01;33m***\033[00;32m Making Virtual Jaguar core...\033[00m"
-	@$(MAKE) -f jaguarcore.mak CROSS=$(CROSS) CFLAGS="$(CFLAGS)" CXXFLAGS="$(CXXFLAGS)"
+	$(Q)$(MAKE) -f jaguarcore.mak CROSS=$(CROSS) CFLAGS="$(CFLAGS)" CXXFLAGS="$(CXXFLAGS)" V="$(V)"
 
 sources: src/*.h src/*.cpp src/m68000/*.c src/m68000/*.h
 

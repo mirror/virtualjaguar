@@ -7,6 +7,12 @@
 # file GPLv3 for details. ;-)
 #
 
+ifeq ("$(V)","1")
+Q :=
+else
+Q := @
+endif
+
 # Cross compilation with MXE
 #CROSS = i686-pc-mingw32-
 
@@ -113,12 +119,12 @@ obj:
 
 # Library rules (might not be cross-platform compatible)
 obj/libjaguarcore.a: $(OBJS) 
-	@$(AR) $(ARFLAGS) obj/libjaguarcore.a $(OBJS)
+	$(Q)$(AR) $(ARFLAGS) obj/libjaguarcore.a $(OBJS)
 
 # Main source compilation (implicit rules)...
 
 obj/%.o: src/%.cpp
 	@echo -e "\033[01;33m***\033[00;32m Compiling $<...\033[00m"
-	@$(CC) $(GCC_DEPS) $(CXXFLAGS) $(SDL_CFLAGS) $(DEFINES) $(INCS) -c $< -o $@
+	$(Q)$(CC) $(GCC_DEPS) $(CXXFLAGS) $(SDL_CFLAGS) $(DEFINES) $(INCS) -c $< -o $@
 
 -include obj/*.d

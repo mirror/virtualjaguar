@@ -7,6 +7,12 @@
 # This makefile is released under the GPLv3 or later
 #
 
+ifeq ("$(V)","1")
+Q :=
+else
+Q := @
+endif
+
 # Cross compilation using MXE
 #CROSS = i686-pc-mingw32-
 
@@ -36,7 +42,7 @@ all: obj obj/libm68k.a
 
 # Library rules (might not be cross-platform compatible)
 obj/libm68k.a: $(OBJS)
-	@$(AR) $(ARFLAGS) obj/libm68k.a $(OBJS)
+	$(Q)$(AR) $(ARFLAGS) obj/libm68k.a $(OBJS)
 
 obj:
 	@mkdir ./obj
@@ -45,11 +51,11 @@ obj:
 
 obj/%.o: %.c
 	@echo -e "\033[01;33m***\033[00;32m Compiling $<...\033[00m"
-	@$(CC) $(GCC_DEPS) $(CFLAGS) $(INCS) -c $< -o $@
+	$(Q)$(CC) $(GCC_DEPS) $(CFLAGS) $(INCS) -c $< -o $@
 
 obj/%.o: obj/%.c
 	@echo -e "\033[01;33m***\033[00;32m Compiling $<...\033[00m"
-	@$(CC) $(GCC_DEPS) $(CFLAGS) $(INCS) -c $< -o $@
+	$(Q)$(CC) $(GCC_DEPS) $(CFLAGS) $(INCS) -c $< -o $@
 
 # Generated code
 
@@ -60,15 +66,15 @@ obj/cpustbl.c: obj/gencpu
 
 obj/gencpu: obj/cpudefs.c
 	@echo -e "\033[01;33m***\033[00;32m Generating gencpu...\033[00m"
-	@$(HOSTCC) $(GCC_DEPS) $(CFLAGS) gencpu.c readcpu.c obj/cpudefs.c -o obj/gencpu -I. -I./obj
+	$(Q)$(HOSTCC) $(GCC_DEPS) $(CFLAGS) gencpu.c readcpu.c obj/cpudefs.c -o obj/gencpu -I. -I./obj
 
 obj/cpudefs.c: obj/build68k
 	@echo -e "\033[01;33m***\033[00;32m Generating cpudefs.c...\033[00m"
-	@obj/build68k < table68k > obj/cpudefs.c
+	$(Q)obj/build68k < table68k > obj/cpudefs.c
 
 obj/build68k: build68k.c
-	@echo -e "\033[01;33m***\033[00;32m Compiling build68k.c...\033[00m"
-	@$(HOSTCC) $(GCC_DEPS) $(CFLAGS) build68k.c -o obj/build68k
+	@echo -e "\033[01;33m***\033[00;32m Compiling $< ...\033[00m"
+	$(Q)$(HOSTCC) $(GCC_DEPS) $(CFLAGS) build68k.c -o obj/build68k
 
 clean:
 	@echo -ne "\033[01;33m***\033[00;32m Cleaning out the garbage...\033[00m"
