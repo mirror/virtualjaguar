@@ -17,12 +17,17 @@ ifeq "$(findstring Darwin,$(OSTYPE))" "Darwin"
 QMAKE_EXTRA := -spec macx-g++
 endif
 
-# (This will only assign if the var doesn't exist already. Without these flags,
-# Virtual Jaguar will run very slow.)
-CFLAGS ?= -O2 -ffast-math -fomit-frame-pointer
-CPPFLAGS ?= -O2 -ffast-math -fomit-frame-pointer
-CXXFLAGS ?= -O2 -ffast-math -fomit-frame-pointer
-LDFLAGS ?= 
+# Set basic flags, these can be overridden from the environment
+CFLAGS = -O2
+CXXFLAGS = -O2
+
+# Add CPPFLAGS
+CFLAGS += $(CPPFLAGS)
+CXXFLAGS += $(CPPFLAGS)
+
+# Without these flags, Virtual Jaguar will run very slow.
+CFLAGS += -ffast-math -fomit-frame-pointer
+CXXFLAGS += -ffast-math -fomit-frame-pointer
 
 # Flags to pass on to qmake...
 QMAKE_EXTRA += "QMAKE_CFLAGS_RELEASE=$(CFLAGS)"
