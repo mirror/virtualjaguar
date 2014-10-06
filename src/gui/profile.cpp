@@ -363,9 +363,14 @@ void AutoConnectProfiles(void)
 	gamepadIDSlot1 = -1;
 	gamepadIDSlot2 = -1;
 
-	// Connect keyboard devices first... (N.B.: this leaves gampadIDSlot1 at -1,
-	// so it can be overridden by plugged-in gamepads.)
-	ConnectProfileToDevice(0);
+	// Connect the keyboard automagically only if no gamepads are plugged in.
+	// Otherwise, check after all other devices have been checked, then try to
+	// add it in.
+	if (Gamepad::numJoysticks == 0)
+	{
+		ConnectProfileToDevice(0);
+		return;
+	}
 
 	// Connect the profiles that prefer a slot, if any.
 	// N.B.: Conflicts are detected, but ignored. 1st controller to grab a
@@ -435,6 +440,21 @@ void AutoConnectProfiles(void)
 					controller2Profile = j, gamepadIDSlot2 = i;
 			}
 		}
+	}
+
+	// Connect the keyboard device (lowest priority)
+	int slot = profile[0].preferredSlot;
+
+	if ((slot == CONTROLLER1) && (gamepadIDSlot1 == -1))
+		controller1Profile = 0;
+	else if ((slot == CONTROLLER2) && (gamepadIDSlot2 == -1))
+		controller2Profile = 0;
+	else if (slot == (CONTROLLER1 | CONTROLLER2))
+	{
+		if (gamepadIDSlot1 == -1)
+			controller1Profile = 0;
+		else if (gamepadIDSlot2 == -1)
+			controller2Profile = 0;
 	}
 
 	// Finally, attempt to connect profiles to controllers
