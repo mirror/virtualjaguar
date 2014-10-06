@@ -16,43 +16,15 @@ endif
 # Cross compilation with MXE
 #CROSS = i686-pc-mingw32-
 
-# Figure out which system we're compiling for, and set the appropriate variables
+SYSTYPE    := __GCCUNIX__
 
-ifeq "$(CROSS)" ""
-OSTYPE := $(shell uname -a)
-
-# Win32
-ifeq "$(findstring Msys,$(OSTYPE))" "Msys"
-
+ifneq "$(CROSS)" ""
 SYSTYPE    := __GCCWIN32__
-SDLLIBTYPE := --libs
-
-# Apple. Should catch both 'darwin' and 'darwin7.0'
-else ifeq "$(findstring Darwin,$(OSTYPE))" "Darwin"
-
-SYSTYPE    := __GCCUNIX__ -D__THINK_STUPID__
-SDLLIBTYPE := --static-libs
-
-# Linux
-else ifeq "$(findstring Linux,$(OSTYPE))" "Linux"
-
-SYSTYPE    := __GCCUNIX__
-SDLLIBTYPE := --libs
-
-else ifeq "$(findstring kFreeBSD,$(OSTYPE))" "kFreeBSD"
-
-SYSTYPE    := __GCCUNIX__
-SDLLIBTYPE := --libs
-
-# ??? Throw error, unknown OS
 else
-
-$(error OS TYPE UNDETECTED)
-
+OSTYPE := $(shell uname -o)
+ifeq "$(OSTYPE)" "Msys"
+SYSTYPE    := __GCCWIN32__
 endif
-else
-SYSTYPE    := __GCCWIN32__
-SDLLIBTYPE := --libs
 endif
 
 # Set vars for libcdio
