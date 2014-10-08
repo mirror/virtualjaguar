@@ -64,6 +64,15 @@ void Gamepad::AllocateJoysticks(void)
 			numHats[i] = SDL_JoystickNumHats(pad[i]);
 			numAxes[i] = SDL_JoystickNumAxes(pad[i]);
 			WriteLog("Gamepad: Joystick #%i: %s\n", i, padName[i]);
+
+			// Ick, kludges already!!!
+			if (strcmp(padName[i], "Sony PLAYSTATION(R)3 Controller") == 0)
+			{
+				// We do this because these axes stay stuck on -32000 (buttons)
+				// or come on and stay on (D-pad). :-P
+				numAxes[i] = 8;
+				WriteLog("Gamepad: Blacklisting PS3 controller axes 8 on up...\n");
+			}
 		}
 	}
 
