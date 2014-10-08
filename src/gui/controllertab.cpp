@@ -156,7 +156,8 @@ void ControllerTab::DefineAllKeys(void)
 		if (key == Qt::Key_Escape)
 			break;
 
-		// Otherwise, populate the appropriate spot in the settings & update screen...
+		// Otherwise, populate the appropriate spot in the settings & update
+		// the screen...
 		controllerWidget->keys[orderToDefine[i]] = key;
 		controllerWidget->update();
 		profile[profileNum].map[orderToDefine[i]] = key;

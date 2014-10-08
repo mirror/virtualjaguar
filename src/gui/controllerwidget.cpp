@@ -173,7 +173,8 @@ void ControllerWidget::mousePressEvent(QMouseEvent * /*event*/)
 void ControllerWidget::mouseReleaseEvent(QMouseEvent * /*event*/)
 {
 	mouseDown = false;
-	// Spawning the keygrabber causes leaveEvent() to be called, so we need to save this
+	// Spawning the keygrabber causes leaveEvent() to be called, so we need to
+	// save this
 	int keyToHighlightSave = keyToHighlight;
 
 	KeyGrabber keyGrab(this);

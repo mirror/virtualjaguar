@@ -28,8 +28,8 @@ class KeyGrabber: public QDialog
 	private:
 		QLabel * label;
 		QTimer * timer;
-		bool buttonDown;
-		int button;
+		static bool buttonDown;	// Class variable
+		static int button;		// Class variable
 
 	public:
 		int key;

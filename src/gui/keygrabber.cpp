@@ -15,8 +15,15 @@
 #include "gamepad.h"
 
 
+// Class variables
+// These need to be preserved between calls to this class, otherwise bad stuff
+// (like controllers not working correctly) can happen.
+/*static*/ bool KeyGrabber::buttonDown = false;
+/*static*/ int KeyGrabber::button = -1;
+
+
 KeyGrabber::KeyGrabber(QWidget * parent/*= 0*/): QDialog(parent),
-	label(new QLabel), timer(new QTimer), buttonDown(false)
+	label(new QLabel), timer(new QTimer)//, buttonDown(false)
 {
 //	label = new QLabel(this);
 	QVBoxLayout * mainLayout = new QVBoxLayout;
