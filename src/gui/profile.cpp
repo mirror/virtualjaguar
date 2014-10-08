@@ -357,7 +357,7 @@ One more stab at this...
 */
 void AutoConnectProfiles(void)
 {
-	int foundProfiles[MAX_PROFILES];
+//	int foundProfiles[MAX_PROFILES];
 	controller1Profile = -1;
 	controller2Profile = -1;
 	gamepadIDSlot1 = -1;

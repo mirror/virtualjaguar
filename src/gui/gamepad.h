@@ -44,6 +44,7 @@ class Gamepad
 		static int GetButtonID(void);
 		static int GetJoystickID(void);
 		static void Update(void);
+		static void DumpJoystickStatesToLog(void);
 
 		// Support up to 8 gamepads
 		static int numJoysticks;

@@ -137,9 +137,10 @@ bool Gamepad::GetState(int joystickID, int buttonID)
 }
 
 
-//UNUSED
 int Gamepad::CheckButtonPressed(void)
 {
+	DumpJoystickStatesToLog();
+
 	// This translates the hat direction to a mask index.
 	int hatNum[16] = { -1, 0, 1, -1, 2, -1, -1, -1,
 		3, -1, -1, -1, -1, -1, -1, -1 };
@@ -207,6 +208,83 @@ void Gamepad::Update(void)
 
 		for(int j=0; j<numAxes[i]; j++)
 			axis[i][j] = SDL_JoystickGetAxis(pad[i], j);
+	}
+}
+
+
+void Gamepad::DumpJoystickStatesToLog(void)
+{
+	bool pressed = false;
+
+	for(int i=0; i<numJoysticks; i++)
+	{
+		for(int j=0; j<numButtons[i]; j++)
+		{
+			if (button[i][j])
+			{
+				pressed = true;
+				break;
+				break;
+			}
+		}
+
+		for(int j=0; j<numHats[i]; j++)
+		{
+			if (hat[i][j])
+			{
+				pressed = true;
+				break;
+				break;
+			}
+		}
+
+		for(int j=0; j<numAxes[i]; j++)
+		{
+			// We encode these as axis # (in bits 1-15), up or down in bit 0.
+			if (axis[i][j] > 32000)
+			{
+				pressed = true;
+				break;
+				break;
+			}
+
+			if (axis[i][j] < -32000)
+			{
+				pressed = true;
+				break;
+				break;
+			}
+		}
+	}
+
+	if (!pressed)
+		return;
+
+	WriteLog("Gamepad: CheckButtonPressed...\n");
+
+	for(int i=0; i<numJoysticks; i++)
+	{
+		for(int j=0; j<numButtons[i]; j++)
+		{
+			if (button[i][j])
+				WriteLog("Gamepad: Pad #%i, button %i down...\n", i, j);
+		}
+
+		for(int j=0; j<numHats[i]; j++)
+		{
+			if (hat[i][j])
+				WriteLog("Gamepad: Pad #%i, hat %i pushed...\n", i, j);
+		}
+
+		for(int j=0; j<numAxes[i]; j++)
+		{
+			// We encode these as axis # (in bits 1-15), up or down in bit 0.
+			if (axis[i][j] > 32000)
+				WriteLog("Gamepad: Pad #%i, axis %i pushed down...\n", i, j);
+
+			if (axis[i][j] < -32000)
+				WriteLog("Gamepad: Pad #%i, axis %i pushed up...\n", i, j);
+		}
 	}
 }
 

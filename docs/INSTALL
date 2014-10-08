@@ -13,7 +13,7 @@ The minimum requirements for compiling Virtual Jaguar from source are:
  o  zlib v1.2.5
  o  libcdio v0.90 or higher (optional, for Jaguar CD support)
  o  OpenGL libraries
- o  Qt 4.7.3 or higher
+ o  Qt 4.7.3 or higher (but not Qt 5!)
  o  supported OS (BeOS, Linux, FreeBSD and WIN32 through mingw, MacOS); other
     OSs may work to but you may need to change some items in the Makefile.
 
