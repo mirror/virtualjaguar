@@ -7,7 +7,7 @@
 // JLH = James Hammons <jlhamm@acm.org>
 //
 // Who  When        What
-// ---  ----------  -------------------------------------------------------------
+// ---  ----------  ------------------------------------------------------------
 // JLH  07/18/2011  Created this file
 //
 
@@ -62,8 +62,11 @@ void KeyGrabber::keyPressEvent(QKeyEvent * e)
 
 void KeyGrabber::CheckGamepad(void)
 {
-	// How do we determine which joystick it is, if more than one?
-	// Possibly by a combobox selecting the stick you want to configure...
+	// How do we determine which joystick it is, if more than one? As it turns
+	// out, we don't really have to care. It's up to the user to play nice with
+	// the interface because while we can enforce a 'first user to press a
+	// button wins' type of thing, it doesn't really buy you anything that you
+	// couldn't get by having the users involved behave like nice people. :-P
 	Gamepad::Update();
 
 	if (!buttonDown)
@@ -73,6 +76,9 @@ void KeyGrabber::CheckGamepad(void)
 		if (button == -1)
 			return;
 
+// Do it so that it sets the button on button down, not release :-P
+		key = button;
+		accept();
 		buttonDown = true;
 	}
 	else
@@ -80,8 +86,8 @@ void KeyGrabber::CheckGamepad(void)
 		if (Gamepad::CheckButtonPressed() == button)
 			return;
 
-		key = button;
-		accept();
+//		key = button;
+//		accept();
 		buttonDown = false;
 	}
 }

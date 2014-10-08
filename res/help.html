@@ -146,8 +146,7 @@
 
 <ul>
 <li>General</li>
-<li>Controller #1</li>
-<li>Controller #2</li>
+<li>Controller</li>
 </ul>
 
 <h2>General Tab</h2>
@@ -161,6 +160,7 @@
 <li>Enable GPU</li>
 <li>Enable DSP</li>
 <li>Show all files in file chooser</li>
+<li>Use fast blitter</li>
 </ul>
 
 <p>Here&rsquo;s what they do.</p>
@@ -189,14 +189,30 @@
 
 <p>Normally the &ldquo;Insert Cartridge...&rdquo; dialog will ignore any files it encounters that it doesn&rsquo;t know how to deal with. You can override this behavior by checking this option. However, this will <b>not</b> cause <i>Virtual Jaguar</i> to be able to load such files.</p>
 
+<h3>Use fast blitter</h3>
+
+<p>Checking this option will force <i>Virtual Jaguar</i> to use the older, less compatible yet faster blitter. Some games will <b>not</b> work properly with this option checked!</p>
+
 <h2>Controller Tab</h2>
 
 <p>Under the Controller tab, there are the following options:</p>
 
 <ul>
+<li>A combobox labeled &ldquo;Host Device&rdquo;</li>
+<li>A combobox labeled &ldquo;Map Name&rdquo;</li>
+<li>Two buttons labelled &ldquo;+&rdquo; and &ldquo;-&rdquo;</li>
+<li>A combobox labeled &ldquo;Maps to&rdquo;</li>
 <li>A picture of a Jaguar controller showing which inputs are defined</li>
 <li>A button labeled &ldquo;Define All Inputs&rdquo;</li>
 </ul>
+
+<p><i>Virtual Jaguar</i> utilizes a profile system for controllers. What this means is that you can set up any device that <i>Virtual Jaguar</i> recognizes with any number of different configurations for it. Here&rsquo;s how it works:</p>
+
+<p>The &ldquo;Host Device&rdquo; combobox lets you select whichever gamepad device you have connected to your computer. This, plus the unique &ldquo;Map Name&rdquo; will show the keymapping set up for that particular host device/key map combination.</p>
+
+<p>The &ldquo;Map Name&rdquo; combobox lets you set up multiple key maps for your detected device. To add a new key map to the current device, press the &ldquo;+&rdquo; button next to the combobox. It will then ask your for a human readable name for the new map. If you want to remove any maps that you don't want anymore, you can delete the currently selected map by pressing the &ldquo;-&rdquo; button; it will ask for confirmation. Keep in mind that this action cannot be undone!</p>
+
+<p>The &ldquo;Maps to&rdquo; combobox tells <i>Virtual Jaguar</i> which virtual controller slot you would like your device to be plugged into. Selecting <i>None</i> disables that key mapping for that device. Selecting <i>Controller #1</i> will map the device to virtual controller slot #1. Selecting <i>Controller #2</i> will map the device to virtual controller slot #2. Selecting <i>Either one that&rsquo;s free</i> will attempt to connect the device to a free virtual controller slot if one is still available after all other connected devices have had a chance to plug into a definite slot. If other devices have filled up the virtual slots, this option will cause the device to <b>not</b> attempt to connect itself.</p>
 
 <p>Hovering over a letter on the picture of the Jaguar controller will highlight it; clicking on the letter will let you redefine that input by pressing a key on the keyboard or button on a connected gamepad. If you prefer, you can define all inputs at once by clicking on the &ldquo;Define All Inputs&rdquo; button. It will then step through each input on the controller, one at a time, and wait for you to press the key/button that you wish to set it to. You can exit the key redefinition process at any time by pressing the <b>Esc</b> key on your keyboard.</p>
 

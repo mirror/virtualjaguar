@@ -5,7 +5,8 @@
     <name>AboutWindow</name>
     <message id="0">
         <location filename="src/gui/about.cpp" line="26"/>
-        <location filename="src/gui/controllertab.cpp" line="25"/>
+        <location filename="src/gui/configdialog.cpp" line="38"/>
+        <location filename="src/gui/controllertab.cpp" line="49"/>
         <location filename="src/gui/debug/cpubrowser.cpp" line="27"/>
         <location filename="src/gui/debug/m68kdasmbrowser.cpp" line="27"/>
         <location filename="src/gui/debug/memorybrowser.cpp" line="24"/>
@@ -33,6 +34,11 @@
 <context>
     <name>CPUBrowserWindow</name>
     <message>
+        <location filename="src/gui/debug/cpubrowser.cpp" line="28"/>
+        <source>BPM</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <location filename="src/gui/debug/cpubrowser.cpp" line="30"/>
         <source>CPU Browser</source>
         <translation type="unfinished"></translation>
@@ -41,27 +47,17 @@
 <context>
     <name>ConfigDialog</name>
     <message>
-        <location filename="src/gui/configdialog.cpp" line="35"/>
-        <source>General</source>
+        <location filename="src/gui/configdialog.cpp" line="39"/>
+        <source>Controllers</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/gui/configdialog.cpp" line="36"/>
-        <source>Controller #1</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="src/gui/configdialog.cpp" line="37"/>
-        <source>Controller #2</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="src/gui/configdialog.cpp" line="40"/>
+        <location filename="src/gui/configdialog.cpp" line="45"/>
         <source>Alpine</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/gui/configdialog.cpp" line="52"/>
+        <location filename="src/gui/configdialog.cpp" line="58"/>
         <source>Virtual Jaguar Settings</source>
         <translation type="unfinished"></translation>
     </message>
@@ -69,13 +65,83 @@
 <context>
     <name>ControllerTab</name>
     <message>
-        <location filename="src/gui/controllertab.cpp" line="27"/>
+        <location filename="src/gui/controllertab.cpp" line="50"/>
+        <source>Map Name:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="src/gui/controllertab.cpp" line="51"/>
+        <source>Maps to:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="src/gui/controllertab.cpp" line="55"/>
+        <source>+</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="src/gui/controllertab.cpp" line="56"/>
+        <source>-</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="src/gui/controllertab.cpp" line="57"/>
         <source>Define All Inputs</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/gui/controllertab.cpp" line="47"/>
+        <location filename="src/gui/controllertab.cpp" line="96"/>
         <source>Keyboard</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="src/gui/controllertab.cpp" line="105"/>
+        <source>None</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="src/gui/controllertab.cpp" line="106"/>
+        <source>Controller #1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="src/gui/controllertab.cpp" line="107"/>
+        <source>Controller #2</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="src/gui/controllertab.cpp" line="108"/>
+        <source>Either one that&apos;s free</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="src/gui/controllertab.cpp" line="211"/>
+        <source>Houston, we have a problem...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="src/gui/controllertab.cpp" line="211"/>
+        <source>Can&apos;t create any more profiles!</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="src/gui/controllertab.cpp" line="216"/>
+        <source>Add Map Name</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="src/gui/controllertab.cpp" line="216"/>
+        <source>Map name:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="src/gui/controllertab.cpp" line="238"/>
+        <source>Remove Mapping</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="src/gui/controllertab.cpp" line="238"/>
+        <source>Are you sure you want to remove this mapping?</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -157,6 +223,11 @@
         <source>Show all files in file chooser</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <location filename="src/gui/generaltab.cpp" line="62"/>
+        <source>Use fast blitter</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>KeyGrabber</name>
@@ -187,274 +258,274 @@
 <context>
     <name>MainWin</name>
     <message>
-        <location filename="src/gui/mainwin.cpp" line="102"/>
+        <location filename="src/gui/mainwin.cpp" line="106"/>
         <source>Virtual Jaguar </source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/gui/mainwin.cpp" line="105"/>
+        <location filename="src/gui/mainwin.cpp" line="109"/>
         <source> - Alpine Mode</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/gui/mainwin.cpp" line="125"/>
+        <location filename="src/gui/mainwin.cpp" line="129"/>
         <source>E&amp;xit</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/gui/mainwin.cpp" line="128"/>
+        <location filename="src/gui/mainwin.cpp" line="132"/>
         <source>Ctrl+q</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/gui/mainwin.cpp" line="130"/>
+        <location filename="src/gui/mainwin.cpp" line="134"/>
         <source>Quit Virtual Jaguar</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/gui/mainwin.cpp" line="139"/>
+        <location filename="src/gui/mainwin.cpp" line="143"/>
         <source>&amp;Power</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/gui/mainwin.cpp" line="140"/>
+        <location filename="src/gui/mainwin.cpp" line="144"/>
         <source>Powers Jaguar on/off</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/gui/mainwin.cpp" line="150"/>
+        <location filename="src/gui/mainwin.cpp" line="154"/>
         <source>Pause</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/gui/mainwin.cpp" line="151"/>
+        <location filename="src/gui/mainwin.cpp" line="155"/>
         <source>Toggles the running state</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/gui/mainwin.cpp" line="154"/>
+        <location filename="src/gui/mainwin.cpp" line="158"/>
         <source>Esc</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/gui/mainwin.cpp" line="160"/>
+        <location filename="src/gui/mainwin.cpp" line="164"/>
         <source>Zoom 100%</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/gui/mainwin.cpp" line="161"/>
+        <location filename="src/gui/mainwin.cpp" line="165"/>
         <source>Set window zoom to 100%</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/gui/mainwin.cpp" line="165"/>
+        <location filename="src/gui/mainwin.cpp" line="169"/>
         <source>Zoom 200%</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/gui/mainwin.cpp" line="166"/>
+        <location filename="src/gui/mainwin.cpp" line="170"/>
         <source>Set window zoom to 200%</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/gui/mainwin.cpp" line="170"/>
+        <location filename="src/gui/mainwin.cpp" line="174"/>
         <source>Zoom 300%</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/gui/mainwin.cpp" line="171"/>
+        <location filename="src/gui/mainwin.cpp" line="175"/>
         <source>Set window zoom to 300%</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/gui/mainwin.cpp" line="177"/>
+        <location filename="src/gui/mainwin.cpp" line="181"/>
         <source>NTSC</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/gui/mainwin.cpp" line="178"/>
+        <location filename="src/gui/mainwin.cpp" line="182"/>
         <source>Sets Jaguar to NTSC mode</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/gui/mainwin.cpp" line="182"/>
+        <location filename="src/gui/mainwin.cpp" line="186"/>
         <source>PAL</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/gui/mainwin.cpp" line="183"/>
+        <location filename="src/gui/mainwin.cpp" line="187"/>
         <source>Sets Jaguar to PAL mode</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/gui/mainwin.cpp" line="187"/>
+        <location filename="src/gui/mainwin.cpp" line="191"/>
         <source>Blur</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/gui/mainwin.cpp" line="188"/>
+        <location filename="src/gui/mainwin.cpp" line="192"/>
         <source>Sets OpenGL rendering to GL_NEAREST</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/gui/mainwin.cpp" line="192"/>
+        <location filename="src/gui/mainwin.cpp" line="196"/>
         <source>&amp;About...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/gui/mainwin.cpp" line="193"/>
+        <location filename="src/gui/mainwin.cpp" line="197"/>
         <source>Blatant self-promotion</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/gui/mainwin.cpp" line="196"/>
+        <location filename="src/gui/mainwin.cpp" line="200"/>
         <source>&amp;Contents...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/gui/mainwin.cpp" line="197"/>
+        <location filename="src/gui/mainwin.cpp" line="201"/>
         <source>Help is available, if you should need it</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/gui/mainwin.cpp" line="200"/>
+        <location filename="src/gui/mainwin.cpp" line="204"/>
         <source>&amp;Insert Cartridge...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/gui/mainwin.cpp" line="201"/>
+        <location filename="src/gui/mainwin.cpp" line="205"/>
         <source>Insert a cartridge into Virtual Jaguar</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/gui/mainwin.cpp" line="202"/>
+        <location filename="src/gui/mainwin.cpp" line="206"/>
         <source>Ctrl+i</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/gui/mainwin.cpp" line="206"/>
+        <location filename="src/gui/mainwin.cpp" line="210"/>
         <source>&amp;Configure</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/gui/mainwin.cpp" line="207"/>
+        <location filename="src/gui/mainwin.cpp" line="211"/>
         <source>Configure options for Virtual Jaguar</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/gui/mainwin.cpp" line="208"/>
+        <location filename="src/gui/mainwin.cpp" line="212"/>
         <source>Ctrl+c</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/gui/mainwin.cpp" line="212"/>
+        <location filename="src/gui/mainwin.cpp" line="216"/>
         <source>&amp;Use CD Unit</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/gui/mainwin.cpp" line="213"/>
+        <location filename="src/gui/mainwin.cpp" line="217"/>
         <source>Use Jaguar Virtual CD unit</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/gui/mainwin.cpp" line="218"/>
+        <location filename="src/gui/mainwin.cpp" line="222"/>
         <source>&amp;Frame Advance</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/gui/mainwin.cpp" line="219"/>
+        <location filename="src/gui/mainwin.cpp" line="223"/>
         <source>F7</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/gui/mainwin.cpp" line="224"/>
+        <location filename="src/gui/mainwin.cpp" line="228"/>
         <source>F&amp;ull Screen</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/gui/mainwin.cpp" line="225"/>
+        <location filename="src/gui/mainwin.cpp" line="229"/>
         <source>F9</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/gui/mainwin.cpp" line="231"/>
+        <location filename="src/gui/mainwin.cpp" line="235"/>
         <source>Memory Browser</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/gui/mainwin.cpp" line="232"/>
+        <location filename="src/gui/mainwin.cpp" line="236"/>
         <source>Shows the Jaguar memory browser window</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/gui/mainwin.cpp" line="236"/>
+        <location filename="src/gui/mainwin.cpp" line="240"/>
         <source>CPU Browser</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/gui/mainwin.cpp" line="237"/>
+        <location filename="src/gui/mainwin.cpp" line="241"/>
         <source>Shows the Jaguar CPU browser window</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/gui/mainwin.cpp" line="241"/>
+        <location filename="src/gui/mainwin.cpp" line="245"/>
         <source>OP Browser</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/gui/mainwin.cpp" line="242"/>
+        <location filename="src/gui/mainwin.cpp" line="246"/>
         <source>Shows the Jaguar OP browser window</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/gui/mainwin.cpp" line="246"/>
+        <location filename="src/gui/mainwin.cpp" line="250"/>
         <source>68K Listing Browser</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/gui/mainwin.cpp" line="247"/>
+        <location filename="src/gui/mainwin.cpp" line="251"/>
         <source>Shows the 68K disassembly browser window</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/gui/mainwin.cpp" line="251"/>
+        <location filename="src/gui/mainwin.cpp" line="255"/>
         <source>RISC Listing Browser</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/gui/mainwin.cpp" line="252"/>
+        <location filename="src/gui/mainwin.cpp" line="256"/>
         <source>Shows the RISC disassembly browser window</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/gui/mainwin.cpp" line="262"/>
+        <location filename="src/gui/mainwin.cpp" line="266"/>
         <source>&amp;Jaguar</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/gui/mainwin.cpp" line="273"/>
-        <location filename="src/gui/mainwin.cpp" line="304"/>
+        <location filename="src/gui/mainwin.cpp" line="277"/>
+        <location filename="src/gui/mainwin.cpp" line="308"/>
         <source>&amp;Debug</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/gui/mainwin.cpp" line="281"/>
+        <location filename="src/gui/mainwin.cpp" line="285"/>
         <source>&amp;Help</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/gui/mainwin.cpp" line="285"/>
+        <location filename="src/gui/mainwin.cpp" line="289"/>
         <source>Stuff</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/gui/mainwin.cpp" line="322"/>
+        <location filename="src/gui/mainwin.cpp" line="326"/>
         <source>Ready</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/gui/mainwin.cpp" line="617"/>
-        <location filename="src/gui/mainwin.cpp" line="630"/>
+        <location filename="src/gui/mainwin.cpp" line="638"/>
+        <location filename="src/gui/mainwin.cpp" line="651"/>
         <source>Could not load file &quot;%1&quot;!</source>
         <translation type="unfinished"></translation>
     </message>

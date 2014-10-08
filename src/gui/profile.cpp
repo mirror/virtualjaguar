@@ -443,6 +443,8 @@ void AutoConnectProfiles(void)
 	}
 
 	// Connect the keyboard device (lowest priority)
+	// N.B.: The keyboard is always mapped to profile #0, so we can locate it
+	//       easily. :-)
 	int slot = profile[0].preferredSlot;
 
 	if ((slot == CONTROLLER1) && (gamepadIDSlot1 == -1))

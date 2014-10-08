@@ -1,5 +1,5 @@
 //
-// help.cpp - Help file
+// help.cpp - Built-in help file
 //
 // by James Hammons
 // (C) 2011 Underground Software
@@ -7,7 +7,7 @@
 // JLH = James Hammons <jlhamm@acm.org>
 //
 // Who  When        What
-// ---  ----------  -------------------------------------------------------------
+// ---  ----------  ------------------------------------------------------------
 // JLH  08/01/2011  Created this file
 // JLH  10/08/2011  Added Esc & Return as exit keys
 //

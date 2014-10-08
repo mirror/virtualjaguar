@@ -1,5 +1,5 @@
 <!DOCTYPE RCC><RCC version="1.0">
-<qresource>
+<qresource lang="en">
 	<file>../../res/vj-icon.png</file>
 	<file>../../res/power-off.png</file>
 	<file>../../res/power-on-red.png</file>
