@@ -35,6 +35,7 @@
 	<file>../../res/homebrew-file.png</file>
 	<file>../../res/unknown-file.png</file>
 	<file>../../res/test-pattern.jpg</file>
+	<file>../../res/test-pattern-pal.jpg</file>
 	<file>../../res/help.html</file>
 </qresource>
 <qresource lang="fr">

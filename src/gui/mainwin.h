@@ -145,6 +145,7 @@ class MainWin: public QMainWindow
 		QIcon powerGreen;
 		QIcon powerRed;
 		uint32_t testPattern[VIRTUAL_SCREEN_WIDTH * VIRTUAL_SCREEN_HEIGHT_PAL];
+		uint32_t testPattern2[VIRTUAL_SCREEN_WIDTH * VIRTUAL_SCREEN_HEIGHT_PAL];
 };
 
 #endif	// __MAINWIN_H__

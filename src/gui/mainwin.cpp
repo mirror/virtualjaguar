@@ -330,7 +330,7 @@ MainWin::MainWin(bool autoRun): running(true), powerButtonOn(false),
 	// Do this in case original size isn't correct (mostly for the first-run case)
 	ResizeMainWindow();
 
-	// Create our test pattern bitmap
+	// Create our test pattern bitmaps
 	QImage tempImg(":/res/test-pattern.jpg");
 	QImage tempImgScaled = tempImg.scaled(VIRTUAL_SCREEN_WIDTH, VIRTUAL_SCREEN_HEIGHT_PAL, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
 
@@ -342,6 +342,20 @@ MainWin::MainWin(bool autoRun): running(true), powerButtonOn(false),
 		{
 			uint32_t pixel = (qRed(scanline[x]) << 24) | (qGreen(scanline[x]) << 16) | (qBlue(scanline[x]) << 8) | 0xFF;
 			testPattern[(y * VIRTUAL_SCREEN_WIDTH) + x] = pixel;
+		}
+	}
+
+	QImage tempImg2(":/res/test-pattern-pal");
+	QImage tempImgScaled2 = tempImg2.scaled(VIRTUAL_SCREEN_WIDTH, VIRTUAL_SCREEN_HEIGHT_PAL, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
+
+	for(uint32_t y=0; y<VIRTUAL_SCREEN_HEIGHT_PAL; y++)
+	{
+		const QRgb * scanline = (QRgb *)tempImgScaled2.constScanLine(y);
+
+		for(uint32_t x=0; x<VIRTUAL_SCREEN_WIDTH; x++)
+		{
+			uint32_t pixel = (qRed(scanline[x]) << 24) | (qGreen(scanline[x]) << 16) | (qBlue(scanline[x]) << 8) | 0xFF;
+			testPattern2[(y * VIRTUAL_SCREEN_WIDTH) + x] = pixel;
 		}
 	}
 
@@ -768,7 +782,10 @@ void MainWin::TogglePowerState(void)
 			// the same as the picture buffer's pitch.
 			for(uint32_t y=0; y<videoWidget->rasterHeight; y++)
 			{
-				memcpy(videoWidget->buffer + (y * videoWidget->textureWidth), testPattern + (y * VIRTUAL_SCREEN_WIDTH), VIRTUAL_SCREEN_WIDTH * sizeof(uint32_t));
+				if (vjs.hardwareTypeNTSC)
+					memcpy(videoWidget->buffer + (y * videoWidget->textureWidth), testPattern + (y * VIRTUAL_SCREEN_WIDTH), VIRTUAL_SCREEN_WIDTH * sizeof(uint32_t));
+				else
+					memcpy(videoWidget->buffer + (y * videoWidget->textureWidth), testPattern2 + (y * VIRTUAL_SCREEN_WIDTH), VIRTUAL_SCREEN_WIDTH * sizeof(uint32_t));
 			}
 		}
 	}
@@ -1084,7 +1101,10 @@ void MainWin::ResizeMainWindow(void)
 	{
 		for(uint32_t y=0; y<videoWidget->rasterHeight; y++)
 		{
-			memcpy(videoWidget->buffer + (y * videoWidget->textureWidth), testPattern + (y * VIRTUAL_SCREEN_WIDTH), VIRTUAL_SCREEN_WIDTH * sizeof(uint32_t));
+			if (vjs.hardwareTypeNTSC)
+				memcpy(videoWidget->buffer + (y * videoWidget->textureWidth), testPattern + (y * VIRTUAL_SCREEN_WIDTH), VIRTUAL_SCREEN_WIDTH * sizeof(uint32_t));
+			else
+				memcpy(videoWidget->buffer + (y * videoWidget->textureWidth), testPattern2 + (y * VIRTUAL_SCREEN_WIDTH), VIRTUAL_SCREEN_WIDTH * sizeof(uint32_t));
 		}
 	}
 
@@ -1191,7 +1211,7 @@ WriteLog("Pipelined DSP = %s\n", (vjs.usePipelinedDSP ? "ON" : "off"));
 	ReadProfiles(&settings);
 }
 
-
+  
 void MainWin::WriteSettings(void)
 {
 	QSettings settings("Underground Software", "Virtual Jaguar");
