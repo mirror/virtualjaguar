@@ -1,5 +1,5 @@
 <!DOCTYPE RCC><RCC version="1.0">
-<qresource lang="en">
+<qresource>
 	<file>../../res/vj-icon.png</file>
 	<file>../../res/power-off.png</file>
 	<file>../../res/power-on-red.png</file>
@@ -37,11 +37,5 @@
 	<file>../../res/test-pattern.jpg</file>
 	<file>../../res/test-pattern-pal.jpg</file>
 	<file>../../res/help.html</file>
-</qresource>
-<qresource lang="fr">
-	<file alias="/res/help.html">../../res/help_fr.html</file>
-</qresource>
-<qresource lang="gr">
-	<file alias="/res/help.html">../../res/help_gr.html</file>
 </qresource>
 </RCC>
