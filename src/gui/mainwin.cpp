@@ -454,13 +454,14 @@ void MainWin::closeEvent(QCloseEvent * event)
 
 void MainWin::keyPressEvent(QKeyEvent * e)
 {
+#ifndef VJ_REMOVE_DEV_CODE
 	// From jaguar.cpp
 	extern bool startM68KTracing;
 	// From joystick.cpp
 	extern int blit_start_log;
 	// From blitter.cpp
 	extern bool startConciseBlitLogging;
-
+#endif
 
 	// We ignore the Alt key for now, since it causes problems with the GUI
 	if (e->key() == Qt::Key_Alt)
@@ -468,6 +469,8 @@ void MainWin::keyPressEvent(QKeyEvent * e)
 		e->accept();
 		return;
 	}
+// Bar this shite from release versions kthxbai
+#ifndef VJ_REMOVE_DEV_CODE
 	else if (e->key() == Qt::Key_F11)
 	{
 		startM68KTracing = true;
@@ -486,6 +489,7 @@ void MainWin::keyPressEvent(QKeyEvent * e)
 		e->accept();
 		return;
 	}
+#endif
 	else if (e->key() == Qt::Key_F8)
 	{
 		// ggn: For extra NYAN pleasure...

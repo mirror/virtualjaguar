@@ -37,7 +37,7 @@ AboutWindow::AboutWindow(QWidget * parent/*= 0*/): QWidget(parent, Qt::Dialog)
 		VJ_RELEASE_VERSION " (" VJ_RELEASE_SUBVERSION ")"
 		"</td></tr>"
 		"<tr><td align='right'><b>Coders: </b></td><td>James Hammons (shamus)<br>Niels Wagenaar (nwagenaar)<br>Carwin Jones (Caz)<br>Adam Green</td></tr>"
-		"<tr><td align='right'><b>Testers: </b></td><td>Cyrano Jones, LinkoVitch, partycle, neo-rg,<br>Robert R, TheUMan, Dissection, overridex,<br>geormetal</td></tr>"
+		"<tr><td align='right'><b>Testers: </b></td><td>Cyrano Jones, LinkoVitch, partycle, ggn,<br>neo-rg, Robert R, TheUMan, Dissection,<br>overridex, geormetal</td></tr>"
 		"<tr><td align='right'><b>Build Team: </b></td><td>shamus (win32)<br>goldenegg (MacOS)</td></tr>"
 		"<tr><td align='right'><b>Homepage: </b></td><td>http://icculus.org/virtualjaguar/</td></tr>"
 		"</table>"

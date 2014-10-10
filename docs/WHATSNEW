@@ -1,7 +1,8 @@
 Virtual Jaguar v2.1.2 GCC/Qt
 ----------------------------
 
-* Nothing yet ;-)
+* Bugfix for catastrophic failure in Controller config dialog. Thanks to ggn for
+  reporting this! [Shamus]
 
 
 Virtual Jaguar v2.1.1 GCC/Qt
