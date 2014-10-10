@@ -226,17 +226,28 @@ void ControllerTab::AddMapName(void)
 	profile[profileNum].mapName[31] = 0;
 	profile[profileNum].preferredSlot = CONTROLLER1;
 
-	for(int i=BUTTON_FIRST; i<BUTTON_LAST; i++)
+	for(int i=BUTTON_FIRST; i<=BUTTON_LAST; i++)
 		profile[profileNum].map[i] = '*';
 
 	mapNameList->addItem(text, profileNum);
+#if 0
 	mapNameList->setCurrentIndex(mapNameList->count() - 1);
+#else
+	int selection = mapNameList->count() - 1;
+	mapNameList->setCurrentIndex(selection);
+	ChangeMapName(selection);
+	// We just added a new mapping, so enable the delete button!
+	deleteMapName->setDisabled(false);
+#endif
 }
 
 
 void ControllerTab::DeleteMapName(void)
 {
-	QMessageBox::StandardButton retVal = QMessageBox::question(this, tr("Remove Mapping"), tr("Are you sure you want to remove this mapping?"), QMessageBox::No | QMessageBox::Yes, QMessageBox::No);
+	QString msg = QString("Map name: %1\n\nAre you sure you want to remove this mapping?").arg(profile[profileNum].mapName);
+
+//	QMessageBox::StandardButton retVal = QMessageBox::question(this, tr("Remove Mapping"), tr("Are you sure you want to remove this mapping?"), QMessageBox::No | QMessageBox::Yes, QMessageBox::No);
+	QMessageBox::StandardButton retVal = QMessageBox::question(this, tr("Remove Mapping"), msg, QMessageBox::No | QMessageBox::Yes, QMessageBox::No);
 
 	if (retVal == QMessageBox::No)
 		return;
@@ -245,5 +256,11 @@ void ControllerTab::DeleteMapName(void)
 	int profileToRemove = profileNum;
 	mapNameList->removeItem(index);
 	DeleteProfile(profileToRemove);
+	// We need to reload the profile that we move to after deleting the current
+	// one...
+	ChangeMapName(mapNameList->currentIndex());
+	// If we get down to one profile left for the device, we need to make sure
+	// that the user can't delete it!
+	deleteMapName->setDisabled(mapNameList->count() == 1 ? true : false);
 }
 

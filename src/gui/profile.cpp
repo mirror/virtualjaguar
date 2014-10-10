@@ -49,6 +49,7 @@ int gamepadIDSlot2;
 int numberOfProfiles;
 int numberOfDevices;
 char deviceNames[MAX_DEVICES][128];
+static int numberOfProfilesSave;
 
 // This is so that new devices have something reasonable to show for default
 uint32_t defaultMap[21] = {
@@ -68,6 +69,7 @@ int FindProfileForDevice(int deviceNum, int preferred, int * found);
 //
 void SaveProfiles(void)
 {
+	numberOfProfilesSave = numberOfProfiles;
 	memcpy(&profileBackup, &profile, sizeof(Profile) * MAX_PROFILES);
 }
 
@@ -75,6 +77,7 @@ void SaveProfiles(void)
 void RestoreProfiles(void)
 {
 	memcpy(&profile, &profileBackup, sizeof(Profile) * MAX_PROFILES);
+	numberOfProfiles = numberOfProfilesSave;
 }
 
 

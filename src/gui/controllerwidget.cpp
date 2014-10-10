@@ -117,6 +117,10 @@ void ControllerWidget::paintEvent(QPaintEvent * /*event*/)
 	painter.setPen(colorPen);
 	painter.drawLine(line);
 
+//#define DEBUG_CWPAINT
+#ifdef DEBUG_CWPAINT
+printf("------------------------------\n");
+#endif
 	for(int i=BUTTON_FIRST; i<=BUTTON_LAST; i++)
 	{
 		if (keyToHighlight == i)
@@ -132,33 +136,63 @@ void ControllerWidget::paintEvent(QPaintEvent * /*event*/)
 			painter.setFont(font);
 		}
 
+#ifdef DEBUG_CWPAINT
+printf("key %02i: ", i);
+#endif
+
 		if (keys[i] < 0x80)
+#ifdef DEBUG_CWPAINT
+{
+printf("Drawing a key < 0x80 [keys[i]=%X, keyname=%s]...\n", keys[i], keyName1[keys[i] - 0x20]);
+#endif
 			DrawBorderedText(painter, buttonPos[i][0], buttonPos[i][1],
 				QString(keyName1[keys[i] - 0x20]));
+#ifdef DEBUG_CWPAINT
+}
+#endif
 		else if ((keys[i] & 0xFFFFFF00) == 0x01000000)
 		{
+#ifdef DEBUG_CWPAINT
+printf("Drawing a key with bit 48 set...\n");
+#endif
 			DrawBorderedText(painter, buttonPos[i][0], buttonPos[i][1],
 				QString(keyName2[keys[i] & 0x3F]));
 		}
 #if 1
 		else if (keys[i] & JOY_BUTTON)
 		{
+#ifdef DEBUG_CWPAINT
+printf("Drawing a joystick button...\n");
+#endif
 			DrawBorderedText(painter, buttonPos[i][0], buttonPos[i][1],
 				QString("JB%1").arg(keys[i] & JOY_BUTTON_MASK));
 		}
 		else if (keys[i] & JOY_HAT)
 		{
+#ifdef DEBUG_CWPAINT
+printf("Drawing a joystick hat...\n");
+#endif
 			DrawBorderedText(painter, buttonPos[i][0], buttonPos[i][1],
 				QString("j%1").arg(hatName[keys[i] & JOY_BUTTON_MASK]));
 		}
 		else if (keys[i] & JOY_AXIS)
 		{
+#ifdef DEBUG_CWPAINT
+printf("Drawing a joystick axis...\n");
+#endif
 			DrawBorderedText(painter, buttonPos[i][0], buttonPos[i][1],
 				QString("JA%1%2").arg((keys[i] & JOY_AXISNUM_MASK) >> 1).arg(axisName[keys[i] & JOY_AXISDIR_MASK]));
 		}
 #endif
 		else
+#ifdef DEBUG_CWPAINT
+{
+printf("Drawing ???...\n");
+#endif
 			DrawBorderedText(painter, buttonPos[i][0], buttonPos[i][1], QString("???"));
+#ifdef DEBUG_CWPAINT
+}
+#endif
 	}
 }
 
