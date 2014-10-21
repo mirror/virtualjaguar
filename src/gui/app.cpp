@@ -61,11 +61,11 @@ int main(int argc, char * argv[])
 	if (AttachConsole != NULL && AttachConsole(((DWORD)-1)))
 	{
 		if (_fileno(stdout) == -1)
-			freopen("CONOUT$","wb",stdout);
+			freopen("CONOUT$", "wb", stdout);
 		if (_fileno(stderr) == -1)
-			freopen("CONOUT$","wb",stderr);
+			freopen("CONOUT$", "wb", stderr);
 		if (_fileno(stdin) == -1)
-			freopen("CONIN$","rb",stdin);
+			freopen("CONIN$", "rb", stdin);
 
 		// Fix C++
 		std::ios::sync_with_stdio();
@@ -123,7 +123,8 @@ int main(int argc, char * argv[])
 	fclose(ctt);
 #endif
 #endif
-	LogDone();									// Close logfile
+	// Close logfile
+	LogDone();
 	return retVal;
 }
 
@@ -136,11 +137,17 @@ App::App(int & argc, char * argv[]): QApplication(argc, argv)
 
 	mainWindow = new MainWin(loadAndGo);
 	mainWindow->plzDontKillMyComputer = noUntunedTankPlease;
-	ParseOptions(argc, argv);					// Override defaults with command line (if any)
+	// Override defaults with command line (if any)
+	ParseOptions(argc, argv);
 	mainWindow->SyncUI();
 
 	if (loadAndGo)
+	{
 		mainWindow->LoadFile(filename);
+
+		if (!mainWindow->cartridgeLoaded)
+			printf("Could not load file \"%s\"!\n", filename.toAscii().data());
+	}
 
 	mainWindow->show();
 }
@@ -337,3 +344,4 @@ void ParseOptions(int argc, char * argv[])
 	char alpineROMPath[MAX_PATH];
 	char absROMPath[MAX_PATH];
 #endif
+

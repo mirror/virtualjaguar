@@ -92,7 +92,9 @@ class MainWin: public QMainWindow
 		int zoomLevel;
 		bool powerButtonOn;
 		bool showUntunedTankCircuit;
+	public:
 		bool cartridgeLoaded;
+	private:
 		bool allowUnknownSoftware;
 		bool CDActive;
 //		bool alpineLoadSuccessful;
