@@ -6,6 +6,7 @@
 #define __FILETHREAD_H__
 
 #include <QtCore>
+#include <QImage>
 #include <stdint.h>
 
 class FileThread: public QThread

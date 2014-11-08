@@ -8,7 +8,7 @@
 #ifndef __KEYGRABBER_H__
 #define __KEYGRABBER_H__
 
-#include <QtGui>
+#include <QtWidgets>
 
 class KeyGrabber: public QDialog
 {

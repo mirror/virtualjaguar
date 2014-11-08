@@ -1,7 +1,7 @@
 #ifndef __GENERALTAB_H__
 #define __GENERALTAB_H__
 
-#include <QtGui>
+#include <QtWidgets>
 
 class GeneralTab: public QWidget
 {

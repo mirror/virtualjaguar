@@ -6,7 +6,6 @@
 #ifndef __GLWIDGET_H__
 #define __GLWIDGET_H__
 
-#include <QtGui>
 #include <QGLWidget>
 #include <stdint.h>
 

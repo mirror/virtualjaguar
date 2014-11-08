@@ -1,7 +1,7 @@
 #ifndef __CONTROLLERWIDGET_H__
 #define __CONTROLLERWIDGET_H__
 
-#include <QtGui>
+#include <QtWidgets>
 #include <stdint.h>
 
 class ControllerWidget: public QWidget

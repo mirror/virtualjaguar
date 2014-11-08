@@ -17,7 +17,6 @@
 
 #include "filethread.h"
 
-#include <QtGui>
 #include "crc32.h"
 #include "file.h"
 #include "filedb.h"

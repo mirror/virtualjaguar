@@ -8,7 +8,7 @@
 #ifndef __CONFIGDIALOG_H__
 #define __CONFIGDIALOG_H__
 
-#include <QtGui>
+#include <QtWidgets>
 
 class GeneralTab;
 class ControllerTab;

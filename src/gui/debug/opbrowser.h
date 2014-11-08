@@ -8,7 +8,7 @@
 #ifndef __OPBROWSER_H__
 #define __OPBROWSER_H__
 
-#include <QtGui>
+#include <QtWidgets>
 #include <stdint.h>
 
 class OPBrowserWindow: public QWidget

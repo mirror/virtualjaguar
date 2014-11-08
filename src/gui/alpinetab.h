@@ -1,7 +1,7 @@
 #ifndef __ALPINETAB_H__
 #define __ALPINETAB_H__
 
-#include <QtGui>
+#include <QtWidgets>
 
 class AlpineTab: public QWidget
 {

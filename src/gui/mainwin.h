@@ -9,7 +9,7 @@
 #define __MAINWIN_H__
 
 //Hrm. uh??? I thought this wasn't the way to do this stuff...???
-#include <QtGui>
+#include <QtWidgets>
 #include "tom.h"
 
 #define RING_BUFFER_SIZE 32

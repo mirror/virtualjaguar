@@ -8,7 +8,7 @@
 #ifndef __M68KDASMBROWSER_H__
 #define __M68KDASMBROWSER_H__
 
-#include <QtGui>
+#include <QtWidgets>
 #include <stdint.h>
 
 class M68KDasmBrowserWindow: public QWidget

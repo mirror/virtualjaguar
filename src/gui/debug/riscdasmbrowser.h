@@ -8,7 +8,7 @@
 #ifndef __RISCDASMBROWSER_H__
 #define __RISCDASMBROWSER_H__
 
-#include <QtGui>
+#include <QtWidgets>
 #include <stdint.h>
 
 class RISCDasmBrowserWindow: public QWidget
