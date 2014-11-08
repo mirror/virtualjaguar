@@ -222,7 +222,7 @@ void ControllerTab::AddMapName(void)
 	// Add mapping...
 	profileNum = freeProfile;
 	profile[profileNum].device = deviceList->itemData(deviceList->currentIndex()).toInt();
-	strncpy(profile[profileNum].mapName, text.toAscii().data(), 31);
+	strncpy(profile[profileNum].mapName, text.toUtf8().data(), 31);
 	profile[profileNum].mapName[31] = 0;
 	profile[profileNum].preferredSlot = CONTROLLER1;
 

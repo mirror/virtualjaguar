@@ -104,9 +104,9 @@ void ConfigDialog::UpdateVJSettings(void)
 //	strcpy(vjs.jagBootPath, generalTab->edit1->text().toAscii().data());
 //	strcpy(vjs.CDBootPath,  generalTab->edit2->text().toAscii().data());
 	strcpy(vjs.EEPROMPath,  CheckForTrailingSlash(
-		generalTab->edit3->text()).toAscii().data());
+		generalTab->edit3->text()).toUtf8().data());
 	strcpy(vjs.ROMPath,     CheckForTrailingSlash(
-		generalTab->edit4->text()).toAscii().data());
+		generalTab->edit4->text()).toUtf8().data());
 
 	vjs.useJaguarBIOS  = generalTab->useBIOS->isChecked();
 	vjs.GPUEnabled     = generalTab->useGPU->isChecked();
@@ -117,8 +117,8 @@ void ConfigDialog::UpdateVJSettings(void)
 
 	if (vjs.hardwareTypeAlpine)
 	{
-		strcpy(vjs.alpineROMPath, alpineTab->edit1->text().toAscii().data());
-		strcpy(vjs.absROMPath,    alpineTab->edit2->text().toAscii().data());
+		strcpy(vjs.alpineROMPath, alpineTab->edit1->text().toUtf8().data());
+		strcpy(vjs.absROMPath,    alpineTab->edit2->text().toUtf8().data());
 		vjs.allowWritesToROM = alpineTab->writeROM->isChecked();
 	}
 

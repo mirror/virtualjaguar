@@ -96,7 +96,7 @@ void ReadProfiles(QSettings * set)
 	for(int i=1; i<numberOfDevices; i++)
 	{
 		set->setArrayIndex(i - 1);
-		strcpy(deviceNames[i], set->value("deviceName").toString().toAscii().data());
+		strcpy(deviceNames[i], set->value("deviceName").toString().toUtf8().data());
 #ifdef DEBUG_PROFILES
 printf("Read device name: %s\n", deviceNames[i]);
 #endif
@@ -112,7 +112,7 @@ printf("Number of profiles: %u\n", numberOfProfiles);
 	{
 		set->setArrayIndex(i);
 		profile[i].device = set->value("deviceNum").toInt();
-		strcpy(profile[i].mapName, set->value("mapName").toString().toAscii().data());
+		strcpy(profile[i].mapName, set->value("mapName").toString().toUtf8().data());
 		profile[i].preferredSlot = set->value("preferredSlot").toInt();
 
 		for(int j=0; j<21; j++)

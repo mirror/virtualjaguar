@@ -104,7 +104,7 @@ void FileThread::HandleFile(QFileInfo fileInfo)
 		// ZIP files are special: They contain more than just the software now... ;-)
 		// So now we fish around inside them to pull out the stuff we want.
 		// Probably also need more stringent error checking as well... :-O
-		fileSize = GetFileFromZIP(fileInfo.filePath().toAscii(), FT_SOFTWARE, buffer);
+		fileSize = GetFileFromZIP(fileInfo.filePath().toUtf8(), FT_SOFTWARE, buffer);
 
 		if (fileSize == 0)
 			return;
@@ -162,7 +162,7 @@ void FileThread::HandleFile(QFileInfo fileInfo)
 	// See if we can fish out a label. :-)
 	if (haveZIPFile)
 	{
-		uint32_t size = GetFileFromZIP(fileInfo.filePath().toAscii(), FT_LABEL, buffer);
+		uint32_t size = GetFileFromZIP(fileInfo.filePath().toUtf8(), FT_LABEL, buffer);
 //printf("FT: Label size = %u bytes.\n", size);
 
 		if (size > 0)

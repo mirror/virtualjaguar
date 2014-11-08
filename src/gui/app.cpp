@@ -146,7 +146,7 @@ App::App(int & argc, char * argv[]): QApplication(argc, argv)
 		mainWindow->LoadFile(filename);
 
 		if (!mainWindow->cartridgeLoaded)
-			printf("Could not load file \"%s\"!\n", filename.toAscii().data());
+			printf("Could not load file \"%s\"!\n", filename.toUtf8().data());
 	}
 
 	mainWindow->show();

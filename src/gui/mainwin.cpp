@@ -962,7 +962,7 @@ void MainWin::LoadSoftware(QString file)
 	powerButtonOn = false;
 	TogglePowerState();
 	// We have to load our software *after* the Jaguar RESET
-	cartridgeLoaded = JaguarLoadFile(file.toAscii().data());
+	cartridgeLoaded = JaguarLoadFile(file.toUtf8().data());
 	SET32(jaguarMainRAM, 0, 0x00200000);		// Set top of stack...
 
 	// This is icky because we've already done it
