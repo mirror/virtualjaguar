@@ -1016,11 +1016,9 @@ void MainWin::SetFullScreen(bool state/*= true*/)
 		if (debugbar)
 			debugbar->hide();
 
-		showFullScreen();
 		// This is needed because the fullscreen may happen on a different
 		// screen than screen 0:
 		int screenNum = QApplication::desktop()->screenNumber(videoWidget);
-//		QRect r = QApplication::desktop()->availableGeometry(screenNum);
 		QRect r = QApplication::desktop()->screenGeometry(screenNum);
 		double targetWidth = (double)VIRTUAL_SCREEN_WIDTH,
 			targetHeight = (double)(vjs.hardwareTypeNTSC ? VIRTUAL_SCREEN_HEIGHT_NTSC : VIRTUAL_SCREEN_HEIGHT_PAL);
@@ -1036,6 +1034,11 @@ void MainWin::SetFullScreen(bool state/*= true*/)
 	}
 	else
 	{
+		// Seems Qt is fussy about this: showNormal() has to go first, or it
+		// will keep the window stuck in a psuedo-fullscreen mode with no way
+		// to get out of it (except closing the app).
+		showNormal();
+
 		// Reset the video widget to windowed mode
 		videoWidget->offset = 0;
 		videoWidget->fullscreen = false;
@@ -1046,7 +1049,6 @@ void MainWin::SetFullScreen(bool state/*= true*/)
 		if (debugbar)
 			debugbar->show();
 
-		showNormal();
 		ResizeMainWindow();
 		move(mainWinPosition);
 	}
@@ -1112,14 +1114,7 @@ void MainWin::ResizeMainWindow(void)
 		}
 	}
 
-	show();
-
-	for(int i=0; i<2; i++)
-	{
-		resize(0, 0);
-		usleep(2000);
-		QApplication::processEvents();
-	}
+	adjustSize();
 }
 
 

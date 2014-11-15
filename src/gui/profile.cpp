@@ -30,6 +30,7 @@
 //
 
 #include "profile.h"
+#include <QtWidgets>
 #include "gamepad.h"
 #include "log.h"
 #include "settings.h"

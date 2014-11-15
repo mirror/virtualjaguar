@@ -18,8 +18,7 @@ CONFIG    += qt warn_on release
 # debug
 RESOURCES += src/gui/virtualjaguar.qrc
 LIBS      += -Lobj -Lsrc/m68000/obj -ljaguarcore -lz -lm68k
-QT        += opengl
-QT += widgets
+QT        += opengl widgets
 
 # We stuff all the intermediate crap into obj/ so it won't confuse us mere
 # mortals ;-)

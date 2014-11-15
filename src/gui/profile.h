@@ -1,7 +1,6 @@
 #ifndef __PROFILE_H__
 #define __PROFILE_H__
 
-#include <QtWidgets>
 #include <stdint.h>
 
 class QComboBox;
