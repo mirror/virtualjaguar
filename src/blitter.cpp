@@ -7,7 +7,7 @@
 // JLH = James Hammons <jlhamm@acm.org>
 //
 // Who  When        What
-// ---  ----------  -------------------------------------------------------------
+// ---  ----------  -----------------------------------------------------------
 // JLH  01/16/2010  Created this log ;-)
 //
 
@@ -32,7 +32,7 @@
 
 // Various conditional compilation goodies...
 
-//#define LOG_BLITS
+#define LOG_BLITS
 
 #define USE_ORIGINAL_BLITTER
 //#define USE_MIDSUMMER_BLITTER

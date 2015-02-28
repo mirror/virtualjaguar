@@ -20,7 +20,7 @@ Virtual Jaguar v2.1.1 GCC/Qt
   config for the new controller without destroying the old one. This also means
   that if you have *no* controllers, you can still play VJ with the keyboard.
   [Shamus]
-* Fixed a few problems with the DSP a timing; as a result, the sound in Rayman
+* Fixed a few problems with the DSP timing; as a result, the sound in Rayman
   and the FACTS demo is correct now. [Shamus]
 * Removed toolbar from full screen mode. [Shamus]
 * Added analog inputs to gamepad support. [Shamus]

@@ -9,7 +9,7 @@
 #echo "Cross compiling for Win32..."
 echo "Cross compiling for Win64..."
 export PATH=/opt/mxe/usr/bin:$PATH
-rm makefile-qt
+#rm makefile-qt
 #make CROSS=i686-pc-mingw32.static-
 make CROSS=x86_64-w64-mingw32.static-
 #rel=`svn info | grep Revision | cut -f 2 -d ' '`

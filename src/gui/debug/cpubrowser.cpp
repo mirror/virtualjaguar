@@ -7,7 +7,7 @@
 // JLH = James Hammons <jlhamm@acm.org>
 //
 // Who  When        What
-// ---  ----------  -------------------------------------------------------------
+// ---  ----------  -----------------------------------------------------------
 // JLH  08/14/2012  Created this file
 //
 
@@ -38,8 +38,8 @@ CPUBrowserWindow::CPUBrowserWindow(QWidget * parent/*= 0*/): QWidget(parent, Qt:
 	hbox1->addWidget(bpm);
 	hbox1->addWidget(bpmAddress);
 
-//	QFont fixedFont("Lucida Console", 8, QFont::Normal);
-	QFont fixedFont("", 8, QFont::Normal);
+	QFont fixedFont("Lucida Console", 8, QFont::Normal);
+//	QFont fixedFont("", 8, QFont::Normal);
 	fixedFont.setStyleHint(QFont::TypeWriter);
 	text->setFont(fixedFont);
 ////	layout->setSizeConstraint(QLayout::SetFixedSize);

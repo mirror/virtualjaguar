@@ -29,8 +29,8 @@ OPBrowserWindow::OPBrowserWindow(QWidget * parent/*= 0*/): QWidget(parent, Qt::D
 	// Need to set the size as well...
 //	resize(560, 480);
 
-//	QFont fixedFont("Lucida Console", 8, QFont::Normal);
-	QFont fixedFont("", 8, QFont::Normal);
+	QFont fixedFont("Lucida Console", 8, QFont::Normal);
+//	QFont fixedFont("", 8, QFont::Normal);
 	fixedFont.setStyleHint(QFont::TypeWriter);
 	text->setFont(fixedFont);
 ////	layout->setSizeConstraint(QLayout::SetFixedSize);
@@ -107,9 +107,13 @@ void OPBrowserWindow::DiscoverObjects(uint32_t address)
 
 		if (objectType == 3)
 		{
-			// Recursion needed to follow all links! This does depth-first recursion
-			// on the not-taken objects
-			DiscoverObjects(address + 8);
+			// Branch if YPOS < 2047 can be treated as a GOTO, so don't do any
+			// discovery in that case. Otherwise, have at it:
+			if ((lo & 0xFFFF) != 0x7FFB)
+			// Recursion needed to follow all links! This does depth-first
+			// recursion on the not-taken objects (N.B.: The object following
+			// the branch object is at +16, not +8!)
+				DiscoverObjects(address + 16);
 		}
 
 		// Get the next object...
@@ -153,11 +157,12 @@ void OPBrowserWindow::DumpObjectList(QString & list)
 		list += "<br>";
 
 		if (objectType == 0)
-			DumpFixedObject(list, OPLoadPhrase(address + 0), OPLoadPhrase(address + 8));
+			DumpFixedObject(list, OPLoadPhrase(address + 0),
+				OPLoadPhrase(address + 8));
 
 		if (objectType == 1)
-			DumpScaledObject(list, OPLoadPhrase(address + 0), OPLoadPhrase(address + 8),
-				OPLoadPhrase(address + 16));
+			DumpScaledObject(list, OPLoadPhrase(address + 0),
+				OPLoadPhrase(address + 8), OPLoadPhrase(address + 16));
 
 		if (address == link)	// Ruh roh...
 		{

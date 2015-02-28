@@ -324,10 +324,9 @@ MainWin::MainWin(bool autoRun): running(true), powerButtonOn(false),
 
 	//	Create status bar
 	statusBar()->showMessage(tr("Ready"));
-
 	ReadSettings();
-
-	// Do this in case original size isn't correct (mostly for the first-run case)
+	// Do this in case original size isn't correct (mostly for the first-run
+	// case)
 	ResizeMainWindow();
 
 	// Create our test pattern bitmaps
@@ -1162,6 +1161,7 @@ WriteLog("AlpineROMPath = \"%s\"\n", vjs.alpineROMPath);
 WriteLog("   absROMPath = \"%s\"\n", vjs.absROMPath);
 WriteLog("Pipelined DSP = %s\n", (vjs.usePipelinedDSP ? "ON" : "off"));
 
+#if 0
 	// Keybindings in order of U, D, L, R, C, B, A, Op, Pa, 0-9, #, *
 	vjs.p1KeyBindings[BUTTON_U] = settings.value("p1k_up", Qt::Key_S).toInt();
 	vjs.p1KeyBindings[BUTTON_D] = settings.value("p1k_down", Qt::Key_X).toInt();
@@ -1206,6 +1206,7 @@ WriteLog("Pipelined DSP = %s\n", (vjs.usePipelinedDSP ? "ON" : "off"));
 	vjs.p2KeyBindings[BUTTON_9] = settings.value("p2k_9", Qt::Key_9).toInt();
 	vjs.p2KeyBindings[BUTTON_d] = settings.value("p2k_pound", Qt::Key_Slash).toInt();
 	vjs.p2KeyBindings[BUTTON_s] = settings.value("p2k_star", Qt::Key_Asterisk).toInt();
+#endif
 
 	ReadProfiles(&settings);
 }
@@ -1245,6 +1246,7 @@ void MainWin::WriteSettings(void)
 	settings.setValue("DefaultROM", vjs.alpineROMPath);
 	settings.setValue("DefaultABS", vjs.absROMPath);
 
+#if 0
 	settings.setValue("p1k_up", vjs.p1KeyBindings[BUTTON_U]);
 	settings.setValue("p1k_down", vjs.p1KeyBindings[BUTTON_D]);
 	settings.setValue("p1k_left", vjs.p1KeyBindings[BUTTON_L]);
@@ -1288,6 +1290,7 @@ void MainWin::WriteSettings(void)
 	settings.setValue("p2k_9", vjs.p2KeyBindings[BUTTON_9]);
 	settings.setValue("p2k_pound", vjs.p2KeyBindings[BUTTON_d]);
 	settings.setValue("p2k_star", vjs.p2KeyBindings[BUTTON_s]);
+#endif
 
 	WriteProfiles(&settings);
 }

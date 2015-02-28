@@ -1649,7 +1649,7 @@ if (offset == MEMCON2)
 //if (offset == OBF)
 //	WriteLog("TOM: Object Processor Flag written by %s: %u\n", whoName[who], data);
 if (offset == VMODE)
-	WriteLog("TOM: Video Mode written by %s: %04X. PWIDTH = %u, MODE = %s, flags:%s%s (VC = %u)\n", whoName[who], data, ((data >> 9) & 0x07) + 1, videoMode_to_str[(data & MODE) >> 1], (data & BGEN ? " BGEN" : ""), (data & VARMOD ? " VARMOD" : ""), GET16(tomRam8, VC));
+	WriteLog("TOM: Video Mode written by %s: %04X. PWIDTH = %u, MODE = %s, flags:%s%s (VC = %u) (M68K PC = %06X)\n", whoName[who], data, ((data >> 9) & 0x07) + 1, videoMode_to_str[(data & MODE) >> 1], (data & BGEN ? " BGEN" : ""), (data & VARMOD ? " VARMOD" : ""), GET16(tomRam8, VC), m68k_get_reg(NULL, M68K_REG_PC));
 if (offset == BORD1)
 	WriteLog("TOM: Border 1 written by %s: $%04X\n", whoName[who], data);
 if (offset == BORD2)
