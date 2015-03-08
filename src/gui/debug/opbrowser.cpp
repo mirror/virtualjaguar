@@ -7,7 +7,7 @@
 // JLH = James Hammons <jlhamm@acm.org>
 //
 // Who  When        What
-// ---  ----------  -------------------------------------------------------------
+// ---  ----------  -----------------------------------------------------------
 // JLH  12/01/2012  Created this file
 //
 
@@ -110,10 +110,9 @@ void OPBrowserWindow::DiscoverObjects(uint32_t address)
 			// Branch if YPOS < 2047 can be treated as a GOTO, so don't do any
 			// discovery in that case. Otherwise, have at it:
 			if ((lo & 0xFFFF) != 0x7FFB)
-			// Recursion needed to follow all links! This does depth-first
-			// recursion on the not-taken objects (N.B.: The object following
-			// the branch object is at +16, not +8!)
-				DiscoverObjects(address + 16);
+				// Recursion needed to follow all links! This does depth-first
+				// recursion on the not-taken objects
+				DiscoverObjects(address + 8);
 		}
 
 		// Get the next object...
@@ -156,13 +155,15 @@ void OPBrowserWindow::DumpObjectList(QString & list)
 
 		list += "<br>";
 
+		// Yes, the OP really determines bitmap/scaled bitmap address for the
+		// following phrases this way...!
 		if (objectType == 0)
 			DumpFixedObject(list, OPLoadPhrase(address + 0),
-				OPLoadPhrase(address + 8));
+				OPLoadPhrase(address | 0x08));
 
 		if (objectType == 1)
 			DumpScaledObject(list, OPLoadPhrase(address + 0),
-				OPLoadPhrase(address + 8), OPLoadPhrase(address + 16));
+				OPLoadPhrase(address | 0x08), OPLoadPhrase(address | 0x10));
 
 		if (address == link)	// Ruh roh...
 		{
