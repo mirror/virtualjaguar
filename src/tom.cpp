@@ -788,8 +788,8 @@ void tom_render_24bpp_scanline(uint32_t * backbuffer)
 }
 
 
-//Seems to me that this is NOT a valid mode--the JTRM seems to imply that you would need
-//extra hardware outside of the Jaguar console to support this!
+// Seems to me that this is NOT a valid mode--the JTRM seems to imply that you
+// would need extra hardware outside of the Jaguar console to support this!
 //
 // 16 BPP direct mode rendering
 //

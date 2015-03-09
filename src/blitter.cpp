@@ -17,7 +17,6 @@
 // to Curt. ;-) Without that excellent documentation which shows *exactly*
 // what's going on inside the TOM chip, we'd all still be guessing as to how
 // the wily blitter and other pieces of the Jaguar puzzle actually work.
-// Now how about those JERRY ASIC nets gentlemen...? [We have those now!] ;-)
 //
 
 #include "blitter.h"
@@ -32,7 +31,7 @@
 
 // Various conditional compilation goodies...
 
-#define LOG_BLITS
+//#define LOG_BLITS
 
 #define USE_ORIGINAL_BLITTER
 //#define USE_MIDSUMMER_BLITTER
@@ -2774,7 +2773,7 @@ if (
 #else
 logBlit = true;
 #endif
-/*if (blit_start_log == 0)	// Wait for the signal...
+if (blit_start_log == 0)	// Wait for the signal...
 	logBlit = false;//*/
 //temp, for testing...
 /*if (cmd != 0x49820609)
