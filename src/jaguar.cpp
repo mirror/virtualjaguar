@@ -2131,14 +2131,13 @@ void JaguarExecuteNew(void)
 }
 
 
-#define USE_CORRECT_PAL_TIMINGS
-// A lot of confusion comes from here...
-// The thing to keep in mind is that the VC is advanced every HALF line, regardless
-// of whether the display is interlaced or not. The only difference with an
-// interlaced display is that the high bit of VC will be set when the lower
-// field is being rendered. (NB: The high bit of VC is ALWAYS set on the lower field,
-// regardless of whether it's in interlace mode or not.
-// NB2: Seems it doens't always, not sure what the constraint is...)
+//
+// The thing to keep in mind is that the VC is advanced every HALF line,
+// regardless of whether the display is interlaced or not. The only difference
+// with an interlaced display is that the high bit of VC will be set when the
+// lower field is being rendered. (NB: The high bit of VC is ALWAYS set on the
+// lower field, regardless of whether it's in interlace mode or not.
+// NB2: Seems it doesn't always, not sure what the constraint is...)
 //
 // Normally, TVs will render a full frame in 1/30s (NTSC) or 1/25s (PAL) by
 // rendering two fields that are slighty vertically offset from each other.
@@ -2149,46 +2148,37 @@ void JaguarExecuteNew(void)
 // We execute a half frame in each timeslice (1/60s NTSC, 1/50s PAL).
 // Since the number of lines in a FULL frame is 525 for NTSC, 625 for PAL,
 // it will be half this number for a half frame. BUT, since we're counting
-// HALF lines, we double this number and we're back at 525 for NTSC, 625 for PAL.
+// HALF lines, we double this number and we're back at 525 for NTSC, 625 for
+// PAL.
 //
 // Scanline times are 63.5555... μs in NTSC and 64 μs in PAL
 // Half line times are, naturally, half of this. :-P
+//
 void HalflineCallback(void)
 {
-//OK, this is hardwired to run in NTSC, and for who knows how long.
-//Need to fix this so that it does a half-line in the correct amount of time
-//and number of lines, depending on which mode we're in. [FIXED]
 	uint16_t vc = TOMReadWord(0xF00006, JAGUAR);
 	uint16_t vp = TOMReadWord(0xF0003E, JAGUAR) + 1;
 	uint16_t vi = TOMReadWord(0xF0004E, JAGUAR);
 //	uint16_t vbb = TOMReadWord(0xF00040, JAGUAR);
 	vc++;
 
-#ifdef USE_CORRECT_PAL_TIMINGS
 	// Each # of lines is for a full frame == 1/30s (NTSC), 1/25s (PAL).
 	// So we cut the number of half-lines in a frame in half. :-P
 	uint16_t numHalfLines = ((vjs.hardwareTypeNTSC ? 525 : 625) * 2) / 2;
 
 	if ((vc & 0x7FF) >= numHalfLines)
-#else
-	if ((vc & 0x7FF) >= vp)
-#endif
 	{
-		vc = 0;
-//		lowerField = !lowerField;
-
-		// If we're rendering the lower field, set the high bit (#12, counting
-		// from 1) of VC
-		if (lowerField)
-			vc = 0x0800;
+		lowerField = !lowerField;
+		// If we're rendering the lower field, set the high bit (#11, counting
+		// from 0) of VC
+		vc = (lowerField ? 0x0800 : 0x0000);
 	}
 
-//WriteLog("SLC: Currently on line %u (VP=%u)...\n", vc, vp);
+//WriteLog("HLC: Currently on line %u (VP=%u)...\n", vc, vp);
 	TOMWriteWord(0xF00006, vc, JAGUAR);
 
-//This is a crappy kludge, but maybe it'll work for now...
-//Maybe it's not so bad, since the IRQ happens on a scanline boundary...
-	if ((vc & 0x7FF) == vi && (vc & 0x7FF) > 0 && TOMIRQEnabled(IRQ_VIDEO))	// Time for Vertical Interrupt?
+	// Time for Vertical Interrupt?
+	if ((vc & 0x7FF) == vi && (vc & 0x7FF) > 0 && TOMIRQEnabled(IRQ_VIDEO))
 	{
 		// We don't have to worry about autovectors & whatnot because the Jaguar
 		// tells you through its HW registers who sent the interrupt...
@@ -2207,22 +2197,6 @@ void HalflineCallback(void)
 		frameDone = true;
 	}//*/
 
-#ifdef USE_CORRECT_PAL_TIMINGS
 	SetCallbackTime(HalflineCallback, (vjs.hardwareTypeNTSC ? 31.777777777 : 32.0));
-#else
-//	SetCallbackTime(HalflineCallback, 63.5555);
-	SetCallbackTime(HalflineCallback, 31.77775);
-#endif
 }
 
-
-// This isn't currently used, but maybe it should be...
-/*
-Nah, the scanline based code is good enough, and runs in 1 frame. The GUI
-handles all the rest, so this isn't needed. :-P
-*/
-void RenderCallback(void)
-{
-//	SetCallbackTime(RenderCallback, 33303.082);	// # Scanlines * scanline time
-	SetCallbackTime(RenderCallback, 16651.541);	// # Scanlines * scanline time
-}

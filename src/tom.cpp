@@ -649,6 +649,18 @@ uint16_t TOMGetVDB(void)
 }
 
 
+uint16_t TOMGetHC(void)
+{
+	return GET16(tomRam8, HC);
+}
+
+
+uint16_t TOMGetVP(void)
+{
+	return GET16(tomRam8, VP);
+}
+
+
 #define LEFT_BG_FIX
 //
 // 16 BPP CRY/RGB mixed mode rendering
@@ -854,37 +866,36 @@ void tom_render_16bpp_rgb_scanline(uint32_t * backbuffer)
 
 
 //
-// Process a single scanline
-// (this is bad terminology; each tick of the VC is actually a half-line)
+// Process a single halfline
 //
 void TOMExecHalfline(uint16_t halfline, bool render)
 {
-#warning "!!! Need to handle multiple fields properly !!!"
-	// We ignore the problem for now
-	halfline &= 0x7FF;
-
+	uint16_t field2 = halfline & 0x0800;
+	halfline &= 0x07FF;
 	bool inActiveDisplayArea = true;
 
-//Interlacing is still not handled correctly here... !!! FIX !!!
-	if (halfline & 0x01)							// Execute OP only on even halflines (non-interlaced only!)
+	// Execute OP only on even halflines (skip higher resolutions for now...)
+	if (halfline & 0x01)
 		return;
 
 //Hm, it seems that the OP needs to execute from zero, so let's try it:
-// And it works! But need to do some optimizations in the OP to keep it from attempting
-// to do a scanline render in the non-display area... [DONE]
+// And it works! But need to do some optimizations in the OP to keep it from
+// attempting to do a scanline render in the non-display area... [DONE]
 //this seems to cause a regression in certain games, like rayman
 //which means I have to dig thru the asic nets to see what's wrong...
 /*
-No, the OP doesn't start until VDB, that much is certain. The thing is, VDB is the
-HALF line that the OP starts on--which means that it needs to start at VDB / 2!!!
+No, the OP doesn't start until VDB, that much is certain. The thing is, VDB is
+the HALF line that the OP starts on--which means that it needs to start at
+VDB / 2!!!
 
-Hrm, doesn't seem to be enough, though it should be... still sticks for 20 frames.
+Hrm, doesn't seem to be enough, though it should be... still sticks for 20
+frames.
 
 
-What triggers this is writing $FFFF to VDE. This causes the OP start signal in VID to 
-latch on, which in effect sets VDB to zero. So that much is correct. But the thing with
-Rayman is that it shouldn't cause the graphical glitches seen there, so still have to
-investigate what's going on there. By all rights, it shouldn't glitch because:
+What triggers this is writing $FFFF to VDE. This causes the OP start signal in VID to latch on, which in effect sets VDB to zero. So that much is correct. But
+the thing with Rayman is that it shouldn't cause the graphical glitches seen
+there, so still have to investigate what's going on there. By all rights, it
+shouldn't glitch because:
 
 00006C00: 0000000D 82008F73 (BRANCH) YPOS=494, CC=">", link=$00006C10
 00006C08: 000003FF 00008173 (BRANCH) YPOS=46, CC=">", link=$001FF800
@@ -892,8 +903,8 @@ investigate what's going on there. By all rights, it shouldn't glitch because:
 001FF800: 12FC2BFF 02380000 (BITMAP)
           00008004 8180CFF1
 
-Even if the OP is running all the time, the link should tell it to stop at the right
-place (which it seems to do). But we still get glitchy screen.
+Even if the OP is running all the time, the link should tell it to stop at the
+right place (which it seems to do). But we still get glitchy screen.
 
 Seems the glitchy screen went away... Maybe the GPU alignment fixes fixed it???
 Just need to add the proper checking here then.
@@ -921,18 +932,19 @@ TOM: Vertical Display Begin written by M68K: 41
 TOM: Vertical Display End written by M68K: 2047
 TOM: Vertical Interrupt written by M68K: 491
 */
-#if 1
+
 	// Initial values that "well behaved" programs use
 	uint16_t startingHalfline = GET16(tomRam8, VDB);
 	uint16_t endingHalfline = GET16(tomRam8, VDE);
 
 	// Simulate the OP start bug here!
 	// Really, this value is somewhere around 507 for an NTSC Jaguar. But this
-	// should work in a majority of cases, at least until we can figure it out properly.
+	// should work in a majority of cases, at least until we can figure it out
+	// properly.
 	if (endingHalfline > GET16(tomRam8, VP))
 		startingHalfline = 0;
 
-	if (halfline >= startingHalfline && halfline < endingHalfline)
+	if ((halfline >= startingHalfline) && (halfline < endingHalfline))
 //	if (halfline >= 0 && halfline < (uint16_t)GET16(tomRam8, VDE))
 // 16 isn't enough, and neither is 32 for raptgun. 32 fucks up Rayman
 //	if (halfline >= ((uint16_t)GET16(tomRam8, VDB) / 2) && halfline < ((uint16_t)GET16(tomRam8, VDE) / 2))
@@ -955,49 +967,33 @@ TOM: Vertical Interrupt written by M68K: 491
 	}
 	else
 		inActiveDisplayArea = false;
-#else
-	inActiveDisplayArea =
-		(halfline >= (uint16_t)GET16(tomRam8, VDB) && halfline < (uint16_t)GET16(tomRam8, VDE)
-			? true : false);
 
-	if (halfline < (uint16_t)GET16(tomRam8, VDE))
-	{
-		if (render)//With JaguarExecuteNew() this is always true...
-		{
-			uint8_t * current_line_buffer = (uint8_t *)&tomRam8[0x1800];
-			uint8_t bgHI = tomRam8[BG], bgLO = tomRam8[BG + 1];
-
-			// Clear line buffer with BG
-			if (GET16(tomRam8, VMODE) & BGEN) // && (CRY or RGB16)...
-				for(uint32_t i=0; i<720; i++)
-					*current_line_buffer++ = bgHI, *current_line_buffer++ = bgLO;
-
-//			OPProcessList(halfline, render);
-//This seems to take care of it...
-			OPProcessList(halfline, inActiveDisplayArea);
-		}
-	}
-#endif
-
-	// Try to take PAL into account... [We do now!]
+	// Take PAL into account...
 
 	uint16_t topVisible = (vjs.hardwareTypeNTSC ? TOP_VISIBLE_VC : TOP_VISIBLE_VC_PAL),
 		bottomVisible = (vjs.hardwareTypeNTSC ? BOTTOM_VISIBLE_VC : BOTTOM_VISIBLE_VC_PAL);
-	uint32_t * TOMCurrentLine = &(screenBuffer[((halfline - topVisible) / 2) * screenPitch]);
+	uint32_t * TOMCurrentLine = 0;
+
+	// Bit 0 in VP is interlace flag. 0 = interlace, 1 = non-interlaced
+	if (tomRam8[VP + 1] & 0x01)
+		TOMCurrentLine = &(screenBuffer[((halfline - topVisible) / 2) * screenPitch]);//non-interlace
+	else
+		TOMCurrentLine = &(screenBuffer[(((halfline - topVisible) / 2) * screenPitch * 2) + (field2 ? 0 : screenPitch)]);//interlace
 
 	// Here's our virtualized scanline code...
 
-	if (halfline >= topVisible && halfline < bottomVisible)
+	if ((halfline >= topVisible) && (halfline < bottomVisible))
 	{
 		if (inActiveDisplayArea)
 		{
-//NOTE: The following doesn't put BORDER color on the sides... !!! FIX !!!
 #warning "The following doesn't put BORDER color on the sides... !!! FIX !!!"
 			if (vjs.renderType == RT_NORMAL)
-//				scanline_render[TOMGetVideoMode()](TOMBackbuffer);
-				scanline_render[TOMGetVideoMode()](TOMCurrentLine);
-			else//TV type render
 			{
+				scanline_render[TOMGetVideoMode()](TOMCurrentLine);
+			}
+			else
+			{
+				// TV type render
 /*
 	tom_render_16bpp_cry_scanline,
 	tom_render_24bpp_scanline,
@@ -1014,13 +1010,14 @@ TOM: Vertical Interrupt written by M68K: 491
 				uint8_t pwidth = ((GET16(tomRam8, VMODE) & PWIDTH) >> 9) + 1;
 				uint8_t mode = ((GET16(tomRam8, VMODE) & MODE) >> 1);
 				bool varmod = GET16(tomRam8, VMODE) & VARMOD;
-//The video texture line buffer ranges from 0 to 1279, with its left edge starting at
-//LEFT_VISIBLE_HC. So, we need to start writing into the backbuffer at HDB1, using pwidth
-//as our scaling factor. The way it generates its image on a real TV!
+//The video texture line buffer ranges from 0 to 1279, with its left edge
+//starting at LEFT_VISIBLE_HC. So, we need to start writing into the backbuffer
+//at HDB1, using pwidth as our scaling factor. The way it generates its image
+//on a real TV!
 
-//So, for example, if HDB1 is less than LEFT_VISIBLE_HC, then we have to figure out where
-//in the VTLB that we start writing pixels from the Jaguar line buffer (VTLB start=0,
-//JLB=something).
+//So, for example, if HDB1 is less than LEFT_VISIBLE_HC, then we have to figure
+//out where in the VTLB that we start writing pixels from the Jaguar line
+//buffer (VTLB start=0, JLB=something).
 #if 0
 //
 // 24 BPP mode rendering

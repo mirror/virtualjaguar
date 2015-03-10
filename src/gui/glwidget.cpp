@@ -61,25 +61,22 @@ void GLWidget::initializeGL()
 
 void GLWidget::paintGL()
 {
-//kludge [NO MORE!]
-//rasterHeight = (vjs.hardwareTypeNTSC ? VIRTUAL_SCREEN_HEIGHT_NTSC : VIRTUAL_SCREEN_HEIGHT_PAL);
-
 	// If we're in fullscreen mode, we take the value of the screen width as
 	// set by MainWin, since it may be wider than what our aspect ratio allows.
 	// In that case, we adjust the viewport over so that it's centered on the
 	// screen. Otherwise, we simply take the width from our width() funtion
 	// which will always be correct in windowed mode.
 
-//	unsigned outputWidth  = width();
 	if (!fullscreen)
 		outputWidth = width();
 
+	// Bit 0 in VP is interlace flag. 0 = interlace, 1 = non-interlaced
+	double multiplier = (TOMGetVP() & 0x0001 ? 1.0 : 2.0);
 	unsigned outputHeight = height();
 
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
 	glOrtho(0, outputWidth, 0, outputHeight, -1.0, 1.0);
-//	glViewport(0, 0, outputWidth, outputHeight);
 	glViewport(0 + offset, 0, outputWidth, outputHeight);
 
 	glMatrixMode(GL_MODELVIEW);
@@ -87,29 +84,18 @@ void GLWidget::paintGL()
 
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, (vjs.glFilter ? GL_LINEAR : GL_NEAREST));
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, (vjs.glFilter ? GL_LINEAR : GL_NEAREST));
-//	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, rasterWidth, rasterHeight, GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV, buffer);
-//more kludge
-	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, TOMGetVideoModeWidth(), rasterHeight, GL_RGBA, GL_UNSIGNED_INT_8_8_8_8, buffer);
-//	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, rasterWidth, rasterHeight, GL_RGBA, GL_UNSIGNED_INT_8_8_8_8, buffer);
+	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, TOMGetVideoModeWidth(), rasterHeight * multiplier, GL_RGBA, GL_UNSIGNED_INT_8_8_8_8, buffer);
 
 	double w = (double)TOMGetVideoModeWidth()  / (double)textureWidth;
-//	double w = (double)rasterWidth  / (double)textureWidth;
-	double h = (double)rasterHeight / (double)textureHeight;
+	double h = ((double)rasterHeight * multiplier) / (double)textureHeight;
 	unsigned u = outputWidth;
 	unsigned v = outputHeight;
 
 	glBegin(GL_TRIANGLE_STRIP);
-#if 1
 	glTexCoord2f(0, 0); glVertex3i(0, v, 0);
 	glTexCoord2f(w, 0); glVertex3i(u, v, 0);
 	glTexCoord2f(0, h); glVertex3i(0, 0, 0);
 	glTexCoord2f(w, h); glVertex3i(u, 0, 0);
-#else
-	glTexCoord2f(0, 0); glVertex3i(0 + offset, v, 0);
-	glTexCoord2f(w, 0); glVertex3i(u + offset, v, 0);
-	glTexCoord2f(0, h); glVertex3i(0 + offset, 0, 0);
-	glTexCoord2f(w, h); glVertex3i(u + offset, 0, 0);
-#endif
 	glEnd();
 }
 
