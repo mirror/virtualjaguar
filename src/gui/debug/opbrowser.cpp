@@ -107,9 +107,9 @@ void OPBrowserWindow::DiscoverObjects(uint32_t address)
 
 		if (objectType == 3)
 		{
-			// Branch if YPOS < 2047 can be treated as a GOTO, so don't do any
-			// discovery in that case. Otherwise, have at it:
-			if ((lo & 0xFFFF) != 0x7FFB)
+			// Branch if YPOS < 2047 (or YPOS > 0) can be treated as a GOTO, so
+			// don't do any discovery in that case. Otherwise, have at it:
+			if (((lo & 0xFFFF) != 0x7FFB) && ((lo & 0xFFFF) != 0x8003))
 				// Recursion needed to follow all links! This does depth-first
 				// recursion on the not-taken objects
 				DiscoverObjects(address + 8);

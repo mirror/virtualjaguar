@@ -319,9 +319,10 @@ static uint32_t gpu_pointer_to_matrix;
 static uint32_t gpu_data_organization;
 static uint32_t gpu_control;
 static uint32_t gpu_div_control;
-// There is a distinct advantage to having these separated out--there's no need to clear
-// a bit before writing a result. I.e., if the result of an operation leaves a zero in
-// the carry flag, you don't have to zero gpu_flag_c before you can write that zero!
+// There is a distinct advantage to having these separated out--there's no need
+// to clear a bit before writing a result. I.e., if the result of an operation
+// leaves a zero in the carry flag, you don't have to zero gpu_flag_c before
+// you can write that zero!
 static uint8_t gpu_flag_z, gpu_flag_n, gpu_flag_c;
 uint32_t gpu_reg_bank_0[32];
 uint32_t gpu_reg_bank_1[32];
@@ -1050,10 +1051,12 @@ void GPUReset(void)
 		*((uint32_t *)(&gpu_ram_8[i])) = rand();
 }
 
+
 uint32_t GPUReadPC(void)
 {
 	return gpu_pc;
 }
+
 
 void GPUResetStats(void)
 {
@@ -1061,6 +1064,7 @@ void GPUResetStats(void)
 		gpu_opcode_use[i] = 0;
 	WriteLog("--> GPU stats were reset!\n");
 }
+
 
 void GPUDumpDisassembly(void)
 {
@@ -1075,6 +1079,7 @@ void GPUDumpDisassembly(void)
 		WriteLog("\t%08X: %s\n", oldj, buffer);
 	}
 }
+
 
 void GPUDumpRegisters(void)
 {
@@ -1099,6 +1104,7 @@ void GPUDumpRegisters(void)
 	}
 }
 
+
 void GPUDumpMemory(void)
 {
 	WriteLog("\n---[GPU data at 00F03000]---------------------------\n");
@@ -1107,8 +1113,23 @@ void GPUDumpMemory(void)
 			gpu_ram_8[i+1], gpu_ram_8[i+2], gpu_ram_8[i+3]);
 }
 
+
 void GPUDone(void)
 {
+	WriteLog("\n\n---------------------------------------------------------------------\n");
+	WriteLog("GPU I/O Registers\n");
+	WriteLog("---------------------------------------------------------------------\n");
+	WriteLog("F0%04X   (G_FLAGS): $%06X\n", 0x2100, (gpu_flags & 0xFFFFFFF8) | (gpu_flag_n << 2) | (gpu_flag_c << 1) | gpu_flag_z);
+	WriteLog("F0%04X    (G_MTXC): $%04X\n", 0x2104, gpu_matrix_control);
+	WriteLog("F0%04X    (G_MTXA): $%04X\n", 0x2108, gpu_pointer_to_matrix);
+	WriteLog("F0%04X     (G_END): $%02X\n", 0x210C, gpu_data_organization);
+	WriteLog("F0%04X      (G_PC): $%06X\n", 0x2110, gpu_pc);
+	WriteLog("F0%04X    (G_CTRL): $%06X\n", 0x2114, gpu_control);
+	WriteLog("F0%04X  (G_HIDATA): $%08X\n", 0x2118, gpu_hidata);
+	WriteLog("F0%04X  (G_REMAIN): $%08X\n", 0x211C, gpu_remain);
+	WriteLog("F0%04X (G_DIVCTRL): $%02X\n", 0x211C, gpu_div_control);
+	WriteLog("---------------------------------------------------------------------\n\n\n");
+
 	WriteLog("GPU: Stopped at PC=%08X (GPU %s running)\n", (unsigned int)gpu_pc, GPU_RUNNING ? "was" : "wasn't");
 
 	// Get the interrupt latch & enable bits
@@ -1125,11 +1146,8 @@ void GPUDone(void)
 			WriteLog("\t%17s %lu\n", gpu_opcode_str[i], gpu_opcode_use[i]);
 	}
 	WriteLog("\n");
-
-//	memory_free(gpu_ram_8);
-//	memory_free(gpu_reg_bank_0);
-//	memory_free(gpu_reg_bank_1);
 }
+
 
 //
 // Main GPU execution core

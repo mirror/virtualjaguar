@@ -1298,60 +1298,53 @@ void DSPDumpRegisters(void)
 
 void DSPDone(void)
 {
-	int i, j;
+	WriteLog("\n\n---------------------------------------------------------------------\n");
+	WriteLog("DSP I/O Registers\n");
+	WriteLog("---------------------------------------------------------------------\n");
+	WriteLog("F1%04X   (D_FLAGS): $%06X\n", 0xA100, (dsp_flags & 0xFFFFFFF8) | (dsp_flag_n << 2) | (dsp_flag_c << 1) | dsp_flag_z);
+	WriteLog("F1%04X    (D_MTXC): $%04X\n", 0xA104, dsp_matrix_control);
+	WriteLog("F1%04X    (D_MTXA): $%04X\n", 0xA108, dsp_pointer_to_matrix);
+	WriteLog("F1%04X     (D_END): $%02X\n", 0xA10C, dsp_data_organization);
+	WriteLog("F1%04X      (D_PC): $%06X\n", 0xA110, dsp_pc);
+	WriteLog("F1%04X    (D_CTRL): $%06X\n", 0xA114, dsp_control);
+	WriteLog("F1%04X     (D_MOD): $%08X\n", 0xA118, dsp_modulo);
+	WriteLog("F1%04X  (D_REMAIN): $%08X\n", 0xA11C, dsp_remain);
+	WriteLog("F1%04X (D_DIVCTRL): $%02X\n", 0xA11C, dsp_div_control);
+	WriteLog("F1%04X   (D_MACHI): $%02X\n", 0xA120, (dsp_acc >> 32) & 0xFF);
+	WriteLog("---------------------------------------------------------------------\n\n\n");
+
 	WriteLog("DSP: Stopped at PC=%08X dsp_modulo=%08X (dsp was%s running)\n", dsp_pc, dsp_modulo, (DSP_RUNNING ? "" : "n't"));
 	WriteLog("DSP: %sin interrupt handler\n", (dsp_flags & IMASK ? "" : "not "));
 
-	// get the active interrupt bits
+	// Get the active interrupt bits
 	int bits = ((dsp_control >> 10) & 0x20) | ((dsp_control >> 6) & 0x1F);
-	// get the interrupt mask
+	// Get the interrupt mask
 	int mask = ((dsp_flags >> 11) & 0x20) | ((dsp_flags >> 4) & 0x1F);
 
 	WriteLog("DSP: pending=$%X enabled=$%X (%s%s%s%s%s%s)\n", bits, mask,
 		(mask & 0x01 ? "CPU " : ""), (mask & 0x02 ? "I2S " : ""),
 		(mask & 0x04 ? "Timer0 " : ""), (mask & 0x08 ? "Timer1 " : ""),
 		(mask & 0x10 ? "Ext0 " : ""), (mask & 0x20 ? "Ext1" : ""));
-	WriteLog("\nRegisters bank 0\n");
-
-	for(int j=0; j<8; j++)
-	{
-		WriteLog("\tR%02i=%08X R%02i=%08X R%02i=%08X R%02i=%08X\n",
-						  (j << 2) + 0, dsp_reg_bank_0[(j << 2) + 0],
-						  (j << 2) + 1, dsp_reg_bank_0[(j << 2) + 1],
-						  (j << 2) + 2, dsp_reg_bank_0[(j << 2) + 2],
-						  (j << 2) + 3, dsp_reg_bank_0[(j << 2) + 3]);
-	}
-
-	WriteLog("\nRegisters bank 1\n");
-
-	for (j=0; j<8; j++)
-	{
-		WriteLog("\tR%02i=%08X R%02i=%08X R%02i=%08X R%02i=%08X\n",
-						  (j << 2) + 0, dsp_reg_bank_1[(j << 2) + 0],
-						  (j << 2) + 1, dsp_reg_bank_1[(j << 2) + 1],
-						  (j << 2) + 2, dsp_reg_bank_1[(j << 2) + 2],
-						  (j << 2) + 3, dsp_reg_bank_1[(j << 2) + 3]);
-	}
-
+	DSPDumpRegisters();
 	WriteLog("\n");
 
 	static char buffer[512];
-	j = DSP_WORK_RAM_BASE;
+	int j = DSP_WORK_RAM_BASE;
 
 	while (j <= 0xF1CFFF)
 	{
 		uint32_t oldj = j;
 		j += dasmjag(JAGUAR_DSP, buffer, j);
 		WriteLog("\t%08X: %s\n", oldj, buffer);
-	}//*/
+	}
 
 	WriteLog("DSP opcodes use:\n");
 
-	for (i=0;i<64;i++)
+	for(int i=0; i<64; i++)
 	{
 		if (dsp_opcode_use[i])
 			WriteLog("\t%s %i\n", dsp_opcode_str[i], dsp_opcode_use[i]);
-	}//*/
+	}
 }
 
 
