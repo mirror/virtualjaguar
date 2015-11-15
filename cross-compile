@@ -9,13 +9,13 @@
 #rm makefile-qt
 
 echo "Cross compiling for Win32..."
-SUFFIX=-win32
+SUFFIX=win32
 export PATH=/opt/mxe-32/usr/bin:$PATH
 /opt/mxe-32/usr/bin/i686-w64-mingw32.static-qmake-qt5 -o makefile-qt
 make CROSS=i686-w64-mingw32.static-
 
 #echo "Cross compiling for Win64..."
-#SUFFIX=-win64
+#SUFFIX=win64
 #export PATH=/opt/mxe/usr/bin:$PATH
 #/opt/mxe/usr/bin/x86_64-w64-mingw32.static-qmake-qt5 -o makefile-qt
 #make CROSS=x86_64-w64-mingw32.static-

@@ -131,11 +131,12 @@ uint16_t JoystickReadWord(uint32_t offset)
 
 		// Joystick data returns active low for buttons pressed, high for non-
 		// pressed.
-		uint8_t offset0 = joypad0Offset[joystick_ram[1] & 0x0F] / 4;
-		uint8_t offset1 = joypad1Offset[(joystick_ram[1] >> 4) & 0x0F] / 4;
+		uint8_t offset0 = joypad0Offset[joystick_ram[1] & 0x0F];
+		uint8_t offset1 = joypad1Offset[(joystick_ram[1] >> 4) & 0x0F];
 
 		if (offset0 != 0xFF)
 		{
+			offset0 /= 4;	// Make index 0, 1, 2, 3 instead of 0, 4, 8, 12
 			uint8_t mask[4][2] = { { BUTTON_A, BUTTON_PAUSE }, { BUTTON_B, -1 }, { BUTTON_C, -1 }, { BUTTON_OPTION, -1 } };
 			data &= (joypad0Buttons[mask[offset0][0]] ? 0xFFFD : 0xFFFF);
 
@@ -145,6 +146,7 @@ uint16_t JoystickReadWord(uint32_t offset)
 
 		if (offset1 != 0xFF)
 		{
+			offset1 /= 4;	// Make index 0, 1, 2, 3 instead of 0, 4, 8, 12
 			uint8_t mask[4][2] = { { BUTTON_A, BUTTON_PAUSE }, { BUTTON_B, -1 }, { BUTTON_C, -1 }, { BUTTON_OPTION, -1 } };
 			data &= (joypad1Buttons[mask[offset1][0]] ? 0xFFF7 : 0xFFFF);
 
