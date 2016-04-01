@@ -97,6 +97,7 @@ uint32_t d4Queue[0x400];
 uint32_t d5Queue[0x400];
 uint32_t d6Queue[0x400];
 uint32_t d7Queue[0x400];
+uint32_t srQueue[0x400];
 uint32_t pcQPtr = 0;
 bool startM68KTracing = false;
 
@@ -177,6 +178,7 @@ if (inRoutine)
 	d5Queue[pcQPtr] = m68k_get_reg(NULL, M68K_REG_D5);
 	d6Queue[pcQPtr] = m68k_get_reg(NULL, M68K_REG_D6);
 	d7Queue[pcQPtr] = m68k_get_reg(NULL, M68K_REG_D7);
+	srQueue[pcQPtr] = m68k_get_reg(NULL, M68K_REG_SR);
 	pcQPtr++;
 	pcQPtr &= 0x3FF;
 
@@ -188,7 +190,7 @@ if (inRoutine)
 		for(int i=0; i<0x400; i++)
 		{
 //			WriteLog("[A2=%08X, D0=%08X]\n", a2Queue[(pcQPtr + i) & 0x3FF], d0Queue[(pcQPtr + i) & 0x3FF]);
-			WriteLog("[A0=%08X, A1=%08X, A2=%08X, A3=%08X, A4=%08X, A5=%08X, A6=%08X, A7=%08X, D0=%08X, D1=%08X, D2=%08X, D3=%08X, D4=%08X, D5=%08X, D6=%08X, D7=%08X]\n", a0Queue[(pcQPtr + i) & 0x3FF], a1Queue[(pcQPtr + i) & 0x3FF], a2Queue[(pcQPtr + i) & 0x3FF], a3Queue[(pcQPtr + i) & 0x3FF], a4Queue[(pcQPtr + i) & 0x3FF], a5Queue[(pcQPtr + i) & 0x3FF], a6Queue[(pcQPtr + i) & 0x3FF], a7Queue[(pcQPtr + i) & 0x3FF], d0Queue[(pcQPtr + i) & 0x3FF], d1Queue[(pcQPtr + i) & 0x3FF], d2Queue[(pcQPtr + i) & 0x3FF], d3Queue[(pcQPtr + i) & 0x3FF], d4Queue[(pcQPtr + i) & 0x3FF], d5Queue[(pcQPtr + i) & 0x3FF], d6Queue[(pcQPtr + i) & 0x3FF], d7Queue[(pcQPtr + i) & 0x3FF]);
+			WriteLog("[A0=%08X, A1=%08X, A2=%08X, A3=%08X, A4=%08X, A5=%08X, A6=%08X, A7=%08X, D0=%08X, D1=%08X, D2=%08X, D3=%08X, D4=%08X, D5=%08X, D6=%08X, D7=%08X, SR=%04X]\n", a0Queue[(pcQPtr + i) & 0x3FF], a1Queue[(pcQPtr + i) & 0x3FF], a2Queue[(pcQPtr + i) & 0x3FF], a3Queue[(pcQPtr + i) & 0x3FF], a4Queue[(pcQPtr + i) & 0x3FF], a5Queue[(pcQPtr + i) & 0x3FF], a6Queue[(pcQPtr + i) & 0x3FF], a7Queue[(pcQPtr + i) & 0x3FF], d0Queue[(pcQPtr + i) & 0x3FF], d1Queue[(pcQPtr + i) & 0x3FF], d2Queue[(pcQPtr + i) & 0x3FF], d3Queue[(pcQPtr + i) & 0x3FF], d4Queue[(pcQPtr + i) & 0x3FF], d5Queue[(pcQPtr + i) & 0x3FF], d6Queue[(pcQPtr + i) & 0x3FF], d7Queue[(pcQPtr + i) & 0x3FF], srQueue[(pcQPtr + i) & 0x3FF]);
 			m68k_disassemble(buffer, pcQueue[(pcQPtr + i) & 0x3FF], 0);//M68K_CPU_TYPE_68000);
 			WriteLog("\t%08X: %s\n", pcQueue[(pcQPtr + i) & 0x3FF], buffer);
 		}
@@ -1003,10 +1005,12 @@ int irq_ack_handler(int level)
 	// IPL1 is connected to INTL on TOM (OUT to 68K)
 	// IPL0-2 are also tied to Vcc via 4.7K resistors!
 	// (DINT on TOM goes into DINT on JERRY (IN Tom from Jerry))
-	// There doesn't seem to be any other path to IPL0 or 2 on the schematic, which means
-	// that *all* IRQs to the 68K are routed thru TOM at level 2. Which means they're all maskable.
+	// There doesn't seem to be any other path to IPL0 or 2 on the schematic,
+	// which means that *all* IRQs to the 68K are routed thru TOM at level 2.
+	// Which means they're all maskable.
 
-	// The GPU/DSP/etc are probably *not* issuing an NMI, but it seems to work OK...
+	// The GPU/DSP/etc are probably *not* issuing an NMI, but it seems to work
+	// OK...
 	// They aren't, and this causes problems with a, err, specific ROM. :-D
 
 	if (level == 2)
@@ -1474,8 +1478,9 @@ void M68K_show_context(void)
 // Unknown read/write byte/word routines
 //
 
-// It's hard to believe that developers would be sloppy with their memory writes, yet in
-// some cases the developers screwed up royal. E.g., Club Drive has the following code:
+// It's hard to believe that developers would be sloppy with their memory
+// writes, yet in some cases the developers screwed up royal. E.g., Club Drive
+// has the following code:
 //
 // 807EC4: movea.l #$f1b000, A1
 // 807ECA: movea.l #$8129e0, A0
@@ -1486,9 +1491,10 @@ void M68K_show_context(void)
 // 807EDC: move.l  (A0)+, (A1)+
 // 807EDE: dbra    D1, 807edc
 //
-// The problem is at $807ED0--instead of putting A0 into D0, they really meant to put A1
-// in. This mistake causes it to try and overwrite approximately $700000 worth of address
-// space! (That is, unless the 68K causes a bus error...)
+// The problem is at $807ED0--instead of putting A0 into D0, they really meant
+// to put A1 in. This mistake causes it to try and overwrite approximately
+// $700000 worth of address space! (That is, unless the 68K causes a bus
+// error...)
 
 void jaguar_unknown_writebyte(unsigned address, unsigned data, uint32_t who/*=UNKNOWN*/)
 {
@@ -1655,6 +1661,10 @@ uint16_t JaguarReadWord(uint32_t offset, uint32_t who/*=UNKNOWN*/)
 
 void JaguarWriteByte(uint32_t offset, uint8_t data, uint32_t who/*=UNKNOWN*/)
 {
+/*	if ((offset & 0x1FFFFF) >= 0xE00 && (offset & 0x1FFFFF) < 0xE18)
+	{
+		WriteLog("JWB: Byte %02X written at %08X by %s\n", data, offset, whoName[who]);
+	}//*/
 /*	if (offset >= 0x4E00 && offset < 0x4E04)
 		WriteLog("JWB: Byte %02X written at %08X by %s\n", data, offset, whoName[who]);//*/
 //Need to check for writes in the range of $18FA70 + 8000...
@@ -1693,6 +1703,11 @@ void JaguarWriteByte(uint32_t offset, uint8_t data, uint32_t who/*=UNKNOWN*/)
 uint32_t starCount;
 void JaguarWriteWord(uint32_t offset, uint16_t data, uint32_t who/*=UNKNOWN*/)
 {
+/*	if ((offset & 0x1FFFFF) >= 0xE00 && (offset & 0x1FFFFF) < 0xE18)
+	{
+		WriteLog("JWW: Word %04X written at %08X by %s\n", data, offset, whoName[who]);
+		WriteLog("     GPU PC = $%06X\n", GPUReadLong(0xF02110, DEBUG));
+	}//*/
 /*	if (offset >= 0x4E00 && offset < 0x4E04)
 		WriteLog("JWW: Word %04X written at %08X by %s\n", data, offset, whoName[who]);//*/
 /*if (offset == 0x0100)//64*4)

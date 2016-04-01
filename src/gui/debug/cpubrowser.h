@@ -24,6 +24,7 @@ class CPUBrowserWindow: public QWidget
 		void RefreshContents(void);
 		void HandleBPM(bool);
 		void HandleBPMAddress(const QString &);
+		void HandleBPMContinue(void);
 
 	protected:
 		void keyPressEvent(QKeyEvent *);
@@ -35,6 +36,7 @@ class CPUBrowserWindow: public QWidget
 		QPushButton * refresh;
 		QCheckBox * bpm;
 		QLineEdit * bpmAddress;
+		QPushButton * bpmContinue;
 
 //		int32_t memBase;
 };

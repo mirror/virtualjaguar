@@ -10,7 +10,8 @@
 	<file>../../res/zoom100.png</file>
 	<file>../../res/zoom200.png</file>
 	<file>../../res/zoom300.png</file>
-	<file>../../res/blur.png</file>
+	<file>../../res/blur-off.png</file>
+	<file>../../res/blur-on.png</file>
 	<file>../../res/fullscreen.png</file>
 	<file>../../res/tool-memory.png</file>
 	<file>../../res/tool-cpu.png</file>

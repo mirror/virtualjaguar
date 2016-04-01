@@ -79,7 +79,7 @@ void MemoryBrowserWindow::RefreshContents(void)
 			if (c == 0x20)
 				sprintf(buf, "&nbsp;");
 
-			if ((c < 0x20) || ((c > 0x7F) && (c < 0xA0)))
+			if ((c < 0x20) || (c > 0x7E))
 				sprintf(buf, ".");
 
 			strcat(string, buf);

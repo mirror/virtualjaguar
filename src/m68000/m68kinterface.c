@@ -199,6 +199,7 @@ void m68k_pulse_reset(void)
 	REG_PC = m68ki_read_imm_32();
 	m68ki_jump(REG_PC);
 #else
+	checkForIRQToHandle = 0;
 	regs.spcflags = 0;
 	regs.stopped = 0;
 	regs.remainingCycles = 0;
@@ -496,7 +497,7 @@ void m68ki_exception_interrupt(uint32_t intLevel)
 // prolly, for debugging/alpine mode... :-/
 // but then again, this should be handled already by the main execution loop :-P
 	// If we are halted, don't do anything
-//	if (regs.stopped)
+//	if (regs.halted)
 //		return;
 
 	// Acknowledge the interrupt (NOTE: This is a user supplied function!)

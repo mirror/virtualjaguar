@@ -139,18 +139,15 @@ MainWin::MainWin(bool autoRun): running(true), powerButtonOn(false),
 	powerRed.addFile(":/res/power-off.png", QSize(), QIcon::Normal, QIcon::Off);
 	powerRed.addFile(":/res/power-on-red.png", QSize(), QIcon::Normal, QIcon::On);
 
-//	powerAct = new QAction(QIcon(":/res/power.png"), tr("&Power"), this);
 	powerAct = new QAction(powerGreen, tr("&Power"), this);
 	powerAct->setStatusTip(tr("Powers Jaguar on/off"));
 	powerAct->setCheckable(true);
 	powerAct->setChecked(false);
-//	powerAct->setDisabled(true);
 	connect(powerAct, SIGNAL(triggered()), this, SLOT(TogglePowerState()));
 
 	QIcon pauseIcon;
 	pauseIcon.addFile(":/res/pause-off", QSize(), QIcon::Normal, QIcon::Off);
 	pauseIcon.addFile(":/res/pause-on", QSize(), QIcon::Normal, QIcon::On);
-//	pauseAct = new QAction(QIcon(":/res/pause.png"), tr("Pause"), this);
 	pauseAct = new QAction(pauseIcon, tr("Pause"), this);
 	pauseAct->setStatusTip(tr("Toggles the running state"));
 	pauseAct->setCheckable(true);
@@ -188,7 +185,10 @@ MainWin::MainWin(bool autoRun): running(true), powerButtonOn(false),
 	palAct->setCheckable(true);
 	connect(palAct, SIGNAL(triggered()), this, SLOT(SetPAL()));
 
-	blurAct = new QAction(QIcon(":/res/blur.png"), tr("Blur"), this);
+	blur.addFile(":/res/blur-off.png", QSize(), QIcon::Normal, QIcon::Off);
+	blur.addFile(":/res/blur-on.png", QSize(), QIcon::Normal, QIcon::On);
+
+	blurAct = new QAction(blur, tr("Blur"), this);
 	blurAct->setStatusTip(tr("Sets OpenGL rendering to GL_NEAREST"));
 	blurAct->setCheckable(true);
 	connect(blurAct, SIGNAL(triggered()), this, SLOT(ToggleBlur()));
@@ -725,6 +725,21 @@ static uint32_t ntscTickCount;
 		HandleGamepads();
 		JaguarExecuteNew();
 		videoWidget->HandleMouseHiding();
+
+static uint32_t refresh = 0;
+		// Do autorefresh on debug windows
+		// Have to be careful, too much causes the emulator to slow way down!
+		if (vjs.hardwareTypeAlpine)
+		{
+			if (refresh == 60)
+			{
+				memBrowseWin->RefreshContents();
+				cpuBrowseWin->RefreshContents();
+				refresh = 0;
+			}
+			else
+				refresh++;
+		}
 	}
 
 	videoWidget->updateGL();
