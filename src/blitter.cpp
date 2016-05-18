@@ -5387,7 +5387,7 @@ Addq_x		:= JOIN (addq_x, addq_x[0..5], addqt_x[6..15]);
 Addq_y		:= JOIN (addq_y, addq_y[0..15]);*/
 
 ////////////////////////////////////// C++ CODE //////////////////////////////////////
-	int16_t mask[8] = { 0xFFFF, 0xFFFE, 0xFFFC, 0xFFF8, 0xFFF0, 0xFFE0, 0xFFC0, 0x0000 };
+	uint16_t mask[8] = { 0xFFFF, 0xFFFE, 0xFFFC, 0xFFF8, 0xFFF0, 0xFFE0, 0xFFC0, 0x0000 };
 	addq_x = addqt_x & mask[modx];
 	addq_y = addqt_y & 0xFFFF;
 //////////////////////////////////////////////////////////////////////////////////////

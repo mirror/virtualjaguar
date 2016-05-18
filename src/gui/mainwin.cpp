@@ -964,7 +964,7 @@ void MainWin::LoadSoftware(QString file)
 	running = false;							// Prevent bad things(TM) from happening...
 	pauseForFileSelector = false;				// Reset the file selector pause flag
 
-	char * biosPointer = jaguarBootROM;
+	uint8_t * biosPointer = jaguarBootROM;
 
 	if (vjs.hardwareTypeAlpine)
 		biosPointer = jaguarDevBootROM2;

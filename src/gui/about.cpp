@@ -51,9 +51,8 @@ AboutWindow::AboutWindow(QWidget * parent/*= 0*/): QWidget(parent, Qt::Dialog)
 		"<b>Ryan C. Gordon</b> for Virtual Jaguar's web presence<br>"
 		"<b>Curt Vendel</b> for various Jaguar & other goodies<br>"
 		"<b>Reboot</b> for reasons too numerous to mention<br>"
-		"<b>The Free Jaguar Project</b> (you know why) ;-)<br>"
 		"The guys over at <b>Atari Age</b> :-)<br>"
-		"<b>byuu</b> for BSNES and showing us what was possible"
+		"<b>byuu</b> for <s>BSNES</s> Higan and showing us what was possible"
 	));
 	text = new QLabel(s);
 	layout->addWidget(text);

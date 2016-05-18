@@ -47,8 +47,8 @@ char ControllerWidget::hatName[4][16] = { "Up", "Rt", "Dn", "Lf" };
 char ControllerWidget::axisName[2][8] = { "+", "-" };
 
 // This is hard-coded crap. It's crap-tastic!
-// These are the positions to draw the button names at, ordered by the BUTTON_* sequence
-// found in joystick.h.
+// These are the positions to draw the button names at, ordered by the BUTTON_*
+// sequence found in joystick.h.
 int ControllerWidget::buttonPos[21][2] = { { 74, 32 }, { 71, 67 }, { 53, 49 }, { 93, 49 },
 	{ 110, 200 }, { 110, 175 }, { 110, 151 }, { 110, 126 },
 	{ 148, 200 }, { 148, 175 }, { 148, 151 }, { 148, 126 },
@@ -239,7 +239,8 @@ void ControllerWidget::mouseMoveEvent(QMouseEvent * event)
 
 	for(int i=BUTTON_FIRST; i<=BUTTON_LAST; i++)
 	{
-		// We loop through the button text positions, to see which one is closest.
+		// We loop through the button text positions, to see which one is
+		// closest.
 		double distX = (double)(event->x() - buttonPos[i][0]);
 		double distY = (double)(event->y() - buttonPos[i][1]);
 		double currentDistance = sqrt((distX * distX) + (distY * distY));
@@ -265,7 +266,8 @@ void ControllerWidget::leaveEvent(QEvent * /*event*/)
 
 void ControllerWidget::DrawBorderedText(QPainter & painter, int x, int y, QString text)
 {
-	// Text is drawn centered at (x, y) as well, using a bounding rect for the purpose.
+	// Text is drawn centered at (x, y) as well, using a bounding rect for the
+	// purpose.
 	QRect rect(0, 0, 60, 30);
 	QPen oldPen = painter.pen();
 	painter.setPen(QColor(0, 0, 0, 255));		// This is R,G,B,A

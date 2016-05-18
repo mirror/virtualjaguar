@@ -65,7 +65,7 @@ virtualjaguar: sources libs makefile-qt
 
 makefile-qt: virtualjaguar.pro
 	@echo -e "\033[01;33m***\033[00;32m Creating Qt makefile...\033[00m"
-	$(Q)$(CROSS)qmake $(QMAKE_EXTRA) virtualjaguar.pro -o makefile-qt
+	$(Q)$(CROSS)qmake -qt=5 $(QMAKE_EXTRA) virtualjaguar.pro -o makefile-qt
 
 libs: obj/libm68k.a obj/libjaguarcore.a
 	@echo -e "\033[01;33m***\033[00;32m Libraries successfully made.\033[00m"
