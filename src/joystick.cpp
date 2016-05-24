@@ -104,19 +104,23 @@ uint16_t JoystickReadWord(uint32_t offset)
 		if (offset0 != 0xFF)
 		{
 			uint16_t mask[4] = { 0xFEFF, 0xFDFF, 0xFBFF, 0xF7FF };
-//No!			uint16_t mask[4] = { 0xFFFE, 0xFFFD, 0xFFFB, 0xFFF7 };
+			uint16_t msk2[4] = { 0xFFFF, 0xFFFD, 0xFFFB, 0xFFF7 };
 
 			for(uint8_t i=0; i<4; i++)
 				data &= (joypad0Buttons[offset0 + i] ? mask[i] : 0xFFFF);
+
+			data &= msk2[offset0 / 4];
 		}
 
 		if (offset1 != 0xFF)
 		{
 			uint16_t mask[4] = { 0xEFFF, 0xDFFF, 0xBFFF, 0x7FFF };
-//No!			uint16_t mask[4] = { 0xFFEF, 0xFFDF, 0xFFBF, 0xFF7F };
+			uint16_t msk2[4] = { 0xFF7F, 0xFFBF, 0xFFDF, 0xFFEF };
 
 			for(uint8_t i=0; i<4; i++)
 				data &= (joypad1Buttons[offset1 + i] ? mask[i] : 0xFFFF);
+
+			data &= msk2[offset1 / 4];
 		}
 
 		return data;
@@ -124,7 +128,8 @@ uint16_t JoystickReadWord(uint32_t offset)
 	else if (offset == 2)
 	{
 		// Hardware ID returns NTSC/PAL identification bit here
-		uint16_t data = 0xFFEF | (vjs.hardwareTypeNTSC ? 0x10 : 0x00);
+		// N.B.: On real H/W, bit 7 is *always* zero...!
+		uint16_t data = 0xFF6F | (vjs.hardwareTypeNTSC ? 0x10 : 0x00);
 
 		if (!joysticksEnabled)
 			return data;
@@ -140,7 +145,7 @@ uint16_t JoystickReadWord(uint32_t offset)
 			uint8_t mask[4][2] = { { BUTTON_A, BUTTON_PAUSE }, { BUTTON_B, 0xFF }, { BUTTON_C, 0xFF }, { BUTTON_OPTION, 0xFF } };
 			data &= (joypad0Buttons[mask[offset0][0]] ? 0xFFFD : 0xFFFF);
 
-			if (mask[offset0][1] != -1)
+			if (mask[offset0][1] != 0xFF)
 				data &= (joypad0Buttons[mask[offset0][1]] ? 0xFFFE : 0xFFFF);
 		}
 
@@ -150,7 +155,7 @@ uint16_t JoystickReadWord(uint32_t offset)
 			uint8_t mask[4][2] = { { BUTTON_A, BUTTON_PAUSE }, { BUTTON_B, 0xFF }, { BUTTON_C, 0xFF }, { BUTTON_OPTION, 0xFF } };
 			data &= (joypad1Buttons[mask[offset1][0]] ? 0xFFF7 : 0xFFFF);
 
-			if (mask[offset1][1] != -1)
+			if (mask[offset1][1] != 0xFF)
 				data &= (joypad1Buttons[mask[offset1][1]] ? 0xFFFB : 0xFFFF);
 		}
 
