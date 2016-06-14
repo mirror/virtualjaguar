@@ -48,7 +48,7 @@ uint32_t JaguarLoadROM(uint8_t * &rom, char * path)
 #warning "!!! FIX !!! Should have sanity checking for ROM size to prevent buffer overflow!"
 	uint32_t romSize = 0;
 
-	WriteLog("JaguarLoadROM: Attempting to load file '%s'...", path);
+	WriteLog("FILE: JaguarLoadROM attempting to load file '%s'...", path);
 	char * ext = strrchr(path, '.');
 
 	// No filename extension == YUO FAIL IT (it is loading the file).
@@ -60,8 +60,8 @@ uint32_t JaguarLoadROM(uint8_t * &rom, char * path)
 		return 0;
 	}
 
-	WriteLog("Succeeded in finding extension (%s)!\n", ext);
-	WriteLog("VJ: Loading \"%s\"...", path);
+	WriteLog("\nFILE: Succeeded in finding extension (%s)!\n", ext);
+	WriteLog("FILE: Loading \"%s\"...", path);
 
 	if (strcasecmp(ext, ".zip") == 0)
 	{
@@ -277,7 +277,7 @@ bool AlpineLoadFile(char * path)
 	}
 
 	jaguarMainROMCRC32 = crc32_calcCheckSum(buffer, jaguarROMSize);
-	WriteLog("CRC: %08X\n", (unsigned int)jaguarMainROMCRC32);
+	WriteLog("FILE: CRC is %08X\n", (unsigned int)jaguarMainROMCRC32);
 	EepromInit();
 
 	jaguarRunAddress = 0x802000;

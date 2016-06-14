@@ -9,7 +9,7 @@
 // JLH = James Hammons <jlhamm@acm.org>
 //
 // Who  When        What
-// ---  ----------  -------------------------------------------------------------
+// ---  ----------  ------------------------------------------------------------
 // JLH  01/16/2010  Created this log ;-)
 //
 
@@ -63,6 +63,13 @@ static bool haveCDROMEEPROM = false;
 
 void EepromInit(void)
 {
+	// No need for EEPROM for the Memory Track device :-P
+	if (jaguarMainROMCRC32 == 0xFDF37F47)
+	{
+		WriteLog("EEPROM: Memory Track device detected...\n");
+		return;
+	}
+
 	// Handle regular cartridge EEPROM
 	sprintf(eeprom_filename, "%s%08X.eeprom", vjs.EEPROMPath, (unsigned int)jaguarMainROMCRC32);
 	sprintf(cdromEEPROMFilename, "%scdrom.eeprom", vjs.EEPROMPath);
@@ -141,7 +148,7 @@ static void EEPROMSave(void)
 void ReadEEPROMFromFile(FILE * file, uint16_t * ram)
 {
 	uint8_t buffer[128];
-	fread(buffer, 1, 128, file);
+	size_t ignored = fread(buffer, 1, 128, file);
 
 	for(int i=0; i<64; i++)
 		ram[i] = (buffer[(i * 2) + 0] << 8) | buffer[(i * 2) + 1];

@@ -71,6 +71,7 @@ OBJS := \
 	obj/joystick.o     \
 	obj/log.o          \
 	obj/memory.o       \
+	obj/memtrack.o     \
 	obj/mmu.o          \
 	obj/op.o           \
 	obj/settings.o     \

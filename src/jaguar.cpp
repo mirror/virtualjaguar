@@ -32,6 +32,7 @@
 #include "log.h"
 #include "m68000/m68kinterface.h"
 //#include "memory.h"
+#include "memtrack.h"
 #include "mmu.h"
 #include "settings.h"
 #include "tom.h"
@@ -1163,7 +1164,16 @@ unsigned int m68k_read_memory_16(unsigned int address)
 		retVal = GET16(jaguarMainRAM, address);
 //	else if ((address >= 0x800000) && (address <= 0xDFFFFE))
 	else if ((address >= 0x800000) && (address <= 0xDFFEFE))
-		retVal = (jaguarMainROM[address - 0x800000] << 8) | jaguarMainROM[address - 0x800000 + 1];
+	{
+		// Memory Track reading...
+		if (((TOMGetMEMCON1() & 0x0006) == (2 << 1)) && (jaguarMainROMCRC32 == 0xFDF37F47))
+		{
+			retVal = MTReadWord(address);
+		}
+		else
+			retVal = (jaguarMainROM[address - 0x800000] << 8)
+				| jaguarMainROM[address - 0x800000 + 1];
+	}
 	else if ((address >= 0xE00000) && (address <= 0xE3FFFE))
 //		retVal = (jaguarBootROM[address - 0xE00000] << 8) | jaguarBootROM[address - 0xE00000 + 1];
 //		retVal = (jaguarDevBootROM1[address - 0xE00000] << 8) | jaguarDevBootROM1[address - 0xE00000 + 1];
@@ -1208,7 +1218,20 @@ unsigned int m68k_read_memory_32(unsigned int address)
 
 //WriteLog("--> [RM32]\n");
 #ifndef USE_NEW_MMU
-    return (m68k_read_memory_16(address) << 16) | m68k_read_memory_16(address + 2);
+	uint32_t retVal = 0;
+
+	if ((address >= 0x800000) && (address <= 0xDFFEFE))
+	{
+		// Memory Track reading...
+		if (((TOMGetMEMCON1() & 0x0006) == (2 << 1)) && (jaguarMainROMCRC32 == 0xFDF37F47))
+			retVal = MTReadLong(address);
+		else
+			retVal = GET32(jaguarMainROM, address - 0x800000);
+
+		return retVal;
+	}
+
+	return (m68k_read_memory_16(address) << 16) | m68k_read_memory_16(address + 2);
 #else
 	return MMURead32(address, M68K);
 #endif
@@ -1345,6 +1368,12 @@ if (address == 0xF02110)
 /*		jaguar_mainRam[address] = value >> 8;
 		jaguar_mainRam[address + 1] = value & 0xFF;*/
 		SET16(jaguarMainRAM, address, value);
+	}
+	// Memory Track device writes....
+	else if ((address >= 0x800000) && (address <= 0x87FFFE))
+	{
+		if (((TOMGetMEMCON1() & 0x0006) == (2 << 1)) && (jaguarMainROMCRC32 == 0xFDF37F47))
+			MTWriteWord(address, value);
 	}
 	else if ((address >= 0xDFFF00) && (address <= 0xDFFFFE))
 		CDROMWriteWord(address, value, M68K);

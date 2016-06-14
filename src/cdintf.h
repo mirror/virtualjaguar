@@ -1,7 +1,7 @@
 //
 // CDINTF.H: OS agnostic CDROM access funcions
 //
-// by James L. Hammons
+// by James Hammons
 //
 
 #ifndef __CDINTF_H__

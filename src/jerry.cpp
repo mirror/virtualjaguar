@@ -164,6 +164,7 @@
 #include "joystick.h"
 #include "log.h"
 #include "m68000/m68kinterface.h"
+#include "memtrack.h"
 #include "settings.h"
 #include "tom.h"
 //#include "memory.h"
@@ -358,6 +359,7 @@ void JERRYI2SCallback(void)
 void JERRYInit(void)
 {
 	JoystickInit();
+	MTInit();
 	memcpy(&jerry_ram_8[0xD000], waveTableROM, 0x1000);
 
 	JERRYPIT1Prescaler = 0xFFFF;
@@ -375,6 +377,7 @@ void JERRYReset(void)
 {
 	JoystickReset();
 	EepromReset();
+	MTReset();
 	JERRYResetI2S();
 
 	memset(jerry_ram_8, 0x00, 0xD000);		// Don't clear out the Wavetable ROM...!
@@ -398,6 +401,7 @@ void JERRYDone(void)
 	JoystickDone();
 	DACDone();
 	EepromDone();
+	MTDone();
 }
 
 

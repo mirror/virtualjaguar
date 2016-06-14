@@ -9,7 +9,7 @@
 // JLH = James Hammons <jlhamm@acm.org>
 //
 // Who  When        What
-// ---  ----------  -------------------------------------------------------------
+// ---  ----------  ------------------------------------------------------------
 // JLH  01/16/2010  Created this log ;-)
 //
 
@@ -172,8 +172,9 @@ static uint16_t CDROMBusRead(void);
 #define I2SDAT2		BUTCH + 0x28		// i2s FIFO data (old)
 #define UNKNOWN		BUTCH + 0x2C		// Seems to be some sort of I2S interface
 
-const char * BReg[12] = { "BUTCH", "DSCNTRL", "DS_DATA", "???", "I2CNTRL", "SBCNTRL", "SUBDATA", "SUBDATB",
-	"SB_TIME", "FIFO_DATA", "I2SDAT2", "UNKNOWN" };
+const char * BReg[12] = { "BUTCH", "DSCNTRL", "DS_DATA", "???", "I2CNTRL",
+	"SBCNTRL", "SUBDATA", "SUBDATB", "SB_TIME", "FIFO_DATA", "I2SDAT2",
+	"UNKNOWN" };
 //extern const char * whoName[9];
 
 
